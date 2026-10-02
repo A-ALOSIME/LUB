@@ -1,0 +1,5 @@
+ALTER TABLE "lub"."generated_documents" DROP CONSTRAINT "document_state_check";--> statement-breakpoint
+ALTER TABLE "lub"."generated_documents" ALTER COLUMN "status_code" SET DEFAULT 'Generating';--> statement-breakpoint
+ALTER TABLE "lub"."generated_documents" ADD COLUMN "upload_attempt" uuid DEFAULT gen_random_uuid() NOT NULL;--> statement-breakpoint
+ALTER TABLE "lub"."generated_documents" ADD COLUMN "upload_started_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "lub"."generated_documents" ADD CONSTRAINT "document_state_check" CHECK ("lub"."generated_documents"."status_code" in ('Generating','Ready','Failed','Archived') and ("lub"."generated_documents"."status_code"='Archived')=("lub"."generated_documents"."archived_at" is not null) and ("lub"."generated_documents"."period_start" is null)=("lub"."generated_documents"."period_end" is null) and ("lub"."generated_documents"."period_start" is null or "lub"."generated_documents"."period_end">="lub"."generated_documents"."period_start"));

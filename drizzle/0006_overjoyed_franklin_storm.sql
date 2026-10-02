@@ -1,0 +1,2 @@
+ALTER TABLE "lub"."bulk_action_items" ADD COLUMN "expected_status_revision" integer NOT NULL;--> statement-breakpoint
+ALTER TABLE "lub"."membership_applications" ADD COLUMN "status_revision" integer DEFAULT 1 NOT NULL;

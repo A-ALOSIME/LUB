@@ -1,0 +1,21 @@
+import { expect,it,vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { initialDefinition } from "@/features/forms/definition";
+const fixture=vi.hoisted(()=>({getVerifiedUser:vi.fn(),getRound:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({getVerifiedUser:fixture.getVerifiedUser}));
+vi.mock("@/lib/preferences",()=>({getPreferences:async()=>({locale:"ar",theme:"light"})}));
+vi.mock("@/features/forms/repository",()=>({getRound:fixture.getRound}));
+vi.mock("@/components/public-header",()=>({PublicHeader:()=>null}));
+vi.mock("@/features/forms/application-form",()=>({ApplicationForm:()=>null}));
+vi.mock("@/features/forms/application-detail",()=>({ApplicationDetail:()=>null}));
+vi.mock("@/features/forms/mutation-form",()=>({WorkflowForm:()=>null}));
+import ApplyPage from "./page";
+const round="00000000-0000-4000-8000-000000000001";
+it("lets a signed-in visitor preview questions before choosing onboarding and preserves the selected round",async()=>{
+ fixture.getVerifiedUser.mockResolvedValue({id:"student"});
+ fixture.getRound.mockResolvedValue({id:round,slug:"tech",name:"نادي التقنية",title:"انضمام",closes_at:"2027-01-01",open:true,onboarded:false,accountStatus:null,application:null,version:{definition:initialDefinition},committees:[]});
+ const html=renderToStaticMarkup(await ApplyPage({params:Promise.resolve({slug:"tech",round})}));
+ expect(html).toContain("أسئلة طلب الانضمام");expect(html).toContain("أكمل بياناتك وقدّم الطلب");
+ expect(html).toContain("/onboarding?next="+encodeURIComponent("/organizations/tech/apply/"+round));
+ expect(html).not.toContain("إرسال طلب الانضمام");
+});

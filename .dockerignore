@@ -1,0 +1,24 @@
+# Allow only build inputs. Private environment files, PDFs and runtime data stay out.
+*
+!package.json
+!package-lock.json
+!next.config.ts
+!tsconfig.json
+!postcss.config.mjs
+!scripts/
+!scripts/prepare-standalone.mjs
+!public/
+!public/**
+!src/
+!src/**
+!config/
+!config/supabase-prod-ca-2021.crt
+!services/
+!services/ai/
+!services/ai/app.py
+!services/ai/knowledge.json
+!services/ai/requirements.lock
+**/.env*
+**/.venv/**
+**/__pycache__/**
+**/*.log

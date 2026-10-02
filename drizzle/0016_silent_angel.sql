@@ -1,0 +1,2 @@
+ALTER TABLE "lub"."permission_grants" DROP CONSTRAINT "grant_scope_check";--> statement-breakpoint
+ALTER TABLE "lub"."permission_grants" ADD CONSTRAINT "grant_scope_check" CHECK ("lub"."permission_grants"."committee_id" is null or "lub"."permission_grants"."permission_code" in ('COMMITTEE_PROFILE_MANAGE','MEMBERS_VIEW','APPLICATIONS_VIEW','APPLICATIONS_REVIEW','APPLICATIONS_BULK_ACTION','TASKS_MANAGE','TASK_TEMPLATES_MANAGE','HOUR_RULES_MANAGE','HOURS_APPROVE','HOURS_MANUAL_ADD','REPORTS_GENERATE'));

@@ -1,0 +1,1366 @@
+{
+  "id": "be840501-bf6f-4ffd-81ab-998a593aeb1c",
+  "prevId": "f12d2eb0-ec24-4810-9928-5f76292df68d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "lub.audit_log": {
+      "name": "audit_log",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_code": {
+          "name": "action_code",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "audit_actor_time_idx": {
+          "name": "audit_actor_time_idx",
+          "columns": [
+            {
+              "expression": "actor_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audit_log_actor_user_id_users_id_fk": {
+          "name": "audit_log_actor_user_id_users_id_fk",
+          "tableFrom": "audit_log",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "audit_log_organization_id_organizations_id_fk": {
+          "name": "audit_log_organization_id_organizations_id_fk",
+          "tableFrom": "audit_log",
+          "tableTo": "organizations",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "lub.committees": {
+      "name": "committees",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "is_public": {
+          "name": "is_public",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Active'"
+        },
+        "copied_from_committee_id": {
+          "name": "copied_from_committee_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "committee_org_idx": {
+          "name": "committee_org_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "committees_organization_id_organizations_id_fk": {
+          "name": "committees_organization_id_organizations_id_fk",
+          "tableFrom": "committees",
+          "tableTo": "organizations",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "committees_copied_from_committee_id_committees_id_fk": {
+          "name": "committees_copied_from_committee_id_committees_id_fk",
+          "tableFrom": "committees",
+          "tableTo": "committees",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "copied_from_committee_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "committee_org_identity_unique": {
+          "name": "committee_org_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "organization_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "committee_status_check": {
+          "name": "committee_status_check",
+          "value": "\"lub\".\"committees\".\"status_code\" in ('Active', 'Archived')"
+        },
+        "committee_archive_check": {
+          "name": "committee_archive_check",
+          "value": "(\"lub\".\"committees\".\"status_code\" = 'Archived') = (\"lub\".\"committees\".\"archived_at\" is not null)"
+        },
+        "committee_text_check": {
+          "name": "committee_text_check",
+          "value": "char_length(\"lub\".\"committees\".\"name\") between 2 and 120 and char_length(\"lub\".\"committees\".\"description\") <= 2000"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.global_role_assignments": {
+      "name": "global_role_assignments",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_code": {
+          "name": "role_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_at": {
+          "name": "start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "end_at": {
+          "name": "end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_by_user_id": {
+          "name": "assigned_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "one_current_sa_assignment_idx": {
+          "name": "one_current_sa_assignment_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"lub\".\"global_role_assignments\".\"end_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "global_role_assignments_user_id_users_id_fk": {
+          "name": "global_role_assignments_user_id_users_id_fk",
+          "tableFrom": "global_role_assignments",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "global_role_assignments_assigned_by_user_id_users_id_fk": {
+          "name": "global_role_assignments_assigned_by_user_id_users_id_fk",
+          "tableFrom": "global_role_assignments",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "assigned_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "global_role_code_check": {
+          "name": "global_role_code_check",
+          "value": "\"lub\".\"global_role_assignments\".\"role_code\" = 'SA'"
+        },
+        "global_role_dates_check": {
+          "name": "global_role_dates_check",
+          "value": "\"lub\".\"global_role_assignments\".\"end_at\" is null or \"lub\".\"global_role_assignments\".\"end_at\" >= \"lub\".\"global_role_assignments\".\"start_at\""
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.organization_links": {
+      "name": "organization_links",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "organization_links_organization_id_organizations_id_fk": {
+          "name": "organization_links_organization_id_organizations_id_fk",
+          "tableFrom": "organization_links",
+          "tableTo": "organizations",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "org_link_https_check": {
+          "name": "org_link_https_check",
+          "value": "\"lub\".\"organization_links\".\"url\" ~ '^https://[^[:space:]]+$' and char_length(\"lub\".\"organization_links\".\"url\") <= 2048"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.organization_memberships": {
+      "name": "organization_memberships",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Active'"
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "current_date"
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_reason": {
+          "name": "ended_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "one_active_membership_idx": {
+          "name": "one_active_membership_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"lub\".\"organization_memberships\".\"status_code\" = 'Active' and \"lub\".\"organization_memberships\".\"end_date\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "organization_memberships_organization_id_organizations_id_fk": {
+          "name": "organization_memberships_organization_id_organizations_id_fk",
+          "tableFrom": "organization_memberships",
+          "tableTo": "organizations",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "organization_memberships_user_id_users_id_fk": {
+          "name": "organization_memberships_user_id_users_id_fk",
+          "tableFrom": "organization_memberships",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "membership_org_identity_unique": {
+          "name": "membership_org_identity_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "organization_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "membership_status_check": {
+          "name": "membership_status_check",
+          "value": "\"lub\".\"organization_memberships\".\"status_code\" in ('Active', 'Inactive', 'Ended')"
+        },
+        "membership_dates_check": {
+          "name": "membership_dates_check",
+          "value": "\"lub\".\"organization_memberships\".\"end_date\" is null or \"lub\".\"organization_memberships\".\"end_date\" >= \"lub\".\"organization_memberships\".\"start_date\""
+        },
+        "membership_ended_check": {
+          "name": "membership_ended_check",
+          "value": "\"lub\".\"organization_memberships\".\"status_code\" <> 'Ended' or \"lub\".\"organization_memberships\".\"end_date\" is not null"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.organization_tags": {
+      "name": "organization_tags",
+      "schema": "lub",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "organization_tags_organization_id_organizations_id_fk": {
+          "name": "organization_tags_organization_id_organizations_id_fk",
+          "tableFrom": "organization_tags",
+          "tableTo": "organizations",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "organization_tags_tag_id_tags_id_fk": {
+          "name": "organization_tags_tag_id_tags_id_fk",
+          "tableFrom": "organization_tags",
+          "tableTo": "tags",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "organization_tags_organization_id_tag_id_pk": {
+          "name": "organization_tags_organization_id_tag_id_pk",
+          "columns": [
+            "organization_id",
+            "tag_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "lub.organizations": {
+      "name": "organizations",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "type_code": {
+          "name": "type_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_ar": {
+          "name": "name_ar",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "mission": {
+          "name": "mission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Active'"
+        },
+        "show_leadership_publicly": {
+          "name": "show_leadership_publicly",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "org_status_name_idx": {
+          "name": "org_status_name_idx",
+          "columns": [
+            {
+              "expression": "status_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name_ar",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "organizations_slug_unique": {
+          "name": "organizations_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "org_type_check": {
+          "name": "org_type_check",
+          "value": "\"lub\".\"organizations\".\"type_code\" in ('Club', 'Council')"
+        },
+        "org_status_check": {
+          "name": "org_status_check",
+          "value": "\"lub\".\"organizations\".\"status_code\" in ('Active', 'Inactive', 'Archived')"
+        },
+        "org_slug_check": {
+          "name": "org_slug_check",
+          "value": "\"lub\".\"organizations\".\"slug\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'"
+        },
+        "org_archive_check": {
+          "name": "org_archive_check",
+          "value": "(\"lub\".\"organizations\".\"status_code\" = 'Archived') = (\"lub\".\"organizations\".\"archived_at\" is not null)"
+        },
+        "org_text_check": {
+          "name": "org_text_check",
+          "value": "char_length(\"lub\".\"organizations\".\"name_ar\") between 2 and 120 and char_length(\"lub\".\"organizations\".\"summary\") <= 1000 and char_length(\"lub\".\"organizations\".\"mission\") <= 3000"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.permission_grants": {
+      "name": "permission_grants",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_membership_id": {
+          "name": "organization_membership_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "committee_id": {
+          "name": "committee_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "permission_code": {
+          "name": "permission_code",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_at": {
+          "name": "start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "end_at": {
+          "name": "end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "granted_by_user_id": {
+          "name": "granted_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "grant_membership_idx": {
+          "name": "grant_membership_idx",
+          "columns": [
+            {
+              "expression": "organization_membership_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "permission_grants_granted_by_user_id_users_id_fk": {
+          "name": "permission_grants_granted_by_user_id_users_id_fk",
+          "tableFrom": "permission_grants",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "granted_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "permission_grants_organization_membership_id_organization_id_organization_memberships_id_organization_id_fk": {
+          "name": "permission_grants_organization_membership_id_organization_id_organization_memberships_id_organization_id_fk",
+          "tableFrom": "permission_grants",
+          "tableTo": "organization_memberships",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_membership_id",
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organization_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "permission_grants_committee_id_organization_id_committees_id_organization_id_fk": {
+          "name": "permission_grants_committee_id_organization_id_committees_id_organization_id_fk",
+          "tableFrom": "permission_grants",
+          "tableTo": "committees",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "committee_id",
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organization_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "grant_code_check": {
+          "name": "grant_code_check",
+          "value": "\"lub\".\"permission_grants\".\"permission_code\" in ('ORG_PROFILE_MANAGE','COMMITTEE_MANAGE','COMMITTEE_PROFILE_MANAGE','MEMBERS_VIEW')"
+        },
+        "grant_scope_check": {
+          "name": "grant_scope_check",
+          "value": "\"lub\".\"permission_grants\".\"committee_id\" is null or \"lub\".\"permission_grants\".\"permission_code\" in ('COMMITTEE_PROFILE_MANAGE','MEMBERS_VIEW')"
+        },
+        "grant_dates_check": {
+          "name": "grant_dates_check",
+          "value": "\"lub\".\"permission_grants\".\"end_at\" is null or \"lub\".\"permission_grants\".\"end_at\" > \"lub\".\"permission_grants\".\"start_at\""
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.profile_settings": {
+      "name": "profile_settings",
+      "schema": "lub",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "public_profile_enabled": {
+          "name": "public_profile_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "show_total_hours": {
+          "name": "show_total_hours",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "show_role_history": {
+          "name": "show_role_history",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "profile_settings_user_id_users_id_fk": {
+          "name": "profile_settings_user_id_users_id_fk",
+          "tableFrom": "profile_settings",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "lub.role_assignments": {
+      "name": "role_assignments",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_membership_id": {
+          "name": "organization_membership_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "committee_id": {
+          "name": "committee_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role_code": {
+          "name": "role_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_primary_leader": {
+          "name": "is_primary_leader",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "current_date"
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_by_user_id": {
+          "name": "assigned_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "one_primary_leader_idx": {
+          "name": "one_primary_leader_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"lub\".\"role_assignments\".\"is_primary_leader\" and \"lub\".\"role_assignments\".\"end_date\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "role_membership_idx": {
+          "name": "role_membership_idx",
+          "columns": [
+            {
+              "expression": "organization_membership_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "role_assignments_assigned_by_user_id_users_id_fk": {
+          "name": "role_assignments_assigned_by_user_id_users_id_fk",
+          "tableFrom": "role_assignments",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "assigned_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "role_assignments_organization_membership_id_organization_id_organization_memberships_id_organization_id_fk": {
+          "name": "role_assignments_organization_membership_id_organization_id_organization_memberships_id_organization_id_fk",
+          "tableFrom": "role_assignments",
+          "tableTo": "organization_memberships",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "organization_membership_id",
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organization_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "role_assignments_committee_id_organization_id_committees_id_organization_id_fk": {
+          "name": "role_assignments_committee_id_organization_id_committees_id_organization_id_fk",
+          "tableFrom": "role_assignments",
+          "tableTo": "committees",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "committee_id",
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id",
+            "organization_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "role_scope_check": {
+          "name": "role_scope_check",
+          "value": "(\"lub\".\"role_assignments\".\"role_code\" in ('OL','OD') and \"lub\".\"role_assignments\".\"committee_id\" is null) or (\"lub\".\"role_assignments\".\"role_code\" in ('CL','CD') and \"lub\".\"role_assignments\".\"committee_id\" is not null)"
+        },
+        "role_primary_check": {
+          "name": "role_primary_check",
+          "value": "\"lub\".\"role_assignments\".\"is_primary_leader\" = (\"lub\".\"role_assignments\".\"role_code\" = 'OL')"
+        },
+        "role_dates_check": {
+          "name": "role_dates_check",
+          "value": "\"lub\".\"role_assignments\".\"end_date\" is null or \"lub\".\"role_assignments\".\"end_date\" >= \"lub\".\"role_assignments\".\"start_date\""
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "lub.student_profiles": {
+      "name": "student_profiles",
+      "schema": "lub",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "full_name_ar": {
+          "name": "full_name_ar",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "university_id_ciphertext": {
+          "name": "university_id_ciphertext",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "university_id_lookup_hash": {
+          "name": "university_id_lookup_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "major_name": {
+          "name": "major_name",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "academic_level": {
+          "name": "academic_level",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "student_profiles_user_id_users_id_fk": {
+          "name": "student_profiles_user_id_users_id_fk",
+          "tableFrom": "student_profiles",
+          "tableTo": "users",
+          "schemaTo": "lub",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "student_profiles_university_id_lookup_hash_unique": {
+          "name": "student_profiles_university_id_lookup_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "university_id_lookup_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "lub.tags": {
+      "name": "tags",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name_ar": {
+          "name": "name_ar",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tags_name_ar_unique": {
+          "name": "tags_name_ar_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name_ar"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "lub.users": {
+      "name": "users",
+      "schema": "lub",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(254)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_code": {
+          "name": "status_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Active'"
+        },
+        "email_verified_at": {
+          "name": "email_verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "users_phone_unique": {
+          "name": "users_phone_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "users_status_check": {
+          "name": "users_status_check",
+          "value": "\"lub\".\"users\".\"status_code\" in ('Active', 'Inactive')"
+        }
+      },
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "lub": "lub"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

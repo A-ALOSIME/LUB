@@ -1,0 +1,6 @@
+services:
+  web:
+    environment:
+      AI_SERVICE_URL: http://ai:8000
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?}
+    networks: [default, knowledge]

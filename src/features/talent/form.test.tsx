@@ -1,0 +1,9 @@
+// @vitest-environment jsdom
+import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
+import {afterEach,expect,it,vi} from "vitest";
+vi.mock("./actions",()=>({mutateTalent:async()=>({error:"تعذّر حفظ الملف"})}));
+vi.mock("@/features/forms/actions",()=>({mutateWorkflow:vi.fn()}));
+import {TalentForm,LinkFields,NewProject} from "./form";
+afterEach(cleanup);
+it("keeps contact details private by default and retains typed content after failure",async()=>{render(<TalentForm operation="link" label="حفظ"><LinkFields/></TalentForm>);expect((screen.getByLabelText("إظهار قناة التواصل للعامة") as HTMLInputElement).checked).toBe(false);fireEvent.change(screen.getByLabelText("عنوان قناة التواصل"),{target:{value:"موقعي"}});fireEvent.change(screen.getByLabelText("الرابط أو البريد أو الهاتف"),{target:{value:"https://example.invalid"}});fireEvent.submit(screen.getByRole("button",{name:"حفظ"}).closest("form")!);await waitFor(()=>expect(document.activeElement).toBe(screen.getByRole("alert")));expect((screen.getByLabelText("عنوان قناة التواصل") as HTMLInputElement).value).toBe("موقعي");});
+it("switches the verified source without submitting both task and contribution IDs",()=>{const {container}=render(<NewProject sources={[{id:"task-source",kind:"Task",title:"مهمة"},{id:"event-source",kind:"Event",title:"مساهمة"}]}/>);expect(container.querySelector<HTMLInputElement>('input[name="participant"]')?.value).toBe("task-source");fireEvent.change(screen.getByLabelText("النشاط الموثق"),{target:{value:"event-source"}});expect(container.querySelector('input[name="participant"]')).toBeNull();expect(container.querySelector<HTMLInputElement>('input[name="contribution"]')?.value).toBe("event-source");expect((screen.getByLabelText("إظهار هذا الإنجاز للعامة") as HTMLInputElement).checked).toBe(false);});

@@ -1,0 +1,4 @@
+export const taskLabels:Record<string,string>={Draft:"مسودة",Open:"مفتوحة",Overdue:"متأخرة",Completed:"مكتملة",Cancelled:"ملغاة",Joined:"منضم",In_Progress:"قيد العمل",Submitted:"قيد المراجعة",Approved:"معتمدة",Rejected:"تحتاج تعديلًا",Closed:"مشاركة مغلقة"};
+export const formatTaskDate=(value:string|null)=>value?new Intl.DateTimeFormat("ar-SA",{dateStyle:"medium",timeStyle:"short",calendar:"gregory",timeZone:"Asia/Riyadh"}).format(new Date(value)):"غير محدد";
+export const taskLabelsEn:Record<string,string>={Draft:"Draft",Open:"Open",Overdue:"Overdue",Completed:"Completed",Cancelled:"Cancelled",Joined:"Joined",In_Progress:"In progress",Submitted:"Under review",Approved:"Approved",Rejected:"Needs revision",Closed:"Participation closed"};
+export const formatTaskDateEn=(value:string|null)=>value?new Intl.DateTimeFormat("en-US",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Riyadh"}).format(new Date(value)):"Not set";

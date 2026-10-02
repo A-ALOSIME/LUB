@@ -1,0 +1,20 @@
+import { afterEach,beforeEach,expect,it,vi } from "vitest";
+const cookie=vi.hoisted(()=>({set:vi.fn(),delete:vi.fn()}));
+const user="00000000-0000-4000-8000-000000000001";const org="00000000-0000-4000-8000-000000000002";
+vi.mock("server-only",()=>({}));
+vi.mock("next/headers",()=>({cookies:async()=>cookie}));
+vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:user})}));
+vi.mock("next/navigation",()=>({redirect:(path:string)=>{throw new Error("redirect:"+path);}}));
+import { searchApplications } from "./search-action";
+import { decryptIdentifier,identifierLookup } from "@/lib/identifiers";
+beforeEach(()=>{vi.clearAllMocks();vi.stubEnv("IDENTIFIER_ENCRYPTION_KEY",Buffer.alloc(32,1).toString("base64"));vi.stubEnv("IDENTIFIER_LOOKUP_KEY",Buffer.alloc(32,2).toString("base64"));vi.stubEnv("APP_URL","http://127.0.0.1:3000");});
+afterEach(()=>vi.unstubAllEnvs());
+it("keeps the normalized number/hash out of navigation and binds encrypted searches to actor and organization",async()=>{
+ const form=new FormData();form.set("org",org);form.set("university","٢١٢٣٤٥");form.set("status","Submitted");
+ await expect(searchApplications(form)).rejects.toThrow("redirect:/manage/organizations/"+org+"/applications?status=Submitted");
+ const envelope=cookie.set.mock.calls[0][1] as string;const hash=identifierLookup("212345");
+ expect(envelope).not.toContain("212345");expect(envelope).not.toContain(hash);
+ expect(decryptIdentifier(envelope,`application-search:${user}:${org}`)).toBe(hash);
+ expect(()=>decryptIdentifier(envelope,`application-search:${org}:${user}`)).toThrow();
+ expect(cookie.set).toHaveBeenCalledWith("lub-application-search",expect.any(String),expect.objectContaining({httpOnly:true,maxAge:600,path:"/manage"}));
+});

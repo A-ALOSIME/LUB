@@ -1,0 +1,10 @@
+import {createHash} from 'node:crypto';
+import {beforeEach,expect,it,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({upload:vi.fn(),download:vi.fn(),remove:vi.fn()}));vi.mock('server-only',()=>({}));vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({storage:{from:()=>mocks}})}));
+import {storeDocument,type DocumentUpload} from './storage';
+const body='بيان محفوظ',asset:DocumentUpload={document_id:'id',upload_attempt:'attempt',body,original_name:'certificate.html',storage_key:'documents/certificate.html',mime_type:'text/html',size_bytes:Buffer.byteLength(body),checksum_sha256:createHash('sha256').update(body).digest('hex')};
+beforeEach(()=>{vi.resetAllMocks();mocks.upload.mockResolvedValue({error:null});mocks.remove.mockResolvedValue({error:null});mocks.download.mockResolvedValue({data:new Blob([body]),error:null});});
+it('uploads without overwriting and verifies the stored bytes before readiness',async()=>{await storeDocument(asset);expect(mocks.upload).toHaveBeenCalledWith(asset.storage_key,Buffer.from(body),{contentType:'text/html',upsert:false});expect(mocks.remove).not.toHaveBeenCalled();});
+it('accepts an identical file from an interrupted attempt without rewriting it',async()=>{mocks.upload.mockResolvedValue({error:{status:409}});await storeDocument(asset);expect(mocks.upload).toHaveBeenCalledTimes(1);expect(mocks.remove).not.toHaveBeenCalled();});
+it('cleans up only a mismatched interrupted upload and rechecks its replacement',async()=>{mocks.upload.mockResolvedValueOnce({error:{status:409}}).mockResolvedValue({error:null});mocks.download.mockResolvedValueOnce({data:new Blob(['wrong']),error:null}).mockResolvedValue({data:new Blob([body]),error:null});await storeDocument(asset);expect(mocks.remove).toHaveBeenCalledWith([asset.storage_key]);expect(mocks.upload).toHaveBeenCalledTimes(2);});
+it('rejects corruption and unavailable Storage instead of claiming a ready file',async()=>{await expect(storeDocument({...asset,checksum_sha256:'wrong'})).rejects.toThrow();expect(mocks.upload).not.toHaveBeenCalled();mocks.download.mockResolvedValue({data:null,error:{}});await expect(storeDocument(asset)).rejects.toThrow();});
