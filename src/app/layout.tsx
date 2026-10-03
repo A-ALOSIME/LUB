@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { getPreferences } from "@/lib/preferences";
+import { ChatWidget } from "@/features/ai/chat-widget";
 import "./globals.css";
 
 const thmanyahSans = localFont({
@@ -49,5 +50,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={`${thmanyahSans.variable} ${thmanyahDisplay.variable}`}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
     {children}
+    <ChatWidget locale={locale} />
   </body></html>;
 }
