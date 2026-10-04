@@ -35,6 +35,12 @@ it("opens an accessible floating panel outside the dedicated AI page", () => {
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
+it("keeps the composer free of generic guidance and privacy footer copy", () => {
+  render(<ChatWidget locale="ar" inline/>);
+  expect(screen.queryByText("اسأل عن أندية لُبّ وفعالياته وخدماته.")).toBeNull();
+  expect(screen.queryByText("اسأل عن محتوى لُبّ العام فقط، ولا تكتب معلوماتك الشخصية.")).toBeNull();
+});
+
 it("shows the inline composer and streams a safe answer with source links and copy", async () => {
   const copy = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", {configurable: true, value: {writeText: copy}});

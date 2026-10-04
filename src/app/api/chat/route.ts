@@ -64,32 +64,51 @@ export async function POST(request: Request) {
   try {body = JSON.parse(text);} catch {return responseError("Invalid request", 400);}
   const input = question.safeParse(body);
   if (!input.success) return responseError("Invalid question", 400);
+  let url: URL;
+  try {url = new URL(process.env.RAG_API_URL ?? "");}
+  catch {
+    console.warn("Ask LUB configuration unavailable", {reason: "url"});
+    return responseError("المساعد غير متاح حاليًا. حاول مرة ثانية.", 503);
+  }
+  const token = process.env.RAG_API_TOKEN;
+  if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash || !token || token.length < 32) {
+    console.warn("Ask LUB configuration unavailable", {reason: !token || token.length < 32 ? "token" : "url"});
+    return responseError("المساعد غير متاح حاليًا. حاول مرة ثانية.", 503);
+  }
+  const abort = new AbortController();
+  let upstream: Response;
   try {
-    const url = new URL(process.env.RAG_API_URL ?? ""), token = process.env.RAG_API_TOKEN;
-    if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash || !token || token.length < 32) throw new Error("Not configured");
-    const abort = new AbortController();
-    const upstream = await fetch(new URL("/api/v1/nlp/chat/stream/lub", url), {
-      method: "POST", cache: "no-store", redirect: "error",
+    upstream = await fetch(new URL("/api/v1/nlp/chat/stream/lub", url), {
+      method: "POST", cache: "no-store", redirect: "manual",
       headers: {"Content-Type": "application/json", Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "1"},
       body: JSON.stringify({...input.data, limit: 5}),
       signal: AbortSignal.any([abort.signal, request.signal, AbortSignal.timeout(120000)]),
     });
-    if (!upstream.ok || !upstream.body || !upstream.headers.get("content-type")?.toLowerCase().startsWith("text/event-stream")) throw new Error("Service unavailable");
-    const encoder = new TextEncoder();
-    let cancelled = false;
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        const send = (event: ReturnType<typeof parseChatEvent>) => {
-          if (!cancelled) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        };
-        try {await readChatStream(upstream.body!, send);}
-        catch {send({type: "error", message: "المساعد غير متاح حاليًا. حاول مرة ثانية."});}
-        finally {if (!cancelled) controller.close();}
-      },
-      cancel() {cancelled = true; abort.abort();},
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown";
+    console.warn("Ask LUB upstream request failed", {
+      name: error instanceof Error ? error.name : "Unknown",
+      message: message.replaceAll(token, "[REDACTED]").replaceAll(url.origin, "[RAG HOST]").slice(0, 200),
     });
-    return new Response(stream, {headers: {"Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"}});
-  } catch {
     return responseError("المساعد غير متاح حاليًا. حاول مرة ثانية.", 503);
   }
+  const contentType = upstream.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!upstream.ok || !upstream.body || !contentType.startsWith("text/event-stream")) {
+    console.warn("Ask LUB upstream response rejected", {status: upstream.status, contentType});
+    return responseError("المساعد غير متاح حاليًا. حاول مرة ثانية.", 503);
+  }
+  const encoder = new TextEncoder();
+  let cancelled = false;
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: ReturnType<typeof parseChatEvent>) => {
+        if (!cancelled) controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      };
+      try {await readChatStream(upstream.body!, send);}
+      catch {send({type: "error", message: "المساعد غير متاح حاليًا. حاول مرة ثانية."});}
+      finally {if (!cancelled) controller.close();}
+    },
+    cancel() {cancelled = true; abort.abort();},
+  });
+  return new Response(stream, {headers: {"Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"}});
 }

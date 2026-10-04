@@ -56,8 +56,40 @@ describe("RAG chat proxy", () => {
     expect(output).not.toContain("/account");
     expect(output).not.toContain(token);
     expect(upstream.mock.calls[0][0].toString()).toBe("https://test.ngrok-free.app/api/v1/nlp/chat/stream/lub");
+    expect(upstream.mock.calls[0][1].redirect).toBe("manual");
     expect(upstream.mock.calls[0][1].headers.Authorization).toBe(`Bearer ${token}`);
     expect(JSON.parse(upstream.mock.calls[0][1].body)).toEqual({message: "متى الفعاليات؟", limit: 5});
+  });
+
+  it("logs only upstream response metadata when the RAG service rejects a request", async () => {
+    const token = "a".repeat(40);
+    vi.stubEnv("RAG_API_URL", "https://test.ngrok-free.app");
+    vi.stubEnv("RAG_API_TOKEN", token);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("unauthorized", {
+      status: 401,
+      headers: {"content-type": "application/json"},
+    })));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const response = await POST(request('{"message":"hello"}'));
+
+    expect(response.status).toBe(503);
+    expect(warning).toHaveBeenCalledWith("Ask LUB upstream response rejected", {status: 401, contentType: "application/json"});
+    expect(JSON.stringify(warning.mock.calls)).not.toContain(token);
+  });
+
+  it("redacts the configured token from network failure details", async () => {
+    const token = "a".repeat(40);
+    vi.stubEnv("RAG_API_URL", "https://test.ngrok-free.app");
+    vi.stubEnv("RAG_API_TOKEN", token);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError(`connection failed for ${token}`)));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const response = await POST(request('{"message":"hello"}'));
+
+    expect(response.status).toBe(503);
+    expect(warning).toHaveBeenCalledWith("Ask LUB upstream request failed", {name: "TypeError", message: "connection failed for [REDACTED]"});
+    expect(JSON.stringify(warning.mock.calls)).not.toContain(token);
   });
 
   it("limits a Cloudflare client to ten questions per minute", async () => {
