@@ -1,7 +1,7 @@
 "use server";
 import {z} from "zod";
 import {sql} from "drizzle-orm";
-import {revalidatePath} from "next/cache";
+import {revalidatePath,updateTag} from "next/cache";
 import {withUser} from "@/db/client";
 import {requireUser} from "@/features/auth/session";
 import {normalizeDigits} from "@/lib/validation";
@@ -24,4 +24,4 @@ export async function mutateTalent(_previous:WorkflowState,f:FormData):Promise<W
  case "contribution":return sql`select lub.set_talent_contribution(${id(f,"contribution")},${checked(f,"visible")})`;
  }})();await withUser(user.id,tx=>tx.execute(query));
  }catch{return {error:"تعذّر حفظ الملف المهاري. راجع الحقول؛ الروابط تبدأ بـ HTTPS، والإنجاز يحتاج نشاطًا معتمدًا تملكه داخل LUB."};}
- revalidatePath("/talent","layout");revalidatePath("/account/talent");revalidatePath("/me");return{success:"تم حفظ خيارات الملف المهاري والخصوصية."};}
+ updateTag("public-talent");revalidatePath("/talent","layout");revalidatePath("/account/talent");revalidatePath("/me");return{success:"تم حفظ خيارات الملف المهاري والخصوصية."};}

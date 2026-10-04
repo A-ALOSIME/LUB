@@ -21,6 +21,7 @@ export async function saveProfile(_previous: FormState, form: FormData): Promise
   try { await saveStudentProfile(user, input.data); }
   catch { return { error: "تعذّر حفظ البيانات. تأكد من صحة بياناتك وحاول بعد قليل." }; }
   updateTag("public-organizations");
+  updateTag("public-talent");
   revalidatePath("/me");
   revalidatePath("/account");
   redirect(safeReturnPath(form.get("returnTo"), "/me?notice=profile-saved"));

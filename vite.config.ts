@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import vinext from "vinext";
+import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { readFileSync } from "node:fs";
 
@@ -21,7 +22,9 @@ export default defineConfig(({ mode }) => {
   return {
     define: publicValues,
     plugins: [
-      vinext(),
+      vinext({
+        cache: { data: kvDataAdapter({ binding: "VINEXT_KV_CACHE" }) },
+      }),
       cloudflare({
         viteEnvironment: {
           name: "rsc",

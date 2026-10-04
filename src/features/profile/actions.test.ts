@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-const dependencies = vi.hoisted(() => ({ requireUser: vi.fn(), saveStudentProfile: vi.fn(), revalidatePath: vi.fn() }));
+const dependencies = vi.hoisted(() => ({ requireUser: vi.fn(), saveStudentProfile: vi.fn(), revalidatePath: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/features/auth/session", () => ({ requireUser: dependencies.requireUser }));
 vi.mock("./repository", () => ({ saveStudentProfile: dependencies.saveStudentProfile }));
-vi.mock("next/cache", () => ({ revalidatePath: dependencies.revalidatePath, updateTag: dependencies.revalidatePath }));
+vi.mock("next/cache", () => ({ revalidatePath: dependencies.revalidatePath, updateTag: dependencies.updateTag }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 import { saveProfile } from "./actions";
 
@@ -23,6 +23,8 @@ describe("profile action boundary", () => {
   it("authenticates before touching the database and ignores a forged form owner", async () => {
     await expect(saveProfile({}, input({ userId: "another-student" }))).rejects.toThrow("redirect:/me?notice=profile-saved");
     expect(dependencies.saveStudentProfile).toHaveBeenCalledWith(user, expect.objectContaining({ fullName: "أحمد محمد", universityId: "202612345" }));
+    expect(dependencies.updateTag).toHaveBeenCalledWith("public-organizations");
+    expect(dependencies.updateTag).toHaveBeenCalledWith("public-talent");
     dependencies.requireUser.mockRejectedValue(new Error("redirect:/login"));
     dependencies.saveStudentProfile.mockClear();
     await expect(saveProfile({}, input())).rejects.toThrow("redirect:/login");
@@ -45,5 +47,6 @@ describe("profile action boundary", () => {
     expect(result.error).toBeTruthy();
     expect(result.error).not.toContain("internal");
     expect(dependencies.revalidatePath).not.toHaveBeenCalled();
+    expect(dependencies.updateTag).not.toHaveBeenCalled();
   });
 });
