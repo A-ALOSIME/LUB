@@ -32,7 +32,7 @@ export async function requestCode(_previous: CodeState, form: FormData): Promise
 export async function verifyCode(_previous: FormState, form: FormData): Promise<FormState> {
   const email = emailSchema.safeParse(form.get("email"));
   const token = otpSchema.safeParse(form.get("token"));
-  if (!email.success || !token.success) return { error: "أدخل رمز التحقق المكوّن من 8 أرقام." };
+  if (!email.success || !token.success) return { error: "أدخل رمز التحقق المكوّن من 6 أرقام." };
   if (!getAuthConfig()) return { error: "تسجيل الدخول غير متاح الآن. حاول لاحقًا." };
   try {
     const client = await createClient(true);

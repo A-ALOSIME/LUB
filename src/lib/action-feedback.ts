@@ -21,7 +21,7 @@ const english: Record<string, string> = {
   "وصلت حد طلب الرسائل. انتظر قليلًا قبل المحاولة مرة ثانية.": "You reached the message request limit. Wait a while before trying again.",
   "تعذّر إرسال البريد لهذا العنوان. راجع إعداد مرسل البريد في المشروع.": "Email could not be sent to this address. Check the project's email sender settings.",
   "تعذّر إرسال الرسالة الآن. حاول بعد قليل.": "The message could not be sent now. Try again shortly.",
-  "أدخل رمز التحقق المكوّن من 8 أرقام.": "Enter the 8-digit verification code.",
+  "أدخل رمز التحقق المكوّن من 6 أرقام.": "Enter the 6-digit verification code.",
   "الرمز غير صحيح أو انتهت صلاحيته. تحقق منه أو اطلب رمزًا جديدًا.": "The code is incorrect or expired. Check it or request a new one.",
   "تعذّر التحقق الآن. حاول بعد قليل.": "Verification is unavailable now. Try again shortly.",
   "حفظ البيانات غير متاح الآن. حاول لاحقًا.": "Saving details is unavailable now. Try again later.",

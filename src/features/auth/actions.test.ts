@@ -74,12 +74,12 @@ describe("OTP server actions", () => {
     expect(invalid.error).toBeTruthy();
     expect(auth.verifyOtp).not.toHaveBeenCalled();
     auth.verifyOtp.mockResolvedValue({ error: { message: "secret provider payload" } });
-    const failure = await verifyCode({}, form({ email: "student@example.com", token: "12345678" }));
+    const failure = await verifyCode({}, form({ email: "student@example.com", token: "123456" }));
     expect(failure.error).toBeTruthy();
     expect(failure.error).not.toContain("secret");
     auth.verifyOtp.mockResolvedValue({ error: null });
-    await expect(verifyCode({}, form({ email: "student@example.com", token: "١٢٣٤٥٦٧٨" }))).rejects.toThrow("redirect:/me");
-    expect(auth.verifyOtp).toHaveBeenLastCalledWith({ email: "student@example.com", token: "12345678", type: "email" });
+    await expect(verifyCode({}, form({ email: "student@example.com", token: "١٢٣٤٥٦" }))).rejects.toThrow("redirect:/me");
+    expect(auth.verifyOtp).toHaveBeenLastCalledWith({ email: "student@example.com", token: "123456", type: "email" });
   });
   it("redirects after signout and handles a failed logout explicitly", async () => {
     await expect(signOut()).rejects.toThrow("redirect:/login");
@@ -93,5 +93,5 @@ it("stores only a safe HttpOnly application return and clears stale returns on o
  await requestCode({},form({email:"student@example.com",mode:"login",returnTo:path}));
  expect(cookie.set).toHaveBeenCalledWith("lub-return-to",path,expect.objectContaining({httpOnly:true,sameSite:"lax",maxAge:3600}));
  await requestCode({},form({email:"student@example.com",mode:"login",returnTo:"https://evil.test"}));expect(cookie.delete).toHaveBeenCalledWith("lub-return-to");
- await expect(verifyCode({},form({email:"student@example.com",token:"12345678",returnTo:path}))).rejects.toThrow("redirect:"+path);
+ await expect(verifyCode({},form({email:"student@example.com",token:"123456",returnTo:path}))).rejects.toThrow("redirect:"+path);
 });

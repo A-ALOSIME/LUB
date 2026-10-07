@@ -19,8 +19,8 @@ describe("OTP form interactions", () => {
     fireEvent.submit(screen.getByRole("button", { name: "إرسال رمز التحقق" }).closest("form")!);
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("رمز تحقق"));
     expect(screen.getByLabelText("رمز التحقق")).toBeTruthy();
-    expect((screen.getByLabelText("رمز التحقق") as HTMLInputElement).maxLength).toBe(8);
-    fireEvent.change(screen.getByLabelText("رمز التحقق"), { target: { value: "12345678" } });
+    expect((screen.getByLabelText("رمز التحقق") as HTMLInputElement).maxLength).toBe(6);
+    fireEvent.change(screen.getByLabelText("رمز التحقق"), { target: { value: "123456" } });
     fireEvent.submit(screen.getByRole("button", { name: "تحقق وادخل" }).closest("form")!);
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("غير صحيح"));
     fireEvent.click(screen.getByRole("button", { name: "تغيير البريد أو طلب رمز جديد" }));
@@ -31,7 +31,7 @@ describe("OTP form interactions", () => {
   it("shows the code flow directly in English without a link option", async () => {
     actions.requestCode.mockResolvedValue({ email: "student@example.com" });
     render(<AuthForm mode="signup" available locale="en" />);
-    expect(screen.getByText(/email you an 8-digit code/)).toBeTruthy();
+    expect(screen.getByText(/email you a 6-digit code/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "student@example.com" } });
     fireEvent.submit(screen.getByRole("button", { name: "Send verification code" }).closest("form")!);
     await waitFor(() => expect(screen.getByLabelText("Verification code")).toBeTruthy());
