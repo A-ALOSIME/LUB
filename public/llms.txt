@@ -1,0 +1,18 @@
+# لُبّ (LUB / Lub)
+
+> لُبّ مساحة طلابية تساعد طلاب كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية على اكتشاف الأندية والمجالس والفعاليات المنشورة ومتابعة المشاركة والإنجازات. LUB is a student platform for the College of Computer and Information Sciences at Imam Mohammad Ibn Saud Islamic University.
+
+The Arabic brand name is written لُبّ and the Latin name is LUB (Lub). Visitors can browse public information without an account. Sign-in is needed when applying to join, registering for an event, or using personal student features. Use the linked public pages as the source of current LUB information; organization and event records may change.
+
+## About LUB
+
+- [About LUB / عن لُبّ](https://lub.community/#about): What LUB is, who it serves, and how to explore the public site.
+- [Official College of Computer and Information Sciences website](https://units.imamu.edu.sa/colleges/ComputerAndInformation/Pages/default.aspx): Official academic and college information from Imam Mohammad Ibn Saud Islamic University.
+
+## Public pages
+
+- [Clubs and councils](https://lub.community/organizations): Published student clubs, councils, and organization profiles.
+- [Events](https://lub.community/events): Published event information; sign-in is needed to register.
+- [Talent](https://lub.community/talent): Student profiles and achievements that students chose to publish.
+- [Ask LUB](https://lub.community/ai): Questions about public LUB content.
+- [Visitor help](https://lub.community/help/visitor): How public browsing and account-required actions work.

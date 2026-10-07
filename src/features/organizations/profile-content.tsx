@@ -10,7 +10,7 @@ function ProfileSection({ section, en, sectionId }: { section: OrganizationProfi
         {item.body && <p dir="auto" className="mt-2 text-sm leading-7 text-muted">{item.body}</p>}
       </li>)}
     </ul>}
-    {section.image && <Image src={section.image.src} alt={section.image.alt} width={section.image.width} height={section.image.height} sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-profile-image" />}
+    {section.image && <Image src={section.image.src} alt={section.image.alt} width={section.image.width} height={section.image.height} sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-profile-image" style={{ maxWidth: section.image.width }} />}
   </>;
 
   return section.collapsible

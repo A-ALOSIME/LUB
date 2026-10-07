@@ -35,12 +35,6 @@ it("opens an accessible floating panel outside the dedicated AI page", () => {
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-it("keeps the composer free of generic guidance and privacy footer copy", () => {
-  render(<ChatWidget locale="ar" inline/>);
-  expect(screen.queryByText("اسأل عن أندية لُبّ وفعالياته وخدماته.")).toBeNull();
-  expect(screen.queryByText("اسأل عن محتوى لُبّ العام فقط، ولا تكتب معلوماتك الشخصية.")).toBeNull();
-});
-
 it("shows the inline composer and streams a safe answer with source links and copy", async () => {
   const copy = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", {configurable: true, value: {writeText: copy}});
@@ -57,9 +51,45 @@ it("shows the inline composer and streams a safe answer with source links and co
   await waitFor(() => expect(screen.getByRole("link", {name: /الفعاليات/}).getAttribute("href")).toBe("/events"));
   expect(fetcher).toHaveBeenCalledWith("/api/chat", expect.objectContaining({method: "POST", body: JSON.stringify({message: "كيف أسجل؟"})}));
   expect(screen.getByText("التسجيل من صفحة الفعاليات.")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", {name: "نسخ الإجابة"}));
+  const answer = document.querySelector(".lub-chat-assistant")!;
+  expect(answer.querySelector(".lub-chat-speaker")).toBeNull();
+  const copyButton = screen.getByRole("button", {name: "نسخ الإجابة"});
+  expect(answer.contains(copyButton)).toBe(true);
+  expect(copyButton.querySelector("svg")).toBeTruthy();
+  expect(copyButton.textContent).toBe("");
+  fireEvent.click(copyButton);
   await waitFor(() => expect(copy).toHaveBeenCalledWith("التسجيل من صفحة الفعاليات."));
   expect(screen.getByRole("status").textContent).toContain("نُسخت");
+});
+
+it("copies the answer belonging to the selected message", async () => {
+  const copy = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {configurable: true, value: {writeText: copy}});
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(streamResponse([{type: "delta", text: "الإجابة الأولى"}, {type: "done"}]))
+    .mockResolvedValueOnce(streamResponse([{type: "delta", text: "الإجابة الثانية"}, {type: "done"}])));
+  render(<ChatWidget locale="ar" inline/>);
+  submit("السؤال الأول");
+  await screen.findByText("الإجابة الأولى");
+  submit("السؤال الثاني");
+  await screen.findByText("الإجابة الثانية");
+
+  const questions = document.querySelectorAll(".lub-chat-user");
+  const answers = document.querySelectorAll(".lub-chat-assistant");
+  const copyButtons = screen.getAllByRole("button", {name: "نسخ الإجابة"});
+  expect(questions).toHaveLength(2);
+  expect(answers).toHaveLength(2);
+  expect(copyButtons).toHaveLength(2);
+  expect(questions[0].querySelector(".lub-chat-speaker")).toBeNull();
+  fireEvent.click(copyButtons[0]);
+  await waitFor(() => expect(copy).toHaveBeenCalledWith("الإجابة الأولى"));
+});
+
+it("keeps the inline start screen free of introductory and footer copy", () => {
+  render(<ChatWidget locale="ar" inline/>);
+  expect(screen.queryByText("اسأل عن أندية لُبّ وفعالياته وخدماته.")).toBeNull();
+  expect(screen.queryByText("اسأل عن محتوى لُبّ العام فقط، ولا تكتب معلوماتك الشخصية.")).toBeNull();
+  expect(screen.getByPlaceholderText("اكتب سؤالك عن لُبّ…")).toBeTruthy();
 });
 
 it("keeps the question available for retry when the service is unavailable", async () => {

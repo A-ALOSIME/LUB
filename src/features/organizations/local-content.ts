@@ -33,7 +33,12 @@ const profiles: readonly LocalOrganizationContent[] = [
     summary: "هيئة استشارية تمثّل طلاب تخصص علوم الحاسب، وتسعى لتطوير البيئة الأكاديمية والتواصل مع أعضاء هيئة التدريس.",
     about: "يسعى المجلس الاستشاري لعلوم الحاسب إلى تطوير البيئة الأكاديمية وتعزيز التواصل مع أعضاء هيئة التدريس، وتقديم المقترحات المتعلقة بمسيرة الطالب في التخصص.",
     sections: [],
-    links: [{ label: "X", value: "@CCIS_SACCS", href: "https://x.com/CCIS_SACCS" }],
+    links: [
+      { label: "Linktree", value: "CCIS_SAC_CS", href: "https://linktr.ee/CCIS_SAC_CS" },
+      { label: "LinkedIn", value: "CSIMAMU", href: "https://www.linkedin.com/company/csimamu" },
+      { label: "X", value: "@CCIS_SACCS", href: "https://x.com/CCIS_SACCS" },
+      { label: "البريد الإلكتروني", value: "counsilstudentcs@gmail.com", href: "mailto:counsilstudentcs@gmail.com" },
+    ],
   },
   {
     typeCode: "Council",
@@ -154,10 +159,9 @@ const profiles: readonly LocalOrganizationContent[] = [
       { label: "الموقع الرسمي", value: "imamusac.com", href: "https://imamusac.com/" },
       { label: "البريد الإلكتروني", value: "is.s.council@imamu.edu.sa", href: "mailto:is.s.council@imamu.edu.sa" },
       { label: "الهاتف", value: "+966 506 502 858", href: "tel:+966506502858" },
-      { label: "التواصل والمجتمع", value: "صفحة التواصل ومجتمع المجلس", href: "https://imamusac.com/contact" },
-      { label: "الحسابات الاجتماعية", value: "X · LinkedIn · TikTok", href: "https://imamusac.com/contact" },
-      { label: "مجتمع واتساب", value: "عبر صفحة التواصل الرسمية", href: "https://imamusac.com/contact" },
-      { label: "الأخبار والتحديثات", value: "عرض سجل التحديثات", href: "https://imamusac.com/updates" },
+      { label: "TikTok", value: "@ccis_sac", href: "https://www.tiktok.com/@ccis_sac" },
+      { label: "LinkedIn", value: "CCIS SAC", href: "https://www.linkedin.com/company/ccis-sac" },
+      { label: "X", value: "@CCIS_SAC", href: "https://x.com/CCIS_SAC" },
     ],
   },
   {
@@ -238,7 +242,12 @@ const profiles: readonly LocalOrganizationContent[] = [
         ],
       },
     ],
-    links: [{ label: "X", value: "@Enjaz_IMAMU", href: "https://x.com/Enjaz_IMAMU" }],
+    links: [
+      { label: "Linktree", value: "enjazimamu", href: "https://linktr.ee/enjazimamu" },
+      { label: "Discord", value: "Discord", href: "https://discord.gg/zbrUN3bF" },
+      { label: "Telegram", value: "Telegram", href: "https://t.me/c/1963513494/1" },
+      { label: "X", value: "@Enjaz_IMAMU", href: "https://x.com/Enjaz_IMAMU" },
+    ],
   },
   {
     typeCode: "Club",
@@ -395,10 +404,103 @@ const profiles: readonly LocalOrganizationContent[] = [
     links: [
       { label: "X", value: "@IEEEIMSIU", href: "https://x.com/IEEEIMSIU" },
       { label: "Linktree", value: "linktr.ee/IEEEIMSIU", href: "https://linktr.ee/IEEEIMSIU" },
+      { label: "LinkedIn", value: "IEEE IMSIU", href: "https://www.linkedin.com/company/ieeeimisiu/" },
+      { label: "TikTok", value: "@ieeeimsiu", href: "https://www.tiktok.com/@ieeeimsiu" },
+      { label: "YouTube", value: "@ieeeimsiu", href: "https://www.youtube.com/@ieeeimsiu" },
       { label: "البريد الإلكتروني", value: "ieeeclub.sa@gmail.com", href: "mailto:ieeeclub.sa@gmail.com" },
     ],
   },
-  { typeCode: "Club", matches: ["تكنيشن"], logoSrc: "/club-logos/technician.jpg", coverSrc: "/club-logos/technician-banner.jpg", imageTheme: "technician", sections: [] },
+  {
+    typeCode: "Club",
+    matches: ["تكنيشن"],
+    logoSrc: "/club-logos/technician.jpg",
+    coverSrc: "/club-logos/technician-banner.jpg",
+    imageTheme: "technician",
+    summary: "نادي تقني طلابي ينقل المعرفة الرقمية إلى التطبيق، ويطوّر مهارات الطلاب والطالبات عبر الورش والمشاريع والفعاليات التقنية.",
+    about: "نحن نادي تقني طلابي نسعى لأن نكون نموذجًا رائدًا في نشر المعرفة الرقمية ودعم الابتكار. نركز على تعزيز دور التقنية في الحياة اليومية عبر ورش عملية ومشاريع ابتكارية وفعاليات تفاعلية تنقل الطلاب من التعلم النظري إلى التطبيق العملي. ونعمل على تمكين الطلاب والطالبات من تطوير مهاراتهم التقنية في مجالات مثل الذكاء الاصطناعي والأمن السيبراني وإنترنت الأشياء وغيرها؛ ليكونوا جاهزين لصناعة المستقبل.",
+    vision: "أن نصبح ناديًا طلابيًا رائدًا يعكس التطور التقني، ويعمل على تمكين الطلاب من مواجهة تحديات المستقبل عبر التعلم المستمر والابتكار وبناء مجتمع تقني مستدام.",
+    sections: [
+      {
+        title: "أهداف النادي",
+        items: [
+          { title: "التعلم التقني", body: "نشر ثقافة التعلم خارج المناهج الدراسية لمواكبة التطورات التقنية." },
+          { title: "الابتكار", body: "خلق بيئة داعمة للابتكار والتطوير التقني." },
+          { title: "الاستعداد لسوق العمل", body: "مساعدة الطلاب والطالبات على الانفتاح على سوق العمل وتعزيز علاقاتهم بذوي الخبرة." },
+          { title: "مجتمع متعاون", body: "تعزيز التواصل والتعاون بين الطلاب والطالبات لبناء مجتمع أكاديمي وتقني متماسك." },
+        ],
+      },
+      {
+        title: "لجنة الميديا",
+        collapsible: true,
+        items: [
+          { title: "إدارة الحسابات", body: "إدارة الحسابات الرسمية للنادي على مختلف منصات التواصل الاجتماعي، وضمان حضور مميز وفعال." },
+          { title: "إنتاج المحتوى", body: "إنتاج المحتوى المرئي والمكتوب، بما يشمل التصاميم والصور والفيديوهات التي تعكس هوية النادي ورسائله." },
+          { title: "تغطية الفعاليات", body: "تغطية فعاليات النادي وأنشطته مباشرة وباحترافية." },
+          { title: "الترويج", body: "الترويج لأنشطة النادي بحملات إبداعية تزيد التفاعل وتوسّع الوصول إلى الجمهور." },
+          { title: "التعاون الإعلامي", body: "التعاون مع بقية اللجان لإبراز إنجازاتها وأنشطتها إعلاميًا." },
+          { title: "تحليل التفاعل", body: "متابعة مؤشرات التفاعل وتحليلها لتطوير أداء الحسابات باستمرار." },
+        ],
+      },
+      {
+        title: "لجنة العلاقات العامة",
+        collapsible: true,
+        body: "بناء صورة إيجابية للنادي داخل الجامعة وخارجها عبر تنمية العلاقات وجلب الرعاة والتنسيق مع الجهات والشخصيات، بما يدعم أهداف النادي ويوسع أثره.",
+        items: [
+          { title: "بناء العلاقات", body: "إنشاء علاقات وشراكات مع الجهات الداعمة أو الإعلامية، والمحافظة على علاقات إيجابية مع المهتمين والمستفيدين، والتواصل مع الجهات الداعمة والرعاة المحتملين." },
+          { title: "جلب الرعايات والدعم", body: "التفاوض مع الرعاة للحصول على دعم مادي أو لوجستي، وتنسيق آلية تقديم الرعايات وفق احتياج كل فعالية، ومتابعة تنفيذ الالتزامات المتفق عليها." },
+          { title: "أنواع الرعاية", body: "قد تشمل الرعاية الضيافة أو التمويل أو الجوائز وغيرها. يُراعى التواصل مع الرعاة قبل الفعالية بحد أقصى أسبوعين، إلا في الحالات الاستثنائية." },
+        ],
+      },
+      {
+        title: "لجنة طور",
+        collapsible: true,
+        items: [
+          { title: "التخطيط المسبق", body: "ابتكار الأفكار المناسبة للأنشطة والبرامج، ووضع خطة تشغيلية واضحة لكل فعالية أو مبادرة، واقتراح فعاليات مرتبطة بالمناسبات الوطنية والعالمية." },
+          { title: "توجيه المتطوعين", body: "توجيه أعضاء الفريق المشاركين في النشاط وتنسيق مهامهم لضمان سير الفعالية بسلاسة." },
+          { title: "تشغيل يوم الفعالية", body: "تجهيز الموقع والاحتياجات اللوجستية مثل المقاعد والأدوات والمساحات، والإشراف على سير الفعالية وضمان تجربة سلسة وممتعة للحضور والمشاركين." },
+          { title: "تنمية المهارات التقنية", body: "تصميم فعاليات وأنشطة تمنح الطلاب فرصة اكتساب مهارات تقنية عملية، وتجربة أدوات وتقنيات جديدة، والمشاركة في تحديات تطبيقية تعزز الخبرات." },
+          { title: "تصميم الأنشطة", body: "إعداد مسابقات وتحديات تفاعلية، وتنظيم ورش العمل والمعسكرات حضوريًا أو عن بُعد، وتصميم أنشطة مرتبطة بالموضوعات التقنية في برامج النادي." },
+        ],
+      },
+      {
+        title: "لجنة التصميم",
+        collapsible: true,
+        body: "الواجهة الإبداعية للنادي؛ تبرز هويته بصورة احترافية ومميزة تعكس روح العمل والإبداع.",
+        items: [
+          { title: "الهوية البصرية", body: "إعداد جميع ما يتعلق بالهوية البصرية للنادي." },
+          { title: "مواد الفعاليات", body: "تصميم البوسترات والإعلانات الخاصة بالفعاليات." },
+          { title: "قوالب التواصل", body: "إعداد قوالب منصات التواصل الاجتماعي، مثل المنشورات وGrid الحساب." },
+          { title: "العروض التقديمية", body: "إعداد العروض التقديمية." },
+        ],
+      },
+      {
+        title: "لجنة الموارد البشرية",
+        collapsible: true,
+        items: [
+          { title: "تسجيل الساعات", body: "متابعة صحة تسجيل الساعات لأعضاء جميع اللجان، وإرسال تذكير دوري أسبوعيًا للأعضاء لتسجيل ساعاتهم." },
+          { title: "إصدار الشهادات", body: "إعداد الشهادات وإصدارها للأعضاء المستحقين." },
+          { title: "قاعدة بيانات الأعضاء", body: "متابعة قاعدة بيانات الأعضاء وتحديثها عند انسحاب أحدهم." },
+          { title: "متابعة التفاعل", body: "متابعة تفاعل الأعضاء مع أنشطة النادي." },
+          { title: "الإنذارات", body: "توجيه إنذارات للأعضاء غير المتفاعلين." },
+          { title: "القبول في المعسكرات", body: "فرز أسماء المقبولين في المعسكرات والتأكد منهم، ثم إرسال رسائل البريد الإلكتروني لتأكيد حضورهم." },
+        ],
+      },
+      {
+        title: "لجنة التطوير والجودة",
+        collapsible: true,
+        items: [
+          { title: "التقارير السنوية", body: "إعداد التقرير السنوي لكلية علوم الحاسب والمعلومات وللجامعة، وتقرير سنوي يتضمن فعاليات النادي وأنشطته وأداءه، مع تحديث التقارير بعد كل فعالية أو نشاط." },
+          { title: "تقارير المجلس الطلابي", body: "إعداد تقرير دوري بعد كل فعالية للمجلس الطلابي." },
+          { title: "فعاليات النادي", body: "إعداد تقرير دوري بعد كل فعالية يرعاها نادي تكنيشن." },
+          { title: "الموافقات", body: "تعبئة نموذج الموافقات وطلبات الفعاليات ورفعها للمجلس الطلابي بعد كل فعالية." },
+        ],
+      },
+    ],
+    links: [
+      { label: "LinkedIn", value: "TechNation Club", href: "https://www.linkedin.com/in/technation-club/" },
+      { label: "X", value: "@TechNationClubb", href: "https://x.com/TechNationClubb" },
+    ],
+  },
   {
     typeCode: "Club",
     matches: ["طويق"],
@@ -474,8 +576,43 @@ const profiles: readonly LocalOrganizationContent[] = [
       { title: "ملاحظة", body: "جميع المهام والمسؤوليات المذكورة قابلة للتغيير في أي وقت من قبل إدارة النادي." },
     ],
   },
-  { typeCode: "Club", matches: ["ظهير"], logoSrc: "/club-logos/dhaheer.jpg", coverSrc: "/club-logos/dhaheer-banner.jpg", imageTheme: "dhaheer", sections: [] },
-  { typeCode: "Club", matches: ["RobotX", "روبوتكس"], logoSrc: "/club-logos/robotx.jpg", coverSrc: "/club-logos/robotx-banner.jpg", imageTheme: "robotx", sections: [] },
+  {
+    typeCode: "Club",
+    matches: ["ظهير"],
+    logoSrc: "/club-logos/dhaheer-updated.webp",
+    coverSrc: "/club-logos/dhaheer-banner.jpg",
+    imageTheme: "dhaheer",
+    summary: "نادي طلابي يجمع بين العمل التطوعي والذكاء الاصطناعي، وينمّي مهارات الطلبة عبر البرامج والفعاليات والشراكات.",
+    about: "منصة طلابية في جامعة الإمام محمد بن سعود الإسلامية تعزز الشراكة والتفاعل الطلابي، وتدعم العمل التطوعي والتمكين في الذكاء الاصطناعي وتطبيقاته.",
+    vision: "أن يكون نادي ظهير منصة رائدة في جامعة الإمام محمد بن سعود الإسلامية تجمع بين تعزيز الشراكة والتفاعل الطلابي من خلال تجربة تطوعية متميزة، وبين التمكين في مجال الذكاء الاصطناعي وتطبيقاته المتنوعة؛ ليسهم في نشر المعرفة وتنمية المهارات وتحفيز الابتكار وصناعة جيل مبتكر متميز على مستوى المملكة.",
+    mission: "يسعى نادي ظهير إلى تمكين طلاب وطالبات جامعة الإمام محمد بن سعود الإسلامية من تطوير مهاراتهم في مجال العمل التطوعي والذكاء الاصطناعي، من خلال برامج تدريبية وفعاليات توعوية، إلى جانب تقديم أفضل الخدمات التنظيمية للأنشطة التعليمية والثقافية. كما يعمل النادي على استقطاب خبراء ومتحدثين متخصصين، ورعاية الشراكات الأكاديمية والصناعية، وبناء بيئة محفزة على الإبداع والبحث والتطوير والعمل الخيري، بما يسهم في خدمة المجتمع الجامعي والمشاركة الفاعلة في تحقيق مستهدفات رؤية المملكة.",
+    sections: [
+      {
+        title: "أهداف النادي",
+        body: "يهدف نادي ظهير إلى تعزيز روح التعاون والمشاركة بين طلاب وطالبات كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية، من خلال تنظيم برامج وفعاليات تسهم في خدمة المجتمع وتطوير مهارات أعضائه في مختلف المجالات. كما يسعى إلى تنمية مهارات الطلبة في مجالات الذكاء الاصطناعي والأمن السيبراني والبرمجة، وتعزيز المسؤولية الاجتماعية، وتمكين الطلاب من توظيف مهاراتهم بشكل احترافي، وإعداد جيل قادر على مواكبة التطورات التقنية العالمية وابتكار حلول تدعم التنمية المستدامة ومستهدفات رؤية المملكة 2030، عبر تعزيز ريادة الابتكار في المجتمع الأكاديمي.",
+      },
+    ],
+    links: [
+      { label: "LinkedIn", value: "نادي ظهير", href: "https://www.linkedin.com/company/zaheer-club/" },
+      { label: "X", value: "@ImamuZaheer", href: "https://x.com/ImamuZaheer" },
+      { label: "Instagram", value: "@imamuzaheer", href: "https://www.instagram.com/imamuzaheer/" },
+    ],
+  },
+  {
+    typeCode: "Club",
+    matches: ["RobotX", "روبوتكس"],
+    logoSrc: "/club-logos/robotx.jpg",
+    coverSrc: "/club-logos/robotx-banner.jpg",
+    imageTheme: "robotx",
+    sections: [],
+    links: [
+      { label: "Linktree", value: "robotxclub", href: "https://linktr.ee/robotxclub" },
+      { label: "LinkedIn", value: "RobotX Club", href: "https://www.linkedin.com/company/robotxclub/" },
+      { label: "X", value: "@robotxclub", href: "https://x.com/robotxclub" },
+      { label: "TikTok", value: "@robotxclub", href: "https://www.tiktok.com/@robotxclub?_t=8rsGaDgxhbz&_r=1" },
+      { label: "Instagram", value: "@robotxclub", href: "https://www.instagram.com/robotxclub" },
+    ],
+  },
   {
     typeCode: "Club",
     matches: ["OSS"],
@@ -580,8 +717,46 @@ const profiles: readonly LocalOrganizationContent[] = [
       { label: "Telegram", value: "OpenVision_imsiu", href: "https://t.me/OpenVision_imsiu" },
     ],
   },
-  { typeCode: "Council", matches: ["تقنية المعلومات"], logoSrc: "/club-logos/information-technology-council.jpg", imageTheme: "it-council", sections: [] },
-  { typeCode: "Council", matches: ["المجلس الطلابي"], logoSrc: "/club-logos/student-council.jpg", coverSrc: "/club-logos/student-council-banner.jpg", imageTheme: "student-council", sections: [] },
+  {
+    typeCode: "Council",
+    matches: ["المجلس الاستشاري الطلابي لقسم تقنية المعلومات"],
+    logoSrc: "/club-logos/information-technology-student-council.webp",
+    imageTheme: "it-council",
+    summary: "مجلس طلابي يسعى إلى تطوير البيئة التعليمية وتمثيل صوت الطلبة والارتقاء بجودة الخدمات والأنشطة في قسم تقنية المعلومات.",
+    about: "مجلس استشاري طلابي يسعى إلى التميز الأكاديمي والابتكار في التعليم، وتنمية مهارات الطلبة، وتمثيل أصواتهم ومقترحاتهم بفاعلية.",
+    sections: [
+      {
+        title: "الرؤية والرسالة",
+        body: "نسعى إلى تحقيق التميز الأكاديمي والابتكار في التعليم من خلال بناء بيئة تعليمية محفزة تنمّي مهارات الطلبة وتدعمهم لقيادة التحول الرقمي بثقة وإبداع، مع التركيز على تمثيل أصواتهم وإيصال مقترحاتهم بفاعلية، بما يضمن التطوير المستمر للعملية التعليمية والارتقاء بجودة الأنشطة الطلابية.",
+      },
+      {
+        title: "مجالات عمل المجلس",
+        items: [
+          { title: "حل المشكلات", body: "دراسة المشكلات الأكاديمية والتنظيمية التي تواجه الطلبة ومناقشتها." },
+          { title: "تعزيز التواصل", body: "نقل تطلعات ومقترحات الطلبة والطالبات." },
+          { title: "جودة الخدمات", body: "متابعة جودة الخدمات المقدمة للطلبة والطالبات." },
+          { title: "دعم المبادرات", body: "دعم المبادرات الطلابية." },
+        ],
+      },
+    ],
+    links: [
+      { label: "LinkedIn", value: "المجلس الاستشاري الطلابي لتقنية المعلومات", href: "https://www.linkedin.com/company/imamu-it-council/" },
+      { label: "X", value: "@ccis_sacit", href: "https://x.com/ccis_sacit?s=21" },
+      { label: "البريد الإلكتروني", value: "sacit.imamu@gmail.com", href: "mailto:sacit.imamu@gmail.com" },
+    ],
+  },
+  {
+    typeCode: "Council",
+    matches: ["المجلس الطلابي"],
+    logoSrc: "/club-logos/student-council.jpg",
+    coverSrc: "/club-logos/student-council-banner.jpg",
+    imageTheme: "student-council",
+    sections: [],
+    links: [
+      { label: "X", value: "@CCISSTCO", href: "https://x.com/CCISSTCO" },
+      { label: "TikTok", value: "@ccisstco", href: "https://www.tiktok.com/@ccisstco" },
+    ],
+  },
 ];
 
 function normalizeName(value: string) {

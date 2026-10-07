@@ -105,10 +105,10 @@ html:lang(en) .only-en { display: inline; }
 .lub-chat-suggestions { display: grid; gap: .5rem; margin-top: 1rem; }
 .lub-chat-suggestions button { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .625rem .75rem; border: 1px solid var(--color-line); border-radius: .625rem; text-align: start; }
 .lub-chat-suggestions button:hover { border-color: var(--color-action); }
-.lub-chat-message { margin-top: 1rem; padding: .75rem .875rem; border-radius: .875rem; background: var(--color-mist); overflow-wrap: anywhere; }
+.lub-chat-message { width: fit-content; max-width: min(82%, 48rem); margin-top: 1rem; padding: .75rem .875rem; border-radius: .875rem; background: var(--color-mist); overflow-wrap: anywhere; }
 .lub-chat-message p { white-space: pre-wrap; line-height: 1.8; }
-.lub-chat-user { margin-inline-start: 1.75rem; background: #365f82; color: white; }
-.lub-chat-speaker { display: block; margin-bottom: .25rem; font-size: .6875rem; opacity: .75; }
+.lub-chat-user { margin-left: auto; margin-right: 0; background: #365f82; color: white; }
+.lub-chat-assistant { width: 100%; max-width: 100%; margin: 1.75rem 0 0; padding: 0; background: transparent; }
 .lub-chat-sources { display: grid; gap: .375rem; margin-top: .75rem; }
 .lub-chat-sources a { display: flex; justify-content: space-between; gap: .625rem; padding: .5rem .625rem; border: 1px solid var(--color-line); border-radius: .5rem; color: var(--color-action); font-size: .8125rem; }
 .lub-chat-form { display: flex; flex: none; align-items: center; gap: .5rem; margin: .75rem .875rem 0; padding: .5rem; border: 1px solid var(--field-border); border-radius: .875rem; background: var(--surface); }
@@ -116,8 +116,11 @@ html:lang(en) .only-en { display: inline; }
 .lub-chat-form textarea, .lub-chat-form textarea:hover, .lub-chat-form textarea:focus { min-height: 2.625rem; max-height: 6.25rem; padding: .375rem; border: 0; border-radius: .5rem; outline: 0; background: transparent; box-shadow: none; resize: vertical; }
 .lub-chat-form button { display: grid; width: 2.5rem; height: 2.5rem; flex: none; place-items: center; border-radius: 50%; background: var(--color-action); color: var(--button-ink); }
 .lub-chat-form button:hover { background: var(--color-action-hover); }
-.lub-chat-copy { align-self: flex-start; margin: .5rem 1rem 0; color: var(--color-action); font-weight: 700; text-decoration: underline; text-underline-offset: .25rem; }
-.lub-chat-copy-status { margin: .25rem 1rem 0; color: var(--color-muted); font-size: .75rem; }
+.lub-chat-actions { display: flex; align-items: center; gap: .5rem; margin-top: .45rem; color: var(--color-muted); direction: ltr; }
+.lub-chat-copy { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 50%; color: var(--color-muted); }
+.lub-chat-copy:hover { background: var(--color-mist); color: var(--color-action); }
+.lub-chat-copy:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.lub-chat-copy-status { color: var(--color-muted); font-size: .75rem; }
 .lub-chat-thinking { display: flex; align-items: center; gap: .625rem; margin-top: 1rem; color: var(--color-muted); font-size: .8125rem; }
 .lub-chat-dots { display: inline-flex; gap: .25rem; }
 .lub-chat-dots i { width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-action); animation: lub-chat-pulse 1s infinite ease-in-out alternate; }
@@ -129,6 +132,7 @@ html:lang(en) .only-en { display: inline; }
 .lub-chat-inline .lub-chat-message p { font-size: 1rem; }
 .lub-chat-inline .lub-chat-form { width: min(100%, 48rem); min-height: 4rem; margin: 0 auto; padding: .5rem .625rem; border-radius: 999px; }
 .lub-chat-inline .lub-chat-form textarea { min-height: 2.75rem; resize: none; }
+@media (max-width: 40rem) { .lub-chat-message { max-width: 90%; } }
 @keyframes lub-chat-pulse { to { opacity: .25; transform: translateY(-.125rem); } }
 @media (prefers-reduced-motion: reduce) { .lub-chat-dots i { animation: none; } }
 
@@ -145,11 +149,12 @@ html:lang(en) .only-en { display: inline; }
 .directory-link:hover h3 { color: var(--color-action); }
 .directory-link:hover .organization-card-title { color: var(--color-action); }
 .organization-card-art { position: relative; display: grid; min-height: 17rem; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; background: #edf1f4; }
+.organization-card-art--cybersec, .organization-card-art--it-council, .organization-card-art--oss, .organization-card-art--student-council { aspect-ratio: 1; }
 .organization-card-art--enjaz { background: #f5f5f0; }
 .organization-card-art--cybersec { background: #102a3b; }
-.organization-card-art--cybersec, .organization-card-art--it-council, .organization-card-art--oss, .organization-card-art--student-council { aspect-ratio: 1; }
 .organization-card-art--is-council { background: #222d58; }
 .organization-card-art--computer-council { background: #f0edf7; }
+.organization-card-art--it-council { background: #fff; }
 .organization-card-art--ieee, .organization-card-art--dhaheer, .organization-card-art--it-council, .organization-card-art--student-council { background: #fff; }
 .organization-card-art--technician { background: #050507; }
 .organization-card-art--tuwaiq { background: #5429b7; }
@@ -172,6 +177,8 @@ html:lang(en) .only-en { display: inline; }
 .organization-hero-cover--ieee { aspect-ratio: 8850 / 1668; background: #fff; }
 .organization-hero-cover--student-council { background: #fff; }
 .organization-hero-main { display: grid; grid-template-columns: minmax(14rem, 20rem) minmax(0, 1fr); align-items: center; gap: clamp(1.5rem, 3vw, 3rem); padding: clamp(1.25rem, 3vw, 3rem); }
+.organization-hero-main.organization-hero-main--cover { grid-template-columns: minmax(0, 1fr); }
+.organization-hero-main--cover .organization-hero-copy { width: min(100%, 72rem); margin-inline: auto; }
 .organization-hero-art { position: relative; display: grid; width: 100%; aspect-ratio: 1; place-items: center; overflow: hidden; border-radius: 1rem; background: #edf1f4; }
 .organization-hero-art--enjaz { background: #f5f5f0; }
 .organization-hero-art--cybersec { background: #102a3b; }
@@ -188,7 +195,7 @@ html:lang(en) .only-en { display: inline; }
 .organization-profile-content { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
 .organization-profile-motto { padding: 1.1rem 1.5rem; border-inline-start: 4px solid var(--color-action); border-radius: .75rem; background: var(--surface); color: var(--color-action); font-size: 1.2rem; font-weight: 700; }
 .organization-profile-statements { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--color-line); border-radius: 1.2rem; background: var(--surface); }
-.organization-profile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .875rem; margin: 0; padding: 0; list-style: none; }
+.organization-profile-stats { display: grid; width: 100%; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .875rem; margin: 0; padding: 0; list-style: none; }
 .organization-profile-stats li { display: grid; justify-items: center; gap: .25rem; padding: 1.1rem; border: 1px solid var(--color-line); border-radius: .9rem; background: var(--surface); text-align: center; }
 .organization-profile-stats strong { color: var(--color-action); font-size: 1.8rem; line-height: 1.2; }
 .organization-profile-stats span { color: var(--color-muted); font-size: .9rem; }
@@ -200,7 +207,9 @@ html:lang(en) .only-en { display: inline; }
 .organization-profile-disclosure-summary::after { content: "+"; flex: none; color: var(--color-action); font-size: 1.5rem; font-weight: 400; }
 .organization-profile-disclosure[open] .organization-profile-disclosure-summary::after { content: "−"; }
 .organization-profile-image { display: block; width: 100%; height: auto; margin-top: 1.25rem; border-radius: .85rem; }
-.organization-social-list { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.organization-social-panel { display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; margin-top: 1.25rem; padding: 1.2rem clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--color-line); border-inline-start: 4px solid var(--color-action); border-radius: 1.2rem; background: linear-gradient(115deg, color-mix(in srgb, var(--color-action) 8%, var(--surface)), var(--surface) 58%); }
+.organization-social-panel-copy { min-width: 0; }
+.organization-social-list { display: flex; flex-wrap: wrap; gap: .75rem; margin: 0; padding: 0; list-style: none; }
 .organization-social-link { display: grid; width: 2.9rem; height: 2.9rem; place-items: center; border: 1px solid var(--color-line); border-radius: 50%; background: var(--color-mist); color: var(--color-action); text-decoration: none; transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .18s ease; }
 a.organization-social-link:hover { transform: translateY(-2px); border-color: var(--color-action); background: var(--color-action); color: #fff; }
 a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
@@ -211,7 +220,6 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 
 @media (min-width: 42rem) {
   .directory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
-  .organization-profile-stats { grid-template-columns: repeat(2, minmax(0, 12rem)); }
 }
 @media (min-width: 80rem) {
   .directory-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -223,11 +231,21 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
   .organization-hero-main { grid-template-columns: minmax(0, 1fr); }
   .organization-hero-art { width: min(100%, 22rem); justify-self: center; }
   .organization-hero-cover { min-height: 8rem; }
+  .organization-hero-cover--ieee { min-height: 0; }
+  .organization-hero-cover--ieee .organization-hero-cover-image {
+    position: relative !important;
+    inset: auto !important;
+    width: 90% !important;
+    height: auto !important;
+  }
 }
 @media (max-width: 25rem) {
   .directory-shortcuts { width: 100%; }
   .directory-shortcuts .button { flex: 1; padding-inline: .7rem; }
   .organization-card-art { min-height: 14.5rem; }
+}
+@media (max-width: 42rem) {
+  .organization-social-panel { align-items: flex-start; flex-direction: column; gap: .9rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .organization-card, .organization-social-link { transition: none; }

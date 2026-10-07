@@ -11,8 +11,27 @@ import { OrganizationProfileContent } from "@/features/organizations/profile-con
 import { SocialLinkIcons } from "@/features/organizations/social-links";
 import { organizationTypes, organizationStatuses } from "@/features/organizations/validation";
 import { getPreferences } from "@/lib/preferences";
+import { JsonLd } from "@/lib/json-ld";
+import { toMetaDescription } from "@/lib/seo";
 
-export async function generateMetadata(){return localizedMetadata('تفاصيل الجهة','Organization details');}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}){
+  const [{slug},{locale}]=await Promise.all([params,getPreferences()]);
+  try {
+    const detail=await getPublicOrganization(slug);
+    if(!detail)return localizedMetadata('الجهة غير موجودة','Organization not found');
+    const {organization}=detail;
+    const profile=localOrganizationContent(organization.nameAr,organization.typeCode);
+    const summary=profile?.about??organization.summary;
+    const description=toMetaDescription(summary,`جهة طلابية ${organization.nameAr} على منصة لُبّ.`);
+    return localizedMetadata(organization.nameAr,organization.nameAr,{}, {
+      index:organization.statusCode==="Active",
+      canonical:`/organizations/${organization.slug}`,
+      description:{ar:description,en:description},
+    });
+  } catch {
+    return localizedMetadata(locale==="en"?"Organization details":"تفاصيل الجهة",locale==="en"?"Organization details":"تفاصيل الجهة");
+  }
+}
 
 export default async function OrganizationPage({ params, searchParams }: {
   params: Promise<{ slug: string }>;
@@ -36,14 +55,31 @@ export default async function OrganizationPage({ params, searchParams }: {
   const featuredEvent = upcomingEvents.find(item => item.featured);
   const otherAnnouncements = announcements.filter(item => !item.pinned);
   const hasMainDetail = Boolean((organization.mission && !profile?.mission) || committees.length);
-  const hasSidebarDetail = Boolean(leadership.length || socialLinks.some(link => link.href));
+  const hasSidebarDetail = Boolean(leadership.length);
   const hasUpdates = Boolean(rounds.length || upcomingEvents.length || announcements.length);
 
-  return <><PublicHeader /><main id="main" className="mx-auto max-w-7xl px-5 pb-20 pt-9 sm:px-8 sm:pt-12">
+  const visibleSummary=profile?.about??organization.summary;
+  const canonicalUrl=`https://lub.community/organizations/${organization.slug}`;
+  const logoUrl=profile?.logoSrc?new URL(profile.logoSrc,"https://lub.community").toString():organization.logoUrl??undefined;
+  const sameAs=socialLinks.flatMap(link=>{
+    if(!link.href)return [];
+    try { const url=new URL(link.href);return url.protocol==="https:"?[url.toString()]:[]; }
+    catch { return []; }
+  });
+
+  return <><PublicHeader />{organization.statusCode==="Active"&&<JsonLd data={{
+    "@context":"https://schema.org",
+    "@type":"Organization",
+    name:organization.nameAr,
+    url:canonicalUrl,
+    ...(visibleSummary?{description:visibleSummary}:{}),
+    ...(logoUrl?{logo:logoUrl}:{}),
+    ...(sameAs.length?{sameAs:[...new Set(sameAs)]}:{}),
+  }}/>}<main id="main" className="mx-auto max-w-7xl px-5 pb-20 pt-9 sm:px-8 sm:pt-12">
     <Link href="/organizations" className="text-link text-sm">{en?"Clubs and councils":"الأندية والمجالس"}</Link>
     <header className="organization-hero mt-6">
       {profile?.coverSrc && <figure className={"organization-hero-cover" + (profile?.imageTheme ? " organization-hero-cover--" + profile.imageTheme : "")}><Image src={profile.coverSrc} alt={en ? profile.imageTheme === "ieee" ? `Logo of ${organization.nameAr}` : `${organization.nameAr} banner` : profile.imageTheme === "ieee" ? `شعار ${organization.nameAr}` : `غلاف ${organization.nameAr}`} fill sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-hero-cover-image" /></figure>}
-      <div className="organization-hero-main">
+      <div className={"organization-hero-main" + (profile?.coverSrc ? " organization-hero-main--cover" : "")}>
         {!profile?.coverSrc && (profile?.logoSrc || organization.logoUrl) && <div className={`organization-hero-art organization-hero-art--${profile?.imageTheme ?? "default"}`}>
           <Image src={profile?.logoSrc ?? organization.logoUrl!} alt={en ? `Logo of ${organization.nameAr}` : `شعار ${organization.nameAr}`} fill sizes="(max-width: 767px) 100vw, 320px" unoptimized referrerPolicy={!profile?.logoSrc ? "no-referrer" : undefined} className="organization-hero-image" style={profile?.imageTheme === "tuwaiq" ? { width: "140%", height: "109%", maxWidth: "none", top: "50%", right: "auto", bottom: "auto", left: "50%", transform: "translate(-50%, -50%)", padding: 0, objectFit: "contain", objectPosition: "center" } : profile?.imageTheme === "it-council" ? { padding: 0, objectFit: "contain", objectPosition: "center" } : undefined} />
         </div>}
@@ -56,6 +92,14 @@ export default async function OrganizationPage({ params, searchParams }: {
         </div>
       </div>
     </header>
+
+    {socialLinks.some(link => link.href) && <section className="organization-social-panel" aria-labelledby="organization-social-title">
+      <div className="organization-social-panel-copy">
+        <h2 id="organization-social-title" className="text-lg font-bold">{en ? "Organization links" : "روابط التواصل"}</h2>
+        <p className="mt-1 text-sm text-muted">{en ? "Follow or contact the organization using the available links." : "تابع الجهة أو تواصل معها عبر الروابط المتاحة."}</p>
+      </div>
+      <SocialLinkIcons links={socialLinks} en={en} />
+    </section>}
 
     {profile && <OrganizationProfileContent profile={profile} en={en} />}
     {(pinnedAnnouncement || featuredEvent) && <section className="panel mt-8 p-6 sm:p-8" aria-label={en?"Featured content":"المميز في الجهة"}><h2 className="text-xl font-bold">{en?"Featured":"المميز في الجهة"}</h2>{pinnedAnnouncement && <article className="mt-5"><p className="text-sm text-action">{en?"Pinned announcement":"إعلان مثبّت"}</p><h3 dir="auto" className="mt-2 text-lg font-bold">{pinnedAnnouncement.title}</h3><p dir="auto" className="mt-3 whitespace-pre-line leading-8 text-muted">{pinnedAnnouncement.body}</p></article>}{featuredEvent && <article className="mt-5 border-t border-line pt-5"><p className="text-sm text-action">{en?"Featured event":"فعالية مميزة"}</p><h3 dir="auto" className="mt-2 text-lg font-bold"><Link className="text-link" href={`/events/${featuredEvent.id}`}>{featuredEvent.title}</Link></h3><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></article>}</section>}
@@ -73,7 +117,6 @@ export default async function OrganizationPage({ params, searchParams }: {
       </div>}
       {hasSidebarDetail && <aside className="space-y-6" aria-label={en?"Leadership and contact":"قيادة الجهة والتواصل"}>
         {leadership.length > 0 && <section className="panel p-6"><h2 className="text-lg font-bold">{en?"Leadership":"قيادة الجهة"}</h2><dl className="mt-5 space-y-5">{leadership.map((person, index) => <div key={index}><dt className="text-sm text-muted">{en?person.roleCode==="OL"?"Leader":"Deputy leader":person.roleCode === "OL" ? "القائد" : "نائب القائد"}</dt><dd dir="auto" className="mt-1 font-medium">{person.fullName}</dd></div>)}</dl></section>}
-        {socialLinks.some(link => link.href) && <section className="panel p-6"><h2 className="text-lg font-bold">{en?"Contact and follow":"التواصل وحسابات الجهة"}</h2><SocialLinkIcons links={socialLinks} en={en} /></section>}
       </aside>}
     </div>}
     {!hasMainDetail && !hasSidebarDetail && !hasUpdates && !profile && <div className="mt-8 border-t border-line pt-6"><p className="leading-8 text-muted">{en?"More details and activities will appear here when published.":"تفاصيل الجهة وأنشطتها الإضافية تظهر هنا عند نشرها."}</p><Link href="/organizations" className="text-link mt-3 inline-block">{en?"Explore other organizations":"استكشف الجهات الأخرى"}</Link></div>}

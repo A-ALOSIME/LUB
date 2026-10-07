@@ -5,7 +5,7 @@ import {PublicHeader} from "@/components/public-header";
 import {listEvents} from "@/features/events/repository";
 import {EventCards} from "@/features/events/view";
 import {getPreferences} from "@/lib/preferences";
-export async function generateMetadata(){return localizedMetadata('الفعاليات','Events');}
+export async function generateMetadata(){return localizedMetadata('الفعاليات','Events',{}, {index:true,canonical:"/events",description:{ar:"تصفح فعاليات الأندية والمجالس الطلابية المنشورة في لُبّ، واعرف مواعيدها ومواقعها وطريقة التسجيل.",en:"Explore published student club and council events on LUB, with event dates, locations, and registration details."}});}
 export default async function EventsPage({searchParams}:{searchParams:Promise<{q?:string;period?:string;page?:string;org?:string}>}){
  const [s,{locale}]=await Promise.all([searchParams,getPreferences()]);const en=locale==="en";
  const parsedOrg=z.uuid().safeParse(s.org),org=parsedOrg.success?parsedOrg.data:null;

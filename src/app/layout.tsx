@@ -24,18 +24,20 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const { locale } = await getPreferences();
   const en = locale === "en";
-  const title = en ? "LUB | Student life" : "لُبّ | مساحة العمل الطلابي";
+  const title = en ? "LUB | Student Clubs and Events" : "لُبّ | منصة الأندية الطلابية";
   const description = en
-    ? "Discover student clubs and councils, join activities, track hours and share achievements."
-    : "مساحة الأندية والمجالس الطلابية، من العضوية والمشاركة إلى الساعات والإنجازات.";
+    ? "Discover student clubs, councils, and events at the College of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University, through LUB."
+    : "اكتشف الأندية والمجالس الطلابية والفعاليات المنشورة في كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية عبر منصة لُبّ.";
   return {
     metadataBase: new URL("https://lub.community"),
+    alternates: { canonical: "/" },
     title: { default: title, template: en ? "%s | LUB" : "%s | لُبّ" },
     description,
+    robots: { index: true, follow: true },
     icons: { icon: [{ url: "/favicon.ico", sizes: "any", type: "image/x-icon" }] },
     openGraph: {
       type: "website",
-      siteName: "لُبّ",
+      siteName: en ? "LUB" : "لُبّ",
       locale: en ? "en_US" : "ar_SA",
       title,
       description,

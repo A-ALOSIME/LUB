@@ -4,6 +4,7 @@ const slugs: Record<string, string> = {
   "المجلس الطلابي": "student-council",
   "المجلس الاستشاري لعلوم الحاسب": "computer-science-advisory-council",
   "المجلس الاستشاري لتقنية المعلومات": "information-technology-advisory-council",
+  "المجلس الاستشاري الطلابي لقسم تقنية المعلومات": "information-technology-student-advisory-council",
   "المجلس الاستشاري الطلابي لنظم المعلومات": "information-systems-student-advisory-council",
   "نادي تكنيشن": "technician-club",
   "نادي الإنجاز": "achievement-club",

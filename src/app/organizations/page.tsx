@@ -7,7 +7,7 @@ import { readPublicDirectory } from "@/features/organizations/public-data";
 import { discoverySchema, organizationStatuses } from "@/features/organizations/validation";
 import { getPreferences } from "@/lib/preferences";
 
-export async function generateMetadata(){return localizedMetadata('الأندية والمجالس','Clubs and councils');}
+export async function generateMetadata(){return localizedMetadata('الأندية والمجالس','Clubs and councils',{}, {index:true,canonical:"/organizations",description:{ar:"اكتشف الأندية والمجالس الطلابية في كلية علوم الحاسب والمعلومات، وتعرّف على مجالاتها وأنشطتها وفرص الانضمام المنشورة.",en:"Discover student clubs and councils at the College of Computer and Information Sciences, including their interests, activities, and published opportunities."}});}
 
 export default async function OrganizationsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const en = (await getPreferences()).locale === "en";
@@ -37,7 +37,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
           const imageSrc = profile?.logoSrc;
           const summary = profile?.summary ?? organization.summary;
-          const containedLogo = profile && ["cybersec", "ieee", "is-council", "it-council", "oss", "student-council"].includes(profile.imageTheme);
+          const containedLogo = profile && ["cybersec", "dhaheer", "ieee", "is-council", "it-council", "oss", "student-council"].includes(profile.imageTheme);
           // The CyberSec PNG has tall transparent margins; size its visible mark to the square art.
           const imageStyle = profile?.imageTheme === "cybersec"
             ? { width: "auto", height: "207.8%", top: "-44.8%", right: "auto", bottom: "auto", left: "50%", transform: "translateX(-50%)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
