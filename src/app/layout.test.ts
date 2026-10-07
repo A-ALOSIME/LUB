@@ -11,9 +11,8 @@ it("describes LUB as a student clubs platform in Arabic metadata", async () => {
   preferences.locale = "ar";
   const metadata = await generateMetadata();
 
-  expect(metadata.title).toEqual({ default: "لُبّ | منصة الأندية الطلابية", template: "%s | لُبّ" });
-  expect(metadata.description).toContain("الأندية والمجالس الطلابية والفعاليات");
-  expect(metadata.description).toContain("جامعة الإمام محمد بن سعود الإسلامية");
+  expect(metadata.title).toEqual({ default: "لُبّ (LUB) | أندية كلية علوم الحاسب والمعلومات", template: "%s | لُبّ" });
+  expect(metadata.description).toBe("لُبّ (LUB) منصة طلابية تساعد طلاب كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية على اكتشاف الأندية والمجالس والفعاليات.");
   expect(metadata.robots).toEqual({ index: true, follow: true });
 });
 
@@ -21,7 +20,6 @@ it("describes LUB as a student clubs platform in English metadata", async () => 
   preferences.locale = "en";
   const metadata = await generateMetadata();
 
-  expect(metadata.title).toEqual({ default: "LUB | Student Clubs and Events", template: "%s | LUB" });
-  expect(metadata.description).toContain("student clubs, councils, and events");
-  expect(metadata.description).toContain("Imam Mohammad Ibn Saud Islamic University");
+  expect(metadata.title).toEqual({ default: "LUB (لُبّ) | Student Clubs at the College of Computer and Information Sciences", template: "%s | LUB" });
+  expect(metadata.description).toBe("LUB (لُبّ) is a student platform for clubs, councils, and events at the College of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University.");
 });

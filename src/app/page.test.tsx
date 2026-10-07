@@ -12,7 +12,7 @@ it("keeps the existing Arabic home content and includes a compact About section"
   const html = renderToStaticMarkup(await Home());
 
   expect(html).toContain("هنا تبدأ مشاركتك");
-  expect(html).toContain("منصة الأندية والمجالس والفعاليات الطلابية");
+  expect(html).toContain("لُبّ (LUB) منصة طلابية تساعد طلاب كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية على اكتشاف الأندية والمجالس والفعاليات.");
   expect(html).toContain("مسار واضح لكل مشاركة");
   expect(html).toContain('id="about"');
   expect(html).toContain("عن لُبّ");
@@ -27,7 +27,7 @@ it("includes the equivalent English About section", async () => {
   const html = renderToStaticMarkup(await Home());
 
   expect(html).toContain("Start here.");
-  expect(html).toContain("Student clubs, councils, and events for CCIS students");
+  expect(html).toContain("LUB (لُبّ) is a student platform for clubs, councils, and events at the College of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University.");
   expect(html).toContain("About LUB");
   expect(html).toContain('"alternateName":["لُبّ","Lub","lub.community"]');
   expect(html).toContain("Public club, council, and event information can be browsed without an account.");

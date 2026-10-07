@@ -3,12 +3,11 @@ import Image from "next/image";
 import { PublicHeader } from "@/components/public-header";
 import { JsonLd } from "@/lib/json-ld";
 import { getPreferences } from "@/lib/preferences";
+import { LUB_SITE_IDENTITY } from "@/lib/site-identity";
 
 export default async function Home() {
   const en = (await getPreferences()).locale === "en";
-  const description = en
-    ? "Discover student clubs, councils, and events at the College of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University, through LUB."
-    : "اكتشف الأندية والمجالس الطلابية والفعاليات المنشورة في كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية عبر منصة لُبّ.";
+  const description = LUB_SITE_IDENTITY[en ? "en" : "ar"].description;
   const alternateNames = en ? ["لُبّ", "Lub", "lub.community"] : ["LUB", "Lub", "lub.community"];
   return <>
     <PublicHeader />
@@ -41,7 +40,7 @@ export default async function Home() {
         <Image src="/brand/symbol-reversed.svg" alt="" width={100} height={100} className="home-hero-mark h-auto" aria-hidden="true" />
         <div className="relative grid gap-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(15rem,.7fr)] lg:items-end lg:gap-16">
           <div>
-            <p className="mb-5 text-sm font-medium text-[#bad3e6]">{en ? "Student clubs, councils, and events for CCIS students" : "منصة الأندية والمجالس والفعاليات الطلابية"}</p>
+            <p className="mb-5 max-w-2xl text-sm font-medium leading-7 text-[#bad3e6]">{description}</p>
             <h1 className={`max-w-2xl ${en ? "text-[clamp(2.7rem,5vw,4.5rem)] leading-[1.18]" : "text-[clamp(2.7rem,6vw,5.5rem)] leading-[1.22]"}`}>{en ? <>Start here.<br />Make an impact.</> : <>هنا تبدأ مشاركتك،<br />ويظهر أثرها.</>}</h1>
             <p className="mt-6 max-w-xl text-base leading-8 text-[#d8e4ed] sm:text-lg sm:leading-9">{en ? "Discover clubs and councils, take part in what matters to you, and keep a record of your achievements in one place." : "اكتشف الأندية والمجالس، شارك في ما يهمك، واحتفظ بسجل إنجازاتك في مكان واحد."}</p>
             <div className="mt-9 flex flex-wrap items-center gap-5"><Link href="/organizations" className="button button-secondary">{en ? "Explore organizations" : "استكشف الجهات"}</Link><Link href="/ai" className="font-bold text-[#d8e4ed] underline underline-offset-4 hover:text-white">{en ? "Ask LUB" : "اسأل لُبّ"}</Link></div>
@@ -75,8 +74,8 @@ export default async function Home() {
           </div>
           <div className="max-w-3xl">
             <p className="leading-8 text-muted">{en
-              ? "LUB (Lub, written لُبّ in Arabic) is a student platform for discovering published clubs, councils, and events for the College of Computer and Information Sciences community at Imam Mohammad Ibn Saud Islamic University. It helps students find ways to participate and keep a record of their achievements."
-              : "لُبّ (Lub) مساحة طلابية تساعد طلاب كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية على اكتشاف الأندية والمجالس والفعاليات المنشورة، والوصول إلى فرص المشاركة والاحتفاظ بسجل الإنجازات."}</p>
+              ? `${description} It helps students find ways to participate and keep a record of their achievements.`
+              : `${description} وتساعدهم على الوصول إلى فرص المشاركة والاحتفاظ بسجل الإنجازات.`}</p>
             <p className="mt-3 leading-8 text-muted">{en
               ? "Public club, council, and event information can be browsed without an account. Sign in when you choose to apply, register, or use a personal student feature."
               : "تقدر تتصفح معلومات الأندية والمجالس والفعاليات المنشورة بدون حساب. سجّل الدخول عند التقديم أو التسجيل في فعالية أو استخدام إحدى الخدمات الطلابية الشخصية."}</p>

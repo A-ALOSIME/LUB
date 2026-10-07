@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { getPreferences } from "@/lib/preferences";
+import { LUB_SITE_IDENTITY } from "@/lib/site-identity";
 import { ChatWidget } from "@/features/ai/chat-widget";
 import "./globals.css";
 
@@ -24,10 +25,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const { locale } = await getPreferences();
   const en = locale === "en";
-  const title = en ? "LUB | Student Clubs and Events" : "لُبّ | منصة الأندية الطلابية";
-  const description = en
-    ? "Discover student clubs, councils, and events at the College of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University, through LUB."
-    : "اكتشف الأندية والمجالس الطلابية والفعاليات المنشورة في كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية عبر منصة لُبّ.";
+  const { title, description } = LUB_SITE_IDENTITY[en ? "en" : "ar"];
   return {
     metadataBase: new URL("https://lub.community"),
     alternates: { canonical: "/" },
