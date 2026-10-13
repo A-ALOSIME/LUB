@@ -1,11 +1,20 @@
 import Link from "next/link";
-import { Brand } from "./brand";
 import { DisplayControls } from "./display-controls";
+import { SiteHeader } from "./site-header";
 import { signOut } from "@/features/auth/actions";
 import { getPreferences } from "@/lib/preferences";
+import { getVerifiedAccountAccess } from "@/features/auth/verified-account";
 
-export async function AccountHeader() {
-  const preferences = await getPreferences();
+export async function AccountHeader({ isSuperAdmin }: { isSuperAdmin?: boolean } = {}) {
+  const [preferences, account] = await Promise.all([
+    getPreferences(),
+    isSuperAdmin === undefined ? getVerifiedAccountAccess() : Promise.resolve(null),
+  ]);
   const en = preferences.locale === "en";
-  return <header className="site-header"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-8 px-5 sm:px-8"><Brand en={en} /><nav aria-label={en ? "Account navigation" : "تنقل الحساب"} className="site-nav flex flex-wrap items-center gap-4 py-3 text-sm sm:gap-7"><Link href="/organizations">{en ? "Clubs and councils" : "الأندية والمجالس"}</Link><Link href="/me">{en ? "My page" : "صفحتي"}</Link><Link href="/account">{en ? "Account" : "الحساب"}</Link><DisplayControls {...preferences} /><form action={signOut}><button className="header-link">{en ? "Log out" : "تسجيل الخروج"}</button></form></nav></div></header>;
+  const superAdmin = isSuperAdmin ?? account?.isSuperAdmin ?? false;
+  return <SiteHeader en={en} accountLabel={en ? "Account navigation" : "تنقل الحساب"} accountActions={<>
+    <DisplayControls {...preferences} />
+    <Link href={superAdmin ? "/manage" : "/me"} prefetch={false} className="button button-compact whitespace-nowrap">{en ? "My workspace" : "مساحتي"}</Link>
+    <form action={signOut}><button className="header-link">{en ? "Log out" : "تسجيل الخروج"}</button></form>
+  </>} />;
 }

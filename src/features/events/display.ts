@@ -1,4 +1,14 @@
 export const eventLabels:Record<string,string>={Draft:"مسودة",Published:"منشورة",Completed:"مكتملة",Cancelled:"ملغاة",Registered:"مسجل",Pending:"لم يُراجع",Present:"حاضر",Absent:"غائب",Excused:"معذور",In_Person:"حضوري",Online:"عن بُعد",Hybrid:"حضوري وعن بُعد",Presenter:"مقدم",Trainer:"مدرب",Core_Contributor:"مساهم أساسي"};
-export const eventDate=(value:string)=>new Intl.DateTimeFormat("ar-SA",{dateStyle:"medium",timeStyle:"short",calendar:"gregory",timeZone:"Asia/Riyadh"}).format(new Date(value));
+const arDateFormatter=new Intl.DateTimeFormat("ar-SA-u-nu-latn",{day:"numeric",month:"long",year:"numeric",calendar:"gregory",timeZone:"Asia/Riyadh"});
+const arTimeFormatter=new Intl.DateTimeFormat("ar-SA-u-nu-latn",{hour:"numeric",minute:"2-digit",hour12:true,timeZone:"Asia/Riyadh"});
+const arDateTimeFormatter=new Intl.DateTimeFormat("ar-SA-u-nu-latn",{day:"numeric",month:"long",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true,calendar:"gregory",timeZone:"Asia/Riyadh"});
+const enDateFormatter=new Intl.DateTimeFormat("en-US-u-nu-latn",{dateStyle:"medium",calendar:"gregory",timeZone:"Asia/Riyadh"});
+const enTimeFormatter=new Intl.DateTimeFormat("en-US-u-nu-latn",{timeStyle:"short",timeZone:"Asia/Riyadh"});
+const enDateTimeFormatter=new Intl.DateTimeFormat("en-US-u-nu-latn",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Riyadh"});
+export const eventDay=(value:string)=>arDateFormatter.format(new Date(value));
+export const eventTime=(value:string)=>arTimeFormatter.format(new Date(value));
+export const eventDate=(value:string)=>arDateTimeFormatter.format(new Date(value));
 export const eventLabelsEn:Record<string,string>={Draft:"Draft",Published:"Published",Completed:"Completed",Cancelled:"Cancelled",Registered:"Registered",Pending:"Pending",Present:"Present",Absent:"Absent",Excused:"Excused",In_Person:"In person",Online:"Online",Hybrid:"Hybrid",Presenter:"Presenter",Trainer:"Trainer",Core_Contributor:"Core contributor"};
-export const eventDateEn=(value:string)=>new Intl.DateTimeFormat("en-US",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Riyadh"}).format(new Date(value));
+export const eventDayEn=(value:string)=>enDateFormatter.format(new Date(value));
+export const eventTimeEn=(value:string)=>enTimeFormatter.format(new Date(value));
+export const eventDateEn=(value:string)=>enDateTimeFormatter.format(new Date(value));

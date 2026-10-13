@@ -1,2 +1,5 @@
-import {LocalizedText} from "@/components/localized-text";
-export default function Loading(){return <main id="main" className="mx-auto max-w-6xl p-8"><p role="status"><LocalizedText ar="جارٍ تحميل الفعاليات…" en="Loading events…"/></p></main>;}
+import {PageLoading} from "@/components/page-loading";
+
+export default function Loading() {
+  return <PageLoading titleAr="الفعاليات" titleEn="Events" loadingAr="جارٍ تحميل الفعاليات…" loadingEn="Loading events…"/>;
+}

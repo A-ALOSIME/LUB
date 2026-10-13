@@ -1,7 +1,9 @@
 import "server-only";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { withUser, type Transaction } from "@/db/client";
-import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships, announcements } from "@/db/schema";
+import { getDb, withUser, withVisitor, type Transaction } from "@/db/client";
+import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships, announcements, studentProfiles, auditLog } from "@/db/schema";
 import type { CreateOrganizationInput, OrganizationProfileInput, CommitteeInput, AnnouncementInput } from "./validation";
 
 async function requireSuperAdmin(tx: Transaction) {
@@ -18,7 +20,7 @@ const manageFields = {
   canEdit: sql<boolean>`lub.has_org_permission(${organizations.id},'ORG_PROFILE_MANAGE')`,
   canManageCommittees: sql<boolean>`lub.has_org_permission(${organizations.id},'COMMITTEE_MANAGE')`,
 };
-const hasScopedAccess = sql`lub.has_event_access(${organizations.id}) or lub.has_reports_access(${organizations.id}) or lub.has_hours_access(${organizations.id}) or lub.has_task_access(${organizations.id}) or lub.has_application_access(${organizations.id}) or lub.has_org_permission(${organizations.id},'ORG_PROFILE_MANAGE') or lub.has_org_permission(${organizations.id},'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizations.id} and lub.has_org_permission(${organizations.id},'COMMITTEE_PROFILE_MANAGE',c.id))`;
+const hasScopedAccess = sql`lub.has_event_access(${organizations.id}) or lub.has_reports_access(${organizations.id}) or lub.has_hours_access(${organizations.id}) or lub.has_task_access(${organizations.id}) or lub.has_application_access(${organizations.id}) or lub.has_org_permission(${organizations.id},'MEMBERS_VIEW') or lub.has_org_permission(${organizations.id},'MEMBERS_MANAGE') or lub.has_org_permission(${organizations.id},'PERMISSIONS_GRANT') or lub.has_org_permission(${organizations.id},'RENEWALS_MANAGE') or lub.has_org_permission(${organizations.id},'ORG_PROFILE_MANAGE') or lub.has_org_permission(${organizations.id},'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizations.id} and (lub.has_org_permission(${organizations.id},'COMMITTEE_PROFILE_MANAGE',c.id) or lub.has_org_permission(${organizations.id},'MEMBERS_VIEW',c.id)))`;
 
 export async function getManagementAccess(userId: string) {
   return withUser(userId, tx => readManagementAccess(tx, userId));
@@ -30,35 +32,156 @@ async function readManagementAccess(tx: Transaction, userId: string) {
     return { superAdmin: account.superAdmin, organizations: accessible };
 }
 
-export async function getManagementDashboard(userId: string) {
-  return withUser(userId, async tx => {
-    const [row] = await tx.select({
-      status: users.statusCode,
-      onboarded: sql<boolean>`exists(select 1 from lub.student_profiles p where p.user_id=lub.users.id)`,
-      superAdmin: sql<boolean>`lub.is_super_admin()`,
-      managed: sql<Array<{ id: string; slug: string; nameAr: string; statusCode: string; canEdit: boolean; canManageCommittees: boolean }>>`coalesce((select jsonb_agg(jsonb_build_object('id',o.id,'slug',o.slug,'nameAr',o.name_ar,'statusCode',o.status_code,'canEdit',lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE'),'canManageCommittees',lub.has_org_permission(o.id,'COMMITTEE_MANAGE')) order by o.name_ar,o.id) from lub.organizations o where lub.has_reports_access(o.id) or lub.has_hours_access(o.id) or lub.has_task_access(o.id) or lub.has_application_access(o.id) or lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE') or lub.has_org_permission(o.id,'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and lub.has_org_permission(o.id,'COMMITTEE_PROFILE_MANAGE',c.id))),'[]'::jsonb)`,
-      roster: sql<Array<{ id: string; slug: string; nameAr: string; typeCode: string; statusCode: string }>>`case when lub.is_super_admin() then coalesce((select jsonb_agg(jsonb_build_object('id',o.id,'slug',o.slug,'nameAr',o.name_ar,'typeCode',o.type_code,'statusCode',o.status_code) order by o.name_ar,o.id) from (select id,slug,name_ar,type_code,status_code from lub.organizations order by name_ar,id limit 200) o),'[]'::jsonb) else '[]'::jsonb end`,
-      admins: sql<Array<{ userId: string; fullName: string }>>`case when lub.is_super_admin() then coalesce((select jsonb_agg(jsonb_build_object('userId',a.user_id,'fullName',a.full_name)) from lub.list_super_admins() a),'[]'::jsonb) else '[]'::jsonb end`,
-    }).from(users).where(eq(users.id, userId)).limit(1);
-    return { readiness: { status: row?.status, onboarded: Boolean(row?.onboarded) }, access: { superAdmin: Boolean(row?.superAdmin), organizations: row?.managed ?? [] }, roster: row?.roster ?? [], admins: row?.admins ?? [] };
-  });
+type ManagementOverview = {
+  readiness: { status: string | undefined; onboarded: boolean };
+  access: { superAdmin: boolean; organizations: Array<{ id: string; slug: string; nameAr: string; statusCode: string; canEdit: boolean; canManageCommittees: boolean; canApplications: boolean; canEvents: boolean; canReports: boolean; canHours: boolean; canRenewals: boolean; canTasks: boolean; canMembers: boolean; canGrant: boolean }> };
+  summary: { activeOrganizations: number; archivedOrganizations: number; administrators: number };
+};
+const managementOverviewRequests = new Map<string, { expiresAt: number; result: Promise<ManagementOverview> }>();
+
+export function getManagementOverview(userId: string, requestNonce?: string): Promise<ManagementOverview> {
+  if (!requestNonce) return readManagementOverview(userId);
+  const now = Date.now();
+  for (const [key, entry] of managementOverviewRequests) if (entry.expiresAt <= now) managementOverviewRequests.delete(key);
+  const key = `${requestNonce}:${userId}`;
+  const existing = managementOverviewRequests.get(key);
+  if (existing) return existing.result;
+  if (managementOverviewRequests.size >= 128) {
+    const oldest = managementOverviewRequests.keys().next().value;
+    if (oldest) managementOverviewRequests.delete(oldest);
+  }
+  const entry = { expiresAt: now + 10_000, result: readManagementOverview(userId) };
+  managementOverviewRequests.set(key, entry);
+  void entry.result.catch(() => { if (managementOverviewRequests.get(key) === entry) managementOverviewRequests.delete(key); });
+  return entry.result;
 }
-export async function getAdminOrganizations(userId: string) {
+
+async function readManagementOverview(userId: string): Promise<ManagementOverview> {
+  const [row] = await getDb().execute<{
+    status: string | null;
+    onboarded: boolean;
+    superAdmin: boolean;
+    managed: ManagementOverview["access"]["organizations"];
+    activeOrganizations: number;
+    archivedOrganizations: number;
+    administrators: number;
+  }>(sql`
+    with prior_scope as materialized (
+      select current_setting('request.jwt.claim.sub', true) as previous_subject,
+        current_setting('role', true) as previous_role
+    ), verified_subject as materialized (
+      select set_config('request.jwt.claim.sub', ${userId}, true),
+        set_config('role', 'authenticated', true), previous_subject, previous_role
+      from prior_scope
+    ), account as materialized (
+      select u.status_code as status,
+        exists(select 1 from lub.student_profiles p where p.user_id = u.id) as onboarded,
+        lub.is_super_admin() as super_admin
+      from verified_subject, lub.users u
+      where u.id = ${userId}::uuid
+    ), overview as materialized (
+      select status, onboarded, super_admin as "superAdmin",
+      case when super_admin then '[]'::jsonb else coalesce((
+        select jsonb_agg(jsonb_build_object('id',o.id,'slug',o.slug,'nameAr',o.name_ar,'statusCode',o.status_code,'canEdit',lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE'),'canManageCommittees',lub.has_org_permission(o.id,'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and lub.has_org_permission(o.id,'COMMITTEE_PROFILE_MANAGE',c.id)),'canApplications',lub.has_application_access(o.id),'canEvents',lub.has_event_access(o.id),'canReports',lub.has_reports_access(o.id),'canHours',lub.has_hours_access(o.id),'canRenewals',lub.has_org_permission(o.id,'RENEWALS_MANAGE'),'canTasks',lub.has_task_access(o.id),'canMembers',lub.has_org_permission(o.id,'MEMBERS_VIEW') or lub.has_org_permission(o.id,'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and lub.has_org_permission(o.id,'MEMBERS_VIEW',c.id)),'canGrant',lub.has_org_permission(o.id,'PERMISSIONS_GRANT')) order by o.name_ar,o.id)
+        from lub.organizations o
+        where lub.has_event_access(o.id) or lub.has_reports_access(o.id) or lub.has_hours_access(o.id) or lub.has_task_access(o.id) or lub.has_application_access(o.id) or lub.has_org_permission(o.id,'MEMBERS_VIEW') or lub.has_org_permission(o.id,'MEMBERS_MANAGE') or lub.has_org_permission(o.id,'PERMISSIONS_GRANT') or lub.has_org_permission(o.id,'RENEWALS_MANAGE') or lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE') or lub.has_org_permission(o.id,'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and (lub.has_org_permission(o.id,'COMMITTEE_PROFILE_MANAGE',c.id) or lub.has_org_permission(o.id,'MEMBERS_VIEW',c.id)))
+      ),'[]'::jsonb) end as managed,
+      case when super_admin then (select count(*)::int from lub.organizations where status_code='Active') else 0 end as "activeOrganizations",
+      case when super_admin then (select count(*)::int from lub.organizations where status_code='Archived') else 0 end as "archivedOrganizations",
+      case when super_admin then (select count(*)::int from lub.list_super_admins()) else 0 end as administrators
+      from account
+    ), restored_scope as materialized (
+      select set_config('request.jwt.claim.sub', coalesce(previous_subject, ''), true),
+        set_config('role', coalesce(previous_role, 'none'), true)
+      from prior_scope cross join overview
+    )
+    select overview.* from overview cross join restored_scope
+  `);
+  return {
+    readiness: { status: row?.status ?? undefined, onboarded: Boolean(row?.onboarded) },
+    access: { superAdmin: Boolean(row?.superAdmin), organizations: row?.managed ?? [] },
+    summary: {
+      activeOrganizations: row?.activeOrganizations ?? 0,
+      archivedOrganizations: row?.archivedOrganizations ?? 0,
+      administrators: row?.administrators ?? 0,
+    },
+  };
+}
+const readAdminOrganizationDirectory = unstable_cache(async () => withVisitor(tx =>
+  tx.select({ id: organizations.id, slug: organizations.slug, nameAr: organizations.nameAr, typeCode: organizations.typeCode, statusCode: organizations.statusCode })
+    .from(organizations).orderBy(asc(organizations.nameAr), asc(organizations.id)).limit(200)
+), ["admin-organization-directory-v1"], { revalidate: 120, tags: ["public-organizations"] });
+
+export const getAdminOrganizations = cache(async (userId: string) => {
+  // The public directory can be cached; the caller's authority cannot.
+  // Start the independent directory read now so a cache miss doesn't add a
+  // second database round trip after the fresh authorization check.
+  const directoryPromise = readAdminOrganizationDirectory().then(
+    organizations => ({ organizations }),
+    error => ({ error }),
+  );
+  const [result] = await getDb().execute<{ allowed: boolean }>(sql`
+    with verified_subject as materialized (
+      select set_config('request.jwt.claim.sub', ${userId}, true), set_config('role', 'anon', true)
+    )
+    select lub.is_super_admin() as allowed from verified_subject
+  `);
+  const allowed = Boolean(result?.allowed);
+  if (!allowed) return { allowed, organizations: [] };
+  const directory = await directoryPromise;
+  if ("error" in directory) throw directory.error;
+  return { allowed, organizations: directory.organizations };
+});
+
+// The management layout and account page reuse this RLS-checked read only
+// within the current server render; no account or permission data is shared across requests.
+export const getAdminAccountProfile = cache(async (userId: string) => {
+  const [profile] = await getDb().execute<{ allowed: boolean; email: string; fullName: string | null }>(sql`
+    with verified_subject as materialized (
+      select set_config('request.jwt.claim.sub', ${userId}, true), set_config('role', 'authenticated', true)
+    )
+    select lub.is_super_admin() as allowed, account.email, profile.full_name_ar as "fullName"
+    from verified_subject
+    cross join lub.users account
+    left join lub.student_profiles profile on profile.user_id = account.id
+    where account.id = ${userId}
+  `);
+  if (!profile?.allowed || !profile.fullName) throw new Error("FORBIDDEN");
+  return { email: profile.email, fullName: profile.fullName };
+});
+
+export async function updateAdminAccountName(userId: string, fullName: string) {
   return withUser(userId, async tx => {
-    await requireSuperAdmin(tx);
-    return tx.select({ id: organizations.id, slug: organizations.slug, nameAr: organizations.nameAr, typeCode: organizations.typeCode, statusCode: organizations.statusCode })
-      .from(organizations).orderBy(asc(organizations.nameAr)).limit(200);
+    const [access] = await tx.select({ allowed: sql<boolean>`lub.is_super_admin()` }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!access?.allowed) throw new Error("FORBIDDEN");
+    const changed = await tx.update(studentProfiles).set({ fullNameAr: fullName, updatedAt: new Date() })
+      .where(eq(studentProfiles.userId, userId)).returning({ userId: studentProfiles.userId });
+    if (!changed.length) throw new Error("FORBIDDEN");
+    await tx.insert(auditLog).values({
+      actorUserId: userId,
+      actionCode: "ADMIN_NAME_UPDATED",
+      entityType: "system_administrator_profile",
+      entityId: userId,
+      metadata: {},
+    });
   });
 }
 export async function getSuperAdmins(userId: string) {
   return withUser(userId, async tx => {
-    await requireSuperAdmin(tx);
-    return tx.select({ userId: sql<string>`user_id`, fullName: sql<string>`full_name` }).from(sql`lub.list_super_admins()`);
+    const [result] = await tx.select({
+      allowed: sql<boolean>`lub.is_super_admin()`,
+      administrators: sql<Array<{ userId: string; fullName: string }>>`case when lub.is_super_admin() then coalesce((select jsonb_agg(jsonb_build_object('userId',a.user_id,'fullName',a.full_name) order by a.full_name) from lub.list_super_admins() a),'[]'::jsonb) else '[]'::jsonb end`,
+    }).from(users).where(eq(users.id, userId)).limit(1);
+    if (!result?.allowed) throw new Error("FORBIDDEN");
+    return result.administrators;
   });
+}
+export async function getAssignedManagementOrganizations(userId: string) {
+  return withUser(userId, tx => tx.select(manageFields).from(organizations).where(hasScopedAccess).orderBy(asc(organizations.nameAr)));
 }
 export async function getManagementOrganization(userId: string, organizationId: string) {
   return withUser(userId, async tx => {
-    const [organization] = await tx.select({ ...manageFields, canEvents: sql<boolean>`lub.has_event_access(${organizations.id})`, canReports: sql<boolean>`lub.has_reports_access(${organizations.id})`, canHours: sql<boolean>`lub.has_hours_access(${organizations.id})`, canRenewals: sql<boolean>`lub.has_org_permission(${organizations.id},'RENEWALS_MANAGE')`, canTasks: sql<boolean>`lub.has_task_access(${organizations.id})`, canApplications: sql<boolean>`lub.has_application_access(${organizations.id})`, summary: organizations.summary, mission: organizations.mission, logoUrl: organizations.logoUrl, showLeadershipPublicly: organizations.showLeadershipPublicly,
+    const [organization] = await tx.select({ ...manageFields, canEvents: sql<boolean>`lub.has_event_access(${organizations.id})`, canReports: sql<boolean>`lub.has_reports_access(${organizations.id})`, canHours: sql<boolean>`lub.has_hours_access(${organizations.id})`, canRenewals: sql<boolean>`lub.has_org_permission(${organizations.id},'RENEWALS_MANAGE')`, canTasks: sql<boolean>`lub.has_task_access(${organizations.id})`, canApplications: sql<boolean>`lub.has_application_access(${organizations.id})`, canMembers: sql<boolean>`lub.has_org_permission(${organizations.id},'MEMBERS_VIEW') or lub.has_org_permission(${organizations.id},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizations.id} and lub.has_org_permission(${organizations.id},'MEMBERS_VIEW',c.id))`, canGrant: sql<boolean>`lub.has_org_permission(${organizations.id},'PERMISSIONS_GRANT')`, summary: organizations.summary, mission: organizations.mission, logoUrl: organizations.logoUrl, showLeadershipPublicly: organizations.showLeadershipPublicly,
       announcements:sql<Array<{id:string;title:string;body:string;published:boolean;pinned:boolean}>>`case when lub.has_org_permission(${organizations.id},'ORG_PROFILE_MANAGE') then coalesce((select jsonb_agg(a) from(select a.id,a.title,a.body,a.published_at is not null as published,a.pinned_at is not null as pinned from lub.announcements a where a.organization_id=lub.organizations.id and a.archived_at is null order by a.pinned_at desc nulls last,a.created_at desc,a.id limit 30) a),'[]'::jsonb) else '[]'::jsonb end`,
     })
       .from(organizations).where(and(eq(organizations.id, organizationId), hasScopedAccess)).limit(1);
@@ -72,6 +195,52 @@ export async function getManagementOrganization(userId: string, organizationId: 
     return { organization, committees: scopedCommittees, tagNames: interests.map(x => x.name).join("، "), websiteUrl: contact?.url ?? "" };
   });
 }
+
+export type OrganizationMemberWorkspace = {
+  canManage: boolean;
+  canGrant: boolean;
+  canAddHours: boolean;
+  terms: Array<{ id: string; name: string; year: string; termCode: string; startDate: string; endDate: string }>;
+  committees: Array<{ id: string; name: string }>;
+  members: Array<{
+    id: string; name: string; major: string; level: string; status: string; startDate: string; endDate: string | null;
+    canManage: boolean; hours: number; roles: Array<{ code: string; committee: string | null }>;
+    committees: Array<{ id: string; name: string }>; hourScopes: Array<{ id: string; name: string }>;
+  }>;
+};
+
+export type OrganizationPermissionWorkspace = {
+  members: Array<{ id: string; name: string }>;
+  committees: Array<{ id: string; name: string }>;
+  grants: Array<{ id: string; member: string; code: string; committee: string | null; ends: string | null }>;
+};
+
+export async function getOrganizationMemberDirectory(userId: string, organizationId: string) {
+  return withUser(userId, async tx => {
+    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
+    return rows[0]?.workspace as OrganizationMemberWorkspace | undefined;
+  });
+}
+
+export async function getOrganizationPermissionWorkspace(userId: string, organizationId: string) {
+  return withUser(userId, async tx => {
+    const rows = await tx.execute(sql`select lub.organization_permission_workspace(${organizationId}) as workspace from lub.organizations where id=${organizationId} and lub.has_org_permission(${organizationId},'PERMISSIONS_GRANT')`);
+    return rows[0]?.workspace as OrganizationPermissionWorkspace | undefined;
+  });
+}
+
+export async function grantOrganizationPermission(userId: string, memberId: string, capability: string, committeeId: string | null, ends: string | null) {
+  return withUser(userId, tx => tx.execute(sql`select lub.grant_organization_permission(${memberId},${capability},${committeeId},${ends}::timestamptz)`));
+}
+
+export async function endOrganizationPermission(userId: string, grantId: string) {
+  return withUser(userId, tx => tx.execute(sql`select lub.end_organization_permission(${grantId})`));
+}
+
+export async function endOrganizationMembership(userId: string, membershipId: string, reason: string) {
+  return withUser(userId, tx => tx.execute(sql`select lub.end_organization_membership(${membershipId},${reason})`));
+}
+
 export async function getMembershipHistory(userId: string) {
   return withUser(userId, tx => tx.select({ id: organizationMemberships.id, organizationName: organizations.nameAr, slug: organizations.slug, organizationStatus: organizations.statusCode,
     statusCode: organizationMemberships.statusCode, startDate: organizationMemberships.startDate, endDate: organizationMemberships.endDate,

@@ -4,13 +4,14 @@ import {sql} from "drizzle-orm";
 import {revalidatePath,updateTag} from "next/cache";
 import {withUser} from "@/db/client";
 import {requireUser} from "@/features/auth/session";
+import {studentOperationError} from "@/features/auth/authorization";
 import {normalizeDigits} from "@/lib/validation";
 import type {WorkflowState} from "@/features/forms/actions";
 const id=(f:FormData,k:string)=>z.uuid().parse(f.get(k));
 const optionalId=(f:FormData,k:string)=>f.get(k)?id(f,k):null;
 const text=(f:FormData,k:string,max:number,min=0)=>z.string().trim().min(min).max(max).parse(f.get(k)??"");
 const checked=(f:FormData,k:string)=>f.get(k)==="on";
-export async function mutateTalent(_previous:WorkflowState,f:FormData):Promise<WorkflowState>{const user=await requireUser();try{
+export async function mutateTalent(_previous:WorkflowState,f:FormData):Promise<WorkflowState>{const user=await requireUser();const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};try{
  const operation=z.enum(["settings","link","remove-link","skill","remove-skill","project","organization","event","contribution"]).parse(f.get("operation"));
  const query=(()=>{switch(operation){
  case "settings":return sql`select lub.save_talent_settings(${text(f,"bio",1000)},${checked(f,"enabled")},${checked(f,"hours")},${checked(f,"roles")},${checked(f,"events")},${checked(f,"projects")})`;

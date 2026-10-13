@@ -5,12 +5,15 @@ import { z } from "zod";
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/features/auth/session";
+import { studentOperationError } from "@/features/auth/authorization";
 import { profileSchema, type FormState } from "@/lib/validation";
 import { isProfileStorageConfigured } from "@/lib/env";
 import { saveStudentProfile } from "./repository";
 
 export async function saveProfile(_previous: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
+  const adminError = await studentOperationError(user.id);
+  if (adminError) return { error: adminError };
   if (!isProfileStorageConfigured()) return { error: "حفظ البيانات غير متاح الآن. حاول لاحقًا." };
   const input = profileSchema.safeParse({
     fullName: form.get("fullName"), universityId: form.get("universityId") || undefined,

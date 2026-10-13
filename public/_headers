@@ -6,3 +6,6 @@
 
 /brand/*
   Cache-Control: public, max-age=86400
+
+/event-posters/*
+  Cache-Control: public, max-age=86400

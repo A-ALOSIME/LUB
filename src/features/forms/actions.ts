@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
 import { withUser } from "@/db/client";
 import { requireUser } from "@/features/auth/session";
+import { studentOperationError } from "@/features/auth/authorization";
 import { definitionSchema, validateAnswers } from "./definition";
 import { getRound } from "./repository";
 export type WorkflowState = { error?: string; success?: string; bulk?: string };
@@ -15,6 +16,10 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
  const user = await requireUser(); let bulk: string | undefined;
  try {
   const operation = z.enum(["create-form","save-form","publish-form","draft-form","create-round","round-status","submit","withdraw","decide","note","bulk","grant","end-grant"]).parse(form.get("operation"));
+  if (["submit","withdraw"].includes(operation)) {
+   const adminError = await studentOperationError(user.id);
+   if (adminError) return { error: adminError };
+  }
   const query = await (async () => {
    if (form.get("undoBulk")) return sql`select lub.undo_application_bulk(${uuid(form,"undoBulk")})`;
    switch(operation) {

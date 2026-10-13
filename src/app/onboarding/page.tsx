@@ -1,7 +1,7 @@
 import {localizedMetadata} from "@/lib/localized-metadata";
 import { safeReturnPath } from "@/features/auth/return-path";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/features/auth/session";
+import { requireStudentUser as requireUser } from "@/features/auth/authorization";
 import { getStudentProfile, getAccountStatus } from "@/features/profile/repository";
 import { ProfileForm } from "@/features/profile/profile-form";
 import { AccountHeader } from "@/components/account-header";

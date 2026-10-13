@@ -51,7 +51,7 @@ export function SocialLinkIcons({ links, en }: { links: readonly OrganizationPro
       const href = link.href!;
       const accessibleName = link.value && link.value !== href ? `${link.label}: ${link.value}` : link.label;
       const external = href.startsWith("https:");
-      const linkName = external ? `${accessibleName} — ${en ? "opens in a new window" : "يفتح في نافذة جديدة"}` : accessibleName;
+      const linkName = external ? `${accessibleName} (${en ? "opens in a new window" : "يفتح في نافذة جديدة"})` : accessibleName;
       return <li key={href}><a className="organization-social-link" href={href} aria-label={linkName} title={accessibleName} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
         <SocialIcon name={iconName(link)} />
       </a></li>;

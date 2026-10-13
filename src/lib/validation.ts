@@ -8,7 +8,7 @@ export function normalizeDigits(value: string) {
 }
 
 export const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email("أدخل بريدًا إلكترونيًا صحيحًا."));
-export const otpSchema = z.string().transform(normalizeDigits).pipe(z.string().regex(/^\d{8}$/, "أدخل رمز التحقق المكوّن من 8 أرقام."));
+export const otpSchema = z.string().transform(normalizeDigits).pipe(z.string().regex(/^\d{6}$/, "أدخل رمز التحقق المكوّن من 6 أرقام."));
 export const universityIdSchema = z.string().transform(normalizeDigits).pipe(z.string().regex(/^\d{6,15}$/, "الرقم الجامعي يجب أن يحتوي على 6 إلى 15 رقمًا."));
 export const profileSchema = z.object({
   fullName: z.string().trim().min(3, "أدخل اسمك الكامل.").max(120, "الاسم طويل جدًا."),
@@ -19,7 +19,9 @@ export const profileSchema = z.object({
   publicProfileEnabled: z.boolean().default(false),
   showTotalHours: z.boolean().default(true),
 });
+export const signupProfileSchema = profileSchema.extend({ universityId: universityIdSchema });
 export type ProfileInput = z.infer<typeof profileSchema>;
+export type SignupProfileInput = z.infer<typeof signupProfileSchema>;
 
 export type FormState = {
   error?: string;

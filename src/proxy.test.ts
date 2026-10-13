@@ -40,4 +40,43 @@ describe("session proxy", () => {
     expect(getClaims).toHaveBeenCalledOnce();
     expect(getUser).not.toHaveBeenCalled();
   });
+  it("forwards only the subject from an authenticated, verified JWT", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "test-key");
+    const getClaims = vi.fn(async () => ({ data: { claims: {
+      sub: "00000000-0000-4000-8000-000000000123",
+      role: "authenticated",
+      aud: "authenticated",
+      is_anonymous: false,
+    } }, error: null }));
+    refresh.mockReturnValue({ auth: { getClaims } });
+
+    const response = await proxy(new NextRequest("http://localhost/manage", {
+      headers: { "x-lub-verified-user-id": "00000000-0000-4000-8000-000000000999" },
+    }));
+
+    expect(response.headers.get("x-middleware-request-x-lub-verified-user-id")).toBe("00000000-0000-4000-8000-000000000123");
+    expect(getClaims).toHaveBeenCalledOnce();
+  });
+  it("marks administrator account settings so the profile read can authorize the navigation", async () => {
+    const response = await proxy(new NextRequest("http://localhost/manage/account"));
+    expect(response.headers.get("x-middleware-request-x-lub-management-view")).toBe("account");
+  });
+  it("does not forward subjects from anonymous or malformed claims", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "test-key");
+    const getClaims = vi.fn(async () => ({ data: { claims: {
+      sub: "not-a-uuid",
+      role: "authenticated",
+      aud: "authenticated",
+      is_anonymous: false,
+    } }, error: null }));
+    refresh.mockReturnValue({ auth: { getClaims } });
+
+    const response = await proxy(new NextRequest("http://localhost/manage", {
+      headers: { "x-lub-verified-user-id": "00000000-0000-4000-8000-000000000999" },
+    }));
+
+    expect(response.headers.get("x-middleware-request-x-lub-verified-user-id")).toBeNull();
+  });
 });

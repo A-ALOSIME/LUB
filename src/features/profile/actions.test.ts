@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-const dependencies = vi.hoisted(() => ({ requireUser: vi.fn(), saveStudentProfile: vi.fn(), revalidatePath: vi.fn(), updateTag: vi.fn() }));
+const dependencies = vi.hoisted(() => ({ requireUser: vi.fn(), studentOperationError: vi.fn(), saveStudentProfile: vi.fn(), revalidatePath: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/features/auth/session", () => ({ requireUser: dependencies.requireUser }));
+vi.mock("@/features/auth/authorization", () => ({ studentOperationError: dependencies.studentOperationError }));
 vi.mock("./repository", () => ({ saveStudentProfile: dependencies.saveStudentProfile }));
 vi.mock("next/cache", () => ({ revalidatePath: dependencies.revalidatePath, updateTag: dependencies.updateTag }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
@@ -16,10 +17,18 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("DATABASE_URL", "test-only-url"); vi.stubEnv("IDENTIFIER_ENCRYPTION_KEY", "test-only-key"); vi.stubEnv("IDENTIFIER_LOOKUP_KEY", "test-only-lookup");
   dependencies.requireUser.mockResolvedValue(user);
+  dependencies.studentOperationError.mockResolvedValue(undefined);
   dependencies.saveStudentProfile.mockResolvedValue(undefined);
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("profile action boundary", () => {
+  it("does not let a system administrator save student profile data", async () => {
+    dependencies.studentOperationError.mockResolvedValue("هذا الحساب مخصص لإدارة النظام، وإجراءات الطلاب غير متاحة له.");
+    const result = await saveProfile({}, input());
+    expect(result.error).toContain("مخصص لإدارة النظام");
+    expect(dependencies.saveStudentProfile).not.toHaveBeenCalled();
+  });
+
   it("authenticates before touching the database and ignores a forged form owner", async () => {
     await expect(saveProfile({}, input({ userId: "another-student" }))).rejects.toThrow("redirect:/me?notice=profile-saved");
     expect(dependencies.saveStudentProfile).toHaveBeenCalledWith(user, expect.objectContaining({ fullName: "أحمد محمد", universityId: "202612345" }));

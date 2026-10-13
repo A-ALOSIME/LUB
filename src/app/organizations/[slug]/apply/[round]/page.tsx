@@ -1,9 +1,10 @@
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { PublicHeader } from "@/components/public-header";
 import { getVerifiedUser } from "@/features/auth/session";
+import { isSuperAdminUser } from "@/features/auth/authorization";
 import { getRound } from "@/features/forms/repository";
 import { ApplicationForm } from "@/features/forms/application-form";
 import { ApplicationDetail } from "@/features/forms/application-detail";
@@ -11,7 +12,7 @@ import { WorkflowForm } from "@/features/forms/mutation-form";
 import { getPreferences } from "@/lib/preferences";
 export async function generateMetadata(){return localizedMetadata('طلب الانضمام','Membership application');}
 export default async function ApplyPage({params}:{params:Promise<{slug:string;round:string}>}) {
- const {slug,round}=await params;if(!z.uuid().safeParse(round).success)notFound();const [{locale},user]=await Promise.all([getPreferences(),getVerifiedUser()]);const en=locale==="en";
+ const {slug,round}=await params;if(!z.uuid().safeParse(round).success)notFound();const [{locale},user]=await Promise.all([getPreferences(),getVerifiedUser()]);const en=locale==="en";if(user&&await isSuperAdminUser(user.id))redirect("/manage");
  const data=await getRound(round,user?.id);if(!data||data.slug!==slug||!data.version)notFound();
  const path=`/organizations/${slug}/apply/${round}`;const next=encodeURIComponent(path);
  const detail=data.application;

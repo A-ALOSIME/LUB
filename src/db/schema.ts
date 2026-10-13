@@ -322,7 +322,7 @@ export const eventContributions=lub.table("event_contributions",{
 },t=>[unique("event_contribution_user_type_unique").on(t.eventId,t.userId,t.contributionTypeCode),check("event_contribution_type_check",sql`${t.contributionTypeCode} in ('Presenter','Trainer','Core_Contributor') and length(trim(${t.title})) between 2 and 120`)]).enableRLS();
 export const eventAssets=lub.table("event_assets",{
  eventId:uuid("event_id").notNull().references(()=>events.id),assetId:uuid("asset_id").notNull().references(()=>applicationAssets.id),assetTypeCode:varchar("asset_type_code",{length:20}).notNull(),
-},t=>[primaryKey({columns:[t.eventId,t.assetId]}),check("event_asset_type_check",sql`${t.assetTypeCode} in ('Approval','Attendance','Report','Photo')`)]).enableRLS();
+},t=>[primaryKey({columns:[t.eventId,t.assetId]}),check("event_asset_type_check",sql`${t.assetTypeCode} in ('Approval','Attendance','Report','Photo','Poster')`)]).enableRLS();
 export const profileOrganizationSettings=lub.table("profile_organization_settings",{
  userId:uuid("user_id").notNull().references(()=>users.id),organizationId:uuid("organization_id").notNull().references(()=>organizations.id),showHours:boolean("show_hours").notNull().default(true),showMembershipHistory:boolean("show_membership_history").notNull().default(true),
 },t=>[primaryKey({columns:[t.userId,t.organizationId]})]).enableRLS();

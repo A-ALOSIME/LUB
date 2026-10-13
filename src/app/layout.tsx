@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { getPreferences } from "@/lib/preferences";
 import { ChatWidget } from "@/features/ai/chat-widget";
@@ -24,18 +26,20 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const { locale } = await getPreferences();
   const en = locale === "en";
-  const title = en ? "LUB | Student life" : "لُبّ | مساحة العمل الطلابي";
+  const title = en ? "LUB | Student Clubs and Events" : "لُبّ | منصة الأندية الطلابية";
   const description = en
-    ? "Discover student clubs and councils, join activities, track hours and share achievements."
-    : "مساحة الأندية والمجالس الطلابية، من العضوية والمشاركة إلى الساعات والإنجازات.";
+    ? "Discover student clubs, councils, and events at the College of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University, through LUB."
+    : "اكتشف الأندية والمجالس الطلابية والفعاليات المنشورة في كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية عبر منصة لُبّ.";
   return {
     metadataBase: new URL("https://lub.community"),
+    alternates: { canonical: "/" },
     title: { default: title, template: en ? "%s | LUB" : "%s | لُبّ" },
     description,
+    robots: { index: true, follow: true },
     icons: { icon: [{ url: "/favicon.ico", sizes: "any", type: "image/x-icon" }] },
     openGraph: {
       type: "website",
-      siteName: "لُبّ",
+      siteName: en ? "LUB" : "لُبّ",
       locale: en ? "en_US" : "ar_SA",
       title,
       description,
@@ -45,11 +49,17 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+async function StudentChatWidget({ locale }: { locale: "ar" | "en" }) {
+  const requestHeaders = await headers();
+  if (requestHeaders.get("x-lub-area") === "management") return null;
+  return <ChatWidget locale={locale} />;
+}
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { locale, theme } = await getPreferences();
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={`${thmanyahSans.variable} ${thmanyahDisplay.variable}`}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
     {children}
-    <ChatWidget locale={locale} />
+    <Suspense fallback={null}><StudentChatWidget locale={locale} /></Suspense>
   </body></html>;
 }

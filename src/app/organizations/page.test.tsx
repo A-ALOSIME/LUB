@@ -9,7 +9,7 @@ vi.mock("@/features/organizations/public-data", () => ({ readPublicDirectory: vi
   organizations: [
     { id: "1", slug: "council", nameAr: "مجلس الطلاب", typeCode: "Council", statusCode: "Active", summary: "", tags: [] },
     { id: "2", slug: "club", nameAr: "نادي التقنية", typeCode: "Club", statusCode: "Active", summary: "", tags: [] },
-    { id: "3", slug: "ieee", nameAr: "نادي IEEE", typeCode: "Club", statusCode: "Active", summary: "", tags: [] },
+    { id: "3", slug: "ieee", nameAr: "نادي IEEE", typeCode: "Club", statusCode: "Active", summary: "وصف تجريبي طويل", tags: ["تقنية"] },
   ], hasNext: false,
 })) }));
 import OrganizationsPage from "./page";
@@ -31,4 +31,8 @@ it("uses the supplied optimized IEEE logo and keeps the card itself as the only 
   expect(ieeeLink.querySelector("img")?.getAttribute("src")).toBe("/club-logos/ieee.webp");
   expect(ieeeLink.textContent).not.toContain("عرض التفاصيل");
   expect(ieeeLink.textContent).not.toContain("↗");
+  expect(ieeeLink.textContent).toContain("تقنية");
+  expect(ieeeLink.textContent).not.toContain("فرع طلابي يحوّل المعرفة التقنية");
+  expect(ieeeLink.textContent).not.toContain("وصف تجريبي طويل");
+  expect(ieeeLink.querySelector(".organization-card-summary")).toBeNull();
 });

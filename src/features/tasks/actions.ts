@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { withUser } from "@/db/client";
 import { requireUser } from "@/features/auth/session";
+import { studentOperationError } from "@/features/auth/authorization";
 export type TaskState={error?:string;success?:string;task?:string};
 const id=(f:FormData,k:string)=>z.uuid().parse(f.get(k));
 const optionalId=(f:FormData,k:string)=>f.get(k)?id(f,k):null;
@@ -15,6 +16,7 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  const user=await requireUser();let target:string|undefined;
  try{
  const operation=z.enum(["save-task","link-event","status","template","join","start","submit","review","close","read","grant","end-grant"]).parse(f.get("operation"));
+ if(["join","start","submit","read"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{
  switch(operation){
  case "link-event":return sql`select lub.link_task_event(${id(f,"task")},${optionalId(f,"event")},${revision(f)})`;

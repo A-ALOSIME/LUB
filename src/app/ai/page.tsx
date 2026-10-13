@@ -5,7 +5,14 @@ import { localizedMetadata } from "@/lib/localized-metadata";
 import { getPreferences } from "@/lib/preferences";
 
 export async function generateMetadata() {
-  return localizedMetadata("اسأل لُبّ", "Ask LUB");
+  return localizedMetadata("اسأل لُبّ", "Ask LUB", {}, {
+    index: true,
+    canonical: "/ai",
+    description: {
+      ar: "اسأل لُبّ عن معلومات الأندية والمجالس والفعاليات والخدمات العامة المنشورة على الموقع.",
+      en: "Ask LUB about publicly available clubs, councils, events, and services on the website.",
+    },
+  });
 }
 
 export default async function KnowledgePage() {

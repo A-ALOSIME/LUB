@@ -1,11 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import type {EventCard,EventDetail} from "./repository";
 import {EventForm,EventFields,EventAttachment,EventRegistrationForm} from "./form";
+import {EventIcon} from "./icon";
+import {localOrganizationContent} from "@/features/organizations/local-content";
 
-import {eventDate,eventDateEn,eventLabels,eventLabelsEn} from "./display";
+import {eventDate,eventDateEn,eventDay,eventDayEn,eventTime,eventTimeEn,eventLabels,eventLabelsEn} from "./display";
 import type {Locale} from "@/lib/preferences";
 export {eventDate,eventLabels} from "./display";
+export {EventIcon} from "./icon";
 export function EventGrants({org,members,grants,memberPage,grantPage,page,locale="ar"}:{org:string;members:Array<{id:string;name:string}>;grants:Array<{id:string;name:string;permission_code:string;end_at:string|null}>;memberPage:number;grantPage:number;page:number;locale?:Locale}){
  const en=locale==="en",c=(ar:string,english:string)=>en?english:ar;
  const labels:Record<string,string>=en?{EVENTS_MANAGE:"Manage events",EVENT_ATTENDANCE_MANAGE:"Manage attendance",EVENT_CONTRIBUTIONS_MANAGE:"Record contributions"}:{EVENTS_MANAGE:"إدارة الفعاليات",EVENT_ATTENDANCE_MANAGE:"إدارة الحضور",EVENT_CONTRIBUTIONS_MANAGE:"إثبات المساهمات"};
@@ -13,16 +17,186 @@ export function EventGrants({org,members,grants,memberPage,grantPage,page,locale
  return <section className="panel mb-6 p-6"><h2 className="mb-5 text-xl font-semibold">{c("تفويض الفعاليات","Event permissions")}</h2>{members.length>0?<EventForm operation="grant" fields={{org}} label={c("منح الصلاحية","Grant permission")} locale={locale}><label>{c("العضو","Member")}<select name="member" required>{members.slice(0,25).map(m=><option key={m.id} value={m.id} dir="auto">{m.name}</option>)}</select></label><label>{c("الصلاحية","Permission")}<select name="capability">{Object.entries(labels).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><p className="text-sm text-muted">{c("التفويض ضمن الجهة. إكمال فعالية تمنح ساعات يحتاج صلاحية اعتماد الساعات أيضًا.","This permission applies within the organization. Completing an event that awards hours also requires permission to approve hours.")}</p></EventForm>:<p className="text-muted">{c("لا يوجد أعضاء في هذه الصفحة.","No members on this page.")}</p>}
  <nav aria-label={c("صفحات أعضاء التفويض","Permission member pages")} className="my-5 flex gap-5">{memberPage>0&&<Link className="text-link" href={href(memberPage-1,grantPage)}>{c("أعضاء سابقون","Previous members")}</Link>}{members.length>25&&<Link className="text-link" href={href(memberPage+1,grantPage)}>{c("أعضاء تاليون","Next members")}</Link>}</nav><ul className="space-y-5">{grants.slice(0,25).map(g=><li className="border-t border-line pt-4" key={g.id}><p className="mb-3"><span dir="auto">{g.name}</span> · {labels[g.permission_code]}</p><EventForm operation="end-grant" fields={{grant:g.id}} label={c("إنهاء التفويض","End permission")} locale={locale}/></li>)}</ul><nav aria-label={c("صفحات التفويض","Permission pages")} className="mt-5 flex gap-5">{grantPage>0&&<Link className="text-link" href={href(memberPage,grantPage-1)}>{c("تفويضات سابقة","Previous permissions")}</Link>}{grants.length>25&&<Link className="text-link" href={href(memberPage,grantPage+1)}>{c("تفويضات تالية","Next permissions")}</Link>}</nav></section>;
 }
-export function EventCards({items,locale="ar"}:{items:EventCard[];locale?:Locale}){const en=locale==="en",labels=en?eventLabelsEn:eventLabels,date=en?eventDateEn:eventDate;return items.length?<ul className="grid gap-5 sm:grid-cols-2">{items.map(e=><li className="panel min-w-0 p-6" key={e.id}><p className="text-sm text-muted"><bdi>{e.org_name}</bdi> · {labels[e.status_code]}</p><h2 dir="auto" className="mt-3 text-xl font-semibold"><Link href={`/events/${e.id}`} className="text-link">{e.title}</Link></h2><p className="mt-4 leading-8">{date(e.starts_at)}</p><p className="text-muted">{labels[e.location_type_code]}{e.open?en?" · Registration open":" · التسجيل مفتوح":""}</p></li>)}</ul>:<p className="panel p-8 text-muted">{en?"No matching events right now.":"لا توجد فعاليات مطابقة الآن."}</p>;}
-export function EventContent({data,user,locale="ar"}:{data:EventDetail;user:boolean;locale?:Locale}){
- const e=data.event,base={event:e.id,revision:String(e.revision)},en=locale==="en",c=(ar:string,english:string)=>en?english:ar;
- const labels=en?eventLabelsEn:eventLabels,date=en?eventDateEn:eventDate;
- return <>
- <div className="mb-8"><Link href={`/organizations/${data.slug}`} className="text-link" dir="auto">{data.org_name}</Link><h1 dir="auto" className="mt-4 text-3xl font-bold leading-normal">{e.title}</h1><p className="mt-3 text-muted">{labels[e.status_code]} · {labels[e.location_type_code]}</p></div>
- <section className="panel mb-6 space-y-4 p-6"><h2 className="text-xl font-semibold">{c("عن الفعالية","About this event")}</h2><p dir="auto" className="whitespace-pre-wrap leading-8 wrap-anywhere">{e.description}</p><p>{date(e.starts_at)} — {date(e.ends_at)} ({c("الرياض","Riyadh")})</p>{e.location_text&&<p dir="auto">{e.location_text}</p>}{e.online_url&&<a href={e.online_url} className="text-link wrap-anywhere" rel="noopener noreferrer">{c("رابط الحضور","Join link")}</a>}<p>{c("التسجيل","Registration")}: {date(e.registration_opens_at)} — {date(e.registration_closes_at)}</p>{data.remaining!==null&&<p>{c("المقاعد المتبقية","Seats remaining")}: {data.remaining}</p>}<p className="text-sm text-muted">{c("ساعات حضور أعضاء الجهة","Attendance hours for organization members")}: {e.attendance_hours}. {c("تُعتمد بعد إكمال الفعالية ومراجعة الحضور.","Hours are approved after completing the event and reviewing attendance.")}</p></section>
- {(e.public_report||e.public_photos?.length>0)&&<section className="panel mb-6 p-6"><h2 className="text-xl font-semibold">{c("منشورات الفعالية العامة","Public event updates")}</h2>{e.public_report&&<p dir="auto" className="mt-4 whitespace-pre-line leading-8 text-muted">{e.public_report}</p>}{e.public_photos?.length>0&&<ul className="mt-5 grid gap-4 sm:grid-cols-2">{e.public_photos.map((url,index)=><li key={url}><Image unoptimized loading="lazy" src={url} alt={en?`Event photo ${index+1}`:`صورة منشورة للفعالية ${index+1}`} width={640} height={400} referrerPolicy="no-referrer" className="w-full rounded-lg object-cover" /></li>)}</ul>}</section>}
- {e.status_code!=="Draft"&&<section className="panel mb-6 p-6"><h2 className="mb-4 text-xl font-semibold">{c("تسجيلي","My registration")}</h2>{data.own&&<p className="mb-4">{labels[data.own.status_code]}{data.own.attendance?` · ${labels[data.own.attendance]}`:""}</p>}{data.open&&data.own?.status_code!=="Cancelled"? !user?<Link className="button" href={`/login?next=${encodeURIComponent(`/events/${e.id}/register`)}`}>{c("دخول للتسجيل في الفعالية","Log in to register")}</Link>:data.status!=="Active"||!data.onboarded?<Link className="button" href={`/onboarding?next=${encodeURIComponent(`/events/${e.id}/register`)}`}>{c("إكمال الحساب للتسجيل","Complete your account to register")}</Link>:data.form?<EventRegistrationForm event={e.id} round="" version={data.form.id} definition={data.form.definition} initial={data.own?.answers} revision={data.own?.response_revision??undefined} committees={[]} locale={locale}/>:!data.own?<EventForm operation="register" fields={{event:e.id}} label={c("تسجيل في الفعالية","Register for event")} locale={locale}/>:null:<p className="text-muted">{c("التسجيل أو تعديل الإجابات غير متاح الآن.","Registration and answer editing are unavailable now.")}</p>}{data.open&&data.own?.status_code==="Registered"&&<div className="mt-6"><EventForm operation="cancel" fields={{registration:data.own.id}} label={c("إلغاء تسجيلي","Cancel my registration")} locale={locale}><label className="flex items-center gap-3"><input type="checkbox" name="confirm" required className="size-5"/>{c("أؤكد إلغاء التسجيل","I confirm the cancellation")}</label></EventForm></div>}</section>}
- {data.canManage&&<section className="panel mb-6 space-y-6 p-6"><h2 className="text-xl font-semibold">{c("إدارة الفعالية","Manage event")}</h2>{['Draft','Published'].includes(e.status_code)&&<><details><summary className="cursor-pointer font-medium">{c("تعديل البيانات","Edit details")}</summary><div className="mt-4"><EventForm operation="save" fields={{...base,org:e.organization_id}} label={c("حفظ الفعالية","Save event")} locale={locale}><EventFields value={e} locale={locale}/></EventForm></div></details><EventForm operation="status" fields={base} label={c("تغيير الحالة","Change status")} locale={locale}><label>{c("الإجراء","Action")}<select name="status">{e.status_code==="Draft"?<option value="Published">{c("نشر الفعالية","Publish event")}</option>:<option value="Completed">{c("إكمال يدوي واعتماد ساعات الحضور","Complete manually and approve attendance hours")}</option>}<option value="Cancelled">{c("إلغاء الفعالية","Cancel event")}</option></select></label><label className="flex items-center gap-3"><input type="checkbox" name="confirm" required className="size-5"/>{c("راجعت البيانات والحضور والموافقة الخارجية اللازمة","I reviewed the details, attendance and required external approval")}</label></EventForm></>}{e.status_code==="Published"&&<EventForm operation="feature" fields={{event:e.id}} label={c("حفظ التمييز","Save featured status")} locale={locale}><label className="flex items-center gap-3"><input type="checkbox" name="featured" defaultChecked={e.is_featured} className="size-5"/>{c("تمييز الفعالية في صفحة الجهة","Feature this event on the organization page")}</label></EventForm>}{["Published","Completed"].includes(e.status_code)&&<EventForm operation="public-content" fields={{event:e.id}} label={c("حفظ المنشورات العامة","Save public updates")} locale={locale}><label>{c("ملخص أو تقرير عام","Public summary or report")}<textarea name="report" rows={5} maxLength={5000} defaultValue={e.public_report}/></label><label>{c("روابط الصور العامة (رابط HTTPS في كل سطر، حتى 4 صور)","Public photo URLs (one HTTPS URL per line, up to 4)")}<textarea name="photos" dir="ltr" rows={4} maxLength={8200} defaultValue={e.public_photos?.join("\n")??""}/></label><p className="text-sm text-muted">{c("هذه الروابط والملخص تظهر للزوار. المرفقات التشغيلية أدناه تبقى خاصة.","These URLs and the summary are public. Operational attachments below remain private.")}</p></EventForm>}<EventForm operation="duplicate" fields={{event:e.id}} label={c("نسخ إلى مسودة جديدة","Copy to a new draft")} locale={locale}/><Link href={`/manage/organizations/${e.organization_id}/events`} className="text-link">{c("كل فعاليات الجهة","All organization events")}</Link><EventAttachment event={e.id} locale={locale}/>{data.assets.map(a=><p key={a.id}><a className="text-link" href={`/files/${a.id}`} dir="auto">{a.file_name}</a></p>)}</section>}
- {(data.canManage||data.canAttend||data.canContribute)&&<section className="panel p-6"><h2 className="mb-5 text-xl font-semibold">{c("المسجلون والحضور","Registrants and attendance")}</h2><p className="mb-5 text-sm leading-7 text-muted">{c("راجع الحضور لكل مسجل قبل الإكمال. بعد الإكمال يُقفل الحضور؛ تصحيح الساعات يتم من سجل الساعات مع حفظ التاريخ.","Review each registrant's attendance before completing the event. Attendance then locks; correct hours in the hours record, which preserves history.")}</p><ul className="space-y-6">{data.registrations.slice(0,25).map(r=><li key={r.id} className="border-t border-line pt-5"><h3 dir="auto" className="font-semibold">{r.name}</h3><p className="my-3 text-muted">{labels[r.status_code]} · {labels[r.attendance]}</p>{r.definition&&r.answers&&<details className="mb-4"><summary className="cursor-pointer">{c("إجابات التسجيل","Registration answers")}</summary><dl className="mt-4 space-y-3">{r.definition.sections.flatMap(s=>s.fields).filter(f=>r.answers?.[f.id]!==undefined).map(f=><div key={f.id}><dt dir="auto">{f.label}</dt><dd dir="auto" className="text-muted wrap-anywhere">{f.type==="File"?<a className="text-link" href={`/files/${r.answers?.[f.id]}`}>{c("تنزيل المرفق","Download attachment")}</a>:String(r.answers?.[f.id])}</dd></div>)}</dl></details>}{e.status_code==="Published"&&r.status_code==="Registered"&&<>{data.canAttend&&<EventForm operation="attendance" fields={{registration:r.id}} label={c("حفظ الحضور","Save attendance")} locale={locale}><label>{c("الحضور","Attendance")}<select name="status" defaultValue={r.attendance}>{["Pending","Present","Absent","Excused"].map(s=><option key={s} value={s}>{labels[s]}</option>)}</select></label></EventForm>}{data.canContribute&&<details className="mt-4"><summary className="cursor-pointer">{c("إثبات مساهمة بارزة","Record significant contribution")}</summary><div className="mt-4"><EventForm operation="contribution" fields={{event:e.id,student:r.user_id}} label={c("إثبات المساهمة","Record contribution")} locale={locale}><label>{c("النوع","Type")}<select name="kind">{["Presenter","Trainer","Core_Contributor"].map(s=><option key={s} value={s}>{labels[s]}</option>)}</select></label><label>{c("وصف موجز للمساهمة","Brief contribution description")}<input name="title" required minLength={2} maxLength={120}/></label></EventForm></div></details>}</>}</li>)}</ul>{!data.registrations.length&&<p className="text-muted">{c("لا يوجد مسجلون.","No registrants yet.")}</p>}<ul className="mt-6 space-y-3">{data.contributions.map(item=><li key={item.id}><span dir="auto">{item.name}</span> · {labels[item.contribution_type_code]} · <span dir="auto">{item.title}</span></li>)}</ul></section>}
- </>;
+export function EventCards({items,locale="ar"}:{items:EventCard[];locale?:Locale}) {
+  const en=locale==="en",labels=en?eventLabelsEn:eventLabels,day=en?eventDayEn:eventDay,time=en?eventTimeEn:eventTime;
+  return items.length?<ul className="grid gap-5 sm:grid-cols-2">{items.slice(0,24).map(e=>{
+    const localOrganization=localOrganizationContent(e.org_name,e.org_type_code);
+    const logoSrc=e.org_logo_url&&e.org_logo_url!==localOrganization?.logoSrc?e.org_logo_url:localOrganization?.eventLogoSrc||e.org_logo_url||localOrganization?.logoSrc;
+    return <li key={e.id}>
+      <Link href={`/events/${e.id}`} className="panel event-card min-w-0">
+        {e.has_poster && <div className="event-card-poster"><Image src={`/event-posters/${e.id}`} alt="" fill unoptimized sizes="(max-width: 639px) 100vw, 50vw" /></div>}
+        <div className="event-card-copy">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h2 dir="auto" className="m-0 text-xl font-semibold">{e.title}</h2>
+            {e.status_code!=="Published"&&<span className="event-card-status">{labels[e.status_code]}</span>}
+          </div>
+          <p className="event-card-meta"><EventIcon name="calendar"/><span>{en?"Date":"التاريخ"}</span><time dateTime={e.starts_at}>{day(e.starts_at)}</time></p>
+          <p className="event-card-meta"><EventIcon name="clock"/><span>{en?"Time":"الوقت"}</span><time dateTime={e.starts_at}>{time(e.starts_at)}</time></p>
+          <p className="event-card-meta"><EventIcon name="location"/><span>{labels[e.location_type_code]}</span></p>
+        </div>
+        <div className="event-card-organization">
+          {logoSrc?<span className="event-card-organization-logo"><Image src={logoSrc} alt="" width={48} height={48} unoptimized loading="lazy"/></span>:<span className="event-card-organization-logo event-card-organization-logo--fallback" aria-hidden="true">{Array.from(e.org_name)[0]??"؟"}</span>}
+          <bdi>{e.org_name}</bdi>
+        </div>
+      </Link>
+    </li>;
+  })}</ul>:<p role="status" className="panel event-empty-state text-muted">{en?"No matching events right now.":"لا توجد فعاليات مطابقة الآن."}</p>;
+}
+export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:EventDetail;user:boolean;superAdmin?:boolean;locale?:Locale}) {
+  const e = data.event;
+  const base = { event: e.id, revision: String(e.revision) };
+  const en = locale === "en";
+  const c = (ar: string, english: string) => en ? english : ar;
+  const labels = en ? eventLabelsEn : eventLabels;
+  const date = en ? eventDateEn : eventDate;
+  const day = en ? eventDayEn : eventDay;
+  const time = en ? eventTimeEn : eventTime;
+  const localOrganization = localOrganizationContent(data.org_name, data.org_type_code);
+  const logoSrc = data.org_logo && data.org_logo !== localOrganization?.logoSrc
+    ? data.org_logo
+    : localOrganization?.eventLogoSrc || data.org_logo || localOrganization?.logoSrc;
+
+  return <div className="event-detail">
+    <section className="panel event-detail-hero">
+      <div className="event-detail-copy">
+        <Link href="/events" className="event-detail-back">{c("العودة إلى الفعاليات", "Back to events")}</Link>
+        <Link href={"/organizations/" + data.slug} className="event-detail-organization" dir="auto">
+          {logoSrc
+            ? <span className="event-detail-organization-logo"><Image src={logoSrc} alt="" width={72} height={72} unoptimized /></span>
+            : <span className="event-detail-organization-logo event-card-organization-logo--fallback" aria-hidden="true">{Array.from(data.org_name)[0] ?? "؟"}</span>}
+          <span><span className="block text-xs font-medium text-muted">{c("تنظمها", "Organized by")}</span><bdi>{data.org_name}</bdi></span>
+        </Link>
+        <p className="event-detail-status">
+          <span className={"workspace-status" + (e.status_code === "Published" ? " is-current" : "")}>{labels[e.status_code]}</span>
+          <span>{labels[e.location_type_code]}</span>
+        </p>
+        <h1 dir="auto" className="event-detail-title">{e.title}</h1>
+        {!superAdmin && e.status_code !== "Draft" && data.open &&
+          <Link href="#registration" className="button event-detail-registration-link">{c("انتقل إلى التسجيل", "Go to registration")}<span aria-hidden="true">↓</span></Link>}
+      </div>
+      <figure className="event-detail-poster">
+        {e.has_poster
+          ? <Image src={"/event-posters/" + e.id} alt={en ? "Event poster for " + e.title : "بوستر فعالية " + e.title} fill unoptimized sizes="(max-width: 768px) 100vw, 42vw" />
+          : <div className="event-detail-poster-placeholder"><EventIcon name="calendar" /></div>}
+      </figure>
+    </section>
+
+    <section className="panel event-detail-information" aria-labelledby="event-information-title">
+      <h2 id="event-information-title">{c("معلومات الفعالية", "Event information")}</h2>
+      <dl className="event-detail-facts">
+        <EventFact icon="calendar" label={c("موعد الفعالية", "Event date")}>
+          <time dateTime={e.starts_at}>{day(e.starts_at)}</time>
+          {e.ends_at !== e.starts_at && <> · {c("حتى", "to")} <time dateTime={e.ends_at}>{day(e.ends_at)}</time></>}
+        </EventFact>
+        <EventFact icon="clock" label={c("الوقت", "Time")}>
+          <time dateTime={e.starts_at}>{time(e.starts_at)}</time>
+          {e.ends_at !== e.starts_at && <> – <time dateTime={e.ends_at}>{time(e.ends_at)}</time></>}
+        </EventFact>
+        <EventFact icon={e.location_type_code === "Online" ? "online" : "location"} label={c("الموقع", "Location")}>
+          {e.location_text ? <bdi>{e.location_text}</bdi> : labels[e.location_type_code]}
+        </EventFact>
+        <EventFact icon="calendar" label={c("فترة التسجيل", "Registration period")}>
+          <time dateTime={e.registration_opens_at}>{date(e.registration_opens_at)}</time> · <time dateTime={e.registration_closes_at}>{date(e.registration_closes_at)}</time>
+        </EventFact>
+        {data.remaining !== null && <EventFact icon="users" label={c("المقاعد المتبقية", "Seats remaining")}>{data.remaining}</EventFact>}
+        <EventFact icon="certificate" label={c("ساعات الحضور", "Attendance hours")}>{e.attendance_hours} {c("ساعة", "hours")}</EventFact>
+        {e.online_url && <EventFact icon="online" label={c("رابط الحضور", "Attendance link")}><a href={e.online_url} className="text-link wrap-anywhere" rel="noopener noreferrer">{c("فتح الرابط", "Open link")}</a></EventFact>}
+      </dl>
+      {e.description && <p dir="auto" className="event-detail-description">{e.description}</p>}
+    </section>
+
+    {(e.public_report || e.public_photos?.length > 0) && <section className="panel event-detail-section" aria-labelledby="public-event-updates-title">
+      <h2 id="public-event-updates-title">{c("مستجدات الفعالية", "Event updates")}</h2>
+      {e.public_report && <p dir="auto" className="event-detail-description">{e.public_report}</p>}
+      {e.public_photos?.length > 0 && <ul className="mt-5 grid gap-4 sm:grid-cols-2">{e.public_photos.map((url, index) =>
+        <li key={url}><Image unoptimized loading="lazy" src={url} alt={en ? "Event photo " + (index + 1) : "صورة منشورة للفعالية " + (index + 1)} width={640} height={400} referrerPolicy="no-referrer" className="w-full rounded-xl object-cover" /></li>
+      )}</ul>}
+    </section>}
+
+    {!superAdmin && e.status_code !== "Draft" && <section id="registration" className="panel event-detail-registration scroll-mt-5" aria-labelledby="event-registration-title">
+      <h2 id="event-registration-title">{c("التسجيل في الفعالية", "Event registration")}</h2>
+      <div className="mt-5">
+        {data.own && <p className="mb-4 font-semibold">{labels[data.own.status_code]}{data.own.attendance ? " · " + labels[data.own.attendance] : ""}</p>}
+        {data.open && data.own?.status_code !== "Cancelled"
+          ? !user
+            ? <Link className="button" href={"/login?next=" + encodeURIComponent("/events/" + e.id + "/register")}>{c("تسجيل الدخول للمتابعة", "Log in to continue")}</Link>
+            : data.status !== "Active" || !data.onboarded
+              ? <Link className="button" href={"/onboarding?next=" + encodeURIComponent("/events/" + e.id + "/register")}>{c("إكمال الحساب للتسجيل", "Complete your account to register")}</Link>
+              : data.form
+                ? <EventRegistrationForm event={e.id} round="" version={data.form.id} definition={data.form.definition} initial={data.own?.answers} revision={data.own?.response_revision ?? undefined} committees={[]} locale={locale} />
+                : !data.own
+                  ? <EventForm operation="register" fields={{ event: e.id }} label={c("تسجيل في الفعالية", "Register for event")} locale={locale} />
+                  : null
+          : <p className="text-muted">{c("التسجيل أو تعديل الإجابات غير متاح الآن.", "Registration and answer editing are unavailable now.")}</p>}
+        {data.open && data.own?.status_code === "Registered" && <div className="mt-6">
+          <EventForm operation="cancel" fields={{ registration: data.own.id }} label={c("إلغاء تسجيلي", "Cancel my registration")} locale={locale}>
+            <label className="flex items-center gap-3"><input type="checkbox" name="confirm" required className="size-5" />{c("أؤكد إلغاء التسجيل", "I confirm the cancellation")}</label>
+          </EventForm>
+        </div>}
+      </div>
+    </section>}
+
+    {data.canManage && <section className="panel event-detail-section event-detail-management" aria-labelledby="manage-event-title">
+      <h2 id="manage-event-title">{c("إدارة الفعالية", "Manage event")}</h2>
+      <div className="mt-5 grid gap-5">
+        {["Draft", "Published"].includes(e.status_code) && <>
+          <details><summary className="cursor-pointer font-semibold">{c("تعديل البيانات", "Edit details")}</summary><div className="mt-4">
+            <EventForm operation="save" fields={{ ...base, org: e.organization_id }} label={c("حفظ الفعالية", "Save event")} locale={locale}><EventFields value={e} organization={e.organization_id} locale={locale} /></EventForm>
+          </div></details>
+          <EventForm operation="status" fields={base} label={c("تغيير الحالة", "Change status")} locale={locale}>
+            <label>{c("الإجراء", "Action")}<select name="status">{e.status_code === "Draft" ? <option value="Published">{c("نشر الفعالية", "Publish event")}</option> : <option value="Completed">{c("إكمال يدوي واعتماد ساعات الحضور", "Complete manually and approve attendance hours")}</option>}<option value="Cancelled">{c("إلغاء الفعالية", "Cancel event")}</option></select></label>
+            <label className="flex items-center gap-3"><input type="checkbox" name="confirm" required className="size-5" />{c("راجعت البيانات والحضور والموافقة الخارجية اللازمة", "I reviewed the details, attendance and required external approval")}</label>
+          </EventForm>
+        </>}
+        {e.status_code === "Published" && <EventForm operation="feature" fields={{ event: e.id }} label={c("حفظ التمييز", "Save featured status")} locale={locale}>
+          <label className="flex items-center gap-3"><input type="checkbox" name="featured" defaultChecked={e.is_featured} className="size-5" />{c("تمييز الفعالية في صفحة الجهة", "Feature this event on the organization page")}</label>
+        </EventForm>}
+        {["Published", "Completed"].includes(e.status_code) && <EventForm operation="public-content" fields={{ event: e.id }} label={c("حفظ المنشورات العامة", "Save public updates")} locale={locale}>
+          <label>{c("ملخص أو تقرير عام", "Public summary or report")}<textarea name="report" rows={5} maxLength={5000} defaultValue={e.public_report} /></label>
+          <label>{c("روابط الصور العامة (رابط HTTPS في كل سطر، حتى 4 صور)", "Public photo URLs (one HTTPS URL per line, up to 4)")}<textarea name="photos" dir="ltr" rows={4} maxLength={8200} defaultValue={e.public_photos?.join("\n") ?? ""} /></label>
+          <p className="text-sm text-muted">{c("هذه الروابط والملخص تظهر للزوار. المرفقات التشغيلية أدناه تبقى خاصة.", "These URLs and the summary are public. Operational attachments below remain private.")}</p>
+        </EventForm>}
+        <EventForm operation="duplicate" fields={{ event: e.id }} label={c("نسخ إلى مسودة جديدة", "Copy to a new draft")} locale={locale} />
+        <Link href={"/manage/organizations/" + e.organization_id + "/events"} className="text-link">{c("كل فعاليات الجهة", "All organization events")}</Link>
+        <EventAttachment event={e.id} locale={locale} />
+        {data.assets.map(asset => <p key={asset.id}><a className="text-link" href={"/files/" + asset.id} dir="auto">{asset.file_name}</a></p>)}
+      </div>
+    </section>}
+
+    {(data.canManage || data.canAttend || data.canContribute) && <section className="panel event-detail-section" aria-labelledby="event-attendees-title">
+      <h2 id="event-attendees-title">{c("المسجلون والحضور", "Registrants and attendance")}</h2>
+      <p className="mt-3 text-sm leading-7 text-muted">{c("راجع الحضور لكل مسجل قبل الإكمال. بعد الإكمال يُقفل الحضور؛ تصحيح الساعات يتم من سجل الساعات مع حفظ التاريخ.", "Review each registrant's attendance before completing the event. Attendance then locks; correct hours in the hours record, which preserves history.")}</p>
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2">{data.registrations.slice(0, 25).map(registration =>
+        <li key={registration.id} className="workspace-panel">
+          <h3 dir="auto" className="font-semibold">{registration.name}</h3>
+          <p className="my-3 text-muted">{labels[registration.status_code]} · {labels[registration.attendance]}</p>
+          {registration.definition && registration.answers && <details className="mb-4">
+            <summary className="cursor-pointer">{c("إجابات التسجيل", "Registration answers")}</summary>
+            <dl className="mt-4 space-y-3">{registration.definition.sections.flatMap(section => section.fields).filter(field => registration.answers?.[field.id] !== undefined).map(field =>
+              <div key={field.id}><dt dir="auto">{field.label}</dt><dd dir="auto" className="text-muted wrap-anywhere">{field.type === "File" ? <a className="text-link" href={"/files/" + registration.answers?.[field.id]}>{c("تنزيل المرفق", "Download attachment")}</a> : String(registration.answers?.[field.id])}</dd></div>
+            )}</dl>
+          </details>}
+          {e.status_code === "Published" && registration.status_code === "Registered" && <>
+            {data.canAttend && <EventForm operation="attendance" fields={{ registration: registration.id }} label={c("حفظ الحضور", "Save attendance")} locale={locale}>
+              <label>{c("الحضور", "Attendance")}<select name="status" defaultValue={registration.attendance}>{["Pending", "Present", "Absent", "Excused"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</select></label>
+            </EventForm>}
+            {data.canContribute && <details className="mt-4"><summary className="cursor-pointer">{c("إثبات مساهمة بارزة", "Record significant contribution")}</summary><div className="mt-4">
+              <EventForm operation="contribution" fields={{ event: e.id, student: registration.user_id }} label={c("إثبات المساهمة", "Record contribution")} locale={locale}>
+                <label>{c("النوع", "Type")}<select name="kind">{["Presenter", "Trainer", "Core_Contributor"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</select></label>
+                <label>{c("وصف موجز للمساهمة", "Brief contribution description")}<input name="title" required minLength={2} maxLength={120} /></label>
+              </EventForm>
+            </div></details>}
+          </>}
+        </li>
+      )}</ul>
+      {!data.registrations.length && <p className="mt-4 text-muted">{c("لا يوجد مسجلون.", "No registrants yet.")}</p>}
+      {data.contributions.length > 0 && <ul className="mt-5 grid gap-3 sm:grid-cols-2">{data.contributions.map(item =>
+        <li key={item.id} className="workspace-panel"><span dir="auto">{item.name}</span> · {labels[item.contribution_type_code]} · <span dir="auto">{item.title}</span></li>
+      )}</ul>}
+    </section>}
+  </div>;
+}
+
+function EventFact({ icon, label, children }: { icon: "calendar" | "clock" | "online" | "location" | "users" | "certificate"; label: string; children: ReactNode }) {
+  return <div className="event-detail-fact"><dt><EventIcon name={icon} />{label}</dt><dd>{children}</dd></div>;
 }

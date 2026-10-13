@@ -4,6 +4,7 @@ import {sql} from "drizzle-orm";
 import {revalidatePath,updateTag} from "next/cache";
 import {withUser} from "@/db/client";
 import {requireUser} from "@/features/auth/session";
+import {studentOperationError} from "@/features/auth/authorization";
 import type {WorkflowState} from "@/features/forms/actions";
 const id=(f:FormData,k:string)=>z.uuid().parse(f.get(k));
 const optionalId=(f:FormData,k:string)=>f.get(k)?id(f,k):null;
@@ -13,8 +14,9 @@ const revision=(f:FormData)=>z.coerce.number().int().positive().parse(f.get("rev
 export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<WorkflowState>{
  const user=await requireUser();try{
  const operation=z.enum(["save","status","duplicate","register","cancel","attendance","contribution","attach","grant","end-grant","feature","public-content"]).parse(f.get("operation"));
+ if(["register","cancel"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(operation){
- case "save":return sql`select lub.save_event(${optionalId(f,"event")},${id(f,"org")},${text(f,"title",120,2)},${text(f,"description",6000)},${z.enum(["In_Person","Online","Hybrid"]).parse(f.get("locationType"))},${text(f,"location",500)||null},${f.get("url")?z.url({protocol:/^https$/}).parse(f.get("url")):null},${date(f,"starts")}::timestamptz,${date(f,"ends")}::timestamptz,${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("capacity")?z.coerce.number().int().min(1).max(10000).parse(f.get("capacity")):null}::int,${optionalId(f,"template")},${z.coerce.number().min(0).max(1000).multipleOf(.01).parse(f.get("hours"))}::numeric,${f.get("event")?revision(f):null}::int)`;
+ case "save":return sql`select lub.save_event_with_poster(${optionalId(f,"event")},${id(f,"org")},${text(f,"title",120,2)},${text(f,"description",6000)},${z.enum(["In_Person","Online","Hybrid"]).parse(f.get("locationType"))},${text(f,"location",500)||null},${f.get("url")?z.url({protocol:/^https$/}).parse(f.get("url")):null},${date(f,"starts")}::timestamptz,${date(f,"ends")}::timestamptz,${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("capacity")?z.coerce.number().int().min(1).max(10000).parse(f.get("capacity")):null}::int,${optionalId(f,"template")},${z.coerce.number().min(0).max(1000).multipleOf(.01).parse(f.get("hours"))}::numeric,${f.get("event")?revision(f):null}::int,${optionalId(f,"poster")})`;
  case "status":{const status=z.enum(["Published","Completed","Cancelled"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_event_status(${id(f,"event")},${status},${revision(f)})`;}
  case "duplicate":return sql`select lub.duplicate_event(${id(f,"event")})`;
  case "register":return sql`select lub.register_event(${id(f,"event")},${optionalId(f,"version")},${text(f,"answers",128000)||"{}"}::jsonb,${f.get("revision")?revision(f):null}::int)`;

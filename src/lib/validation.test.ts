@@ -9,10 +9,10 @@ describe("student input", () => {
     expect(emailSchema.parse("  Student@Example.com  ")).toBe("student@example.com");
     expect(emailSchema.safeParse("x@example").success).toBe(false);
   });
-  it("accepts exactly eight OTP digits, including Arabic digits", () => {
-    expect(otpSchema.parse("١٢٣٤٥٦٧٨")).toBe("12345678");
-    expect(otpSchema.safeParse("123456").success).toBe(false);
-    expect(otpSchema.safeParse("123456789").success).toBe(false);
+  it("accepts exactly six OTP digits, including Arabic digits", () => {
+    expect(otpSchema.parse("١٢٣٤٥٦")).toBe("123456");
+    expect(otpSchema.safeParse("1234").success).toBe(false);
+    expect(otpSchema.safeParse("12345678").success).toBe(false);
   });
   it("normalizes identifiers and rejects text and oversized profile input", () => {
     const profile = { fullName: "أحمد محمد", universityId: "٢٠٢٦١٢٣٤٥", major: "نظم المعلومات", academicLevel: "5", phone: "" };

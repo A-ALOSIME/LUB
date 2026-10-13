@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { encryptIdentifier, decryptIdentifier, identifierLookup } from "./identifiers";
+import { encryptIdentifier, decryptIdentifier, encryptSignupDraft, decryptSignupDraft, identifierLookup } from "./identifiers";
 
 beforeEach(() => {
   vi.stubEnv("IDENTIFIER_ENCRYPTION_KEY", Buffer.alloc(32, 1).toString("base64"));
@@ -27,6 +27,13 @@ describe("sensitive identifiers", () => {
     expect(identifierLookup("٢٠٢٦١٢٣٤٥")).toBe(identifierLookup("202612345"));
     expect(identifierLookup("202612345")).not.toBe(identifierLookup("202612346"));
     expect(identifierLookup("202612345")).not.toContain("202612345");
+  });
+  it("encrypts a short-lived signup draft and binds it to the verified email", () => {
+    const draft = JSON.stringify({ fullName: "أحمد محمد", universityId: "202612345" });
+    const encrypted = encryptSignupDraft(draft, "Student@Example.com");
+    expect(encrypted).not.toContain("202612345");
+    expect(decryptSignupDraft(encrypted, "student@example.com")).toBe(draft);
+    expect(() => decryptSignupDraft(encrypted, "other@example.com")).toThrow();
   });
   it("fails closed on missing, short or reused encryption keys", () => {
     vi.stubEnv("IDENTIFIER_ENCRYPTION_KEY", "");

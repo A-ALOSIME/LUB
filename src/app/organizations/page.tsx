@@ -7,7 +7,7 @@ import { readPublicDirectory } from "@/features/organizations/public-data";
 import { discoverySchema, organizationStatuses } from "@/features/organizations/validation";
 import { getPreferences } from "@/lib/preferences";
 
-export async function generateMetadata(){return localizedMetadata('الأندية والمجالس','Clubs and councils');}
+export async function generateMetadata(){return localizedMetadata('الأندية والمجالس','Clubs and councils',{}, {index:true,canonical:"/organizations",description:{ar:"اكتشف الأندية والمجالس الطلابية في كلية علوم الحاسب والمعلومات، وتعرّف على مجالاتها وأنشطتها وفرص الانضمام المنشورة.",en:"Discover student clubs and councils at the College of Computer and Information Sciences, including their interests, activities, and published opportunities."}});}
 
 export default async function OrganizationsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const en = (await getPreferences()).locale === "en";
@@ -36,8 +36,6 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
           const imageSrc = profile?.logoSrc;
-          const summary = profile?.summary ?? organization.summary;
-          const containedLogo = profile && ["cybersec", "ieee", "is-council", "it-council", "oss", "student-council"].includes(profile.imageTheme);
           // The CyberSec PNG has tall transparent margins; size its visible mark to the square art.
           const imageStyle = profile?.imageTheme === "cybersec"
             ? { width: "auto", height: "207.8%", top: "-44.8%", right: "auto", bottom: "auto", left: "50%", transform: "translateX(-50%)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
@@ -47,7 +45,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
               ? { objectFit: "contain" as const, objectPosition: "center", padding: 0 }
             : profile?.imageTheme === "student-council"
               ? { width: "122%", height: "122%", top: "50%", right: "auto", bottom: "auto", left: "50%", transform: "translate(-50%, -50%)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
-            : containedLogo ? { objectFit: "contain" as const, objectPosition: "center" } : undefined;
+            : { objectFit: "contain" as const, objectPosition: "center" };
           return <li key={organization.id} className="organization-card">
             <Link href={`/organizations/${organization.slug}`} className="directory-link" aria-label={en ? `View ${organization.nameAr}` : `عرض ${organization.nameAr}`}>
               <span className={`organization-card-art organization-card-art--${profile?.imageTheme ?? "default"}`} aria-hidden="true">
@@ -56,7 +54,6 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
               <span className="organization-card-copy">
                 {organization.statusCode !== "Active" && <span className="mb-2 block text-sm text-muted">{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>}
                 <span dir="auto" className="organization-card-title">{organization.nameAr}</span>
-                {summary && <span dir="auto" className="organization-card-summary">{summary}</span>}
                 {organization.tags.length > 0 && <span className="organization-card-tags">{organization.tags.map(tag => <span key={tag} dir="auto">{tag}</span>)}</span>}
               </span>
             </Link>

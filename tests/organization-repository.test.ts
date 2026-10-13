@@ -10,26 +10,34 @@ import { discoverySchema, organizationProfileSchema } from "@/features/organizat
 let engine: PGlite;
 let database: PgliteDatabase<typeof schema>;
 let scopedReads=0;
+let selectedReads=0;
 let visitorSelects=0;
+let rawReads=0;
+let holdRawRead=false;
+let rawReadStarted: (()=>void) | undefined;
+let resumeRawRead: (()=>void) | undefined;
+let visitorReadStarted: (()=>void) | undefined;
 type Tx = Parameters<Parameters<PgliteDatabase<typeof schema>["transaction"]>[0]>[0];
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache",()=>({unstable_cache:(fn:unknown)=>fn}));
 vi.mock("@/db/client", () => ({
-  getDb: () => ({execute: async (query: Parameters<Tx["execute"]>[0]) => (await database.execute(query)).rows}),
+  getDb: () => ({execute: async (query: Parameters<Tx["execute"]>[0]) => { rawReads++; if (holdRawRead) { rawReadStarted?.(); await new Promise<void>(resolve => { resumeRawRead = resolve; }); } return (await database.execute(query)).rows; }}),
   withUser: async <T>(id: string, operation: (tx: Tx) => Promise<T>) => database.transaction(async tx => {
-    await tx.execute(sql`select set_config('request.jwt.claim.sub',${id},true)`); await tx.execute(sql`set local role authenticated`); return operation(new Proxy(tx, {get(target,key){if(key==="execute")return async(query:Parameters<Tx["execute"]>[0])=>{scopedReads++;return(await target.execute(query)).rows;};return Reflect.get(target,key);}}));
+    await tx.execute(sql`select set_config('request.jwt.claim.sub',${id},true)`); await tx.execute(sql`set local role authenticated`); return operation(new Proxy(tx, {get(target,key){if(key==="execute")return async(query:Parameters<Tx["execute"]>[0])=>{scopedReads++;return(await target.execute(query)).rows;};if(key==="select")return(...args:unknown[])=>{selectedReads++;return Reflect.apply(Reflect.get(target,key),target,args);};return Reflect.get(target,key);}}));
   }),
   withVisitor: async <T>(operation: (tx: Tx) => Promise<T>) => database.transaction(async tx => {
-    await tx.execute(sql`select set_config('request.jwt.claim.sub','',true)`); await tx.execute(sql`set local role anon`); return operation(new Proxy(tx, {get(target,key){if(key==="select")return (...args:Parameters<Tx["select"]>)=>{visitorSelects++;return target.select(...args);};if(key==="execute")return async(query:Parameters<Tx["execute"]>[0])=>(await target.execute(query)).rows;return Reflect.get(target,key);}}));
+    await tx.execute(sql`select set_config('request.jwt.claim.sub','',true)`); await tx.execute(sql`set local role anon`); return operation(new Proxy(tx, {get(target,key){if(key==="select")return (...args:Parameters<Tx["select"]>)=>{visitorSelects++;visitorReadStarted?.();return target.select(...args);};if(key==="execute")return async(query:Parameters<Tx["execute"]>[0])=>(await target.execute(query)).rows;return Reflect.get(target,key);}}));
   }),
 }));
 import { getPublicDirectory, getPublicOrganization } from "@/features/organizations/public-repository";
-import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getManagementDashboard, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
+import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getManagementOverview, getAssignedManagementOrganizations, getAdminOrganizations, getAdminAccountProfile, updateAdminAccountName, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
 
 const admin = "00000000-0000-4000-8000-000000000001";
 const leader = "00000000-0000-4000-8000-000000000002";
 const org = "00000000-0000-4000-8000-000000000101";
 beforeEach(async () => {
+  selectedReads=0;
+  holdRawRead=false; rawReadStarted=undefined; resumeRawRead=undefined; visitorReadStarted=undefined;
   engine = new PGlite(); database = drizzle(engine, { schema });
   await engine.exec(`create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
@@ -145,7 +153,7 @@ it("reads paginated document headers in one scoped query without assets or full 
  await engine.exec("reset role");scopedReads=0;const own=await myDocuments(admin,0);expect(scopedReads).toBe(1);expect(own?.items).toHaveLength(26);expect(own?.items[0].canArchive).toBe(false);expect(JSON.stringify(own)).not.toContain('data_snapshot_json');expect(JSON.stringify(own)).not.toContain('secret1');expect((await myDocuments(admin,1))?.items).toHaveLength(2);
  scopedReads=0;const workspace=await documentWorkspace(leader,org,null,0,0);expect(scopedReads).toBe(1);expect(workspace?.account.onboarded).toBe(true);expect(workspace?.items).toHaveLength(26);expect(workspace?.members).toHaveLength(1);expect(workspace?.members[0]).toEqual({id:member,name:'المشرف',start_date:expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),end_date:null});expect(workspace?.grants).toEqual([]);expect(workspace?.items[0].total).toBe('2.50');expect(await documentWorkspace(admin,org,null,0,0)).toBeUndefined();expect((await documentAsset(admin,first))?.mime_type).toBe('text/html');
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.grant_report_permission($1,null,null)",[member]);await engine.exec("reset role");
- const managed=await getManagementOrganization(admin,org);expect(managed?.organization.canReports).toBe(true);expect(managed?.organization.canHours).toBe(false);expect((await getManagementDashboard(admin)).access.organizations.map(o=>o.id)).toEqual([org]);
+ const managed=await getManagementOrganization(admin,org);expect(managed?.organization.canReports).toBe(true);expect(managed?.organization.canHours).toBe(false);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
 });
 
 it("reads hours and renewals with scoped totals, bounded lists and the genuine repository SQL",async()=>{
@@ -227,15 +235,89 @@ it("creates an organization only for SA and exposes operational scope only after
   expect(await getManagementOrganization(admin, created.id)).toBeUndefined();
 });
 
-it("isolates administrative roster data in the combined dashboard", async () => {
-  const dashboard = await getManagementDashboard(admin);
+it("keeps administrative counts scoped to the super admin dashboard summary", async () => {
+  rawReads = 0;
+  const request = "dashboard-request-unique";
+  const first = getManagementOverview(admin, request);
+  const duplicate = getManagementOverview(admin, request);
+  expect(duplicate).toBe(first);
+  const before = (await engine.query("select current_user as role,nullif(current_setting('request.jwt.claim.sub',true),'') as subject")).rows[0];
+  const dashboard = await first;
+  expect(rawReads).toBe(1);
+  expect((await engine.query("select current_user as role,nullif(current_setting('request.jwt.claim.sub',true),'') as subject")).rows[0]).toEqual(before);
   expect(dashboard.access.superAdmin).toBe(true);
-  expect(dashboard.admins).toEqual([{ userId: admin, fullName: "المشرف" }]);
-  expect(dashboard.roster).toHaveLength(2);
-  const student = await getManagementDashboard(leader);
-  expect(student.admins).toEqual([]);
-  expect(student.roster).toEqual([]);
+  expect(dashboard.access.organizations).toEqual([]);
+  expect(dashboard.summary).toEqual({ activeOrganizations: 1, archivedOrganizations: 1, administrators: 1 });
+  const student = await getManagementOverview(leader, request);
   expect(student.access.superAdmin).toBe(false);
+  expect(rawReads).toBe(2);
+  expect(student.summary).toEqual({ activeOrganizations: 0, archivedOrganizations: 0, administrators: 0 });
+});
+
+it("loads assigned organizations and administrator rosters in one scoped query each", async () => {
+  await appointPrimaryLeader(admin, org, "leader@example.invalid");
+  const membership = (await engine.query<{ id: string }>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id", [org, admin])).rows[0].id;
+  await engine.query("select set_config('request.jwt.claim.sub',$1,false)", [leader]); await engine.exec("set role authenticated");
+  await engine.query("select lub.grant_report_permission($1,null,null)", [membership]); await engine.exec("reset role");
+
+  selectedReads = 0;
+  expect((await getAssignedManagementOrganizations(admin)).map(item => item.id)).toEqual([org]);
+  expect(selectedReads).toBe(1);
+
+  const priorDatabaseScope = (await engine.query<{ role: string; subject: string }>("select current_user as role,current_setting('request.jwt.claim.sub',true) as subject")).rows[0];
+  visitorSelects = 0;
+  selectedReads = 0;
+  const adminOrganizations = await getAdminOrganizations(admin);
+  expect(adminOrganizations.allowed).toBe(true);
+  expect(adminOrganizations.organizations).toHaveLength(2);
+  expect(visitorSelects).toBe(1);
+  expect((await engine.query("select current_user as role,current_setting('request.jwt.claim.sub',true) as subject")).rows[0]).toEqual(priorDatabaseScope);
+  const leaderOrganizations = await getAdminOrganizations(leader);
+  expect(leaderOrganizations).toEqual({ allowed: false, organizations: [] });
+  expect(visitorSelects).toBe(2);
+  expect((await engine.query("select current_user as role,current_setting('request.jwt.claim.sub',true) as subject")).rows[0]).toEqual(priorDatabaseScope);
+
+  selectedReads = 0;
+  expect(await getSuperAdmins(admin)).toEqual([{ userId: admin, fullName: "المشرف" }]);
+  expect(selectedReads).toBe(1);
+  await expect(getSuperAdmins(leader)).rejects.toThrow();
+});
+
+it("loads the cached organization directory while checking fresh admin access", async () => {
+  visitorSelects = 0;
+  holdRawRead = true;
+  const accessStarted = new Promise<void>(resolve => { rawReadStarted = resolve; });
+  const directoryStarted = new Promise<void>(resolve => { visitorReadStarted = resolve; });
+  const resultPromise = getAdminOrganizations(admin);
+  await accessStarted;
+  const startedInParallel = await Promise.race([
+    directoryStarted.then(() => true),
+    new Promise<boolean>(resolve => setTimeout(() => resolve(false), 250)),
+  ]);
+  resumeRawRead?.();
+  const result = await resultPromise;
+
+  expect(startedInParallel).toBe(true);
+  expect(result.allowed).toBe(true);
+  expect(result.organizations).toHaveLength(2);
+  holdRawRead = false;
+});
+
+it("lets a super administrator update only their administrative display name", async () => {
+  expect(await getAdminAccountProfile(admin)).toEqual({ email: "admin@example.invalid", fullName: "المشرف" });
+  await updateAdminAccountName(admin, "مشرف النظام الجديد");
+  expect(await getAdminAccountProfile(admin)).toEqual({ email: "admin@example.invalid", fullName: "مشرف النظام الجديد" });
+  const audit = await engine.query<{ action_code: string; entity_type: string }>("select action_code,entity_type from lub.audit_log where actor_user_id=$1", [admin]);
+  expect(audit.rows).toContainEqual({ action_code: "ADMIN_NAME_UPDATED", entity_type: "system_administrator_profile" });
+  await expect(updateAdminAccountName(leader, "اسم غير مصرح")).rejects.toThrow("FORBIDDEN");
+});
+
+it("loads the administrator profile with one RLS-scoped statement", async () => {
+  rawReads = 0;
+
+  await expect(getAdminAccountProfile(admin)).resolves.toEqual({ email: "admin@example.invalid", fullName: "المشرف" });
+
+  expect(rawReads).toBe(1);
 });
 
 it("keeps ended leadership roles in the student's own membership history", async () => {

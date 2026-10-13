@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { initialDefinition } from "@/features/forms/definition";
 const fixture=vi.hoisted(()=>({getVerifiedUser:vi.fn(),getRound:vi.fn()}));
 vi.mock("@/features/auth/session",()=>({getVerifiedUser:fixture.getVerifiedUser}));
+vi.mock("@/features/auth/authorization",()=>({isSuperAdminUser:async()=>false}));
 vi.mock("@/lib/preferences",()=>({getPreferences:async()=>({locale:"ar",theme:"light"})}));
 vi.mock("@/features/forms/repository",()=>({getRound:fixture.getRound}));
 vi.mock("@/components/public-header",()=>({PublicHeader:()=>null}));

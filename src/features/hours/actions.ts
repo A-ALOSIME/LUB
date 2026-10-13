@@ -4,6 +4,7 @@ import {sql} from "drizzle-orm";
 import {revalidatePath} from "next/cache";
 import {withUser} from "@/db/client";
 import {requireUser} from "@/features/auth/session";
+import {studentOperationError} from "@/features/auth/authorization";
 export type HoursState={error?:string;success?:string};
 const id=(f:FormData,k:string)=>z.uuid().parse(f.get(k));
 const optionalId=(f:FormData,k:string)=>f.get(k)?id(f,k):null;
@@ -15,6 +16,7 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  const user=await requireUser();
  try{
  const op=z.enum(["term","add","self","review","rule","self-policy","import","campaign","exclude","campaign-status","respond","grant","end-grant"]).parse(f.get("operation"));
+ if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${day(f,"starts")}::date,${day(f,"ends")}::date)`;
  case "add":case "self":return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},${id(f,"term")},${amount(f)}::numeric,${day(f,"day")}::date,${text(f,"reason",3000)},${op==="self"})`;
