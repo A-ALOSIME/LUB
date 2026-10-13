@@ -84,15 +84,7 @@ function filterHref(filter: Filter, preview: boolean) {
   return query ? `/notifications?${query}` : "/notifications";
 }
 
-export function NotificationInbox({
-  items,
-  counts,
-  filter,
-  preview = false,
-  locale = "ar",
-  page = 0,
-  more = false,
-}: {
+type NotificationInboxProps = {
   items: TaskNotification[];
   counts: Counts;
   filter: Filter;
@@ -100,7 +92,21 @@ export function NotificationInbox({
   locale?: Locale;
   page?: number;
   more?: boolean;
-}) {
+};
+
+export function NotificationInbox(props: NotificationInboxProps) {
+  return <NotificationInboxState key={`${props.preview ? "preview" : "inbox"}:${props.filter}`} {...props} />;
+}
+
+function NotificationInboxState({
+  items,
+  counts,
+  filter,
+  preview = false,
+  locale = "ar",
+  page = 0,
+  more = false,
+}: NotificationInboxProps) {
   const en = locale === "en";
   const [sampleItems, setSampleItems] = useState(items);
   const [sampleFilter, setSampleFilter] = useState(filter);

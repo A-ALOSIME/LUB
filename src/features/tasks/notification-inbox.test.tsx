@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { NotificationInbox } from "./notification-inbox";
@@ -45,4 +45,24 @@ it("filters the preview list while keeping English digit counts", () => {
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(4);
   expect(within(screen.getByRole("navigation", { name: "تصفية الإشعارات" })).getByRole("button", { name: /الكل/ }).textContent).toContain("6");
   expect(within(screen.getByRole("navigation", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("4");
+});
+
+it("loads preview examples when navigating from an empty inbox without a full reload", async () => {
+  const view = render(<NotificationInbox
+    items={[]}
+    counts={{ all: 0, unread: 0 }}
+    filter="all"
+    locale="ar"
+  />);
+
+  view.rerender(<NotificationInbox
+    items={previewNotifications}
+    counts={{ all: 6, unread: 4 }}
+    filter="all"
+    preview
+    locale="ar"
+  />);
+
+  await waitFor(() => expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(6));
+  expect(screen.getByRole("note").textContent).toContain("لا تُحفظ في حسابك");
 });
