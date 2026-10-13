@@ -223,7 +223,7 @@ export const membershipApplications = lub.table("membership_applications", {
   statusCode: varchar("status_code", { length: 20 }).notNull().default("Submitted"), submittedAt: createdAt(),
   decidedAt: timestamp("decided_at", { withTimezone: true }), decidedByUserId: uuid("decided_by_user_id").references(() => users.id),
   acceptedMembershipId: uuid("accepted_membership_id").unique().references(() => organizationMemberships.id),
-}, t => [unique("one_application_per_round").on(t.registrationRoundId, t.applicantUserId), check("application_status_check", sql`${t.statusCode} in ('Submitted','Interview','Accepted','Rejected','Withdrawn')`), check("application_membership_check", sql`(${t.statusCode}='Accepted')=(${t.acceptedMembershipId} is not null)`), index("application_round_status_idx").on(t.registrationRoundId, t.statusCode), index("application_user_time_idx").on(t.applicantUserId, t.submittedAt)]).enableRLS();
+}, t => [uniqueIndex("one_active_application_per_round_idx").on(t.registrationRoundId, t.applicantUserId).where(sql`${t.statusCode}<>'Withdrawn'`), check("application_status_check", sql`${t.statusCode} in ('Submitted','Interview','Accepted','Rejected','Withdrawn')`), check("application_membership_check", sql`(${t.statusCode}='Accepted')=(${t.acceptedMembershipId} is not null)`), index("application_round_status_idx").on(t.registrationRoundId, t.statusCode), index("application_user_time_idx").on(t.applicantUserId, t.submittedAt)]).enableRLS();
 
 export const committeeMemberships = lub.table("committee_memberships", {
   id: uuid("id").primaryKey().defaultRandom(), organizationId: uuid("organization_id").notNull(), organizationMembershipId: uuid("organization_membership_id").notNull(), committeeId: uuid("committee_id").notNull(),

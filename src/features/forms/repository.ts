@@ -9,7 +9,7 @@ export const statuses: Record<string, string> = { Draft: "مسودة", Published
 export type Template = { id: string; name: string; organization_id: string | null; versions: Version[] };
 export type Version = { id: string; version_number: number; status_code: string; revision: number; definition: FormDefinition };
 export type Round = { id: string; title: string; status_code: string; opens_at: string; closes_at: string; form_template_id: string; allow_withdrawal: boolean; open: boolean };
-export type Application = { id: string; status_code: string; created_at: string; title: string; round_id: string; slug: string; name: string; major: string; level: string; committee: string | null; canReview: boolean; canBulk: boolean };
+export type Application = { id: string; status_code: string; created_at: string; title: string; round_id: string; slug: string; organization_name: string; name: string; major: string; level: string; committee: string | null; round_open: boolean; allow_withdrawal: boolean; has_active_application: boolean; has_newer_application: boolean; canReview: boolean; canBulk: boolean };
 export type Detail = { id: string; organization_id:string; canStaff:boolean; status_code: string; version: Version; response_revision: number; answers: Answers; requested_committee_id: string | null; messages: Array<{ body: string; created_at: string }>; notes: Array<{ body: string; created_at: string }>; history: Array<{ to_status_code: string; created_at: string; reason: string | null }>; canReview: boolean };
 type Readiness={accountStatus:string|null;onboarded:boolean};
 type Workspace = Readiness & { name: string; allowed: string[]; templates: Template[]; rounds: Round[]; committees: Array<{ id: string; name: string }> };
@@ -40,7 +40,7 @@ export async function getRound(round: string, user?: string) {
   const rows = await tx.execute(sql`select r.*,o.slug,o.name_ar as name,lub.round_is_open(r.id) as open,
    ${user?sql`(select status_code from lub.users where id=${user})`:sql`null`} as "accountStatus",
    ${user?sql`exists(select 1 from lub.student_profiles where user_id=${user})`:sql`false`} as onboarded,
-   ${user?sql`(select to_jsonb(d) from (select ${detailColumns} from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.form_responses f on f.id=a.form_response_id join lub.form_versions v on v.id=f.form_version_id where a.registration_round_id=${round} and a.applicant_user_id=${user} limit 1) d)`:sql`null`} as application,
+   ${user?sql`(select to_jsonb(d) from (select ${detailColumns} from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.form_responses f on f.id=a.form_response_id join lub.form_versions v on v.id=f.form_version_id where a.registration_round_id=${round} and a.applicant_user_id=${user} order by case when a.status_code='Withdrawn' then 1 else 0 end,a.created_at desc,a.id desc limit 1) d)`:sql`null`} as application,
    (select to_jsonb(v) from lub.form_versions v where v.form_template_id=r.form_template_id and v.status_code='Published' order by v.version_number desc limit 1) as version,
    coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.name)) from lub.committees c where c.organization_id=r.organization_id and c.is_public and c.status_code='Active'),'[]') as committees from lub.registration_rounds r join lub.organizations o on o.id=r.organization_id where r.id=${round}`);
   return rows[0] as unknown as (Readiness & Round & { application:Detail|null;slug: string; name: string; version: Version; committees: Array<{ id: string; name: string }> }) | undefined;
@@ -59,7 +59,9 @@ export async function ownApplication(user: string, round: string) {
 export type Filters = { q: string; status: string; committee: string; major: string; level: string; from: string; to: string; page: number; lookup: string; activity?: string };
 export async function listApplications(user: string, org?: string, filters?: Filters) {
  return withUser(user, async tx => {
-  const rows = await tx.execute(sql`select a.id,a.status_code,a.created_at,r.title,r.id as round_id,o.slug,p.full_name as name,p.major,p.level,c.name as committee,
+  const rows = await tx.execute(sql`select a.id,a.status_code,a.created_at,r.title,r.id as round_id,o.slug,o.name_ar as organization_name,p.full_name as name,p.major,p.level,c.name as committee,r.allow_withdrawal,lub.round_is_open(r.id) as round_open,
+   exists(select 1 from lub.membership_applications active_application where active_application.registration_round_id=a.registration_round_id and active_application.applicant_user_id=a.applicant_user_id and active_application.id<>a.id and active_application.status_code<>'Withdrawn') as has_active_application,
+   exists(select 1 from lub.membership_applications newer_application where newer_application.registration_round_id=a.registration_round_id and newer_application.applicant_user_id=a.applicant_user_id and (newer_application.created_at>a.created_at or (newer_application.created_at=a.created_at and newer_application.id>a.id))) as has_newer_application,
    lub.can_read_application(a.id,'APPLICATIONS_REVIEW') as "canReview",lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION') as "canBulk"
    from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.organizations o on o.id=r.organization_id
    join lateral lub.application_profiles(o.id) p on p.application_id=a.id left join lub.committees c on c.id=a.requested_committee_id

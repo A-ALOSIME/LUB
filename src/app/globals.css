@@ -192,6 +192,7 @@ html:lang(en) .only-en { display: inline; }
 .account-settings-form [data-slot="input"] { padding-inline: .875rem; }
 .account-settings-form [data-slot="native-select"] { padding-inline: .875rem 2.5rem; }
 .account-settings-form [data-slot="input"][dir="ltr"] { text-align: start; }
+.account-settings-page[dir="rtl"] .account-settings-form [data-slot="input"][dir="ltr"] { text-align: right; }
 .account-settings-select { width: 100%; }
 .account-settings-form [data-slot="input"]:focus, .account-settings-form [data-slot="native-select"]:focus { border: 1px solid var(--ring); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent); }
 .account-settings-form [data-slot="input"][aria-invalid="true"], .account-settings-form [data-slot="native-select"][aria-invalid="true"] { border-color: var(--destructive); }

@@ -66,6 +66,23 @@ it("enforces one application, pinned versions, required answers and cross-organi
   expect(response.version).toBe(version);
   expect((await db.query("select id from lub.membership_applications where id=$1", [application])).rows).toHaveLength(1);
 });
+it("preserves a withdrawn request and allows a new one in the same open round", async () => {
+  const previous = await submit();
+  await asUser(student);
+  await db.query("select lub.withdraw_application($1)", [previous]);
+
+  const second = await submit();
+  await asUser(student);
+  await db.query("select lub.withdraw_application($1)", [second]);
+  const current = await submit();
+  await owner();
+  const rows = (await db.query<{ id: string; status: string }>("select id,status_code as status from lub.membership_applications where registration_round_id=$1 and applicant_user_id=$2", [round, student])).rows;
+
+  expect(rows).toHaveLength(3);
+  expect(rows).toContainEqual({ id: previous, status: "Withdrawn" });
+  expect(rows).toContainEqual({ id: second, status: "Withdrawn" });
+  expect(rows).toContainEqual({ id: current, status: "Submitted" });
+});
 it("permits Interview edits while open, then locks final decisions and creates membership/committee history atomically", async () => {
   const application = await submit(); await asUser(leader);
   await db.query("select lub.decide_application($1,'Interview','موعد المقابلة غدًا')", [application]);
