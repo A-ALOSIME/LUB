@@ -176,8 +176,6 @@ html:lang(en) .only-en { display: inline; }
 .account-settings-page-header { display: grid; justify-items: start; gap: .75rem; margin-bottom: 1.25rem; }
 .account-settings-page-heading { display: grid; gap: .25rem; }
 .account-settings-page-header h1 { letter-spacing: -.025em; }
-.account-settings-talent-link { width: fit-content; max-width: min(100%, 25rem); min-height: 2.75rem; height: auto; justify-content: space-between; gap: .75rem; padding-block: .65rem; text-align: start; white-space: normal; }
-.account-settings-talent-link svg { flex: none; }
 .account-settings-card { padding-block: 0; border: 1px solid var(--border); box-shadow: 0 10px 30px color-mix(in srgb, var(--foreground) 5%, transparent); }
 .account-settings-form { display: flex; flex-direction: column; }
 .account-settings-card-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: .25rem; padding: 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 52%, var(--card)); }
@@ -785,13 +783,11 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
   .account-settings-form [data-slot="input"],
   .account-settings-form [data-slot="native-select"],
   .account-settings-privacy-option [data-slot="field-label"],
-  .account-settings-footer-note,
-  .account-settings-talent-link {
+  .account-settings-footer-note {
     font-size: clamp(.875rem, calc(.875rem + .3125vw - 6px), 1rem);
   }
   .account-settings-page-heading { gap: clamp(.25rem, calc(.1875rem + .05vw), .35rem); }
   .account-settings-page-header { margin-bottom: clamp(1.25rem, calc(1rem + .2vw), 1.5rem); }
-  .account-settings-talent-link { max-width: min(100%, 28rem); }
   .account-settings-card-header,
   .account-settings-content,
   .account-settings-footer { padding: clamp(1rem, calc(.75rem + .25vw), 1.25rem); }

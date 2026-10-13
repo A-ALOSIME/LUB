@@ -1,6 +1,3 @@
-import { ArrowUpLeft, ArrowUpRight } from "lucide-react";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { StorageUnavailable } from "@/components/storage-unavailable";
 import { requireStudentUser as requireUser } from "@/features/auth/authorization";
 import { getAccountStatus, getStudentProfile } from "@/features/profile/repository";
@@ -8,7 +5,6 @@ import { ProfileForm } from "@/features/profile/profile-form";
 import { isProfileStorageConfigured } from "@/lib/env";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { getPreferences } from "@/lib/preferences";
-import { cn } from "cn";
 import { redirect } from "next/navigation";
 
 export async function generateMetadata() {
@@ -39,24 +35,6 @@ export default async function Account() {
               : "حدّث بيانات حسابك واختر ما يظهر في ملفك العام."}
           </p>
         </div>
-        <Link
-          href="/account/talent"
-          className={cn(
-            buttonVariants({ variant: "outline", size: "lg" }),
-            "account-settings-talent-link"
-          )}
-        >
-          <span>
-            {en
-              ? "Skills profile, contact channels, and activity privacy"
-              : "الملف المهاري وقنوات التواصل وخصوصية المشاركات"}
-          </span>
-          {en ? (
-            <ArrowUpLeft data-icon="inline-end" aria-hidden="true" />
-          ) : (
-            <ArrowUpRight data-icon="inline-end" aria-hidden="true" />
-          )}
-        </Link>
       </header>
 
       <ProfileForm profile={profile} email={user.email} locale={locale} />
