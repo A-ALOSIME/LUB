@@ -14,12 +14,14 @@ describe("profile form interactions", () => {
     fireEvent.change(screen.getByLabelText("الرقم الجامعي"), { target: { value: "invalid-number" } });
     fireEvent.change(screen.getByLabelText("التخصص"), { target: { value: "نظم المعلومات" } });
     fireEvent.change(screen.getByLabelText("المستوى الدراسي"), { target: { value: "5" } });
-    fireEvent.click(screen.getByLabelText(/السماح بظهور ملفي العام/));
+    const publicProfile = screen.getByRole("checkbox", { name: /السماح بظهور ملفي العام/ });
+    fireEvent.click(publicProfile);
     fireEvent.submit(screen.getByRole("button", { name: "حفظ ومتابعة" }).closest("form")!);
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("راجع الرقم"));
     expect((screen.getByLabelText("الاسم الكامل بالعربية") as HTMLInputElement).value).toBe("أحمد محمد");
     expect((screen.getByLabelText("الرقم الجامعي") as HTMLInputElement).value).toBe("invalid-number");
-    expect((screen.getByLabelText(/السماح بظهور ملفي العام/) as HTMLInputElement).checked).toBe(true);
+    expect(publicProfile.getAttribute("aria-checked")).toBe("true");
+    expect((document.querySelector('input[name="publicProfileEnabled"]') as HTMLInputElement).checked).toBe(true);
     expect(screen.getByLabelText("الرقم الجامعي").getAttribute("aria-invalid")).toBe("true");
   });
   it("edits stored data without requesting the university number again", () => {

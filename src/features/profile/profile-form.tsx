@@ -1,37 +1,122 @@
 "use client";
 
 import { useActionState } from "react";
-import { saveProfile } from "./actions";
+import { LoaderCircle, Save, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { actionFeedback } from "@/lib/action-feedback";
+import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
+import { saveProfile } from "./actions";
+import { ProfileDetailsSection, ProfilePrivacySection } from "./profile-form-sections";
 import type { StudentProfile } from "./repository";
-import type {Locale} from "@/lib/preferences";
-import {actionFeedback} from "@/lib/action-feedback";
 
-export function ProfileForm({ profile, email, returnTo, locale="ar" }: { profile?: StudentProfile; email: string; returnTo?: string; locale?:Locale }) {
-  const en=locale==="en";
+export function ProfileForm({
+  profile,
+  email,
+  returnTo,
+  locale = "ar",
+}: {
+  profile?: StudentProfile;
+  email: string;
+  returnTo?: string;
+  locale?: Locale;
+}) {
+  const en = locale === "en";
   const [state, save, pending] = useActionState<FormState, FormData>(saveProfile, {});
-  const error = (name: string) => state.fieldErrors?.[name]?.[0];
-  const errors = (name: string) => ({ "aria-invalid": Boolean(error(name)), "aria-describedby": error(name) ? `${name}-error` : undefined });
-  const fieldError = (name: string) => error(name) && <p id={`${name}-error`} className="mt-2 text-sm text-red-800">{actionFeedback(error(name),locale)}</p>;
-  // React resets forms after a resolved action, including validation failures.
-  // Keep the user's entries on failure; successful saves navigate away.
-  return <form action={save} onReset={(event) => event.preventDefault()} className="space-y-8">
-    {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
-    <fieldset className="space-y-5"><legend className="mb-5 text-lg font-semibold">{en?"Basic details":"بياناتك الأساسية"}</legend>
-      <div><label htmlFor="fullName">{en?"Full name in Arabic":"الاسم الكامل بالعربية"}</label><input id="fullName" name="fullName" autoComplete="name" required minLength={3} maxLength={120} defaultValue={profile?.fullName} {...errors("fullName")} />{fieldError("fullName")}</div>
-      {!profile && <div><label htmlFor="universityId">{en?"University number":"الرقم الجامعي"}</label><input id="universityId" name="universityId" dir="ltr" inputMode="numeric" autoComplete="off" required minLength={6} maxLength={15} {...errors("universityId")} /><p className="mt-2 text-sm leading-7 text-muted">{en?"Stored securely and never shown on your public profile.":"يُحفظ بشكل آمن، ولا يظهر في ملفك العام."}</p>{fieldError("universityId")}</div>}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div><label htmlFor="major">{en?"Major":"التخصص"}</label><input id="major" name="major" required minLength={2} maxLength={120} defaultValue={profile?.major} {...errors("major")} />{fieldError("major")}</div>
-        <div><label htmlFor="academicLevel">{en?"Academic level":"المستوى الدراسي"}</label><select id="academicLevel" name="academicLevel" required defaultValue={profile?.academicLevel ?? ""} {...errors("academicLevel")}><option value="" disabled>{en?"Select level":"اختر المستوى"}</option>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{en?`Level ${index+1}`:`المستوى ${index + 1}`}</option>)}<option value="graduate">{en?"Graduate studies":"دراسات عليا"}</option></select>{fieldError("academicLevel")}</div>
-      </div>
-      <div><label htmlFor="phone">{en?"Phone number":"رقم الهاتف"} <span className="text-sm font-normal text-muted">{en?"(optional)":"(اختياري)"}</span></label><input id="phone" name="phone" type="tel" dir="ltr" autoComplete="tel" maxLength={16} defaultValue={profile?.phone ?? ""} {...errors("phone")} />{fieldError("phone")}</div>
-      <p className="text-sm leading-7 text-muted">{en?"Verified email: ":"البريد المتحقق منه: "}<bdi>{email}</bdi>{profile && <><br />{en?"Your university number is saved; you do not need to enter it again.":"رقمك الجامعي محفوظ ولا تحتاج إدخاله مرة ثانية."}</>}</p>
-    </fieldset>
-    <fieldset className="border-t border-line pt-6"><legend className="px-1 text-lg font-semibold">{en?"Privacy":"الخصوصية"}</legend>
-      <label className="flex items-start gap-3"><input type="checkbox" name="publicProfileEnabled" defaultChecked={profile?.publicProfileEnabled ?? false} className="mt-1 size-5 min-h-0 shrink-0 accent-action" /><span>{en?"Allow my public profile to appear":"السماح بظهور ملفي العام"}<span className="mt-1 block text-sm leading-7 font-normal text-muted">{en?"Your choice is saved for when public profiles become available. Your university details remain private.":"اختيارك محفوظ ويُستخدم عند إتاحة الملفات العامة. بياناتك الجامعية تبقى خاصة."}</span></span></label>
-      <label className="mt-4 flex items-start gap-3"><input type="checkbox" name="showTotalHours" defaultChecked={profile?.showTotalHours ?? true} className="mt-1 size-5 min-h-0 shrink-0 accent-action" /><span>{en?"Show my total hours on my public profile":"إظهار إجمالي ساعاتي في الملف العام"}</span></label>
-    </fieldset>
-    {state.error && <div role="alert" className="error-message">{actionFeedback(state.error,locale)}</div>}
-    <button disabled={pending} className="button w-full sm:w-auto">{en?pending?"Saving…":profile?"Save changes":"Save and continue":pending ? "جارٍ الحفظ…" : profile ? "حفظ التعديلات" : "حفظ ومتابعة"}</button>
-  </form>;
+  const cardTitle = profile
+    ? en
+      ? "Account settings"
+      : "إعدادات الحساب"
+    : en
+      ? "Your details"
+      : "بيانات حسابك";
+  const cardDescription = profile
+    ? en
+      ? "Manage your personal details and public profile preferences."
+      : "إدارة بياناتك الشخصية وتفضيلات ظهور ملفك العام."
+    : en
+      ? "Add your basic details once to use them across your account."
+      : "أكمل بياناتك الأساسية مرة واحدة لاستخدامها في حسابك.";
+  const saveLabel = en
+    ? pending
+      ? "Saving…"
+      : profile
+        ? "Save changes"
+        : "Save and continue"
+    : pending
+      ? "جارٍ الحفظ…"
+      : profile
+        ? "حفظ التعديلات"
+        : "حفظ ومتابعة";
+
+  // Prevent React's post-action reset from clearing entries after validation errors.
+  return (
+    <Card className="account-settings-card">
+      <form
+        action={save}
+        onReset={(event) => event.preventDefault()}
+        className="account-settings-form"
+        dir={en ? "ltr" : "rtl"}
+      >
+        {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
+
+        <CardHeader className="account-settings-card-header">
+          <div>
+            <CardTitle>{cardTitle}</CardTitle>
+            <CardDescription>{cardDescription}</CardDescription>
+          </div>
+          <CardAction>
+            <span className="account-settings-secure-note">
+              <ShieldCheck aria-hidden="true" />
+              {en ? "Private by default" : "بياناتك محمية"}
+            </span>
+          </CardAction>
+        </CardHeader>
+
+        <CardContent className="account-settings-content">
+          <ProfileDetailsSection
+            profile={profile}
+            email={email}
+            locale={locale}
+            errors={state.fieldErrors}
+          />
+          <div className="account-settings-divider" role="presentation" />
+          <ProfilePrivacySection profile={profile} locale={locale} />
+          {state.error && (
+            <div role="alert" className="account-settings-form-error">
+              {actionFeedback(state.error, locale)}
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="account-settings-footer">
+          <p className="account-settings-footer-note">
+            <ShieldCheck aria-hidden="true" />
+            <span>
+              {en
+                ? "Your university number and account email are never public."
+                : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}
+            </span>
+          </p>
+          <Button type="submit" size="lg" disabled={pending} className="account-settings-save">
+            {pending ? (
+              <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" />
+            ) : (
+              <Save data-icon="inline-start" aria-hidden="true" />
+            )}
+            {saveLabel}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
 }
