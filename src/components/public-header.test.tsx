@@ -20,6 +20,7 @@ vi.mock("@/features/auth/session", () => ({
   getVerifiedProxyIdentity: mocks.getVerifiedProxyIdentity,
 }));
 vi.mock("@/features/auth/authorization", () => ({ isSuperAdminUser: mocks.isSuperAdminUser }));
+vi.mock("@/features/auth/actions", () => ({ signOut: vi.fn() }));
 vi.mock("@/lib/preferences", () => ({ getPreferences: mocks.getPreferences }));
 
 import { PublicHeader } from "./public-header";

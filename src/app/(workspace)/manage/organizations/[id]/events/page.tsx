@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireManagementUser } from "@/features/organizations/access";
 import { eventWorkspaceOverview } from "@/features/events/workspace";
 import { EventForm, EventFields } from "@/features/events/form";
+import { EventDraftPreview } from "@/features/events/draft-preview";
 import { eventLabels, eventDate, eventLabelsEn, eventDateEn } from "@/features/events/display";
 import { getPreferences } from "@/lib/preferences";
 
@@ -38,16 +39,14 @@ export default async function ManageEvents({
         <h1 className="mt-2 text-3xl font-bold">{en ? "Events" : "الفعاليات"}</h1>
         <p className="mt-2 leading-7 text-muted"><bdi>{data.name}</bdi> · {en ? "Create events, attach posters and manage publication." : "أنشئ الفعاليات وأرفق بوستراتها وتابع نشرها."}</p>
       </div>
-      {data.canManage && <a className="button shrink-0" href="#new-event">{en ? "Create event" : "إنشاء فعالية"}</a>}
     </header>
 
     {data.canManage && <section id="new-event" className="workspace-panel panel mb-8 p-5 sm:p-7">
       <div className="workspace-section-heading">
-        <span className="workspace-section-icon" aria-hidden="true">＋</span>
-        <div><p className="workspace-eyebrow">{en ? "Event setup" : "إعداد الفعالية"}</p><h2 className="text-xl font-bold">{en ? "Create an event" : "فعالية جديدة"}</h2></div>
+        <div><p className="workspace-eyebrow">{en ? "Event setup" : "إعداد الفعالية"}</p><h2 className="text-xl font-bold">{en ? "Create an event" : "إنشاء فعالية"}</h2></div>
       </div>
       <p className="mt-3 max-w-3xl leading-7 text-muted">{en ? "Add event details and an optional poster. The poster is shown publicly only after the event is published." : "أضف تفاصيل الفعالية وارفق بوسترًا اختياريًا. لا يظهر البوستر للعامة إلا بعد نشر الفعالية."}</p>
-      <EventForm operation="save" fields={{ org: id }} label={en ? "Save draft" : "حفظ المسودة"} locale={locale}>
+      <EventForm operation="save" fields={{ org: id }} label={en ? "Save draft" : "حفظ المسودة"} secondaryAction={<EventDraftPreview locale={locale} />} locale={locale}>
         <EventFields organization={id} templates={data.templates} locale={locale} />
       </EventForm>
     </section>}

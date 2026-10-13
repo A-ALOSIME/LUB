@@ -101,10 +101,7 @@ export function MyPageNavigation({
           {organizations.map(organization => {
             const root = `/manage/organizations/${organization.id}`;
             const managementLinks: NavigationItem[] = [
-              ...(organization.canEdit ? [
-                { href: `${root}#profile`, label: c("بيانات الجهة", "Organization profile") },
-                { href: `${root}#announcements`, label: c("إعلانات الجهة", "Organization announcements") },
-              ] : []),
+              { href: root, label: c("بيانات الجهة", "Organization details") },
               ...(organization.canManageCommittees ? [{ href: `${root}#committees`, label: c("اللجان", "Committees") }] : []),
               ...(organization.canApplications ? [{ href: `${root}/applications`, label: c("طلبات الأعضاء", "Member applications") }] : []),
               ...(organization.canMembers ? [{ href: `${root}/members`, label: c("قاعدة الأعضاء", "Member directory") }] : []),

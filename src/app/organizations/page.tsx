@@ -38,13 +38,13 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
           const imageSrc = profile?.logoSrc;
           // The CyberSec PNG has tall transparent margins; size its visible mark to the square art.
           const imageStyle = profile?.imageTheme === "cybersec"
-            ? { width: "auto", height: "207.8%", top: "-44.8%", right: "auto", bottom: "auto", left: "50%", transform: "translateX(-50%)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
+            ? { transform: "scale(2.078)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
             : profile?.imageTheme === "tuwaiq"
-              ? { width: "140%", height: "109%", maxWidth: "none", top: "50%", right: "auto", bottom: "auto", left: "50%", transform: "translate(-50%, -50%)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
+              ? { transform: "scale(1.4)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
             : profile?.imageTheme === "it-council" || profile?.imageTheme === "oss"
               ? { objectFit: "contain" as const, objectPosition: "center", padding: 0 }
             : profile?.imageTheme === "student-council"
-              ? { width: "122%", height: "122%", top: "50%", right: "auto", bottom: "auto", left: "50%", transform: "translate(-50%, -50%)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
+              ? { transform: "scale(1.22)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
             : { objectFit: "contain" as const, objectPosition: "center" };
           return <li key={organization.id} className="organization-card">
             <Link href={`/organizations/${organization.slug}`} className="directory-link" aria-label={en ? `View ${organization.nameAr}` : `عرض ${organization.nameAr}`}>

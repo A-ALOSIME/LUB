@@ -15,6 +15,6 @@ export async function AccountHeader({ isSuperAdmin }: { isSuperAdmin?: boolean }
   return <SiteHeader en={en} accountLabel={en ? "Account navigation" : "تنقل الحساب"} accountActions={<>
     <DisplayControls {...preferences} />
     <Link href={superAdmin ? "/manage" : "/me"} prefetch={false} className="button button-compact whitespace-nowrap">{en ? "My workspace" : "مساحتي"}</Link>
-    <form action={signOut}><button className="header-link">{en ? "Log out" : "تسجيل الخروج"}</button></form>
+    <form action={signOut}><button className="header-link whitespace-nowrap">{en ? "Log out" : <><span className="sm:hidden">خروج</span><span className="hidden sm:inline">تسجيل الخروج</span></>}</button></form>
   </>} />;
 }

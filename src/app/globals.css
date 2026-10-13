@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @theme {
   --color-ink: #1d2d3d;
@@ -11,6 +14,22 @@
 }
 
 :root { --surface: #fcfcf9; --focus-ring: #457eab; --field-border: #c9d2d5; --field-hover: #91a2a8; --button-ink: #fff; }
+:root {
+  --background: var(--color-mist); --foreground: var(--color-ink); --card: var(--surface); --card-foreground: var(--color-ink);
+  --popover: var(--surface); --popover-foreground: var(--color-ink); --primary: var(--color-action); --primary-foreground: var(--button-ink);
+  --secondary: color-mix(in srgb, var(--color-action) 10%, var(--surface)); --secondary-foreground: var(--color-ink);
+  --muted: color-mix(in srgb, var(--color-mist) 70%, var(--surface)); --muted-foreground: var(--color-muted);
+  --accent: color-mix(in srgb, var(--color-action) 10%, var(--surface)); --accent-foreground: var(--color-ink);
+  --destructive: #b42318; --border: var(--color-line); --input: var(--field-border); --ring: var(--focus-ring); --radius: .7rem;
+}
+@theme inline {
+  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover); --color-popover-foreground: var(--popover-foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary); --color-secondary-foreground: var(--secondary-foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground); --color-destructive: var(--destructive); --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px); --radius-md: calc(var(--radius) - 2px); --radius-lg: var(--radius); --radius-xl: calc(var(--radius) + 4px);
+}
+
 [data-theme="dark"] { color-scheme: dark; --color-ink: #e9f0f5; --color-muted: #b6c6d3; --color-action: #a5cdec; --color-action-hover: #c0dcf1; --color-mist: #111d28; --color-line: #34495b; --surface: #1b2b39; --focus-ring: #a9d3f2; --field-border: #5e717b; --field-hover: #9baeb8; --button-ink: #142535; }
 body { background: var(--color-mist); color: var(--color-ink); font-family: var(--font-sans); line-height: 1.7; }
 h1, h2, h3 { text-wrap: balance; }
@@ -631,3 +650,46 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
   .workspace-sidebar-link, .workspace-sidebar-sublink, .workspace-event-poster img { transition: none; }
   .workspace-event-card:hover .workspace-event-poster img, .event-card:hover .event-card-poster img { transform: none; }
 }
+
+.organization-admin-sidebar { border-radius: 1rem; box-shadow: none; }
+.organization-settings-header { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; padding-block: .25rem .6rem; }
+.organization-settings-card { border: 1px solid var(--color-line); box-shadow: none; }
+.organization-settings-card > [data-slot="card-content"] { padding: clamp(1.25rem, 2.4vw, 1.75rem); }
+.organization-settings-identity { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-line); }
+.organization-settings-logo { display: grid; width: 4.75rem; height: 4.75rem; flex: none; place-items: center; overflow: hidden; border: 1px solid var(--color-line); border-radius: .9rem; background: white; }
+.organization-settings-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.15rem 1.5rem; }
+.organization-settings-field { display: grid; min-width: 0; align-content: start; gap: .45rem; }
+.organization-settings-field.full { grid-column: 1 / -1; }
+.organization-settings-field label { font-size: .875rem; font-weight: 700; }
+.organization-settings-field textarea { min-height: 7rem; resize: vertical; }
+.organization-settings-visibility { margin-top: 1.5rem; }
+.organization-settings-visibility span { display: grid; gap: .1rem; }
+.organization-settings-visibility small { color: var(--color-muted); font-size: .8rem; }
+.organization-settings-card > [data-slot="card-content"] > form fieldset > button { display: block; margin-inline-end: auto; }
+.organization-settings-section-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.3rem 1.75rem; border-bottom: 1px solid var(--color-line); }
+.organization-settings-section-header + [data-slot="card-content"] { padding-block: .25rem; }
+.organization-settings-list { display: grid; }
+.organization-settings-list-row { display: flex; min-height: 5rem; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--color-line); padding-block: .85rem; }
+.organization-settings-list-row:last-child { border-bottom: 0; }
+.organization-settings-empty { padding-block: 1.2rem; color: var(--color-muted); font-size: .875rem; }
+.organization-settings-committee { overflow: hidden; border: 1px solid var(--color-line); border-radius: .75rem; }
+
+/* Keep the shared header's dimensions stable across public and account routes. */
+.site-header-inner { min-height: 4.5rem; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+.site-header-nav { flex-wrap: nowrap; }
+.site-header-tools { display: flex; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
+@media (max-width: 1023px) {
+  .site-header-inner { min-height: 0; grid-template-rows: 4.5rem 3rem; }
+  .site-header-nav { height: 3rem; }
+}
+@media (max-width: 639px) {
+  .site-header-tools { gap: .35rem .45rem; }
+  .site-header-tools .button-compact { min-height: 34px; padding-inline: .55rem; }
+  .site-header-brand .brand-mark { min-height: 0; }
+  .site-header-brand img { max-width: 4.75rem; }
+  .organization-settings-fields { grid-template-columns: minmax(0,1fr); }
+  .organization-settings-section-header { align-items: stretch; flex-direction: column; }
+}
+
+.organization-settings-committee > summary { display: flex; min-height: 3.5rem; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; background: var(--surface); cursor: pointer; }
+.organization-settings-committee[open] > summary { color: var(--color-ink); }

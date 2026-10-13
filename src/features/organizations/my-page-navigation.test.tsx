@@ -33,8 +33,8 @@ describe("my page navigation", () => {
     expect(screen.getByRole("complementary", { name: "تنقل مساحتي" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "عضوياتي وسجل أدواري" }).getAttribute("href")).toBe("#memberships");
     expect(screen.getByRole("link", { name: "نادي الأمن السيبراني" }).getAttribute("href")).toBe("/manage/organizations/org-1");
-    expect(screen.getByRole("link", { name: "بيانات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1#profile");
-    expect(screen.getByRole("link", { name: "إعلانات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1#announcements");
+    expect(screen.getByRole("link", { name: "بيانات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1");
+    expect(screen.queryByRole("link", { name: "إعلانات الجهة" })).toBeNull();
     expect(screen.getByRole("link", { name: "اللجان" }).getAttribute("href")).toBe("/manage/organizations/org-1#committees");
     expect(screen.getByRole("link", { name: "طلبات الأعضاء" }).getAttribute("href")).toBe("/manage/organizations/org-1/applications");
     expect(screen.getByRole("link", { name: "فعاليات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1/events");

@@ -8,14 +8,15 @@ import {actionFeedback} from "@/lib/action-feedback";
 const fieldLabels: Record<string, string> = { nameAr: "اسم الجهة", name: "اسم اللجنة", slug: "اسم الرابط", typeCode: "نوع الجهة", summary: "النبذة", mission: "الرسالة", tagNames: "مجالات الاهتمام", websiteUrl: "رابط الموقع", logoUrl: "رابط الشعار", email: "البريد", description: "وصف اللجنة", title: "عنوان الإعلان", body: "نص الإعلان", pinned: "تثبيت الإعلان" };
 const fieldLabelsEn: Record<string, string> = { nameAr: "Organization name", name: "Committee name", slug: "URL name", typeCode: "Organization type", summary: "Summary", mission: "Mission", tagNames: "Interests", websiteUrl: "Website", logoUrl: "Logo URL", email: "Email", description: "Committee description", title: "Announcement title", body: "Announcement text", pinned: "Pin announcement" };
 
-export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel, children,locale="ar" }: {
-  operation: MutationOperation; fields?: Record<string, string>; submitLabel: string; confirmLabel?: string; children?: ReactNode;locale?:Locale;
+export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel, children, locale="ar", onSuccess }: {
+  operation: MutationOperation; fields?: Record<string, string>; submitLabel: string; confirmLabel?: string; children?: ReactNode;locale?:Locale; onSuccess?: () => void;
 }) {
   const labels=locale==="en"?fieldLabelsEn:fieldLabels;
   const [state, action, pending] = useActionState<MutationState, FormData>(mutateOrganization, {});
   const errorId = useId();
   const errorRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (state.error) errorRef.current?.focus(); }, [state]);
+  useEffect(() => { if (state.success) onSuccess?.(); }, [state.success, onSuccess]);
   return <form action={action} onReset={event => event.preventDefault()} className="space-y-5">
     <input type="hidden" name="operation" value={operation} />
     {Object.entries(fields).map(([name, value]) => <input type="hidden" name={name} value={value} key={name} />)}
