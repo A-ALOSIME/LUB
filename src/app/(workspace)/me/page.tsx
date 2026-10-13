@@ -53,15 +53,6 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
             <SummaryItem icon="hours" label={en ? "Approved hours" : "ساعات معتمدة"} value={formatNumber(hours)} />
           </section>
 
-          <section id="profile" aria-labelledby="basic-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--profile scroll-mt-6">
-            <SectionHeading id="basic-title" eyebrow={en ? "PROFILE" : "الملف الشخصي"} title={en ? "Basic details" : "بياناتي الأساسية"} />
-            <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-3">
-              <DetailItem label={en ? "Major" : "التخصص"} value={profile.major} />
-              <DetailItem label={en ? "Academic level" : "المستوى الدراسي"} value={profile.academicLevel === "graduate" ? (en ? "Graduate studies" : "دراسات عليا") : `${en ? "Level " : "المستوى "}${formatNumber(profile.academicLevel)}`} />
-              <DetailItem label={en ? "Public profile" : "الملف العام"} value={profile.publicProfileEnabled ? (en ? "Visible when available" : "الظهور مسموح عند إتاحته") : (en ? "Private" : "خاص")} />
-            </dl>
-          </section>
-
           <section id="memberships" aria-labelledby="memberships-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--memberships scroll-mt-6">
             <SectionHeading id="memberships-title" eyebrow={en ? "ORGANIZATIONS" : "العضويات والأدوار"} title={en ? "Memberships and role history" : "عضوياتي وسجل أدواري"} />
             {memberships.length ? <ul className="mt-4 divide-y divide-line">
@@ -110,12 +101,5 @@ function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: string; t
   return <div className="workspace-section-title">
     <p className="text-xs font-semibold tracking-wide text-action">{eyebrow}</p>
     <h2 id={id} className="mt-1 text-xl font-bold">{title}</h2>
-  </div>;
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return <div className="workspace-detail-item">
-    <dt className="text-sm text-muted">{label}</dt>
-    <dd dir="auto" className="mt-1 break-words font-semibold">{value}</dd>
   </div>;
 }
