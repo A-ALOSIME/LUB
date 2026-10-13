@@ -33,11 +33,11 @@ function NotificationIcon({ notification }: { notification: TaskNotification }) 
     ? CalendarDays
     : notification.type_code.toLowerCase().includes("hour") || notification.target_url === "/hours"
       ? Clock3
-      : notification.type_code.toLowerCase().includes("application") || notification.target_url === "/applications"
+      : notification.type_code.toLowerCase().includes("application") || notification.target_url.startsWith("/applications")
         ? UsersRound
         : notification.type_code.toLowerCase().includes("task") || notification.target_url.startsWith("/tasks")
           ? ClipboardCheck
-          : notification.type_code.toLowerCase().includes("renew") || notification.target_url === "/renewals"
+          : notification.type_code.toLowerCase().includes("renew") || notification.target_url === "/renewals" || notification.target_url.includes("tab=renewals")
             ? MailCheck
             : Megaphone;
 

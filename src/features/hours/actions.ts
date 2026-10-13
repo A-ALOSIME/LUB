@@ -30,6 +30,6 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
  }})();await withUser(user.id,tx=>tx.execute(query));
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. الرفض والإبطال يحتاجان سببًا."};}
- revalidatePath("/hours");revalidatePath("/renewals");revalidatePath("/manage","layout");revalidatePath("/tasks","layout");revalidatePath("/me");revalidatePath("/notifications");
+ revalidatePath("/hours");revalidatePath("/applications");revalidatePath("/renewals");revalidatePath("/manage","layout");revalidatePath("/tasks","layout");revalidatePath("/me");revalidatePath("/notifications");
  return {success:"تم حفظ التغيير."};
 }

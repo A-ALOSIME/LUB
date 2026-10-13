@@ -37,6 +37,7 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
   expect(screen.getByRole("link", { name: /مقبول/ }).textContent).toContain("1");
   expect(screen.getByRole("link", { name: /مرفوض/ }).textContent).toContain("1");
   expect(screen.getByRole("link", { name: /مسحوب/ }).textContent).toContain("1");
+  expect(screen.getByRole("link", { name: /قيد المراجعة/ }).getAttribute("href")).toBe("/applications?tab=applications&preview=1&status=review");
   expect(screen.getAllByRole("button", { name: "إجراءات الطلب" }).every(button => button.hasAttribute("disabled"))).toBe(true);
   expect(screen.queryByText("المراجع")).toBeNull();
   expect(screen.queryByText("السحب والإفلات")).toBeNull();

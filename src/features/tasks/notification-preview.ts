@@ -34,7 +34,7 @@ export const previewNotifications: TaskNotification[] = [
     type_code: "Renewal_Requested",
     title: "موعد تجديد عضويتك يقترب",
     body: "راجع حالة عضويتك وأكمل طلب التجديد قبل انتهاء الفترة.",
-    target_url: "/renewals",
+    target_url: "/applications?tab=renewals",
     created_at: "2026-10-09T09:30:00+03:00",
     read_at: null,
   },

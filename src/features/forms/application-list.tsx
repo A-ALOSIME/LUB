@@ -38,7 +38,7 @@ function applicationsHref({ status, preview, page = 1 }: {
   preview: boolean;
   page?: number;
 }) {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ tab: "applications" });
   if (preview) params.set("preview", "1");
   if (status !== "all") params.set("status", status);
   if (page > 1) params.set("page", String(page));

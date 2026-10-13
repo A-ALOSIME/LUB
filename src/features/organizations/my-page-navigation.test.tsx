@@ -36,6 +36,8 @@ describe("my page navigation", () => {
     const levelTwoHeadings = screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent);
     expect(levelTwoHeadings.indexOf("حسابي")).toBeLessThan(levelTwoHeadings.indexOf("إدارة الجهات"));
     expect(screen.getByRole("link", { name: "بيانات الحساب" }).getAttribute("href")).toBe("/account");
+    expect(screen.getByRole("link", { name: "طلباتي" }).getAttribute("href")).toBe("/applications");
+    expect(screen.queryByRole("link", { name: "طلبات التجديد" })).toBeNull();
     expect(screen.getByRole("link", { name: "سجل الساعات" }).getAttribute("href")).toBe("/hours");
     expect(screen.getByRole("link", { name: "المهام والمشاركات" }).getAttribute("href")).toBe("#tasks");
     expect(screen.getByRole("link", { name: "فعالياتي" }).getAttribute("href")).toBe("#events");
@@ -62,6 +64,7 @@ describe("my page navigation", () => {
     render(<MyPageNavigation locale="ar" organizations={[]} />);
 
     expect(screen.getByRole("link", { name: "بيانات الحساب" }).getAttribute("href")).toBe("/account");
+    expect(screen.getByRole("link", { name: "طلباتي" }).getAttribute("href")).toBe("/applications");
     expect(screen.queryByRole("heading", { name: "إدارة الجهات" })).toBeNull();
     expect(screen.queryByRole("link", { name: /تصفح الجهات|استكشف الأندية/ })).toBeNull();
   });

@@ -53,12 +53,11 @@ export function MyPageNavigation({
         title: c("حسابي", "ACCOUNT"),
         items: [
           { href: "/account", label: c("بيانات الحساب", "Account settings") },
-          { href: "/applications", label: c("طلباتي", "My applications") },
+          { href: "/applications", label: c("طلباتي", "My requests") },
           { href: "/notifications", label: c("الإشعارات", "Notifications") },
           { href: "/account/talent", label: c("ملفي المهاري", "Skills profile") },
           { href: sectionHref("tasks"), label: c("المهام والمشاركات", "Tasks and participation") },
           { href: "/hours", label: c("سجل الساعات", "Hours history") },
-          { href: "/renewals", label: c("طلبات التجديد", "Membership renewals") },
           { href: "/documents", label: c("مستنداتي", "My documents") },
           { href: sectionHref("events"), label: c("فعالياتي", "My events") },
         ],

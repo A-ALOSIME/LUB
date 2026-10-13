@@ -1,0 +1,16 @@
+export type RequestsTab = "applications" | "renewals";
+
+export function resolveRequestsTab(value: string | string[] | undefined): RequestsTab {
+  return (Array.isArray(value) ? value[0] : value) === "renewals" ? "renewals" : "applications";
+}
+
+export function requestsTabHref(tab: RequestsTab) {
+  return `/applications?tab=${tab}`;
+}
+
+export function legacyRenewalsHref(page: string | string[] | undefined) {
+  const params = new URLSearchParams({ tab: "renewals" });
+  const firstPage = Array.isArray(page) ? page[0] : page;
+  if (firstPage !== undefined) params.set("page", firstPage);
+  return `/applications?${params.toString()}`;
+}
