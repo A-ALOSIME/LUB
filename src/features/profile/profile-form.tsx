@@ -5,7 +5,6 @@ import { LoaderCircle, Save, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -70,16 +69,8 @@ export function ProfileForm({
         {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
         <CardHeader className="account-settings-card-header">
-          <div>
-            <CardTitle>{cardTitle}</CardTitle>
-            <CardDescription>{cardDescription}</CardDescription>
-          </div>
-          <CardAction>
-            <span className="account-settings-secure-note">
-              <ShieldCheck aria-hidden="true" />
-              {en ? "Private by default" : "بياناتك محمية"}
-            </span>
-          </CardAction>
+          <CardTitle>{cardTitle}</CardTitle>
+          <CardDescription>{cardDescription}</CardDescription>
         </CardHeader>
 
         <CardContent className="account-settings-content">
@@ -107,7 +98,12 @@ export function ProfileForm({
                 : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}
             </span>
           </p>
-          <Button type="submit" size="lg" disabled={pending} className="account-settings-save">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={pending}
+            className="account-settings-save w-fit"
+          >
             {pending ? (
               <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" />
             ) : (

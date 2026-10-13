@@ -1,4 +1,4 @@
-import { ArrowUpLeft } from "lucide-react";
+import { ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { StorageUnavailable } from "@/components/storage-unavailable";
@@ -27,13 +27,17 @@ export default async function Account() {
   if (!profile) redirect("/onboarding");
 
   return (
-    <main id="main" className="account-settings-page" dir={en ? "ltr" : "rtl"}>
+    <main
+      id="main"
+      className="account-settings-page mx-auto w-full max-w-2xl"
+      dir={en ? "ltr" : "rtl"}
+    >
       <header className="account-settings-page-header">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight">
+        <div className="account-settings-page-heading min-w-0">
+          <h1 className="text-base font-semibold tracking-tight">
             {en ? "Account and privacy" : "الحساب والخصوصية"}
           </h1>
-          <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
+          <p className="text-sm leading-6 text-muted-foreground">
             {en
               ? "Update your account details and choose what appears on your public profile."
               : "حدّث بيانات حسابك واختر ما يظهر في ملفك العام."}
@@ -51,7 +55,11 @@ export default async function Account() {
               ? "Skills profile, contact channels, and activity privacy"
               : "الملف المهاري وقنوات التواصل وخصوصية المشاركات"}
           </span>
-          <ArrowUpLeft data-icon="inline-end" aria-hidden="true" />
+          {en ? (
+            <ArrowUpLeft data-icon="inline-end" aria-hidden="true" />
+          ) : (
+            <ArrowUpRight data-icon="inline-end" aria-hidden="true" />
+          )}
         </Link>
       </header>
 

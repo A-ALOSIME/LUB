@@ -29,5 +29,14 @@ describe("profile form interactions", () => {
     expect(screen.queryByLabelText("الرقم الجامعي")).toBeNull();
     expect(screen.getByRole("button", { name: "حفظ التعديلات" })).toBeTruthy();
     expect((screen.getByLabelText("التخصص") as HTMLInputElement).value).toBe("نظم المعلومات");
+    expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("ltr");
+    expect(
+      screen
+        .getByLabelText("التخصص")
+        .closest('[data-slot="field"]')
+        ?.parentElement?.classList.contains("account-settings-field-pair")
+    ).toBe(true);
+    expect(screen.queryByText("بياناتك محمية")).toBeNull();
+    expect(screen.getByText("رقمك الجامعي وبريد حسابك لا يظهران للعامة.")).toBeTruthy();
   });
 });

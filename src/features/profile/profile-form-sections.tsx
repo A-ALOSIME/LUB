@@ -30,13 +30,13 @@ function ProfileTextField({
   locale,
   errors,
   required,
-  wide,
   minLength,
   maxLength,
   autoComplete,
   dir,
   inputMode,
   hint,
+  narrow,
 }: {
   name: TextFieldName;
   label: ReactNode;
@@ -44,13 +44,13 @@ function ProfileTextField({
   locale: Locale;
   errors?: FieldErrors;
   required?: boolean;
-  wide?: boolean;
   minLength?: number;
   maxLength?: number;
   autoComplete?: string;
   dir?: "ltr" | "rtl";
   inputMode?: "numeric";
   hint?: string;
+  narrow?: boolean;
 }) {
   const message = errors?.[name]?.[0];
   const hintId = hint ? `${name}-hint` : undefined;
@@ -58,7 +58,9 @@ function ProfileTextField({
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <Field className={`account-settings-field${wide ? " account-settings-field-wide" : ""}`}>
+    <Field
+      className={`account-settings-field${narrow ? " account-settings-phone-field max-w-xs" : ""}`}
+    >
       <FieldLabel htmlFor={name}>{label}</FieldLabel>
       <Input
         id={name}
@@ -118,7 +120,6 @@ export function ProfileDetailsSection({
           minLength={3}
           maxLength={120}
           autoComplete="name"
-          wide
         />
 
         {!profile && (
@@ -137,52 +138,53 @@ export function ProfileDetailsSection({
                 ? "Stored securely and never shown on your public profile."
                 : "يُحفظ بشكل آمن ولا يظهر في ملفك العام."
             }
-            wide
           />
         )}
 
-        <ProfileTextField
-          name="major"
-          label={en ? "Major" : "التخصص"}
-          value={profile?.major}
-          locale={locale}
-          errors={errors}
-          required
-          minLength={2}
-          maxLength={120}
-        />
-
-        <Field className="account-settings-field">
-          <FieldLabel htmlFor="academicLevel">
-            {en ? "Academic level" : "المستوى الدراسي"}
-          </FieldLabel>
-          <NativeSelect
-            id="academicLevel"
-            name="academicLevel"
+        <div className="account-settings-field-pair">
+          <ProfileTextField
+            name="major"
+            label={en ? "Major" : "التخصص"}
+            value={profile?.major}
+            locale={locale}
+            errors={errors}
             required
-            defaultValue={profile?.academicLevel ?? ""}
-            className="account-settings-select"
-            aria-invalid={Boolean(errors?.academicLevel?.[0])}
-            aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
-          >
-            <NativeSelectOption value="" disabled>
-              {en ? "Select your level" : "اختر المستوى"}
-            </NativeSelectOption>
-            {Array.from({ length: 12 }, (_, index) => (
-              <NativeSelectOption key={index + 1} value={String(index + 1)}>
-                {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
+            minLength={2}
+            maxLength={120}
+          />
+
+          <Field className="account-settings-field">
+            <FieldLabel htmlFor="academicLevel">
+              {en ? "Academic level" : "المستوى الدراسي"}
+            </FieldLabel>
+            <NativeSelect
+              id="academicLevel"
+              name="academicLevel"
+              required
+              defaultValue={profile?.academicLevel ?? ""}
+              className="account-settings-select"
+              aria-invalid={Boolean(errors?.academicLevel?.[0])}
+              aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
+            >
+              <NativeSelectOption value="" disabled>
+                {en ? "Select your level" : "اختر المستوى"}
               </NativeSelectOption>
-            ))}
-            <NativeSelectOption value="graduate">
-              {en ? "Graduate studies" : "دراسات عليا"}
-            </NativeSelectOption>
-          </NativeSelect>
-          {errors?.academicLevel?.[0] && (
-            <p id="academicLevel-error" className="text-sm text-destructive" aria-live="polite">
-              {actionFeedback(errors.academicLevel[0], locale)}
-            </p>
-          )}
-        </Field>
+              {Array.from({ length: 12 }, (_, index) => (
+                <NativeSelectOption key={index + 1} value={String(index + 1)}>
+                  {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
+                </NativeSelectOption>
+              ))}
+              <NativeSelectOption value="graduate">
+                {en ? "Graduate studies" : "دراسات عليا"}
+              </NativeSelectOption>
+            </NativeSelect>
+            {errors?.academicLevel?.[0] && (
+              <p id="academicLevel-error" className="text-sm text-destructive" aria-live="polite">
+                {actionFeedback(errors.academicLevel[0], locale)}
+              </p>
+            )}
+          </Field>
+        </div>
 
         <ProfileTextField
           name="phone"
@@ -200,7 +202,7 @@ export function ProfileDetailsSection({
           maxLength={16}
           autoComplete="tel"
           dir="ltr"
-          wide
+          narrow
         />
       </FieldGroup>
 

@@ -172,28 +172,30 @@ html:lang(en) .only-en { display: inline; }
 @media (max-width: 40rem) { .lub-chat-message { max-width: 90%; } }
 
 /* Account settings page */
-.account-settings-page { width: min(100%, 72rem); margin-inline: auto; padding-block: clamp(1.5rem, 3vw, 3rem); }
-.account-settings-page-header { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.75rem; }
+.account-settings-page { width: 100%; max-width: 42rem; margin-inline: auto; padding-block: clamp(1.5rem, 3vw, 3rem); }
+.account-settings-page-header { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.25rem; }
+.account-settings-page-heading { display: grid; gap: .25rem; }
 .account-settings-page-header h1 { letter-spacing: -.025em; }
 .account-settings-talent-link { width: fit-content; max-width: min(100%, 25rem); min-height: 2.75rem; height: auto; justify-content: space-between; gap: .75rem; padding-block: .65rem; text-align: start; white-space: normal; }
 .account-settings-talent-link svg { flex: none; }
 .account-settings-card { padding-block: 0; border: 1px solid var(--border); box-shadow: 0 10px 30px color-mix(in srgb, var(--foreground) 5%, transparent); }
 .account-settings-form { display: flex; flex-direction: column; }
-.account-settings-card-header { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 1.5rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 52%, var(--card)); }
-.account-settings-card-header [data-slot="card-title"] { font-size: 1.125rem; font-weight: 650; }
-.account-settings-card-header [data-slot="card-description"] { margin-top: .25rem; line-height: 1.6; }
-.account-settings-secure-note { display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .7rem; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); font-size: .75rem; font-weight: 600; white-space: nowrap; }
-.account-settings-secure-note svg { width: 1rem; height: 1rem; color: var(--primary); }
-.account-settings-content { display: grid; gap: 1.75rem; padding: 1.5rem; }
-.account-settings-section { display: flex; min-width: 0; flex-direction: column; gap: .8rem; }
+.account-settings-card-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: .25rem; padding: 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 52%, var(--card)); }
+.account-settings-card-header [data-slot="card-title"] { font-size: 1rem; font-weight: 650; }
+.account-settings-card-header [data-slot="card-description"] { margin: 0; font-size: .875rem; line-height: 1.5; }
+.account-settings-content { display: grid; gap: 1.5rem; padding: 1rem; }
+.account-settings-section { display: flex; min-width: 0; flex-direction: column; gap: 1rem; }
 .account-settings-legend { margin: 0; font-size: 1rem; font-weight: 650; }
-.account-settings-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.15rem 1.25rem; margin-top: .35rem; }
+.account-settings-section > [data-slot="field-description"] { margin-block-start: -.75rem; }
+.account-settings-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-top: .25rem; }
+.account-settings-field-pair { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 .account-settings-field { min-width: 0; gap: .45rem; }
-.account-settings-field-wide { grid-column: 1 / -1; }
+.account-settings-phone-field { max-width: 20rem; justify-self: start; }
 .account-settings-form [data-slot="field-label"] { display: flex; align-items: center; gap: .35rem; margin: 0; color: var(--foreground); font-size: .875rem; font-weight: 550; line-height: 1.5; }
-.account-settings-form [data-slot="input"], .account-settings-form [data-slot="native-select"] { min-height: 2.75rem; border: 1px solid var(--input); border-radius: var(--radius); background: color-mix(in srgb, var(--card) 80%, var(--background)); color: var(--foreground); font-size: .9375rem; transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+.account-settings-form [data-slot="input"], .account-settings-form [data-slot="native-select"] { width: 100%; height: 2.25rem; min-height: 2.25rem; padding-block: .25rem; border: 1px solid var(--input); border-radius: var(--radius); background: color-mix(in srgb, var(--card) 80%, var(--background)); color: var(--foreground); font-size: .875rem; transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
 .account-settings-form [data-slot="input"] { padding-inline: .875rem; }
 .account-settings-form [data-slot="native-select"] { padding-inline: .875rem 2.5rem; }
+.account-settings-form [data-slot="input"][dir="ltr"] { text-align: start; }
 .account-settings-select { width: 100%; }
 .account-settings-form [data-slot="input"]:focus, .account-settings-form [data-slot="native-select"]:focus { border: 1px solid var(--ring); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent); }
 .account-settings-form [data-slot="input"][aria-invalid="true"], .account-settings-form [data-slot="native-select"][aria-invalid="true"] { border-color: var(--destructive); }
@@ -204,29 +206,23 @@ html:lang(en) .only-en { display: inline; }
 .account-settings-verified { flex: none; margin-inline-start: auto; padding: .25rem .55rem; border-radius: 999px; background: color-mix(in srgb, #16845b 12%, var(--card)); color: #16845b; font-size: .75rem; font-weight: 650; }
 [data-theme="dark"] .account-settings-verified { color: #74d4a9; background: color-mix(in srgb, #16845b 22%, var(--card)); }
 .account-settings-divider { height: 1px; background: var(--border); }
-.account-settings-privacy-options { display: grid; gap: .75rem; margin-top: .35rem; }
-.account-settings-privacy-option { display: flex; min-width: 0; align-items: flex-start; gap: .9rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--background) 58%, var(--card)); transition: border-color .15s ease, background-color .15s ease; }
-.account-settings-privacy-option:has([data-checked="true"]) { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); }
-.account-settings-privacy-option:focus-within { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 16%, transparent); }
-.account-settings-checkbox { width: 1.2rem; height: 1.2rem; flex: none; margin-top: .15rem; }
+.account-settings-privacy-options { display: grid; gap: .75rem; margin-top: .25rem; }
+.account-settings-privacy-option { display: flex; min-width: 0; align-items: flex-start; gap: .75rem; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.account-settings-checkbox { width: 1rem; height: 1rem; flex: none; margin-top: .15rem; }
 .account-settings-privacy-option [data-slot="field-content"] { min-width: 0; gap: .25rem; }
-.account-settings-privacy-option [data-slot="field-description"] { line-height: 1.6; }
+.account-settings-privacy-option [data-slot="field-description"] { color: var(--muted-foreground); font-size: .75rem; line-height: 1.5; }
 .account-settings-form-error { padding: .75rem 1rem; border: 1px solid color-mix(in srgb, var(--destructive) 35%, transparent); border-radius: var(--radius); background: color-mix(in srgb, var(--destructive) 8%, var(--card)); color: var(--destructive); }
-.account-settings-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.5rem; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--background) 60%, var(--card)); }
-.account-settings-footer-note { display: flex; align-items: center; gap: .5rem; margin: 0; color: var(--muted-foreground); font-size: .8125rem; line-height: 1.55; }
+.account-settings-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--background) 60%, var(--card)); }
+.account-settings-footer-note { display: flex; align-items: center; gap: .5rem; margin: 0; color: var(--muted-foreground); font-size: .875rem; line-height: 1.55; }
 .account-settings-footer-note svg { width: 1rem; height: 1rem; flex: none; color: var(--primary); }
-.account-settings-save { min-height: 2.75rem; padding-inline: 1.25rem; }
+.account-settings-save { width: fit-content; min-height: 2.25rem; height: 2.25rem; padding-inline: 1rem; }
 @media (max-width: 40rem) {
   .account-settings-page { padding-block: 1.25rem 2rem; }
   .account-settings-page-header { align-items: stretch; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem; }
   .account-settings-talent-link { width: 100%; max-width: none; }
-  .account-settings-card-header { grid-template-columns: minmax(0, 1fr); padding: 1.1rem; }
-  .account-settings-card-header [data-slot="card-action"] { grid-column: auto; grid-row: auto; justify-self: start; }
-  .account-settings-content { gap: 1.25rem; padding: 1.1rem; }
-  .account-settings-fields { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-  .account-settings-field-wide { grid-column: auto; }
-  .account-settings-footer { align-items: stretch; flex-direction: column; padding: 1rem 1.1rem; }
-  .account-settings-save { width: 100%; }
+  .account-settings-card-header { padding: 1rem; }
+  .account-settings-content { gap: 1.5rem; padding: 1rem; }
+  .account-settings-footer { align-items: flex-start; flex-direction: column; padding: 1rem; }
 }
 @keyframes lub-chat-pulse { to { opacity: .25; transform: translateY(-.125rem); } }
 @media (prefers-reduced-motion: reduce) { .lub-chat-dots i { animation: none; } }
