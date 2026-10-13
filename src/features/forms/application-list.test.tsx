@@ -22,7 +22,6 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
     locale="ar"
     preview
     status="all"
-    query=""
   />);
 
   expect(screen.getByRole("note").textContent).toContain("بيانات تجريبية");
@@ -49,7 +48,6 @@ it("explains the first-time empty state and links to the organization directory"
     counts={countApplicationStatuses([])}
     locale="ar"
     status="all"
-    query=""
   />);
 
   expect(screen.getAllByText("ما قدمت على أي جهة حتى الآن.")).toHaveLength(2);

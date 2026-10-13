@@ -12,29 +12,24 @@ export async function generateMetadata() {
   return localizedMetadata("طلباتي", "My applications");
 }
 
-export default async function Applications({ searchParams }: { searchParams: Promise<{ page?: string; preview?: string; status?: string; q?: string }> }) {
+export default async function Applications({ searchParams }: { searchParams: Promise<{ page?: string; preview?: string; status?: string }> }) {
   const [user, { locale }] = await Promise.all([requireUser(), getPreferences()]);
   const en = locale === "en";
-  const { page: input, preview: previewInput, status: statusInput, q: queryInput } = await searchParams;
+  const { page: input, preview: previewInput, status: statusInput } = await searchParams;
   const preview = previewInput === "1";
   const page = Math.min(1000, Math.max(1, Math.floor(Number(input) || 1)));
   const status = applicationStatusTabs.find(tab => tab.value === statusInput)?.value ?? "all";
-  const query = (queryInput ?? "").trim().slice(0, 100);
 
   const [rows, counts] = preview
     ? (() => {
-      const filtered = previewApplications.filter(application => {
-        const matchesQuery = !query || `${application.organization_name} ${application.title}`.toLocaleLowerCase().includes(query.toLocaleLowerCase());
-        return matchesApplicationStatus(application.status_code, status) && matchesQuery;
-      });
+      const filtered = previewApplications.filter(application => matchesApplicationStatus(application.status_code, status));
       return [filtered.slice((page - 1) * 25, page * 25 + 1), countApplicationStatuses(previewApplications)] as const;
     })()
     : await Promise.all([
       listApplications(user.id, undefined, {
         page,
-        q: query,
+        q: "",
         status: applicationStatusCode(status),
-        applicationSearch: true,
         committee: "",
         major: "",
         level: "",
@@ -67,7 +62,6 @@ export default async function Applications({ searchParams }: { searchParams: Pro
       locale={locale}
       preview={preview}
       status={status}
-      query={query}
       page={page}
       hasNext={rows.length > 25}
     />

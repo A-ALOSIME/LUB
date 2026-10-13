@@ -56,7 +56,7 @@ export async function getApplicationDetail(user: string, application: string) {
 export async function ownApplication(user: string, round: string) {
  return withUser(user, async tx => { const rows = await tx.execute(sql`select id from lub.membership_applications where applicant_user_id=${user} and registration_round_id=${round}`); return rows[0]?.id as string | undefined; });
 }
-export type Filters = { q: string; status: string; committee: string; major: string; level: string; from: string; to: string; page: number; lookup: string; activity?: string; applicationSearch?: boolean };
+export type Filters = { q: string; status: string; committee: string; major: string; level: string; from: string; to: string; page: number; lookup: string; activity?: string };
 export type OwnApplicationCounts = { all: number; review: number; accepted: number; rejected: number; withdrawn: number };
 export async function countOwnApplications(user: string): Promise<OwnApplicationCounts> {
  return withUser(user, async tx => {
@@ -86,9 +86,7 @@ export async function listApplications(user: string, org?: string, filters?: Fil
    join lateral lub.application_profiles(o.id) p on p.application_id=a.id left join lub.committees c on c.id=a.requested_committee_id
    where ${org ? sql`o.id=${org}` : sql`a.applicant_user_id=${user}`}
    and ${org ? sql`(lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))` : sql`true`}
-   and (${filters?.q ?? ""}='' or ${filters?.applicationSearch
-     ? sql`(position(lower(${filters.q}) in lower(o.name_ar))>0 or position(lower(${filters.q}) in lower(r.title))>0)`
-     : sql`position(lower(${filters?.q ?? ""}) in lower(p.full_name))>0`})
+   and (${filters?.q ?? ""}='' or position(lower(${filters?.q ?? ""}) in lower(p.full_name))>0)
    and (${filters?.status ?? ""}='' or a.status_code=${filters?.status ?? ""} or (${filters?.status ?? ""}='review' and a.status_code in ('Submitted','Interview')))
    and (${filters?.committee ?? ""}='' or a.requested_committee_id::text=${filters?.committee ?? ""})
    and (${filters?.major ?? ""}='' or p.major=${filters?.major ?? ""}) and (${filters?.level ?? ""}='' or p.level=${filters?.level ?? ""})

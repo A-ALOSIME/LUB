@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { CalendarDays, Info, Search } from "lucide-react";
+import { CalendarDays, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "cn";
 import type { Locale } from "@/lib/preferences";
@@ -34,16 +33,14 @@ function formatCount(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function applicationsHref({ status, query, preview, page = 1 }: {
+function applicationsHref({ status, preview, page = 1 }: {
   status: ApplicationStatusFilter;
-  query: string;
   preview: boolean;
   page?: number;
 }) {
   const params = new URLSearchParams();
   if (preview) params.set("preview", "1");
   if (status !== "all") params.set("status", status);
-  if (query) params.set("q", query);
   if (page > 1) params.set("page", String(page));
   const search = params.toString();
   return search ? `/applications?${search}` : "/applications";
@@ -141,19 +138,17 @@ function ApplicationCards({ rows, locale, preview, noApplications }: { rows: App
   </div>;
 }
 
-export function ApplicationList({ rows, counts, locale = "ar", preview = false, status, query, page = 1, hasNext = false }: {
+export function ApplicationList({ rows, counts, locale = "ar", preview = false, status, page = 1, hasNext = false }: {
   rows: Application[];
   counts: ApplicationStatusCounts;
   locale?: Locale;
   preview?: boolean;
   status: ApplicationStatusFilter;
-  query: string;
   page?: number;
   hasNext?: boolean;
 }) {
   const en = locale === "en";
-  const clearSearchHref = applicationsHref({ status, query: "", preview });
-  const noApplications = counts.all === 0 && status === "all" && !query;
+  const noApplications = counts.all === 0 && status === "all";
 
   return <div className="flex min-w-0 flex-col gap-4">
     {preview && <div role="note" className="flex items-start gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3.5 text-sm">
@@ -169,7 +164,7 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
               const active = status === tab.value;
               return <li key={tab.value}>
                 <Link
-                  href={applicationsHref({ status: tab.value, query, preview })}
+                  href={applicationsHref({ status: tab.value, preview })}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors",
@@ -185,30 +180,6 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
             })}
           </ul>
         </nav>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <form action="/applications" method="get" className="flex w-full flex-wrap items-center gap-2 sm:max-w-lg">
-            {status !== "all" && <input type="hidden" name="status" value={status} />}
-            {preview && <input type="hidden" name="preview" value="1" />}
-            <div className="relative min-w-0 flex-1">
-              <Search aria-hidden="true" className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                name="q"
-                dir={en ? "ltr" : "rtl"}
-                defaultValue={query}
-                placeholder={en ? "Search organizations or applications" : "ابحث عن جهة أو طلب"}
-                aria-label={en ? "Search applications" : "ابحث في الطلبات"}
-                className="ps-9"
-              />
-            </div>
-            <Button type="submit" variant="outline" size="sm">{en ? "Search" : "بحث"}</Button>
-            {query && <Link href={clearSearchHref} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              {en ? "Clear" : "مسح"}
-            </Link>}
-          </form>
-          <p className="text-xs text-muted-foreground">{en ? "Applications are sorted newest first" : "الأحدث تقديمًا يظهر أولًا"}</p>
-        </div>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -219,10 +190,10 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
       {(page > 1 || hasNext) && <CardFooter className="justify-between gap-3 border-t px-4 py-3 sm:px-5">
         <span className="text-xs text-muted-foreground">{en ? `Page ${formatCount(page)}` : `الصفحة ${formatCount(page)}`}</span>
         <nav aria-label={en ? "Application pages" : "صفحات الطلبات"} className="flex items-center gap-2">
-          {page > 1 && <Link href={applicationsHref({ status, query, preview, page: page - 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          {page > 1 && <Link href={applicationsHref({ status, preview, page: page - 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
             {en ? "Previous" : "السابق"}
           </Link>}
-          {hasNext && <Link href={applicationsHref({ status, query, preview, page: page + 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          {hasNext && <Link href={applicationsHref({ status, preview, page: page + 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
             {en ? "Next" : "التالي"}
           </Link>}
         </nav>
