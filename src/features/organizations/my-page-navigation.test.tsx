@@ -36,6 +36,8 @@ describe("my page navigation", () => {
     const levelTwoHeadings = screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent);
     expect(levelTwoHeadings.indexOf("حسابي")).toBeLessThan(levelTwoHeadings.indexOf("إدارة الجهات"));
     expect(screen.getByRole("link", { name: "بيانات الحساب" }).getAttribute("href")).toBe("/account");
+    const accountLinks = screen.getAllByRole("link").map(link => link.textContent);
+    expect(accountLinks.indexOf("ملفي المهاري")).toBe(accountLinks.indexOf("بيانات الحساب") + 1);
     expect(screen.getByRole("link", { name: "طلباتي" }).getAttribute("href")).toBe("/applications");
     expect(screen.queryByRole("link", { name: "طلبات التجديد" })).toBeNull();
     expect(screen.getByRole("link", { name: "سجل الساعات" }).getAttribute("href")).toBe("/hours");
