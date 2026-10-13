@@ -734,3 +734,86 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 
 .organization-settings-committee > summary { display: flex; min-height: 3.5rem; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; background: var(--surface); cursor: pointer; }
 .organization-settings-committee[open] > summary { color: var(--color-ink); }
+
+/* Add a restrained fluid scale to account settings on QHD and wider screens. */
+@media (min-width: 120.0625rem) {
+  .workspace-layout-grid:has(.account-settings-page) {
+    max-width: clamp(96rem, 75vw, 112rem);
+    grid-template-columns: minmax(15rem, clamp(19rem, 15.5vw, 22rem)) minmax(0, 1fr);
+    gap: clamp(2.25rem, 1.75vw, 3rem);
+    padding-inline: clamp(2.5rem, 2vw, 3rem);
+    padding-block: clamp(2.6rem, 2.25vw, 3.2rem);
+  }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar {
+    gap: clamp(.7rem, calc(.6rem + .1vw), .85rem);
+    padding: clamp(.75rem, calc(.5rem + .2vw), 1rem);
+  }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-mark {
+    width: clamp(2.7rem, calc(2.5rem + .15vw), 3rem);
+    height: clamp(2.7rem, calc(2.5rem + .15vw), 3rem);
+  }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-nav { gap: clamp(1.15rem, calc(1rem + .2vw), 1.4rem); }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-section-heading {
+    font-size: clamp(.95rem, calc(.95rem + .2vw - 3.84px), 1.05rem);
+  }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-link,
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-sublink {
+    min-height: clamp(2.55rem, calc(2.3rem + .2vw), 2.85rem);
+    padding: clamp(.55rem, calc(.45rem + .1vw), .7rem) clamp(.7rem, calc(.6rem + .08vw), .8rem);
+    font-size: clamp(.84rem, calc(.84rem + .2vw - 3.84px), .95rem);
+  }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-organization-link {
+    font-size: clamp(.88rem, calc(.88rem + .2vw - 3.84px), 1rem);
+  }
+  .workspace-layout-grid:has(.account-settings-page) .workspace-sidebar-organization-mark {
+    width: clamp(2rem, calc(2rem + .2vw - 3.84px), 2.2rem);
+    height: clamp(2rem, calc(2rem + .2vw - 3.84px), 2.2rem);
+  }
+  .account-settings-page {
+    max-width: clamp(38rem, 27.5vw, 44rem);
+    padding-block: clamp(3rem, 3.2vw, 3.5rem);
+  }
+  .account-settings-page-header { gap: clamp(.75rem, calc(.625rem + .15vw), 1rem); }
+  .account-settings-page-header h1,
+  .account-settings-card-header [data-slot="card-title"],
+  .account-settings-legend {
+    font-size: clamp(1rem, calc(1rem + .3125vw - 6px), 1.125rem);
+  }
+  .account-settings-page-heading > p,
+  .account-settings-card-header [data-slot="card-description"],
+  .account-settings-form [data-slot="field-label"],
+  .account-settings-form [data-slot="input"],
+  .account-settings-form [data-slot="native-select"],
+  .account-settings-privacy-option [data-slot="field-label"],
+  .account-settings-footer-note,
+  .account-settings-talent-link {
+    font-size: clamp(.875rem, calc(.875rem + .3125vw - 6px), 1rem);
+  }
+  .account-settings-page-heading { gap: clamp(.25rem, calc(.1875rem + .05vw), .35rem); }
+  .account-settings-page-header { margin-bottom: clamp(1.25rem, calc(1rem + .2vw), 1.5rem); }
+  .account-settings-talent-link { max-width: min(100%, 28rem); }
+  .account-settings-card-header,
+  .account-settings-content,
+  .account-settings-footer { padding: clamp(1rem, calc(.75rem + .25vw), 1.25rem); }
+  .account-settings-content { gap: clamp(1.25rem, calc(1rem + .2vw), 1.5rem); }
+  .account-settings-fields { gap: clamp(.75rem, calc(.625rem + .16vw), .95rem); }
+  .account-settings-field { gap: clamp(.45rem, calc(.4rem + .06vw), .55rem); }
+  .account-settings-section > [data-slot="field-description"] { margin-block-end: clamp(.75rem, calc(.625rem + .15vw), .875rem); }
+  .account-settings-form [data-slot="input"],
+  .account-settings-form [data-slot="native-select"] {
+    height: clamp(2.25rem, calc(2.25rem + .625vw - 12px), 2.5rem);
+    min-height: clamp(2.25rem, calc(2.25rem + .625vw - 12px), 2.5rem);
+    padding-inline: clamp(.875rem, calc(.875rem + .3vw - 5.76px), 1rem);
+  }
+  .account-settings-email {
+    gap: clamp(.65rem, calc(.55rem + .08vw), .75rem);
+    margin-top: clamp(.75rem, calc(.625rem + .15vw), .875rem);
+    padding: clamp(.55rem, calc(.45rem + .1vw), .7rem) clamp(.75rem, calc(.625rem + .15vw), .875rem);
+    font-size: clamp(.875rem, calc(.875rem + .3125vw - 6px), 1rem);
+  }
+  .account-settings-verified { font-size: clamp(.75rem, calc(.75rem + .15vw - 2.88px), .875rem); }
+  .account-settings-save {
+    min-height: clamp(2.25rem, calc(2.25rem + .625vw - 12px), 2.5rem);
+    height: clamp(2.25rem, calc(2.25rem + .625vw - 12px), 2.5rem);
+  }
+}
