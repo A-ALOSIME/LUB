@@ -495,19 +495,15 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 .workspace-panel { min-width: 0; padding: clamp(1.1rem, 2vw, 1.65rem); border: 1px solid var(--color-line); border-radius: 1.2rem; background: var(--surface); box-shadow: 0 9px 28px rgb(22 40 59 / 4%); }
 .workspace-panel > h2:first-child, .workspace-panel > div > h2:first-child { margin-block-start: 0; }
 .workspace-route-content .panel, .workspace-content .panel { box-shadow: 0 9px 28px rgb(22 40 59 / 4%); }
-.workspace-my-page-hero { display: flex; min-height: 13.5rem; align-items: center; justify-content: space-between; gap: 1.5rem; padding: clamp(1.5rem, 3.4vw, 2.75rem); }
-.workspace-my-page-copy { position: relative; z-index: 1; max-width: 52rem; }
+.workspace-my-page-hero { display: block; min-height: 0; padding: clamp(1.35rem, 2.5vw, 2rem); background: var(--surface); box-shadow: none; }
+.workspace-my-page-copy { max-width: none; }
 .workspace-my-page-kicker { display: inline-flex; align-items: center; gap: .55rem; margin: 0; color: var(--color-action); font-size: .75rem; font-weight: 800; letter-spacing: .025em; }
 .workspace-my-page-kicker-mark { width: .5rem; height: .5rem; border-radius: 50%; background: var(--color-action); box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--color-action) 14%, transparent); }
-.workspace-my-page-art { position: relative; display: grid; width: clamp(7rem, 15vw, 10.5rem); height: clamp(7rem, 15vw, 10.5rem); flex: none; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-action) 25%, var(--color-line)); border-radius: 2rem; background: radial-gradient(circle at 48% 42%, color-mix(in srgb, var(--color-action) 24%, var(--surface)), color-mix(in srgb, var(--color-action) 7%, var(--surface)) 72%); color: var(--color-action); transform: rotate(3deg); }
-.workspace-my-page-art::before, .workspace-my-page-art::after { position: absolute; width: 76%; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--color-action) 22%, transparent); border-radius: 2rem; content: ""; transform: rotate(32deg); }
-.workspace-my-page-art::after { width: 55%; border-style: dashed; opacity: .7; transform: rotate(63deg); }
-.workspace-my-page-art svg { position: relative; z-index: 1; width: 55%; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
 .workspace-my-page-section { padding: clamp(1.1rem, 2vw, 1.65rem); }
 .workspace-section-title { display: grid; gap: .15rem; }
 .workspace-section-title > p { font-size: .7rem; font-weight: 800; letter-spacing: .04em; }
 .workspace-section-title > h2 { margin: 0; font-size: 1.2rem; line-height: 1.5; }
-.workspace-detail-item { min-width: 0; padding-inline-start: .8rem; border-inline-start: 2px solid color-mix(in srgb, var(--color-action) 22%, var(--color-line)); }
+.workspace-detail-item { min-width: 0; }
 .workspace-detail-item dt { color: var(--color-muted); font-size: .8rem; }
 .workspace-detail-item dd { margin-block-start: .3rem; color: var(--color-ink); font-weight: 700; overflow-wrap: anywhere; }
 .workspace-summary-grid { display: grid; min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
@@ -516,7 +512,7 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 .workspace-summary-caption { max-width: 12rem; color: var(--color-muted); font-size: .83rem; font-weight: 600; line-height: 1.5; }
 .workspace-summary-item strong { color: var(--color-action); font-size: clamp(1.7rem, 3vw, 2.2rem); font-variant-numeric: tabular-nums; }
 .my-page-content { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.my-page-content > .workspace-hero, .my-page-content > .workspace-summary-grid, .my-page-content > .workspace-my-page-section--memberships, .my-page-content > .workspace-my-page-section--events { grid-column: 1 / -1; }
+.my-page-content > .workspace-hero, .my-page-content > .workspace-summary-grid, .my-page-content > .workspace-my-page-section--profile, .my-page-content > .workspace-my-page-section--memberships { grid-column: 1 / -1; }
 .workspace-admin-overview { grid-template-columns: minmax(0, 1fr); }
 .workspace-admin-hero { display: flex; min-height: 13.5rem; align-items: center; justify-content: space-between; gap: 1.5rem; padding: clamp(1.5rem, 3.4vw, 2.75rem); }
 .workspace-admin-hero-mark { width: 4rem; height: 4rem; border-radius: 1.2rem; }
@@ -601,7 +597,7 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 @media (max-width: 64rem) {
   .workspace-layout-grid { grid-template-columns: minmax(0, 1fr); }
   .workspace-sidebar { position: static; max-height: 18rem; grid-template-rows: auto minmax(0, 1fr); }
-  .workspace-my-page-section--memberships { grid-column: 1 / -1; }
+  .workspace-my-page-section--profile, .workspace-my-page-section--memberships { grid-column: 1 / -1; }
   .event-detail-hero { grid-template-columns: minmax(0, 1fr) minmax(17rem, .85fr); }
 }
 @media (max-width: 48rem) {
@@ -614,7 +610,7 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
   .workspace-summary-grid { grid-template-columns: 1fr; }
   .workspace-summary-item { min-height: 4.8rem; }
   .my-page-content { grid-template-columns: minmax(0, 1fr); }
-  .my-page-content > .workspace-hero, .my-page-content > .workspace-summary-grid, .my-page-content > .workspace-my-page-section--memberships, .my-page-content > .workspace-my-page-section--events { grid-column: auto; }
+  .my-page-content > .workspace-hero, .my-page-content > .workspace-summary-grid, .my-page-content > .workspace-my-page-section--profile, .my-page-content > .workspace-my-page-section--memberships { grid-column: auto; }
   .workspace-route-content fieldset.space-y-5 { grid-template-columns: minmax(0, 1fr); }
   .workspace-route-content form.space-y-4, .workspace-route-content form.space-y-5 { grid-template-columns: minmax(0, 1fr); }
   .member-directory-table { min-width: 720px; }
@@ -626,9 +622,6 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 @media (max-width: 30rem) {
   .workspace-layout-grid { padding-inline: .75rem; }
   .workspace-my-page-hero, .workspace-admin-hero { min-height: 0; align-items: flex-start; padding: 1.15rem; }
-  .workspace-my-page-hero { gap: .75rem; }
-  .workspace-my-page-art { width: 3.6rem; height: 3.6rem; border-radius: 1rem; }
-  .workspace-my-page-art::before, .workspace-my-page-art::after { border-radius: .8rem; }
   .workspace-my-page-copy { flex: 1; }
   .workspace-my-page-copy h1 { font-size: 1.65rem; }
   .workspace-admin-hero-mark { width: 2.8rem; height: 2.8rem; }

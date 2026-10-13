@@ -45,14 +45,6 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
               <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">{en ? "Hello, " : "أهلًا، "}<bdi>{profile.fullName}</bdi></h1>
               <p className="mt-3 max-w-3xl leading-8 text-muted">{en ? "Your account, activity and organization management now share one workspace." : "حسابك ومشاركاتك وإدارة الجهات التي تملك صلاحيتها، كلها في مساحة واحدة."}</p>
             </div>
-            <div className="workspace-my-page-art" aria-hidden="true">
-              <svg viewBox="0 0 96 96" fill="none">
-                <path d="M48 8 83 28v40L48 88 13 68V28L48 8Z" />
-                <path d="m48 24 21 12v24L48 72 27 60V36l21-12Z" />
-                <circle cx="48" cy="48" r="7" />
-                <path d="M48 31v10m17-2-10 6m0 12 10 6M48 65V55m-17 2 10-6m0-12-10-6" />
-              </svg>
-            </div>
           </header>
 
           <section aria-label={en ? "Account summary" : "ملخص الحساب"} className="workspace-summary-grid">
@@ -91,17 +83,6 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
             <SectionHeading id="tasks-title" eyebrow={en ? "PARTICIPATION" : "المشاركة"} title={en ? "Current tasks" : "مشاركاتي الحالية"} />
             {tasks.length ? <ul className="mt-4 divide-y divide-line">{tasks.map(task => <li key={task.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-1 last:pb-1"><Link dir="auto" className="font-semibold text-action hover:underline" href={`/tasks/${task.id}`}>{task.title}</Link><span className="text-sm text-muted">{en ? taskLabelsEn[task.status] : taskLabels[task.status]}</span></li>)}</ul> : <p className="mt-4 leading-7 text-muted">{en ? "No current task participation to show." : "لا توجد مشاركات حالية لعرضها الآن."}</p>}
             <Link className="mt-4 inline-block text-sm font-semibold text-action hover:underline" href="/tasks">{en ? "Tasks and participation history" : "المهام وسجل المشاركات"}<span aria-hidden="true" className="ms-2">←</span></Link>
-          </section>
-
-          <section id="hours" aria-labelledby="hours-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--hours scroll-mt-6">
-            <SectionHeading id="hours-title" eyebrow={en ? "MEMBERSHIP" : "العضوية"} title={en ? "Hours and renewals" : "الساعات وتجديد العضوية"} />
-            <p className="mt-4 text-2xl font-bold tabular-nums">{formatNumber(hours)} <span className="text-base font-medium text-muted">{en ? "approved hours" : "ساعة معتمدة"}</span></p>
-            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-              <Link className="font-semibold text-action hover:underline" href="/hours">{en ? "Hours history" : "سجل الساعات"}</Link>
-              <Link className="font-semibold text-action hover:underline" href="/renewals">{en ? "Membership renewals" : "طلبات التجديد"}</Link>
-              <Link className="font-semibold text-action hover:underline" href="/documents">{en ? "My documents" : "مستنداتي"}</Link>
-              <Link className="font-semibold text-action hover:underline" href="/account/talent">{en ? "Skills profile" : "ملفي المهاري"}</Link>
-            </div>
           </section>
 
           <section id="events" aria-labelledby="events-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--events scroll-mt-6">

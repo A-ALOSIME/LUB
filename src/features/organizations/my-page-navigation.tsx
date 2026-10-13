@@ -38,6 +38,7 @@ export function MyPageNavigation({
   const sectionHref = (id: string) => superAdmin ? `/manage#${id}` : sectionBase ? `${sectionBase}#${id}` : `#${id}`;
   const groups: Array<{ title: string; items: NavigationItem[] }> = superAdmin
     ? [
+      { title: c("الحساب", "ACCOUNT"), items: [{ href: "/manage/account", label: c("إعدادات الحساب", "Account settings") }] },
       {
         title: c("إدارة النظام", "SYSTEM ADMINISTRATION"),
         items: [
@@ -46,26 +47,20 @@ export function MyPageNavigation({
           { href: "/manage/terms", label: c("الفصول الأكاديمية", "Academic terms") },
         ],
       },
-      { title: c("الحساب", "ACCOUNT"), items: [{ href: "/manage/account", label: c("إعدادات الحساب", "Account settings") }] },
     ]
     : [
       {
-        title: c("ملفي ومشاركاتي", "PROFILE AND ACTIVITY"),
-        items: [
-          { href: sectionHref("profile"), label: c("بياناتي الأساسية", "Profile details") },
-          { href: sectionHref("memberships"), label: c("عضوياتي وسجل أدواري", "Memberships and roles") },
-          { href: sectionHref("tasks"), label: c("المهام والمشاركات", "Tasks and participation") },
-          { href: sectionHref("hours"), label: c("الساعات وتجديد العضوية", "Hours and renewals") },
-          { href: sectionHref("events"), label: c("فعالياتي", "My events") },
-        ],
-      },
-      {
         title: c("حسابي", "ACCOUNT"),
         items: [
+          { href: "/account", label: c("بيانات الحساب", "Account settings") },
           { href: "/applications", label: c("طلباتي", "My applications") },
           { href: "/notifications", label: c("الإشعارات", "Notifications") },
           { href: "/account/talent", label: c("ملفي المهاري", "Skills profile") },
-          { href: "/account", label: c("بيانات الحساب", "Account settings") },
+          { href: sectionHref("tasks"), label: c("المهام والمشاركات", "Tasks and participation") },
+          { href: "/hours", label: c("سجل الساعات", "Hours history") },
+          { href: "/renewals", label: c("طلبات التجديد", "Membership renewals") },
+          { href: "/documents", label: c("مستنداتي", "My documents") },
+          { href: sectionHref("events"), label: c("فعالياتي", "My events") },
         ],
       },
     ];
@@ -92,6 +87,15 @@ export function MyPageNavigation({
     </div>
 
     <nav aria-label={c("أقسام مساحتي", "Workspace sections")} className="workspace-sidebar-nav">
+      {groups.map(group => <section key={group.title} className="workspace-sidebar-group" aria-label={group.title}>
+        <h2 className="workspace-sidebar-section-heading">{group.title}</h2>
+        <ul className="workspace-sidebar-list">
+          {group.items.map(item => <li key={item.href}>
+            <Link href={item.href} prefetch={false} className={itemClass}>{item.label}</Link>
+          </li>)}
+        </ul>
+      </section>)}
+
       {!superAdmin && organizations.length > 0 && <section className="workspace-sidebar-group" aria-labelledby="workspace-management-title">
         <div className="workspace-sidebar-section-heading">
           <h2 id="workspace-management-title">{c("إدارة الجهات", "ORGANIZATIONS YOU MANAGE")}</h2>
@@ -133,15 +137,6 @@ export function MyPageNavigation({
           })}
         </ul>
       </section>}
-
-      {groups.map(group => <section key={group.title} className="workspace-sidebar-group" aria-label={group.title}>
-        <h2 className="workspace-sidebar-section-heading">{group.title}</h2>
-        <ul className="workspace-sidebar-list">
-          {group.items.map(item => <li key={item.href}>
-            <Link href={item.href} prefetch={false} className={itemClass}>{item.label}</Link>
-          </li>)}
-        </ul>
-      </section>)}
     </nav>
   </aside>;
 }

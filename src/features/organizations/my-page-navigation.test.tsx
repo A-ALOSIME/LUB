@@ -11,7 +11,7 @@ vi.mock("next/link", () => ({
 afterEach(cleanup);
 
 describe("my page navigation", () => {
-  it("shows account and organization management destinations together without a management landing link", () => {
+  it("shows account destinations before organization management and keeps overview sections out of the sidebar", () => {
     render(<MyPageNavigation locale="ar" organizations={[
       {
         id: "org-1",
@@ -31,7 +31,14 @@ describe("my page navigation", () => {
     ]} />);
 
     expect(screen.getByRole("complementary", { name: "تنقل مساحتي" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "عضوياتي وسجل أدواري" }).getAttribute("href")).toBe("#memberships");
+    expect(screen.queryByRole("link", { name: "بياناتي الأساسية" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "عضوياتي وسجل أدواري" })).toBeNull();
+    const levelTwoHeadings = screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent);
+    expect(levelTwoHeadings.indexOf("حسابي")).toBeLessThan(levelTwoHeadings.indexOf("إدارة الجهات"));
+    expect(screen.getByRole("link", { name: "بيانات الحساب" }).getAttribute("href")).toBe("/account");
+    expect(screen.getByRole("link", { name: "سجل الساعات" }).getAttribute("href")).toBe("/hours");
+    expect(screen.getByRole("link", { name: "المهام والمشاركات" }).getAttribute("href")).toBe("#tasks");
+    expect(screen.getByRole("link", { name: "فعالياتي" }).getAttribute("href")).toBe("#events");
     expect(screen.getByRole("link", { name: "نادي الأمن السيبراني" }).getAttribute("href")).toBe("/manage/organizations/org-1");
     expect(screen.getByRole("link", { name: "بيانات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1");
     expect(screen.queryByRole("link", { name: "إعلانات الجهة" })).toBeNull();
@@ -82,11 +89,13 @@ describe("my page navigation", () => {
     expect(screen.queryByRole("link", { name: "الساعات" })).toBeNull();
   });
 
-  it("returns to the same workspace page for account sections from management screens", () => {
+  it("returns to the same workspace page for activity sections from management screens", () => {
     render(<MyPageNavigation locale="ar" sectionBase="/me" organizations={[]} />);
 
     expect(screen.getByRole("link", { name: "نظرة عامة" }).getAttribute("href")).toBe("/me#overview");
-    expect(screen.getByRole("link", { name: "بياناتي الأساسية" }).getAttribute("href")).toBe("/me#profile");
+    expect(screen.getByRole("link", { name: "المهام والمشاركات" }).getAttribute("href")).toBe("/me#tasks");
+    expect(screen.queryByRole("link", { name: "بياناتي الأساسية" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "عضوياتي وسجل أدواري" })).toBeNull();
   });
 
   it("uses the shared workspace sidebar for system administration without student destinations", () => {
@@ -97,6 +106,8 @@ describe("my page navigation", () => {
     expect(screen.getByRole("link", { name: "نظرة عامة" }).getAttribute("href")).toBe("/manage#overview");
     expect(screen.getByRole("link", { name: "الجهات" }).getAttribute("href")).toBe("/manage/organizations");
     expect(screen.getByRole("link", { name: "إعدادات الحساب" }).getAttribute("href")).toBe("/manage/account");
+    const levelTwoHeadings = screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent);
+    expect(levelTwoHeadings.indexOf("الحساب")).toBeLessThan(levelTwoHeadings.indexOf("إدارة النظام"));
     expect(screen.queryByRole("link", { name: "الإشعارات" })).toBeNull();
     expect(screen.queryByRole("link", { name: "ملفي المهاري" })).toBeNull();
   });
