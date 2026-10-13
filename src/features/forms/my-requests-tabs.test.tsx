@@ -14,6 +14,8 @@ afterEach(() => {
 it("shows the URL-selected tab in RTL and navigates to renewals when selected", () => {
   render(<MyRequestsTabs activeTab="applications" locale="ar"><p>Application content</p></MyRequestsTabs>);
 
+  expect(screen.getByRole("tablist").parentElement?.getAttribute("data-orientation")).toBe("horizontal");
+  expect(screen.getByRole("tablist").parentElement?.className).toContain("data-[orientation=horizontal]:flex-col");
   expect(screen.getByRole("tab", { name: "طلبات الانضمام" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("tab", { name: "طلبات التجديد" }).getAttribute("aria-selected")).toBe("false");
   expect(screen.getByRole("tabpanel").getAttribute("dir")).toBe("rtl");
