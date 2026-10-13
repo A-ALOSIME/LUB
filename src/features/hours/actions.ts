@@ -15,7 +15,7 @@ const amount=(f:FormData)=>z.coerce.number().finite().min(0).max(1000).multipleO
 export async function mutateHours(_previous:HoursState,f:FormData):Promise<HoursState>{
  const user=await requireUser();
  try{
- const op=z.enum(["term","add","self","review","rule","self-policy","import","campaign","exclude","campaign-status","respond","grant","end-grant"]).parse(f.get("operation"));
+ const op=z.enum(["term","add","self","review","rule","self-policy","import","campaign","exclude","campaign-status","respond"]).parse(f.get("operation"));
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${day(f,"starts")}::date,${day(f,"ends")}::date)`;
@@ -28,8 +28,6 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  case "exclude":return sql`select lub.exclude_renewal_member(${id(f,"campaign")},${id(f,"member")},${text(f,"reason",300,f.get("excluded")==="on"?1:0)},${f.get("excluded")==="on"})`;
  case "campaign-status":{const status=z.enum(["Open","Closed","Archived"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_renewal_status(${id(f,"campaign")},${status})`;}
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
- case "grant":return sql`select lub.grant_hours_permission(${id(f,"member")},${z.enum(["HOURS_APPROVE","HOURS_MANUAL_ADD","HOUR_RULES_MANAGE","RENEWALS_MANAGE"]).parse(f.get("capability"))},${optionalId(f,"committee")},${f.get("ends")?date(f,"ends"):null}::timestamptz)`;
- case "end-grant":if(f.get("confirm")!=="on")throw new Error();return sql`select lub.end_hours_permission(${id(f,"grant")})`;
  }})();await withUser(user.id,tx=>tx.execute(query));
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. الرفض والإبطال يحتاجان سببًا."};}
  revalidatePath("/hours");revalidatePath("/renewals");revalidatePath("/manage","layout");revalidatePath("/tasks","layout");revalidatePath("/me");revalidatePath("/notifications");

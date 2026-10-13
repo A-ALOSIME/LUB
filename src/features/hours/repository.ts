@@ -7,7 +7,7 @@ export type HourRecord={id:string;organization_id:string;organization_membership
 export type HourRule={id:string;committee_id:string|null;task_template_id:string|null;name:string;default_hours:string;effective_from:string;effective_to:string|null;is_active:boolean;revision:number;canEdit:boolean};
 export type HourScope={id:string|null;name:string;approve:boolean;manual:boolean;rules:boolean};
 export type HoursData={account:AccountReadiness;terms:Term[];records:HourRecord[];total:string;byOrg:Array<{name:string;total:string}>;memberships:Array<{id:string;org:string;name:string;self:boolean;committees:Array<{id:string;name:string}>}>};
-export type HoursWorkspace={account:AccountReadiness;name:string;selfEnabled:boolean;canPolicy:boolean;canGrant:boolean;scopes:HourScope[];terms:Term[];templates:Array<{id:string;name:string;committee_id:string|null}>;members:Array<{id:string;name:string}>;rules:HourRule[];records:HourRecord[];total:string;grants:Array<{id:string;name:string;permission_code:string;committee_id:string|null;end_at:string|null}>;imports:Array<{id:string;name:string}>};
+export type HoursWorkspace={account:AccountReadiness;name:string;selfEnabled:boolean;canPolicy:boolean;scopes:HourScope[];terms:Term[];templates:Array<{id:string;name:string;committee_id:string|null}>;members:Array<{id:string;name:string}>;rules:HourRule[];records:HourRecord[];total:string;imports:Array<{id:string;name:string}>};
 const account=sql`jsonb_build_object('status',u.status_code,'onboarded',exists(select 1 from lub.student_profiles where user_id=u.id))`;
 const terms=sql`coalesce((select jsonb_agg(t order by t.start_date desc) from (select * from lub.academic_terms order by start_date desc limit 100) t),'[]')`;
 function recordRows(org:string|null,term:string|null,page:number,mine:string|null,committee:string|null=null){return sql`coalesce((select jsonb_agg(x order by x.created_at desc,x.id) from (
@@ -26,13 +26,12 @@ export async function myHours(user:string,term:string|null,page:number){return w
 });}
 export async function hoursWorkspace(user:string,org:string,options:{term:string|null;committee:string|null;page:number;memberPage:number;rulePage:number}){return withUser(user,async tx=>{
  const {term,committee,page,memberPage,rulePage}=options;
- const rows=await tx.execute(sql`select ${account} as account,o.name_ar as name,o.self_report_hours_enabled as "selfEnabled",lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE') as "canPolicy",lub.has_org_permission(o.id,'PERMISSIONS_GRANT') as "canGrant",${terms} as terms,coalesce((select jsonb_agg(t) from lub.hour_template_options(o.id) t),'[]') as templates,
+ const rows=await tx.execute(sql`select ${account} as account,o.name_ar as name,o.self_report_hours_enabled as "selfEnabled",lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE') as "canPolicy",${terms} as terms,coalesce((select jsonb_agg(t) from lub.hour_template_options(o.id) t),'[]') as templates,
  coalesce((select jsonb_agg(s) from (select null::uuid as id,'الجهة بالكامل' as name,lub.has_org_permission(o.id,'HOURS_APPROVE') as approve,lub.has_org_permission(o.id,'HOURS_MANUAL_ADD') as manual,lub.has_org_permission(o.id,'HOUR_RULES_MANAGE') as rules union all select c.id,c.name,lub.has_org_permission(o.id,'HOURS_APPROVE',c.id),lub.has_org_permission(o.id,'HOURS_MANUAL_ADD',c.id),lub.has_org_permission(o.id,'HOUR_RULES_MANAGE',c.id) from lub.committees c where c.organization_id=o.id and c.status_code='Active') s where s.approve or s.manual or s.rules),'[]') as scopes,
  coalesce((select jsonb_agg(m) from lub.hour_members(o.id,${committee}::uuid,${memberPage*25}) m),'[]') as members,
  coalesce((select jsonb_agg(r) from (select h.*,lub.has_org_permission(h.organization_id,'HOUR_RULES_MANAGE',h.committee_id) as "canEdit" from lub.hour_rules h where h.organization_id=o.id and (${committee}::uuid is null or h.committee_id=${committee}::uuid) order by h.effective_from desc,h.id limit 26 offset ${rulePage*25}) r),'[]') as rules,
  ${recordRows(org,term,page,null,committee)} as records,
  coalesce((select sum(h.hours) from lub.hour_records h where h.organization_id=o.id and h.status_code='Approved' and (${term}::uuid is null or h.academic_term_id=${term}::uuid) and (${committee}::uuid is null or h.committee_id=${committee}::uuid)),0)::text as total,
- case when lub.has_org_permission(o.id,'PERMISSIONS_GRANT') then lub.hour_grants(o.id,${memberPage*25}) else '[]'::jsonb end as grants,
  coalesce((select jsonb_agg(x) from lub.hour_import_candidates(o.id) x),'[]') as imports
  from lub.users u join lub.organizations o on o.id=${org} where u.id=${user} and lub.has_hours_access(o.id)`);
  return rows[0] as unknown as HoursWorkspace|undefined;

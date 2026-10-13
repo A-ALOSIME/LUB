@@ -105,7 +105,7 @@ export function MyPageNavigation({
               ...(organization.canManageCommittees ? [{ href: `${root}#committees`, label: c("اللجان", "Committees") }] : []),
               ...(organization.canApplications ? [{ href: `${root}/applications`, label: c("طلبات الأعضاء", "Member applications") }] : []),
               ...(organization.canMembers ? [{ href: `${root}/members`, label: c("قاعدة الأعضاء", "Member directory") }] : []),
-              ...(organization.canGrant ? [{ href: `${root}/members?view=permissions`, label: c("الأدوار والتفويضات", "Roles and permissions") }] : []),
+              ...(organization.canGrant ? [{ href: `${root}/permissions`, label: c("الأدوار والتفويضات", "Roles and permissions") }] : []),
               ...(organization.canEvents ? [{ href: `${root}/events`, label: c("فعاليات الجهة", "Organization events") }] : []),
               ...(organization.canReports ? [{ href: `${root}/documents`, label: c("التقارير والمستندات", "Reports and documents") }] : []),
               ...(organization.canHours ? [{ href: `${root}/hours`, label: c("الساعات", "Hours") }] : []),

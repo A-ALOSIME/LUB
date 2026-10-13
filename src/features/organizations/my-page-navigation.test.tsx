@@ -39,7 +39,7 @@ describe("my page navigation", () => {
     expect(screen.getByRole("link", { name: "طلبات الأعضاء" }).getAttribute("href")).toBe("/manage/organizations/org-1/applications");
     expect(screen.getByRole("link", { name: "فعاليات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1/events");
     expect(screen.getByRole("link", { name: "قاعدة الأعضاء" }).getAttribute("href")).toBe("/manage/organizations/org-1/members");
-    expect(screen.getByRole("link", { name: "الأدوار والتفويضات" }).getAttribute("href")).toBe("/manage/organizations/org-1/members?view=permissions");
+    expect(screen.getByRole("link", { name: "الأدوار والتفويضات" }).getAttribute("href")).toBe("/manage/organizations/org-1/permissions");
     expect(screen.getByRole("link", { name: "الساعات" }).getAttribute("href")).toBe("/manage/organizations/org-1/hours");
     expect(screen.getByRole("link", { name: "تجديد العضوية" }).getAttribute("href")).toBe("/manage/organizations/org-1/renewals");
     expect(screen.getByRole("link", { name: "المهام والقوالب" }).getAttribute("href")).toBe("/manage/organizations/org-1/tasks");

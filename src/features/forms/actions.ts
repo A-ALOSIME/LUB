@@ -15,7 +15,7 @@ function json(form: FormData, name: string, max: number) { const value=z.string(
 export async function mutateWorkflow(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
  const user = await requireUser(); let bulk: string | undefined;
  try {
-  const operation = z.enum(["create-form","save-form","publish-form","draft-form","create-round","round-status","submit","withdraw","decide","note","bulk","grant","end-grant"]).parse(form.get("operation"));
+  const operation = z.enum(["create-form","save-form","publish-form","draft-form","create-round","round-status","submit","withdraw","decide","note","bulk"]).parse(form.get("operation"));
   if (["submit","withdraw"].includes(operation)) {
    const adminError = await studentOperationError(user.id);
    if (adminError) return { error: adminError };
@@ -48,8 +48,6 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
      const ids=z.array(z.uuid()).min(1).max(100).parse(form.getAll("selected"));
      return sql`select lub.bulk_decide_applications(${ids}::uuid[],${z.enum(["Accepted","Rejected","Interview"]).parse(form.get("status"))},${z.string().trim().max(3000).parse(form.get("message") ?? "")}) as id`;
     }
-    case "grant": return sql`select lub.grant_application_permission(${uuid(form,"member")},${z.enum(["FORMS_MANAGE","REGISTRATION_ROUNDS_MANAGE","APPLICATIONS_VIEW","APPLICATIONS_REVIEW","APPLICATIONS_BULK_ACTION"]).parse(form.get("capability"))},${optionalUuid(form,"committee")},${form.get("ends") ? z.iso.datetime({offset:true}).parse(form.get("ends")) : null}::timestamptz)`;
-    case "end-grant": return sql`select lub.end_application_permission(${uuid(form,"grant")})`;
    }
   })();
   const result=await withUser(user.id,tx=>tx.execute(query));

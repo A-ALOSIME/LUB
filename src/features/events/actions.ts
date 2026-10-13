@@ -13,7 +13,7 @@ const date=(f:FormData,k:string)=>z.iso.datetime({offset:true}).parse(f.get(k));
 const revision=(f:FormData)=>z.coerce.number().int().positive().parse(f.get("revision"));
 export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<WorkflowState>{
  const user=await requireUser();try{
- const operation=z.enum(["save","status","duplicate","register","cancel","attendance","contribution","attach","grant","end-grant","feature","public-content"]).parse(f.get("operation"));
+ const operation=z.enum(["save","status","duplicate","register","cancel","attendance","contribution","attach","feature","public-content"]).parse(f.get("operation"));
  if(["register","cancel"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(operation){
  case "save":return sql`select lub.save_event_with_poster(${optionalId(f,"event")},${id(f,"org")},${text(f,"title",120,2)},${text(f,"description",6000)},${z.enum(["In_Person","Online","Hybrid"]).parse(f.get("locationType"))},${text(f,"location",500)||null},${f.get("url")?z.url({protocol:/^https$/}).parse(f.get("url")):null},${date(f,"starts")}::timestamptz,${date(f,"ends")}::timestamptz,${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("capacity")?z.coerce.number().int().min(1).max(10000).parse(f.get("capacity")):null}::int,${optionalId(f,"template")},${z.coerce.number().min(0).max(1000).multipleOf(.01).parse(f.get("hours"))}::numeric,${f.get("event")?revision(f):null}::int,${optionalId(f,"poster")})`;
@@ -24,8 +24,6 @@ export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<Wo
  case "attendance":return sql`select lub.mark_event_attendance(${id(f,"registration")},${z.enum(["Pending","Present","Absent","Excused"]).parse(f.get("status"))})`;
  case "contribution":return sql`select lub.verify_event_contribution(${id(f,"event")},${id(f,"student")},${z.enum(["Presenter","Trainer","Core_Contributor"]).parse(f.get("kind"))},${text(f,"title",120,2)})`;
  case "attach":return sql`select lub.attach_event_asset(${id(f,"event")},${id(f,"asset")},${z.enum(["Approval","Attendance","Report","Photo"]).parse(f.get("kind"))})`;
- case "grant":return sql`select lub.grant_event_permission(${id(f,"member")},${z.enum(["EVENTS_MANAGE","EVENT_ATTENDANCE_MANAGE","EVENT_CONTRIBUTIONS_MANAGE"]).parse(f.get("capability"))},${f.get("ends")?date(f,"ends"):null}::timestamptz)`;
- case "end-grant":return sql`select lub.end_event_permission(${id(f,"grant")})`;
  case "feature":return sql`select lub.set_featured_event(${id(f,"event")},${f.get("featured")==="on"})`;
  case "public-content":{
   const report=text(f,"report",5000);
