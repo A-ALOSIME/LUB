@@ -3,7 +3,6 @@ import { Mail } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
-  FieldContent,
   FieldDescription,
   FieldGroup,
   FieldLabel,
@@ -137,50 +136,48 @@ export function ProfileDetailsSection({
           />
         )}
 
-        <div className="account-settings-field-pair">
-          <ProfileTextField
-            name="major"
-            label={en ? "Major" : "التخصص"}
-            value={profile?.major}
-            locale={locale}
-            errors={errors}
-            required
-            minLength={2}
-            maxLength={120}
-          />
+        <ProfileTextField
+          name="major"
+          label={en ? "Major" : "التخصص"}
+          value={profile?.major}
+          locale={locale}
+          errors={errors}
+          required
+          minLength={2}
+          maxLength={120}
+        />
 
-          <Field className="account-settings-field">
-            <FieldLabel htmlFor="academicLevel">
-              {en ? "Academic level" : "المستوى الدراسي"}
-            </FieldLabel>
-            <NativeSelect
-              id="academicLevel"
-              name="academicLevel"
-              required
-              defaultValue={profile?.academicLevel ?? ""}
-              className="account-settings-select"
-              aria-invalid={Boolean(errors?.academicLevel?.[0])}
-              aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
-            >
-              <NativeSelectOption value="" disabled>
-                {en ? "Select your level" : "اختر المستوى"}
+        <Field className="account-settings-field">
+          <FieldLabel htmlFor="academicLevel">
+            {en ? "Academic level" : "المستوى الدراسي"}
+          </FieldLabel>
+          <NativeSelect
+            id="academicLevel"
+            name="academicLevel"
+            required
+            defaultValue={profile?.academicLevel ?? ""}
+            className="account-settings-select"
+            aria-invalid={Boolean(errors?.academicLevel?.[0])}
+            aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
+          >
+            <NativeSelectOption value="" disabled>
+              {en ? "Select your level" : "اختر المستوى"}
+            </NativeSelectOption>
+            {Array.from({ length: 12 }, (_, index) => (
+              <NativeSelectOption key={index + 1} value={String(index + 1)}>
+                {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
               </NativeSelectOption>
-              {Array.from({ length: 12 }, (_, index) => (
-                <NativeSelectOption key={index + 1} value={String(index + 1)}>
-                  {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
-                </NativeSelectOption>
-              ))}
-              <NativeSelectOption value="graduate">
-                {en ? "Graduate studies" : "دراسات عليا"}
-              </NativeSelectOption>
-            </NativeSelect>
-            {errors?.academicLevel?.[0] && (
-              <p id="academicLevel-error" className="text-sm text-destructive" aria-live="polite">
-                {actionFeedback(errors.academicLevel[0], locale)}
-              </p>
-            )}
-          </Field>
-        </div>
+            ))}
+            <NativeSelectOption value="graduate">
+              {en ? "Graduate studies" : "دراسات عليا"}
+            </NativeSelectOption>
+          </NativeSelect>
+          {errors?.academicLevel?.[0] && (
+            <p id="academicLevel-error" className="text-sm text-destructive" aria-live="polite">
+              {actionFeedback(errors.academicLevel[0], locale)}
+            </p>
+          )}
+        </Field>
 
         <ProfileTextField
           name="phone"
@@ -237,17 +234,11 @@ export function ProfilePrivacySection({
     {
       name: "publicProfileEnabled",
       label: en ? "Show my public profile" : "السماح بظهور ملفي العام",
-      description: en
-        ? "Your choice is saved for when public profiles become available. University details stay private."
-        : "يُحفظ اختيارك لحين إتاحة الملفات العامة، وتبقى بياناتك الجامعية خاصة.",
       checked: profile?.publicProfileEnabled ?? false,
     },
     {
       name: "showTotalHours",
       label: en ? "Show total hours" : "إظهار إجمالي ساعاتي",
-      description: en
-        ? "Display your approved volunteer hours when your profile is public."
-        : "اعرض ساعاتك المعتمدة عند إتاحة ملفك العام.",
       checked: profile?.showTotalHours ?? true,
     },
   ] as const;
@@ -277,12 +268,9 @@ export function ProfilePrivacySection({
               defaultChecked={option.checked}
               className="account-settings-checkbox"
             />
-            <FieldContent>
-              <FieldLabel htmlFor={option.name} className="account-settings-field-label">
-                {option.label}
-              </FieldLabel>
-              <FieldDescription>{option.description}</FieldDescription>
-            </FieldContent>
+            <FieldLabel htmlFor={option.name} className="account-settings-field-label">
+              {option.label}
+            </FieldLabel>
           </Field>
         ))}
       </FieldGroup>

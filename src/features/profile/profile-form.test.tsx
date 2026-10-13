@@ -30,12 +30,17 @@ describe("profile form interactions", () => {
     expect(screen.getByRole("button", { name: "حفظ التعديلات" })).toBeTruthy();
     expect((screen.getByLabelText("التخصص") as HTMLInputElement).value).toBe("نظم المعلومات");
     expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("ltr");
+    const fields = document.querySelector(".account-settings-fields");
     expect(
-      screen
-        .getByLabelText("التخصص")
-        .closest('[data-slot="field"]')
-        ?.parentElement?.classList.contains("account-settings-field-pair")
-    ).toBe(true);
+      Array.from(fields?.querySelectorAll(":scope > [data-slot='field']") ?? []).map(
+        (field) => field.querySelector("input, select")?.getAttribute("name")
+      )
+    ).toEqual(["fullName", "major", "academicLevel", "phone"]);
+    expect(screen.queryByText("يُحفظ اختيارك لحين إتاحة الملفات العامة، وتبقى بياناتك الجامعية خاصة.")).toBeNull();
+    expect(screen.queryByText("اعرض ساعاتك المعتمدة عند إتاحة ملفك العام.")).toBeNull();
+    const footer = document.querySelector(".account-settings-footer");
+    expect(footer?.firstElementChild?.matches("button")).toBe(true);
+    expect(footer?.lastElementChild?.classList.contains("account-settings-footer-note")).toBe(true);
     expect(screen.queryByText("بياناتك محمية")).toBeNull();
     expect(screen.getByText("رقمك الجامعي وبريد حسابك لا يظهران للعامة.")).toBeTruthy();
     expect(

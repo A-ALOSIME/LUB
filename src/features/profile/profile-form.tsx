@@ -90,14 +90,6 @@ export function ProfileForm({
         </CardContent>
 
         <CardFooter className="account-settings-footer">
-          <p className="account-settings-footer-note">
-            <ShieldCheck aria-hidden="true" />
-            <span>
-              {en
-                ? "Your university number and account email are never public."
-                : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}
-            </span>
-          </p>
           <Button
             type="submit"
             size="lg"
@@ -111,6 +103,14 @@ export function ProfileForm({
             )}
             {saveLabel}
           </Button>
+          <p className="account-settings-footer-note">
+            <ShieldCheck aria-hidden="true" />
+            <span>
+              {en
+                ? "Your university number and account email are never public."
+                : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}
+            </span>
+          </p>
         </CardFooter>
       </form>
     </Card>
