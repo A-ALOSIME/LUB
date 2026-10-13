@@ -39,7 +39,12 @@ export async function taskDetail(user:string,id:string,participant:string|null=n
  coalesce((select jsonb_agg(r order by r.revision_number desc) from (select id,revision_number,snapshot_json,changed_at from lub.task_revisions where task_id=${id} order by revision_number desc limit 21 offset ${revisionPage*20}) r),'[]') as history`);
  const data=rows[0] as unknown as TaskDetail|undefined;return data?.task?data:undefined;
 });}
-export async function taskNotifications(user:string,page:number){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select id,title,body,target_url,created_at,read_at from lub.notifications order by created_at desc,id limit 26 offset ${page*25}`);
- return rows as unknown as Array<{id:string;title:string;body:string;target_url:string;created_at:string;read_at:string|null}>;
+export type TaskNotification={id:string;type_code:string;title:string;body:string;target_url:string;created_at:string;read_at:string|null};
+export async function taskNotifications(user:string,page:number,unreadOnly=false){return withUser(user,async tx=>{
+ const rows=await tx.execute(sql`select id,type_code,title,body,target_url,created_at,read_at from lub.notifications where (${unreadOnly}::boolean=false or read_at is null) order by created_at desc,id limit 26 offset ${page*25}`);
+ return rows as unknown as TaskNotification[];
+});}
+export async function taskNotificationCounts(user:string){return withUser(user,async tx=>{
+ const rows=await tx.execute(sql`select count(*)::int as "all",count(*) filter(where read_at is null)::int as unread from lub.notifications`);
+ return rows[0] as unknown as {all:number;unread:number};
 });}

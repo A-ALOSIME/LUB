@@ -15,8 +15,8 @@ const date=(f:FormData,k:string)=>f.get(k)?z.iso.datetime({offset:true}).parse(f
 export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskState>{
  const user=await requireUser();let target:string|undefined;
  try{
- const operation=z.enum(["save-task","link-event","status","template","join","start","submit","review","close","read"]).parse(f.get("operation"));
- if(["join","start","submit","read"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
+ const operation=z.enum(["save-task","link-event","status","template","join","start","submit","review","close","read","read-all"]).parse(f.get("operation"));
+ if(["join","start","submit","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{
  switch(operation){
  case "link-event":return sql`select lub.link_task_event(${id(f,"task")},${optionalId(f,"event")},${revision(f)})`;
@@ -29,6 +29,7 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  case "review":return sql`select lub.review_task_submission(${id(f,"submission")},${z.enum(["Approved","Rejected"]).parse(f.get("status"))},${text(f,"note",3000,0)},${f.get("hours")?hours(f):null}::numeric)`;
  case "close":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.close_task_participant(${id(f,"participant")})`;
  case "read":return sql`select lub.read_task_notification(${id(f,"notification")})`;
+ case "read-all":return sql`select lub.read_task_notification(n.id) from lub.notifications n where n.recipient_user_id=${user.id} and n.read_at is null`;
  }
  })();const rows=await withUser(user.id,tx=>tx.execute(query));
  if(operation==="save-task")target=z.uuid().parse(rows[0]?.id);
