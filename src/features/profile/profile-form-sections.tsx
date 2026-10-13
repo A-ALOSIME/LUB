@@ -36,7 +36,6 @@ function ProfileTextField({
   dir,
   inputMode,
   hint,
-  narrow,
 }: {
   name: TextFieldName;
   label: ReactNode;
@@ -50,7 +49,6 @@ function ProfileTextField({
   dir?: "ltr" | "rtl";
   inputMode?: "numeric";
   hint?: string;
-  narrow?: boolean;
 }) {
   const message = errors?.[name]?.[0];
   const hintId = hint ? `${name}-hint` : undefined;
@@ -58,9 +56,7 @@ function ProfileTextField({
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <Field
-      className={`account-settings-field${narrow ? " account-settings-phone-field max-w-xs" : ""}`}
-    >
+    <Field className="account-settings-field">
       <FieldLabel htmlFor={name}>{label}</FieldLabel>
       <Input
         id={name}
@@ -202,7 +198,6 @@ export function ProfileDetailsSection({
           maxLength={16}
           autoComplete="tel"
           dir="ltr"
-          narrow
         />
       </FieldGroup>
 
@@ -218,20 +213,14 @@ export function ProfileDetailsSection({
           <p className="text-sm font-medium">
             {en ? "Verified email" : "البريد المتحقق منه"}
           </p>
-          <p className="break-all text-sm text-muted-foreground">
-            <bdi>{email}</bdi>
-          </p>
+          <div className="account-settings-email-address">
+            <p className="m-0 break-all text-sm text-muted-foreground">
+              <bdi>{email}</bdi>
+            </p>
+            <span className="account-settings-verified">{en ? "Verified" : "موثّق"}</span>
+          </div>
         </div>
-        <span className="account-settings-verified">{en ? "Verified" : "موثّق"}</span>
       </div>
-
-      {profile && (
-        <p className="text-sm leading-6 text-muted-foreground">
-          {en
-            ? "Your university number is saved securely; you do not need to enter it again."
-            : "رقمك الجامعي محفوظ بأمان ولا تحتاج إلى إدخاله مرة أخرى."}
-        </p>
-      )}
     </FieldSet>
   );
 }

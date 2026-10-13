@@ -27,11 +27,7 @@ export default async function Account() {
   if (!profile) redirect("/onboarding");
 
   return (
-    <main
-      id="main"
-      className="account-settings-page mx-auto w-full max-w-2xl"
-      dir={en ? "ltr" : "rtl"}
-    >
+    <main id="main" className="account-settings-page mx-auto w-full" dir={en ? "ltr" : "rtl"}>
       <header className="account-settings-page-header">
         <div className="account-settings-page-heading min-w-0">
           <h1 className="text-base font-semibold tracking-tight">

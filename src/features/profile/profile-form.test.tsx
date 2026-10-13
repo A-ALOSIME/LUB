@@ -38,5 +38,14 @@ describe("profile form interactions", () => {
     ).toBe(true);
     expect(screen.queryByText("بياناتك محمية")).toBeNull();
     expect(screen.getByText("رقمك الجامعي وبريد حسابك لا يظهران للعامة.")).toBeTruthy();
+    expect(
+      screen.queryByText("رقمك الجامعي محفوظ بأمان ولا تحتاج إلى إدخاله مرة أخرى.")
+    ).toBeNull();
+    const email = screen.getByRole("group", { name: "البريد المتحقق منه" });
+    const emailAddress = screen.getByText("student@example.com");
+    const verified = screen.getByText("موثّق");
+    expect(email.contains(emailAddress)).toBe(true);
+    expect(emailAddress.closest(".account-settings-email-address")).not.toBeNull();
+    expect(emailAddress.closest(".account-settings-email-address")?.contains(verified)).toBe(true);
   });
 });
