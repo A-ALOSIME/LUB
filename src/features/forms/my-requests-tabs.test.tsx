@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { MyRequestsTabs } from "./my-requests-tabs";
 
-const push = vi.fn();
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 afterEach(() => {
@@ -11,24 +11,22 @@ afterEach(() => {
   push.mockClear();
 });
 
-it("shows the URL-selected tab in RTL and navigates to renewals when selected", () => {
-  render(<MyRequestsTabs activeTab="applications" locale="ar"><p>Application content</p></MyRequestsTabs>);
+it("renders request sections as RTL single-selection buttons and keeps their URL routes", () => {
+  render(<MyRequestsTabs activeTab="applications" locale="ar"><div>محتوى الطلبات</div></MyRequestsTabs>);
 
-  expect(screen.getByRole("tablist").parentElement?.getAttribute("data-orientation")).toBe("horizontal");
-  expect(screen.getByRole("tablist").parentElement?.className).toContain("data-[orientation=horizontal]:flex-col");
-  expect(screen.getByRole("tab", { name: "طلبات الانضمام" }).getAttribute("aria-selected")).toBe("true");
-  expect(screen.getByRole("tab", { name: "طلبات التجديد" }).getAttribute("aria-selected")).toBe("false");
-  expect(screen.getByRole("tabpanel").getAttribute("dir")).toBe("rtl");
-
-  fireEvent.click(screen.getByRole("tab", { name: "طلبات التجديد" }));
-
+  const group = screen.getByRole("group", { name: "أنواع طلباتي" });
+  expect(group.getAttribute("dir")).toBe("rtl");
+  expect(group.getAttribute("data-size")).toBe("default");
+  const applicationsButton = within(group).getByRole("button", { name: "طلبات الانضمام" });
+  expect(applicationsButton.getAttribute("aria-pressed")).toBe("true");
+  expect(applicationsButton.className).toContain("aria-pressed:bg-primary");
+  fireEvent.click(within(group).getByRole("button", { name: "طلبات التجديد" }));
   expect(push).toHaveBeenCalledWith("/applications?tab=renewals");
+  expect(screen.getByText("محتوى الطلبات")).toBeTruthy();
 });
 
-it("lets the selected applications tab leave preview mode without a return button", () => {
-  render(<MyRequestsTabs activeTab="applications" preview locale="ar"><p>Preview content</p></MyRequestsTabs>);
-
-  fireEvent.click(screen.getByRole("tab", { name: "طلبات الانضمام" }));
-
+it("lets the applications preview return to the saved requests view", () => {
+  render(<MyRequestsTabs activeTab="applications" preview locale="ar"><div>المعاينة</div></MyRequestsTabs>);
+  fireEvent.click(screen.getByRole("button", { name: "طلبات الانضمام" }));
   expect(push).toHaveBeenCalledWith("/applications?tab=applications");
 });

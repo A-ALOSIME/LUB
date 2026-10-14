@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FilterToggleGroup } from "@/components/ui/filter-toggle-group";
 import type { Locale } from "@/lib/preferences";
 import { requestsTabHref, type RequestsTab } from "./my-requests-navigation";
 
@@ -20,28 +20,28 @@ export function MyRequestsTabs({
   const router = useRouter();
   const en = locale === "en";
 
-  return <Tabs
-    value={activeTab}
-    dir={en ? "ltr" : "rtl"}
-    onValueChange={value => router.push(requestsTabHref(value as RequestsTab))}
-    className="min-w-0 gap-4"
-  >
-    <TabsList variant="line" className="w-full justify-start gap-2 border-b border-border pb-0">
-      <TabsTrigger
-        value="applications"
-        className="h-11 flex-none px-4"
-        onClick={() => {
-          if (preview && activeTab === "applications") router.push(requestsTabHref("applications"));
-        }}
-      >
-        {en ? "Applications" : "طلبات الانضمام"}
-      </TabsTrigger>
-      <TabsTrigger value="renewals" className="h-11 flex-none px-4">
-        {en ? "Renewals" : "طلبات التجديد"}
-      </TabsTrigger>
-    </TabsList>
-    <TabsContent value={activeTab} dir={en ? "ltr" : "rtl"} className="min-w-0">
-      {children}
-    </TabsContent>
-  </Tabs>;
+  return <div className="flex min-w-0 flex-col gap-4">
+    <FilterToggleGroup
+      value={activeTab}
+      ariaLabel={en ? "My request categories" : "أنواع طلباتي"}
+      dir={en ? "ltr" : "rtl"}
+      options={[
+        { value: "applications", label: en ? "Applications" : "طلبات الانضمام" },
+        { value: "renewals", label: en ? "Renewals" : "طلبات التجديد" },
+      ]}
+      size="default"
+      activeTone="primary"
+      onValueChange={next => {
+        if ((next === "applications" || next === "renewals") && next !== activeTab) {
+          router.push(requestsTabHref(next));
+        }
+      }}
+      onItemClick={next => {
+        if (preview && next === "applications" && activeTab === "applications") {
+          router.push(requestsTabHref("applications"));
+        }
+      }}
+    />
+    <div className="min-w-0">{children}</div>
+  </div>;
 }

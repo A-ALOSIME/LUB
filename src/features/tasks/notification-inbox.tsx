@@ -1,31 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Bell, CalendarDays, Check, ClipboardCheck, Clock3, MailCheck, Megaphone, UsersRound } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FilterToggleGroup } from "@/components/ui/filter-toggle-group";
 import { cn } from "cn";
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
-import { mutateTask, type TaskState } from "./actions";
+import { mutateTask, readTaskNotification, type TaskState } from "./actions";
+import { navigateNotification } from "./notification-navigation";
+import { notificationDate, notificationHref } from "./notification-display";
 import type { TaskNotification } from "./repository";
+export { notificationDate, notificationHref } from "./notification-display";
 
 type Filter = "all" | "unread";
 type Counts = { all: number; unread: number };
 
 function countLabel(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
-}
-
-function notificationDate(value: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ar-SA-u-nu-latn", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    calendar: "gregory",
-    timeZone: "Asia/Riyadh",
-  }).format(new Date(value));
 }
 
 function NotificationIcon({ notification }: { notification: TaskNotification }) {
@@ -65,10 +60,10 @@ function NotificationMutationAction({
     if (state.error) onMessage(actionFeedback(state.error, locale) ?? state.error);
   }, [en, locale, onMessage, state.error, state.success]);
 
-  return <form action={action}>
+  return <form action={action} className={operation === "read" ? "hidden sm:block sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100" : undefined}>
     <input type="hidden" name="operation" value={operation} />
     {notification && <input type="hidden" name="notification" value={notification} />}
-    <Button type="submit" variant={operation === "read-all" ? "outline" : "ghost"} size={operation === "read-all" ? "sm" : "icon-sm"} disabled={pending} aria-label={operation === "read" ? en ? "Mark as read" : "تحديد كمقروء" : undefined}>
+    <Button type="submit" variant={operation === "read-all" ? "outline" : "ghost"} size={operation === "read-all" ? "sm" : "icon-sm"} disabled={pending} aria-label={operation === "read" ? en ? "Mark as read" : "تحديد كمقروء" : undefined} title={operation === "read" ? en ? "Mark as read" : "تحديد كمقروء" : undefined}>
       {operation === "read-all"
         ? <><Check aria-hidden="true" data-icon="inline-start" />{pending ? en ? "Saving…" : "جارٍ الحفظ…" : en ? "Mark all as read" : "تحديد الكل كمقروء"}</>
         : <Check aria-hidden="true" />}
@@ -108,9 +103,12 @@ function NotificationInboxState({
   more = false,
 }: NotificationInboxProps) {
   const en = locale === "en";
+  const router = useRouter();
   const [sampleItems, setSampleItems] = useState(items);
   const [sampleFilter, setSampleFilter] = useState(filter);
   const [toast, setToast] = useState("");
+  const touchStartX = useRef<number | null>(null);
+  const swiped = useRef(false);
   const shownCounts = preview
     ? { all: sampleItems.length, unread: sampleItems.filter(item => item.read_at === null).length }
     : counts;
@@ -128,42 +126,56 @@ function NotificationInboxState({
     setToast(en ? "Preview state updated. Nothing was saved." : "تغيّرت حالة المعاينة فقط؛ لم تُحفظ أي بيانات.");
   }
 
-  return <div className="flex min-w-0 flex-col gap-4">
-    {preview && <div role="note" className="flex items-start gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3.5 text-sm text-muted-foreground">
-      <Bell aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
-      <p>{en ? "Sample notifications for preview. They are not stored in your account; actions change this preview only." : "إشعارات نموذجية للمعاينة فقط. لا تُحفظ في حسابك، والتغييرات هنا تخص المعاينة فقط."}</p>
-    </div>}
+  async function markNotificationRead(id: string) {
+    if (preview) {
+      markPreviewRead(id);
+      return true;
+    }
+    const result = await readTaskNotification(id);
+    if (result.error) {
+      setToast(actionFeedback(result.error, locale) ?? result.error);
+      return false;
+    }
+    return true;
+  }
 
+  async function openNotification(notification: TaskNotification) {
+    if (swiped.current) {
+      swiped.current = false;
+      return;
+    }
+    const href = notificationHref(notification.target_url);
+    if (notification.read_at === null && !(await markNotificationRead(notification.id))) return;
+    if (href) navigateNotification(href);
+  }
+
+  return <div className="flex min-w-0 flex-col gap-4">
     <Card className="min-w-0 gap-0 overflow-hidden py-0">
       <CardHeader className="gap-4 border-b p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle>{en ? "Your inbox" : "صندوق الإشعارات"}</CardTitle>
-            <p className="text-sm text-muted-foreground">{en ? "Updates about your applications, events, tasks, and hours." : "آخر المستجدات عن طلباتك وفعالياتك ومهامك وساعاتك."}</p>
-          </div>
+        <div className="flex flex-col gap-1">
+          <CardTitle>{en ? "Your inbox" : "صندوق الإشعارات"}</CardTitle>
+          <p className="text-sm text-muted-foreground">{en ? "Updates about your applications, events, tasks, and hours." : "آخر المستجدات عن طلباتك وفعالياتك ومهامك وساعاتك."}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <FilterToggleGroup
+            value={activeFilter}
+            ariaLabel={en ? "Notification filters" : "تصفية الإشعارات"}
+            dir={en ? "ltr" : "rtl"}
+            options={[
+              { value: "all", label: en ? "All" : "الكل", count: shownCounts.all },
+              { value: "unread", label: en ? "Unread" : "غير مقروءة", count: shownCounts.unread },
+            ]}
+            onValueChange={next => {
+              if (next !== "all" && next !== "unread") return;
+              if (preview) setSampleFilter(next);
+              else if (next !== filter) router.push(filterHref(next, false));
+            }}
+          />
           {shownCounts.unread > 0 && (preview
             ? <Button type="button" variant="outline" size="sm" onClick={() => markPreviewRead()}><Check aria-hidden="true" data-icon="inline-start" />{en ? "Mark all as read" : "تحديد الكل كمقروء"}</Button>
             : <NotificationMutationAction operation="read-all" locale={locale} onMessage={setToast} />)}
         </div>
-
-        <nav aria-label={en ? "Notification filters" : "تصفية الإشعارات"} className="-mb-4 max-w-full overflow-x-auto">
-          <ul className="flex min-w-max items-center gap-1 border-b border-border">
-            {(["all", "unread"] as const).map(value => {
-              const active = activeFilter === value;
-              const label = value === "all" ? en ? "All" : "الكل" : en ? "Unread" : "غير مقروءة";
-              const count = value === "all" ? shownCounts.all : shownCounts.unread;
-              return <li key={value}>
-                {preview
-                  ? <button type="button" aria-pressed={active} onClick={() => setSampleFilter(value)} className={cn("inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors", active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
-                    {label}<Badge variant={active ? "secondary" : "outline"} className="h-5 min-w-5 justify-center px-1.5 text-[0.7rem] leading-none">{countLabel(count)}</Badge>
-                  </button>
-                  : <Link href={filterHref(value, false)} aria-current={active ? "page" : undefined} className={cn("inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors", active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
-                    {label}<Badge variant={active ? "secondary" : "outline"} className="h-5 min-w-5 justify-center px-1.5 text-[0.7rem] leading-none">{countLabel(count)}</Badge>
-                  </Link>}
-              </li>;
-            })}
-          </ul>
-        </nav>
       </CardHeader>
 
       <CardContent className="p-0">
@@ -171,22 +183,34 @@ function NotificationInboxState({
           ? <ul aria-label={en ? "Notifications" : "الإشعارات"} className="divide-y divide-border">
             {visibleItems.map(notification => {
               const unread = notification.read_at === null;
-              return <li key={notification.id} className={cn("transition-colors", unread && "bg-primary/[0.035]")}>
-                <div className="flex items-start gap-3 px-4 py-4 sm:gap-4 sm:px-5">
-                  <NotificationIcon notification={notification} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link href={notification.target_url} dir="auto" className="break-words text-sm font-medium leading-6 hover:text-primary hover:underline hover:underline-offset-4">{notification.title}</Link>
-                      <Badge variant="outline" className={cn("h-5 px-2 text-xs", unread ? "border-primary/40 bg-primary/5 text-primary" : "text-muted-foreground")}>
-                        {unread ? en ? "Unread" : "جديد" : en ? "Read" : "مقروء"}
-                      </Badge>
-                    </div>
-                    <p dir="auto" className="mt-1 break-words text-sm leading-6 text-muted-foreground">{notification.body}</p>
-                    <time dateTime={notification.created_at} className="mt-2 block text-xs text-muted-foreground">{notificationDate(notification.created_at, locale)}</time>
-                  </div>
-                  {unread && (preview
-                    ? <Button type="button" variant="ghost" size="icon-sm" aria-label={en ? "Mark as read" : "تحديد كمقروء"} onClick={() => markPreviewRead(notification.id)}><Check aria-hidden="true" /></Button>
-                    : <NotificationMutationAction operation="read" notification={notification.id} locale={locale} onMessage={setToast} />)}
+              return <li
+                key={notification.id}
+                className={cn("group transition-colors", unread ? "bg-muted/30" : "text-muted-foreground")}
+                onTouchStart={event => { touchStartX.current = event.touches[0]?.clientX ?? null; }}
+                onTouchEnd={event => {
+                  const start = touchStartX.current;
+                  const end = event.changedTouches[0]?.clientX;
+                  touchStartX.current = null;
+                  if (unread && start !== null && end !== undefined && Math.abs(end - start) > 64) {
+                    swiped.current = true;
+                    void markNotificationRead(notification.id);
+                  }
+                }}
+              >
+                <div className="flex min-w-0 items-center gap-2 px-3 py-2 sm:gap-3 sm:px-5 sm:py-3">
+                  <button type="button" onClick={() => void openNotification(notification)} dir={en ? "ltr" : "rtl"} className="flex min-w-0 flex-1 items-start gap-3 rounded-md p-1 text-start transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-4">
+                    <NotificationIcon notification={notification} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex min-w-0 items-center gap-2">
+                        {unread && <span aria-label={en ? "Unread" : "غير مقروء"} title={en ? "Unread" : "غير مقروء"} className="size-2 shrink-0 rounded-full bg-primary" />}
+                        <span dir="auto" className={cn("break-words text-sm font-medium leading-6", unread ? "text-foreground" : "text-muted-foreground")}>{notification.title}</span>
+                      </span>
+                      <span dir="auto" className="mt-1 block break-words text-sm leading-6 text-muted-foreground">{notification.body}</span>
+                      <time dateTime={notification.created_at} className="mt-2 block text-xs text-muted-foreground">{notificationDate(notification.created_at, locale)}</time>
+                    </span>
+                  </button>
+                  {unread && !preview && <NotificationMutationAction operation="read" notification={notification.id} locale={locale} onMessage={setToast} />}
+                  {unread && preview && <Button type="button" variant="ghost" size="icon-sm" className="hidden sm:inline-flex sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100" aria-label={en ? "Mark as read" : "تحديد كمقروء"} title={en ? "Mark as read" : "تحديد كمقروء"} onClick={() => markPreviewRead(notification.id)}><Check aria-hidden="true" /></Button>}
                 </div>
               </li>;
             })}
@@ -198,10 +222,8 @@ function NotificationInboxState({
           </div>}
       </CardContent>
 
-      {(preview || page > 0 || more) && <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/20 px-4 py-3 text-xs text-muted-foreground sm:px-5">
-        {preview
-          ? <span>{en ? "Preview examples" : "أمثلة للمعاينة"}</span>
-          : <span>{en ? `Page ${countLabel(page + 1)}` : `الصفحة ${countLabel(page + 1)}`}</span>}
+      {(page > 0 || more) && <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/20 px-4 py-3 text-xs text-muted-foreground sm:px-5">
+        <span>{en ? `Page ${countLabel(page + 1)}` : `الصفحة ${countLabel(page + 1)}`}</span>
         {!preview && <div className="flex items-center gap-2">
           {page > 0 && <Link href={`/notifications?${new URLSearchParams({ filter: activeFilter, page: String(page - 1) })}`} className={buttonVariants({ variant: "outline", size: "sm" })}>{en ? "Previous" : "السابق"}</Link>}
           {more && <Link href={`/notifications?${new URLSearchParams({ filter: activeFilter, page: String(page + 1) })}`} className={buttonVariants({ variant: "outline", size: "sm" })}>{en ? "Next" : "التالي"}</Link>}

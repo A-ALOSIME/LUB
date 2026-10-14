@@ -3,13 +3,15 @@ import { CalendarDays, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "cn";
 import type { Locale } from "@/lib/preferences";
 import { canWithdrawApplication } from "./application-eligibility";
 import { ApplicationRowActions } from "./application-row-actions";
-import { applicationStatusTabs, type ApplicationStatusCounts, type ApplicationStatusFilter } from "./application-status";
+import type { ApplicationStatusCounts, ApplicationStatusFilter } from "./application-status";
 import type { Application } from "./repository";
+import { ApplicationStatusFilters } from "./application-status-filters";
 
 const statusLabels: Record<string, { ar: string; en: string; className: string }> = {
   Submitted: { ar: "قيد المراجعة", en: "Under review", className: "border-primary/40 bg-primary/5 text-primary" },
@@ -66,14 +68,14 @@ function ApplicationActions({ application, locale, preview }: { application: App
   />;
 }
 
-function ApplicationTable({ rows, locale, preview, noApplications }: { rows: Application[]; locale: Locale; preview: boolean; noApplications: boolean }) {
+function ApplicationTable({ rows, locale, preview }: { rows: Application[]; locale: Locale; preview: boolean }) {
   const en = locale === "en";
 
   return <div className="hidden lg:block">
     <Table className="min-w-[38rem]">
       <TableCaption className="sr-only">{en ? "Your membership applications" : "طلبات الانضمام الخاصة بك"}</TableCaption>
       <TableHeader>
-        <TableRow className="bg-muted/30 hover:bg-muted/30">
+        <TableRow className="border-border/60 bg-card hover:bg-card">
           <TableHead className="w-[42%] px-4">{en ? "Organization" : "الجهة"}</TableHead>
           <TableHead className="w-[24%] px-4">{en ? "Applied on" : "تاريخ التقديم"}</TableHead>
           <TableHead className="w-[22%] px-4">{en ? "Status" : "الحالة"}</TableHead>
@@ -97,12 +99,7 @@ function ApplicationTable({ rows, locale, preview, noApplications }: { rows: App
           </TableCell>
         </TableRow>) : <TableRow>
           <TableCell colSpan={4} className="h-32 whitespace-normal px-4 text-center text-muted-foreground">
-            <div className="flex flex-col items-center gap-2">
-              <p>{noApplications
-                ? en ? "You have not applied to any organizations yet." : "ما قدمت على أي جهة حتى الآن."
-                : en ? "No applications match these filters." : "ما فيه طلبات تطابق خيارات التصفية."}</p>
-              {noApplications && <Link href="/organizations" className={buttonVariants({ variant: "outline", size: "sm" })}>{en ? "Explore organizations" : "استكشف الجهات"}</Link>}
-            </div>
+            {en ? "No applications match these filters." : "ما فيه طلبات تطابق خيارات التصفية."}
           </TableCell>
         </TableRow>}
       </TableBody>
@@ -110,7 +107,7 @@ function ApplicationTable({ rows, locale, preview, noApplications }: { rows: App
   </div>;
 }
 
-function ApplicationCards({ rows, locale, preview, noApplications }: { rows: Application[]; locale: Locale; preview: boolean; noApplications: boolean }) {
+function ApplicationCards({ rows, locale, preview }: { rows: Application[]; locale: Locale; preview: boolean }) {
   const en = locale === "en";
 
   return <div className="grid gap-2 p-3 lg:hidden">
@@ -129,11 +126,8 @@ function ApplicationCards({ rows, locale, preview, noApplications }: { rows: App
           {formatApplicationDate(application.created_at, locale)}
         </time>
       </div>
-    </article>) : <div role="status" className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-      <p>{noApplications
-        ? en ? "You have not applied to any organizations yet." : "ما قدمت على أي جهة حتى الآن."
-        : en ? "No applications match these filters." : "ما فيه طلبات تطابق خيارات التصفية."}</p>
-      {noApplications && <Link href="/organizations" className={buttonVariants({ variant: "outline", size: "sm" })}>{en ? "Explore organizations" : "استكشف الجهات"}</Link>}
+    </article>) : <div role="status" className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+      {en ? "No applications match these filters." : "ما فيه طلبات تطابق خيارات التصفية."}
     </div>}
   </div>;
 }
@@ -148,43 +142,34 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
   hasNext?: boolean;
 }) {
   const en = locale === "en";
-  const noApplications = counts.all === 0 && status === "all";
+  const noApplications = counts.all === 0;
 
   return <div className="flex min-w-0 flex-col gap-4">
+    {noApplications ? <Empty role="status" className="gap-3 border border-border border-dashed bg-card/40 px-4 py-7">
+      <EmptyHeader className="gap-1">
+        <EmptyTitle className="font-normal text-muted-foreground">{en ? "You have not applied to any organizations yet." : "ما قدمت على أي جهة حتى الآن."}</EmptyTitle>
+      </EmptyHeader>
+      <EmptyContent className="w-fit">
+        <Link href="/organizations" className={buttonVariants({ size: "sm" })}>{en ? "Start a new application" : "تقديم طلب جديد"}</Link>
+      </EmptyContent>
+    </Empty> : <>
     {preview && <div role="note" className="flex items-start gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3.5 text-sm">
       <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
       <p>{en ? "Sample data for preview only. No applications are stored; row actions are disabled." : "بيانات تجريبية للمعاينة فقط. لا يتم حفظ أي طلبات، وإجراءات الصفوف معطّلة."}</p>
     </div>}
 
+    {counts.all > 0 && <div className="flex justify-start">
+      <Link href="/organizations" className={buttonVariants({ size: "sm" })}>{en ? "Start a new application" : "تقديم طلب جديد"}</Link>
+    </div>}
+
     <Card className="min-w-0 gap-0 py-0">
-      <CardHeader className="gap-4 border-b p-4 sm:p-5">
-        <nav aria-label={en ? "Filter applications by status" : "تصفية الطلبات حسب الحالة"} className="-mb-4 max-w-full overflow-x-auto">
-          <ul className="flex min-w-max items-center gap-1 border-b border-border">
-            {applicationStatusTabs.map(tab => {
-              const active = status === tab.value;
-              return <li key={tab.value}>
-                <Link
-                  href={applicationsHref({ status: tab.value, preview })}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors",
-                    active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {en ? tab.en : tab.ar}
-                  <Badge variant={active ? "secondary" : "outline"} className="h-5 min-w-5 justify-center px-1.5 text-[0.7rem] leading-none">
-                    {formatCount(counts[tab.value])}
-                  </Badge>
-                </Link>
-              </li>;
-            })}
-          </ul>
-        </nav>
+      <CardHeader className="gap-3 px-4 pt-4 pb-0 sm:px-5 sm:pt-5">
+        <ApplicationStatusFilters status={status} counts={counts} preview={preview} locale={locale} />
       </CardHeader>
 
-      <CardContent className="p-0">
-        <ApplicationTable rows={rows} locale={locale} preview={preview} noApplications={noApplications} />
-        <ApplicationCards rows={rows} locale={locale} preview={preview} noApplications={noApplications} />
+      <CardContent className="p-0 pt-2">
+        <ApplicationTable rows={rows} locale={locale} preview={preview} />
+        <ApplicationCards rows={rows} locale={locale} preview={preview} />
       </CardContent>
 
       {(page > 1 || hasNext) && <CardFooter className="justify-between gap-3 border-t px-4 py-3 sm:px-5">
@@ -199,5 +184,6 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
         </nav>
       </CardFooter>}
     </Card>
+    </>}
   </div>;
 }

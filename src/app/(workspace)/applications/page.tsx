@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { z } from "zod";
 import { checkReadiness } from "@/features/hours/view";
 import { myRenewals } from "@/features/renewals/repository";
@@ -12,7 +11,6 @@ import { applicationStatusCode, applicationStatusTabs, countApplicationStatuses,
 import { MyRequestsTabs } from "@/features/forms/my-requests-tabs";
 import { resolveRequestsTab } from "@/features/forms/my-requests-navigation";
 import { getPreferences } from "@/lib/preferences";
-import { buttonVariants } from "@/components/ui/button";
 
 export async function generateMetadata() {
   return localizedMetadata("طلباتي", "My applications");
@@ -31,7 +29,11 @@ export default async function Applications({ searchParams }: { searchParams: Pro
     checkReadiness(data?.account);
     if (!data) throw new Error("Renewal storage unavailable");
 
-    return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0">
+    return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 max-w-4xl space-y-5 pb-20 lg:pb-0">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">{en ? "My requests" : "طلباتي"}</h1>
+        <p className="text-sm text-muted-foreground">{en ? "Track your applications and membership renewals in one place." : "تابع طلبات الانضمام والتجديد من مكان واحد."}</p>
+      </header>
       <MyRequestsTabs activeTab={tab} locale={locale}>
         <PersonalRenewalsView data={data} page={page} locale={locale} />
       </MyRequestsTabs>
@@ -65,30 +67,21 @@ export default async function Applications({ searchParams }: { searchParams: Pro
       countOwnApplications(user.id),
     ]);
 
-  return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0">
+  return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 max-w-4xl space-y-5 pb-20 lg:pb-0">
+    <header className="flex flex-col gap-1">
+      <h1 className="text-2xl font-semibold tracking-tight">{en ? "My requests" : "طلباتي"}</h1>
+      <p className="text-sm text-muted-foreground">{en ? "Track your applications and membership renewals in one place." : "تابع طلبات الانضمام والتجديد من مكان واحد."}</p>
+    </header>
     <MyRequestsTabs activeTab={tab} preview={preview} locale={locale}>
-      <div className="flex min-w-0 flex-col gap-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">{en ? "My applications" : "طلبات الانضمام"}</h1>
-            <p className="text-sm text-muted-foreground">{en ? "Track the status of every application and manage it from one list." : "تابع حالة طلباتك وأدرها من قائمة واحدة."}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {!preview && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/applications?tab=applications&preview=1">{en ? "Preview table" : "معاينة شكل الجدول"}</Link>}
-            <Link className={buttonVariants({ size: "sm" })} href="/organizations">{en ? "Explore organizations" : "استكشف الجهات"}</Link>
-          </div>
-        </header>
-
-        <ApplicationList
-          rows={rows.slice(0, 25)}
-          counts={counts}
-          locale={locale}
-          preview={preview}
-          status={status}
-          page={page}
-          hasNext={rows.length > 25}
-        />
-      </div>
+      <ApplicationList
+        rows={rows.slice(0, 25)}
+        counts={counts}
+        locale={locale}
+        preview={preview}
+        status={status}
+        page={page}
+        hasNext={rows.length > 25}
+      />
     </MyRequestsTabs>
   </main>;
 }

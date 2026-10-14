@@ -2,15 +2,22 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { NotificationInbox } from "./notification-inbox";
+import { NotificationInbox, notificationDate, notificationHref } from "./notification-inbox";
 import { previewNotifications } from "./notification-preview";
 
+const { push, routerPush } = vi.hoisted(() => ({ push: vi.fn(), routerPush: vi.fn() }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));
-vi.mock("./actions", () => ({ mutateTask: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
+vi.mock("./notification-navigation", () => ({ navigateNotification: push }));
+vi.mock("./actions", () => ({ mutateTask: vi.fn(), readTaskNotification: vi.fn().mockResolvedValue({ success: "ok" }) }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  push.mockClear();
+  routerPush.mockClear();
+});
 
 it("shows sample notifications and lets the user inspect unread and read states without saving", () => {
   render(<NotificationInbox
@@ -21,16 +28,18 @@ it("shows sample notifications and lets the user inspect unread and read states 
     locale="ar"
   />);
 
-  expect(screen.getByRole("note").textContent).toContain("لا تُحفظ في حسابك");
-  expect(screen.getByRole("link", { name: "تم قبول طلبك في نادي الأمن السيبراني" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "فعالية جديدة: لقاء التقنية والابتكار" })).toBeTruthy();
+  expect(screen.queryByRole("note")).toBeNull();
+  expect(screen.getByRole("button", { name: /تم قبول طلبك في نادي الأمن السيبراني/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /فعالية جديدة: لقاء التقنية والابتكار/ })).toBeTruthy();
+  expect(screen.queryByText("جديد")).toBeNull();
+  expect(screen.queryByText("مقروء")).toBeNull();
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(6);
 
   fireEvent.click(screen.getByRole("button", { name: /تحديد الكل كمقروء/ }));
   fireEvent.click(screen.getByRole("button", { name: /غير مقروءة/ }));
 
   expect(screen.getByText("ما عندك إشعارات غير مقروءة.")).toBeTruthy();
-  expect(within(screen.getByRole("navigation", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("0");
+  expect(within(screen.getByRole("group", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("0");
 });
 
 it("filters the preview list while keeping English digit counts", () => {
@@ -43,8 +52,22 @@ it("filters the preview list while keeping English digit counts", () => {
   />);
 
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(4);
-  expect(within(screen.getByRole("navigation", { name: "تصفية الإشعارات" })).getByRole("button", { name: /الكل/ }).textContent).toContain("6");
-  expect(within(screen.getByRole("navigation", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("4");
+  expect(within(screen.getByRole("group", { name: "تصفية الإشعارات" })).getByRole("button", { name: /الكل/ }).textContent).toContain("6");
+  expect(within(screen.getByRole("group", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("4");
+});
+
+it("uses the shared segmented filter and keeps unread filtering in the URL", () => {
+  render(<NotificationInbox
+    items={previewNotifications}
+    counts={{ all: 6, unread: 4 }}
+    filter="all"
+    locale="ar"
+  />);
+
+  const group = screen.getByRole("group", { name: "تصفية الإشعارات" });
+  expect(group.getAttribute("dir")).toBe("rtl");
+  fireEvent.click(within(group).getByRole("button", { name: /غير مقروءة/ }));
+  expect(routerPush).toHaveBeenCalledWith("/notifications?filter=unread");
 });
 
 it("loads preview examples when navigating from an empty inbox without a full reload", async () => {
@@ -64,5 +87,38 @@ it("loads preview examples when navigating from an empty inbox without a full re
   />);
 
   await waitFor(() => expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(6));
-  expect(screen.getByRole("note").textContent).toContain("لا تُحفظ في حسابك");
+  expect(screen.queryByRole("note")).toBeNull();
+});
+
+it("opens the notification target after marking it read", async () => {
+  render(<NotificationInbox items={previewNotifications} counts={{ all: 6, unread: 4 }} filter="all" preview locale="ar" />);
+  fireEvent.click(screen.getByRole("button", { name: /تم قبول طلبك في نادي الأمن السيبراني/ }));
+  await waitFor(() => expect(push).toHaveBeenCalledWith("/applications"));
+});
+
+it("marks an unlinked notification read without navigating", async () => {
+  const unlinked = { ...previewNotifications[0], target_url: "" };
+  render(<NotificationInbox items={[unlinked]} counts={{ all: 1, unread: 1 }} filter="all" preview locale="ar" />);
+  fireEvent.click(screen.getByRole("button", { name: /تم قبول طلبك في نادي الأمن السيبراني/ }));
+  await waitFor(() => expect(screen.getByText("تغيّرت حالة المعاينة فقط؛ لم تُحفظ أي بيانات.")).toBeTruthy());
+  expect(push).not.toHaveBeenCalled();
+});
+
+it("normalizes legacy renewal notification links and keeps only safe internal destinations", () => {
+  expect(notificationHref("/renewals")).toBe("/applications?tab=renewals");
+  expect(notificationHref("/applications?tab=renewals")).toBe("/applications?tab=renewals");
+  expect(notificationHref("/tasks")).toBe("/activity?tab=tasks");
+  expect(notificationHref("/tasks?mine=1&page=2")).toBe("/activity?tab=tasks&taskFilter=mine&page=2");
+  expect(notificationHref("/events/mine?page=1")).toBe("/activity?tab=events&page=1");
+  expect(notificationHref("/events")).toBe("/activity?tab=events");
+  expect(notificationHref("/hours?term=term-id&page=3")).toBe("/activity?tab=hours&page=3&term=term-id");
+  expect(notificationHref("/documents")).toBe("/activity?tab=hours&documents=1");
+  expect(notificationHref("https://example.com")).toBeNull();
+  expect(notificationHref(null)).toBeNull();
+});
+
+it("uses relative dates for recent notifications and full dates after a week", () => {
+  const now = Date.parse("2026-10-14T12:00:00+03:00");
+  expect(notificationDate("2026-10-14T10:00:00+03:00", "en", now)).toBe("2 hours ago");
+  expect(notificationDate("2026-10-01T10:00:00+03:00", "en", now)).toBe("October 1, 2026");
 });

@@ -32,15 +32,13 @@ export default async function NotificationsPage({ searchParams }: {
       taskNotificationCounts(user.id),
     ]);
 
-  return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 space-y-6">
+  return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 max-w-4xl space-y-5">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">{en ? "Notifications" : "الإشعارات"}</h1>
         <p className="text-sm text-muted-foreground">{en ? "Follow updates about your applications, events, tasks, and hours." : "تابع تحديثات طلباتك وفعالياتك ومهامك وساعاتك."}</p>
       </div>
-      {preview
-        ? <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/notifications">{en ? "Back to my notifications" : "العودة إلى إشعاراتي"}</Link>
-        : <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/notifications?preview=1">{en ? "Preview sample notifications" : "معاينة بإشعارات نموذجية"}</Link>}
+      {!preview && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/notifications?preview=1">{en ? "Sample notifications" : "إشعارات نموذجية"}</Link>}
     </header>
 
     <NotificationInbox
