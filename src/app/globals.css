@@ -717,10 +717,8 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 .organization-settings-empty { padding-block: 1.2rem; color: var(--color-muted); font-size: .875rem; }
 .organization-settings-committee { overflow: hidden; border: 1px solid var(--color-line); border-radius: .75rem; }
 
-/* Keep the shared header's dimensions stable across public and account routes. */
-.site-header-inner { min-height: 4.5rem; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
-.site-header-nav { flex-wrap: nowrap; }
-.site-header-tools { display: flex; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
+/* Keep the shared header's desktop height stable; responsive columns are set above. */
+.site-header-inner { min-height: 4.5rem; }
 @media (max-width: 1023px) {
   .site-header-inner { min-height: 0; grid-template-rows: 4.5rem 3rem; }
   .site-header-nav { height: 3rem; }
