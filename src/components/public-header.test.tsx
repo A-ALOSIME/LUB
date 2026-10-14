@@ -38,7 +38,7 @@ describe("public header", () => {
     const html = renderToStaticMarkup(await PublicHeader());
 
     expect(html).toContain('href="/organizations"');
-    expect(html).toContain('href="/events"');
+    expect(html).toContain('href="/events/discover"');
     expect(html).toContain('href="/talent"');
     expect(html).toContain('href="/ai"');
     expect(html).toContain('href="/manage"');

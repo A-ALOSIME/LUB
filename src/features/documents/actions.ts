@@ -19,10 +19,10 @@ export async function mutateDocument(_previous:DocumentState,f:FormData):Promise
    const rows=await withUser(user.id,tx=>tx.execute(sql`with created as materialized(${query}) select upload.* from created cross join lateral lub.document_upload(created.id) upload`));const upload=rows[0] as unknown as DocumentUpload;document=z.uuid().parse(upload?.document_id);
    try{await storeDocument(upload);await withUser(user.id,tx=>tx.execute(sql`select lub.complete_document(${document},${upload.upload_attempt},true)`));}
    catch{try{await withUser(user.id,tx=>tx.execute(sql`select lub.complete_document(${document},${upload.upload_attempt},false)`));}catch{/* An interrupted connection leaves a recoverable Generating attempt. */}
-    revalidatePath('/documents');revalidatePath('/manage','layout');return {error:'حُفظت نسخة البيانات، لكن تعذّر تجهيز الملف في التخزين. افتح سجل المستندات وأعد تجهيز نفس النسخة؛ المحاولة المنقطعة تصبح قابلة للإعادة بعد ١٥ دقيقة.',document};
+    revalidatePath('/documents');revalidatePath('/activity');revalidatePath('/manage','layout');return {error:'حُفظت نسخة البيانات، لكن تعذّر تجهيز الملف في التخزين. افتح سجل المستندات وأعد تجهيز نفس النسخة؛ المحاولة المنقطعة تصبح قابلة للإعادة بعد ١٥ دقيقة.',document};
    }
   }else await withUser(user.id,tx=>tx.execute(query));
  }catch{return{error:"تعذّر إنشاء المستند أو حفظ التغيير. تحقق من النطاق والفترة والصلاحية ووجود ساعات معتمدة. قسّم الفترة إذا تجاوزت ٥٬٠٠٠ سجل."};}
- revalidatePath('/documents');revalidatePath('/manage','layout');revalidatePath('/me');
+ revalidatePath('/documents');revalidatePath('/activity');revalidatePath('/manage','layout');revalidatePath('/me');
  return {success:document?'تم حفظ نسخة ثابتة من البيانات والملف.':'تم حفظ التغيير.',document};
 }

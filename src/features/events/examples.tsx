@@ -178,7 +178,6 @@ export function EventExampleDetail({example, locale}: {example: EventExample; lo
       </div>
     </figure>
     <div className="event-example-detail-copy" dir={en ? "ltr" : "rtl"}>
-      <Link href="/events" className="event-example-detail-back">{en ? "Back to events" : "العودة إلى الفعاليات"}</Link>
       <header className="event-example-detail-heading">
         <div className="event-example-detail-organization">
           <span className="event-example-detail-organization-mark"><Image src={example.organizationLogo} alt="" width={72} height={72} unoptimized/></span>

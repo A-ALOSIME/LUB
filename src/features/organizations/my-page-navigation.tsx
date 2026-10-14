@@ -55,11 +55,7 @@ export function MyPageNavigation({
           { href: "/account", label: c("بيانات الحساب", "Account settings") },
           { href: "/account/talent", label: c("ملفي المهاري", "Skills profile") },
           { href: "/applications", label: c("طلباتي", "My requests") },
-          { href: "/notifications", label: c("الإشعارات", "Notifications") },
-          { href: sectionHref("tasks"), label: c("المهام والمشاركات", "Tasks and participation") },
-          { href: "/hours", label: c("سجل الساعات", "Hours history") },
-          { href: "/documents", label: c("مستنداتي", "My documents") },
-          { href: sectionHref("events"), label: c("فعالياتي", "My events") },
+          { href: "/activity", label: c("نشاطي", "My activity") },
         ],
       },
     ];

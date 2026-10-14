@@ -12,7 +12,8 @@ export function publicChatPath(value: string): string | null {
     const url = new URL(value, "https://lub.invalid");
     if ((url.origin !== "https://lub.invalid" && url.origin !== "https://lub.community") || url.username || url.password || url.pathname === "/events/mine") return null;
     if (!/^\/(?:$|events(?:\/[\w-]+)?$|organizations(?:\/[\w-]+)?$|talent(?:\/[\w-]+)?$|help\/[\w-]+$)/u.test(url.pathname)) return null;
-    return url.pathname + url.search + url.hash;
+    const pathname = url.pathname === "/events" ? "/events/discover" : url.pathname;
+    return pathname + url.search + url.hash;
   } catch {
     return null;
   }

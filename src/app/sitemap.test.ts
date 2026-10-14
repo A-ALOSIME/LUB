@@ -28,7 +28,7 @@ it("lists public routes and published organization and event pages only", async 
   expect(urls).toEqual(expect.arrayContaining([
     "https://lub.community/",
     "https://lub.community/organizations",
-    "https://lub.community/events",
+    "https://lub.community/events/discover",
     "https://lub.community/talent",
     "https://lub.community/ai",
     "https://lub.community/help/visitor",
@@ -49,7 +49,7 @@ it("still serves static discoverable pages when public data is unavailable", asy
   expect(urls).toContain("https://lub.community/");
   expect(urls).not.toContain("https://lub.community/about");
   expect(urls).toContain("https://lub.community/organizations");
-  expect(urls).toContain("https://lub.community/events");
+  expect(urls).toContain("https://lub.community/events/discover");
   expect(urls).not.toContain("https://lub.community/organizations/cyber-club");
   expect(urls).not.toContain("https://lub.community/events/event-123");
 });

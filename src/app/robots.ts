@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 const privatePaths = [
   "/account",
   "/account-unavailable",
+  "/activity",
   "/applications",
   "/auth/",
   "/documents",

@@ -12,6 +12,12 @@ const text=(f:FormData,k:string,max:number,min=1)=>z.string().trim().min(min).ma
 const revision=(f:FormData,k="revision")=>z.coerce.number().int().positive().parse(f.get(k));
 const hours=(f:FormData,k="hours")=>z.coerce.number().finite().min(0).max(1000).multipleOf(0.01).parse(f.get(k));
 const date=(f:FormData,k:string)=>f.get(k)?z.iso.datetime({offset:true}).parse(f.get(k)):null;
+export async function readTaskNotification(notification:string):Promise<TaskState>{
+ const user=await requireUser();const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};
+ try{await withUser(user.id,tx=>tx.execute(sql`select lub.read_task_notification(${z.uuid().parse(notification)})`));}
+ catch{return{error:"تعذّر تحديث الإشعار. حدّث الصفحة وحاول مرة ثانية."};}
+ revalidatePath("/notifications");return{success:"تم تحديد الإشعار كمقروء."};
+}
 export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskState>{
  const user=await requireUser();let target:string|undefined;
  try{
@@ -34,6 +40,6 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  })();const rows=await withUser(user.id,tx=>tx.execute(query));
  if(operation==="save-task")target=z.uuid().parse(rows[0]?.id);
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيرت المهمة أو المشاركة. رفض التسليم يحتاج ملاحظة؛ اعتماد المهمة يحتاج فصلًا أكاديميًا يغطي تاريخ الاعتماد."};}
- revalidatePath("/tasks","layout");revalidatePath("/manage","layout");revalidatePath("/notifications");revalidatePath("/me");
+ revalidatePath("/tasks","layout");revalidatePath("/activity");revalidatePath("/manage","layout");revalidatePath("/notifications");revalidatePath("/me");
  return {success:"تم حفظ التغيير.",task:target};
 }

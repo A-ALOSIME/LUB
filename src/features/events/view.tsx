@@ -52,7 +52,6 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
   return <div className="event-detail">
     <section className="panel event-detail-hero">
       <div className="event-detail-copy">
-        <Link href="/events" className="event-detail-back">{c("العودة إلى الفعاليات", "Back to events")}</Link>
         <Link href={"/organizations/" + data.slug} className="event-detail-organization" dir="auto">
           {logoSrc
             ? <span className="event-detail-organization-logo"><Image src={logoSrc} alt="" width={72} height={72} unoptimized /></span>

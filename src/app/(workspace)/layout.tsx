@@ -6,6 +6,7 @@ import { requireVerifiedProxyIdentity } from "@/features/auth/session";
 import { hasSuperAdminNavigationAccess } from "@/features/organizations/management-navigation";
 import { MyPageNavigation } from "@/features/organizations/my-page-navigation";
 import { getManagementOverview } from "@/features/organizations/management-repository";
+import { taskNotificationCounts, taskNotifications } from "@/features/tasks/repository";
 
 function AccountHeaderLoading() {
   return <header className="site-header" aria-hidden="true">
@@ -13,6 +14,7 @@ function AccountHeaderLoading() {
       <div className="h-9 w-24 animate-pulse rounded bg-mist" />
       <div className="flex items-center gap-3 py-2">
         <div className="h-9 w-28 animate-pulse rounded-lg bg-mist" />
+        <div className="size-9 animate-pulse rounded-lg bg-mist" />
         <div className="h-9 w-20 animate-pulse rounded-lg bg-mist" />
       </div>
     </div>
@@ -41,6 +43,7 @@ const getWorkspaceState = cache(async () => {
     : overview?.access.superAdmin ?? false;
 
   return {
+    userId: user.id,
     locale: preferences.locale,
     en: preferences.locale === "en",
     superAdmin: organizationsPage || superAdminAccess,
@@ -49,8 +52,10 @@ const getWorkspaceState = cache(async () => {
 });
 
 async function WorkspaceHeader() {
-  const { superAdmin } = await getWorkspaceState();
-  return <AccountHeader isSuperAdmin={superAdmin} />;
+  const { superAdmin, userId } = await getWorkspaceState();
+  if (superAdmin) return <AccountHeader isSuperAdmin />;
+  const [items, counts] = await Promise.all([taskNotifications(userId, 0), taskNotificationCounts(userId)]);
+  return <AccountHeader isSuperAdmin={false} notifications={items.slice(0, 5)} unreadNotificationCount={counts.unread} />;
 }
 
 async function WorkspaceNavigation() {

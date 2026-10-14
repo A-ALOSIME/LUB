@@ -48,7 +48,7 @@ export default async function Home() {
           <nav aria-label={en ? "Explore" : "مسارات الاستكشاف"} className="relative border-t border-white/25 lg:border-t-0 lg:border-s lg:border-white/25 lg:ps-8">
             <p className="mb-2 pt-5 text-sm text-[#b7ccdc] lg:pt-0">{en ? "Start here" : "ابدأ من هنا"}</p>
             <Link href="/organizations" className="hero-route">{en ? "Clubs and councils" : "الأندية والمجالس"}</Link>
-            <Link href="/events" className="hero-route">{en ? "Events" : "الفعاليات"}</Link>
+            <Link href="/events/discover" className="hero-route">{en ? "Events" : "الفعاليات"}</Link>
             <Link href="/talent" className="hero-route">{en ? "Talent" : "المواهب"}</Link>
           </nav>
         </div>

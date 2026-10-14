@@ -18,7 +18,7 @@ export function SiteHeader({
       <div className="site-header-brand"><Brand en={en} /></div>
       <nav dir={en ? "ltr" : "rtl"} aria-label={en ? "Main navigation" : "التنقل الرئيسي"} className="site-nav site-header-nav text-sm">
         <Link href="/organizations" prefetch={false}>{en ? "Clubs and councils" : "الأندية والمجالس"}</Link>
-        <Link href="/events" prefetch={false}>{en ? "Events" : "الفعاليات"}</Link>
+        <Link href="/events/discover" prefetch={false}>{en ? "Events" : "الفعاليات"}</Link>
         <Link href="/talent" prefetch={false}>{en ? "Talent" : "المواهب"}</Link>
         <Link href="/ai" prefetch={false} aria-label={en ? undefined : "اسأل لُبّ"}>{en ? "Ask LUB" : <span className="site-nav-ai-name" aria-hidden="true"><span>اسأل</span><LubWordmark /></span>}</Link>
       </nav>

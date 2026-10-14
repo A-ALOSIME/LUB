@@ -6,7 +6,7 @@ export type Task={id:string;organization_id:string;committee_id:string|null;titl
 export type Participant={id:string;user_id:string;status_code:string;approved_hours_override:string|null;joined_at:string;closed_at:string|null};
 export type Submission={id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
 export type TaskTemplate={id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
-export type TaskCard={task:Task;org_name:string;participant:Participant|null;historical:boolean};
+export type TaskCard={task:Task;org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
 export type TaskDetail={task:Task;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
 export type TaskWorkspace={name:string;scopes:Array<{id:string|null;name:string;tasks:boolean;templates:boolean}>;templates:TaskTemplate[];hourRules:Array<{id:string;name:string;default_hours:string;committee_id:string|null;task_template_id:string|null}>};
 export async function taskWorkspace(user:string,org:string){return withUser(user,async tx=>{
@@ -16,13 +16,20 @@ export async function taskWorkspace(user:string,org:string){return withUser(user
  from lub.organizations o where o.id=${org} and lub.has_task_access(o.id)`);
  return rows[0] as unknown as TaskWorkspace|undefined;
 });}
-export async function listTasks(user:string,options:{org?:string;mine?:boolean;page:number}){return withUser(user,async tx=>{
+export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number}){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`with visible as (
  select to_jsonb(t) as task,t.organization_id,t.created_at,to_jsonb(p) as participant,false as historical from lub.tasks t left join lub.task_participants p on p.task_id=t.id and p.user_id=${user}
- where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and (${Boolean(options.mine)}=false or p.id is not null)
+ where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and (p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
  union all select r.snapshot_json,(r.snapshot_json->>'organization_id')::uuid,p.joined_at,to_jsonb(p),true from lub.task_participants p join lateral(select r.* from lub.task_revisions r where r.task_id=p.task_id order by r.revision_number desc limit 1) r on true
  where p.user_id=${user} and not exists(select 1 from lub.tasks t where t.id=p.task_id) and (${options.org??null}::uuid is null or (r.snapshot_json->>'organization_id')::uuid=${options.org??null}::uuid))
- select v.task,o.name_ar as org_name,v.participant,v.historical from visible v join lub.organizations o on o.id=v.organization_id order by v.created_at desc,v.task->>'id' limit 26 offset ${options.page*25}`);
+ select v.task,o.name_ar as org_name,v.participant,v.historical,
+ (select jsonb_build_object('status_code',s.status_code) from lub.task_submissions s where s.task_participant_id=(v.participant->>'id')::uuid order by s.revision_number desc limit 1) as latest_submission,
+ (select h.hours::text from lub.hour_records h where h.task_participant_id=(v.participant->>'id')::uuid and h.status_code='Approved' limit 1) as approved_hours
+ from visible v join lub.organizations o on o.id=v.organization_id
+ where (${options.view==='mine'} and v.participant is not null) or
+ (${options.view==='available'} and not v.historical and v.task->>'status_code'='Open') or
+ (${options.view==='all'} and not v.historical)
+ order by v.created_at desc,v.task->>'id' limit 26 offset ${options.page*25}`);
  const items=rows as unknown as TaskCard[];return {items:items.slice(0,25),more:items.length>25};
 });}
 export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,teamPage=0,eventPage=0){return withUser(user,async tx=>{

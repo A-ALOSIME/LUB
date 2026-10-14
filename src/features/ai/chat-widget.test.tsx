@@ -48,7 +48,7 @@ it("shows the inline composer and streams a safe answer with source links and co
   render(<ChatWidget locale="ar" inline/>);
   expect(screen.queryByRole("button", {name: "فتح مساعد لُبّ"})).toBeNull();
   submit("كيف أسجل؟");
-  await waitFor(() => expect(screen.getByRole("link", {name: /الفعاليات/}).getAttribute("href")).toBe("/events"));
+  await waitFor(() => expect(screen.getByRole("link", {name: /الفعاليات/}).getAttribute("href")).toBe("/events/discover"));
   expect(fetcher).toHaveBeenCalledWith("/api/chat", expect.objectContaining({method: "POST", body: JSON.stringify({message: "كيف أسجل؟"})}));
   expect(screen.getByText("التسجيل من صفحة الفعاليات.")).toBeTruthy();
   const answer = document.querySelector(".lub-chat-assistant")!;

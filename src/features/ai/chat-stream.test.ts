@@ -11,12 +11,12 @@ describe("public RAG chat stream", () => {
 
   it("parses streamed events and drops private or external source links", () => {
     expect(parseChatEvent(JSON.stringify({type: "sources", sources: [
-      {label: "Events", url: "/events"},
+      {label: "Events", url: "/events/discover"},
       {label: "Private", url: "/account"},
       {label: "External", url: "https://evil.test"},
-    ]}))).toEqual({type: "sources", sources: [{label: "Events", url: "/events"}]});
+    ]}))).toEqual({type: "sources", sources: [{label: "Events", url: "/events/discover"}]});
     expect(parseChatEvent(JSON.stringify({type: "delta", text: "مرحبا"}))).toEqual({type: "delta", text: "مرحبا"});
-    expect(parseChatEvent(JSON.stringify({type: "sources", sources: [{label: "LUB", url: "https://lub.community/events"}]}))).toEqual({type: "sources", sources: [{label: "LUB", url: "/events"}]});
+    expect(parseChatEvent(JSON.stringify({type: "sources", sources: [{label: "LUB", url: "https://lub.community/events"}]}))).toEqual({type: "sources", sources: [{label: "LUB", url: "/events/discover"}]});
     expect(() => parseChatEvent(JSON.stringify({type: "delta", text: "x".repeat(16001)}))).toThrow();
   });
 

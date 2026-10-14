@@ -14,7 +14,7 @@ it("allows public crawling and points crawlers to the sitemap", () => {
   expect(result.host).toBe("https://lub.community");
   expect(result.sitemap).toBe("https://lub.community/sitemap.xml");
   expect(general).toMatchObject({ userAgent: "*", allow: "/" });
-  expect(general.disallow).toEqual(expect.arrayContaining(["/api/", "/manage", "/account", "/organizations/*/apply", "/events/*/register"]));
+  expect(general.disallow).toEqual(expect.arrayContaining(["/api/", "/manage", "/account", "/activity", "/organizations/*/apply", "/events/*/register"]));
 });
 
 it("allows named AI discovery crawlers while keeping private routes disallowed", () => {

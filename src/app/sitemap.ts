@@ -7,7 +7,7 @@ import { discoverySchema } from "@/features/organizations/validation";
 export const dynamic = "force-dynamic";
 
 const site = "https://lub.community";
-const staticPaths = ["/", "/organizations", "/events", "/talent", "/ai"];
+const staticPaths = ["/", "/organizations", "/events/discover", "/talent", "/ai"];
 
 async function publicOrganizationPaths(): Promise<string[]> {
   const paths: string[] = [];

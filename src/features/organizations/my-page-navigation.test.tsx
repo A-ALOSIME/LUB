@@ -40,9 +40,13 @@ describe("my page navigation", () => {
     expect(accountLinks.indexOf("ملفي المهاري")).toBe(accountLinks.indexOf("بيانات الحساب") + 1);
     expect(screen.getByRole("link", { name: "طلباتي" }).getAttribute("href")).toBe("/applications");
     expect(screen.queryByRole("link", { name: "طلبات التجديد" })).toBeNull();
-    expect(screen.getByRole("link", { name: "سجل الساعات" }).getAttribute("href")).toBe("/hours");
-    expect(screen.getByRole("link", { name: "المهام والمشاركات" }).getAttribute("href")).toBe("#tasks");
-    expect(screen.getByRole("link", { name: "فعالياتي" }).getAttribute("href")).toBe("#events");
+    expect(screen.getByRole("link", { name: "نشاطي" }).getAttribute("href")).toBe("/activity");
+    expect(accountLinks.indexOf("نشاطي")).toBe(accountLinks.indexOf("طلباتي") + 1);
+    expect(screen.queryByRole("link", { name: "الإشعارات" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "سجل الساعات" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "المهام والمشاركات" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "مستنداتي" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "فعالياتي" })).toBeNull();
     expect(screen.getByRole("link", { name: "نادي الأمن السيبراني" }).getAttribute("href")).toBe("/manage/organizations/org-1");
     expect(screen.getByRole("link", { name: "بيانات الجهة" }).getAttribute("href")).toBe("/manage/organizations/org-1");
     expect(screen.queryByRole("link", { name: "إعلانات الجهة" })).toBeNull();
@@ -98,7 +102,7 @@ describe("my page navigation", () => {
     render(<MyPageNavigation locale="ar" sectionBase="/me" organizations={[]} />);
 
     expect(screen.getByRole("link", { name: "نظرة عامة" }).getAttribute("href")).toBe("/me#overview");
-    expect(screen.getByRole("link", { name: "المهام والمشاركات" }).getAttribute("href")).toBe("/me#tasks");
+    expect(screen.getByRole("link", { name: "نشاطي" }).getAttribute("href")).toBe("/activity");
     expect(screen.queryByRole("link", { name: "بياناتي الأساسية" })).toBeNull();
     expect(screen.queryByRole("link", { name: "عضوياتي وسجل أدواري" })).toBeNull();
   });
