@@ -35,14 +35,14 @@ export function ActivityTabs({
     }}
     className="min-w-0 gap-4"
   >
-    <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-muted/50 p-1 sm:w-fit">
-      <TabsTrigger value="tasks" className="h-9 flex-none gap-2 px-3 data-active:bg-background data-active:shadow-sm">
+    <TabsList className="group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
+      <TabsTrigger value="tasks" className="h-9 flex-none gap-2 px-3 data-active:bg-background data-active:shadow-sm dark:data-active:bg-background">
         <ClipboardCheck aria-hidden="true" />{en ? "Tasks" : "المهام"}
       </TabsTrigger>
-      <TabsTrigger value="events" className="h-9 flex-none gap-2 px-3 data-active:bg-background data-active:shadow-sm">
+      <TabsTrigger value="events" className="h-9 flex-none gap-2 px-3 data-active:bg-background data-active:shadow-sm dark:data-active:bg-background">
         <CalendarDays aria-hidden="true" />{en ? "Events" : "الفعاليات"}
       </TabsTrigger>
-      <TabsTrigger value="hours" className="h-9 flex-none gap-2 px-3 data-active:bg-background data-active:shadow-sm">
+      <TabsTrigger value="hours" className="h-9 flex-none gap-2 px-3 data-active:bg-background data-active:shadow-sm dark:data-active:bg-background">
         <Clock3 aria-hidden="true" />{en ? "Hours" : "الساعات"}
       </TabsTrigger>
     </TabsList>
