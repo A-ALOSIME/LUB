@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getPreferences } from "@/lib/preferences";
-import { requireManagementUser } from "@/features/organizations/access";
+import { loadManagementPageData } from "@/features/organizations/access";
 import { getOrganizationPermissionWorkspace } from "@/features/organizations/management-repository";
 import { PermissionEditor } from "./permission-editor";
 
 export default async function OrganizationPermissionsPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, { locale }, user] = await Promise.all([params, getPreferences(), requireManagementUser()]);
+  const [{ id }, { locale }] = await Promise.all([params, getPreferences()]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const workspace = await getOrganizationPermissionWorkspace(user.id, id);
+  const { data: workspace } = await loadManagementPageData(userId => getOrganizationPermissionWorkspace(userId, id));
   if (!workspace) notFound();
   const en = locale === "en";
 

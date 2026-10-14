@@ -350,9 +350,13 @@ it("saves public profile, distinct interests and contacts atomically and audits 
 });
 it("creates and copies committees without copying private roles or memberships, then archives them", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
+  const unrelated = await createOrganization(admin, { nameAr: "جهة أخرى", slug: "other-club", typeCode: "Club", summary: "", mission: "" });
+  await expect(getManagementOrganization(leader, unrelated.id)).resolves.toBeUndefined();
   const created = await saveCommittee(leader, org, { name: "لجنة التصميم", description: "نعمل على التصاميم", isPublic: false });
   const copied = await copyCommittee(leader, org, created.id);
+  selectedReads = 0;
   const managed = await getManagementOrganization(leader, org);
+  expect(selectedReads).toBe(1);
   expect(managed?.committees.some(x => x.id === copied.id && x.copiedFromCommitteeId === created.id)).toBe(true);
   expect((await getPublicOrganization("tech"))?.committees.some(x => x.id === copied.id)).toBe(false);
   await setCommitteeStatus(leader, org, created.id, "Archived");

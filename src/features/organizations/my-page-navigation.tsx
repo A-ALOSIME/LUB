@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Locale } from "@/lib/preferences";
 import { formatPersonalNumber } from "./personal-display";
+import { IntentPrefetchLink } from "./intent-prefetch-link";
 
 export type ManagedOrganizationLink = {
   id: string;
@@ -76,9 +76,9 @@ export function MyPageNavigation({
           <p className="mt-0.5 text-lg font-bold leading-7">{superAdmin ? c("مساحتي", "My workspace") : c("صفحتي وإدارتي", "My page and management")}</p>
         </div>
       </div>
-      <Link href={sectionHref("overview")} prefetch={false} className={`${itemClass} workspace-sidebar-link--overview mt-3`}>
+      <IntentPrefetchLink href={sectionHref("overview")} className={`${itemClass} workspace-sidebar-link--overview mt-3`}>
         <span>{c("نظرة عامة", "Overview")}</span>
-      </Link>
+      </IntentPrefetchLink>
     </div>
 
     <nav aria-label={c("أقسام مساحتي", "Workspace sections")} className="workspace-sidebar-nav">
@@ -86,7 +86,7 @@ export function MyPageNavigation({
         <h2 className="workspace-sidebar-section-heading">{group.title}</h2>
         <ul className="workspace-sidebar-list">
           {group.items.map(item => <li key={item.href}>
-            <Link href={item.href} prefetch={false} className={itemClass}>{item.label}</Link>
+            <IntentPrefetchLink href={item.href} className={itemClass}>{item.label}</IntentPrefetchLink>
           </li>)}
         </ul>
       </section>)}
@@ -113,19 +113,19 @@ export function MyPageNavigation({
             ];
 
             return <li key={organization.id} className="workspace-sidebar-organization">
-              <Link href={root} prefetch={false} aria-label={organization.nameAr} className={`${itemClass} workspace-sidebar-organization-link`}>
+              <IntentPrefetchLink href={root} aria-label={organization.nameAr} className={`${itemClass} workspace-sidebar-organization-link`}>
                 <span className="workspace-sidebar-organization-name">
                   <span aria-hidden="true" className="workspace-sidebar-organization-mark">{organization.nameAr.trim().slice(0, 1)}</span>
                   <span dir="auto" className="min-w-0 break-words">{organization.nameAr}</span>
                 </span>
                 <span className={`workspace-status ${organization.statusCode === "Active" ? "is-current" : ""}`}>{en ? organization.statusCode : organization.statusCode === "Active" ? "نشطة" : organization.statusCode === "Archived" ? "مؤرشفة" : "غير نشطة"}</span>
-              </Link>
+              </IntentPrefetchLink>
               {managementLinks.length > 0 && <ul aria-label={`${organization.nameAr} · ${c("أقسام الإدارة", "management sections")}`} className="workspace-sidebar-subnav">
                 {managementLinks.map(item => <li key={item.href}>
-                  <Link href={item.href} prefetch={false} className={subsectionClass}>
+                  <IntentPrefetchLink href={item.href} className={subsectionClass}>
                     <span aria-hidden="true" className="workspace-sidebar-dot" />
                     <span>{item.label}</span>
-                  </Link>
+                  </IntentPrefetchLink>
                 </li>)}
               </ul>}
             </li>;

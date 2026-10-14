@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkspaceIcon } from "@/components/workspace-icon";
-import { requireManagementUser } from "@/features/organizations/access";
+import { loadManagementPageData } from "@/features/organizations/access";
 import { CommitteeFields } from "@/features/organizations/form-fields";
 import { getManagementOrganization } from "@/features/organizations/management-repository";
 import { MutationForm } from "@/features/organizations/mutation-form";
@@ -20,9 +20,9 @@ export async function generateMetadata() {
 }
 
 export default async function ManageOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, { locale }, user] = await Promise.all([params, getPreferences(), requireManagementUser()]);
+  const [{ id }, { locale }] = await Promise.all([params, getPreferences()]);
   if (!z.uuid().safeParse(id).success) notFound();
-  const managed = await getManagementOrganization(user.id, id);
+  const { data: managed } = await loadManagementPageData(userId => getManagementOrganization(userId, id));
   if (!managed) notFound();
 
   const { organization, committees } = managed;

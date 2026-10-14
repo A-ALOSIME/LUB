@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getPreferences } from "@/lib/preferences";
-import { requireManagementUser } from "@/features/organizations/access";
+import { loadManagementPageData } from "@/features/organizations/access";
 import { getOrganizationMemberDirectory } from "@/features/organizations/management-repository";
 import { MemberDirectory } from "./member-directory";
 
 export default async function OrganizationMembersPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, { locale }, user] = await Promise.all([params, getPreferences(), requireManagementUser()]);
+  const [{ id }, { locale }] = await Promise.all([params, getPreferences()]);
   if (!z.uuid().safeParse(id).success) notFound();
-  const workspace = await getOrganizationMemberDirectory(user.id, id);
+  const { data: workspace } = await loadManagementPageData(userId => getOrganizationMemberDirectory(userId, id));
   if (!workspace) notFound();
   const en = locale === "en";
   return <div className="workspace-content organization-members-page">

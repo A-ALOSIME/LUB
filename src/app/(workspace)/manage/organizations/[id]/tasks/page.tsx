@@ -2,7 +2,7 @@ import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import {z} from "zod";
-import {requireManagementUser} from "@/features/organizations/access";
+import {loadManagementPageData} from "@/features/organizations/access";
 import {taskWorkspace,listTasks} from "@/features/tasks/repository";
 import {TaskFields} from "@/features/tasks/task-fields";
 import {TaskForm} from "@/features/tasks/task-form";
@@ -10,8 +10,8 @@ import {TaskList,TaskPagination} from "@/features/tasks/task-list";
 import {getPreferences} from "@/lib/preferences";
 export async function generateMetadata(){return localizedMetadata('إدارة المهام والقوالب','Tasks and templates');}
 export default async function ManageTasksPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{page?:string;template?:string}>}){
- const [user,{locale}]=await Promise.all([requireManagementUser(),getPreferences()]);const en=locale==="en",c=(ar:string,english:string)=>en?english:ar;const {id}=await params;if(!z.uuid().safeParse(id).success)notFound();const query=await searchParams;const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.page??0);
- const [workspace,data]=await Promise.all([taskWorkspace(user.id,id),listTasks(user.id,{org:id,view:"all",page})]);if(!workspace)notFound();const source=workspace.templates.find(t=>t.id===query.template&&t.is_active);const taskScopes=workspace.scopes.filter(s=>s.tasks),templateScopes=workspace.scopes.filter(s=>s.templates);
+ const [{locale},{id},query]=await Promise.all([getPreferences(),params,searchParams]);const en=locale==="en",c=(ar:string,english:string)=>en?english:ar;if(!z.uuid().safeParse(id).success)notFound();const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.page??0);
+ const {data:[workspace,data]}=await loadManagementPageData(userId=>Promise.all([taskWorkspace(userId,id),listTasks(userId,{org:id,view:"all",page})]));if(!workspace)notFound();const source=workspace.templates.find(t=>t.id===query.template&&t.is_active);const taskScopes=workspace.scopes.filter(s=>s.tasks),templateScopes=workspace.scopes.filter(s=>s.templates);
  const base=`/manage/organizations/${id}/tasks`;const allowedTemplate=(committee:string|null)=>templateScopes.some(s=>s.id===committee);
  const scopeField=(scopes:typeof workspace.scopes,value?:string|null)=><label>{c("نطاق العمل","Work scope")}<select name="committee" defaultValue={value??""}>{scopes.map(s=><option key={s.id??"organization"} value={s.id??""} dir="auto">{s.name}</option>)}</select></label>;
  return <div className="space-y-8"><div><Link className="text-link mb-5 inline-block" href={`/manage/organizations/${id}`}>{c("إعدادات الجهة","Organization settings")}</Link><h1 className="text-3xl leading-normal font-bold">{c("مهام","Tasks for")} <bdi>{workspace.name}</bdi></h1><p className="mt-3 leading-8 text-muted">{c("النشر والانضمام وتسليم المخرجات، بمراجعة مستقلة لكل مشارك.","Publish tasks, join and submit deliverables, with an independent review for each participant.")}</p></div>

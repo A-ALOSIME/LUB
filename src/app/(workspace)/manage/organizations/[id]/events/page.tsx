@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { requireManagementUser } from "@/features/organizations/access";
+import { loadManagementPageData } from "@/features/organizations/access";
 import { eventWorkspaceOverview } from "@/features/events/workspace";
 import { EventForm, EventFields } from "@/features/events/form";
 import { EventDraftPreview } from "@/features/events/draft-preview";
@@ -21,16 +21,14 @@ export default async function ManageEvents({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ page?: string }>;
 }) {
-  const [user, { locale }] = await Promise.all([requireManagementUser(), getPreferences()]);
+  const [{ locale }, { id }, search] = await Promise.all([getPreferences(), params, searchParams]);
   const en = locale === "en";
   const labels = en ? eventLabelsEn : eventLabels;
   const date = en ? eventDateEn : eventDate;
-  const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const search = await searchParams;
   const page = Math.floor(Math.min(10000, Math.max(0, Number(search.page) || 0)));
-  const data = await eventWorkspaceOverview(user.id, id, page);
+  const { data } = await loadManagementPageData(userId => eventWorkspaceOverview(userId, id, page));
   if (!data) notFound();
   return <div className="workspace-content organization-events-page">
     <header className="workspace-page-header">
