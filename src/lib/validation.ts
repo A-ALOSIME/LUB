@@ -16,8 +16,6 @@ export const profileSchema = z.object({
   major: z.string().trim().min(2, "أدخل تخصصك.").max(120, "اسم التخصص طويل جدًا."),
   academicLevel: z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "graduate"], { error: "اختر المستوى الدراسي." }),
   phone: z.string().transform(normalizeDigits).pipe(z.string().regex(/^(?:\+?[0-9]{8,15})?$/, "أدخل رقم هاتف صحيحًا أو اتركه فارغًا.")),
-  publicProfileEnabled: z.boolean().default(false),
-  showTotalHours: z.boolean().default(true),
 });
 export const signupProfileSchema = profileSchema.extend({ universityId: universityIdSchema });
 export type ProfileInput = z.infer<typeof profileSchema>;

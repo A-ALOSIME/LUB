@@ -108,8 +108,8 @@ it("publishes only chosen event report and photo links without exposing operatio
 
 it("executes safe talent DTOs and combines private readiness with workspace in one query",async()=>{
  const {talentDirectory,publicTalent,talentWorkspace}=await import("@/features/talent/repository");const pages={organizations:0,events:0,projects:0,sources:0};
- expect(await publicTalent(leader,pages)).toBeNull();expect(await talentDirectory("",null,0)).toEqual([]);scopedReads=0;const workspace=await talentWorkspace(leader,pages);expect(scopedReads).toBe(1);expect(workspace?.onboarded).toBe(true);expect(workspace?.settings).toEqual({});
- await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.save_talent_settings('نبذة',true,true,true,true,true)");await engine.query("select lub.save_talent_skill('تصميم',true)");await engine.exec("reset role");
+ expect(await publicTalent(leader,pages)).toBeNull();expect(await talentDirectory("",null,0)).toEqual([]);scopedReads=0;const workspace=await talentWorkspace(leader,pages);expect(scopedReads).toBe(1);expect(workspace?.onboarded).toBe(true);expect(workspace?.settings).toEqual({public_profile_enabled:false});
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.save_talent_settings('نبذة',true)");await engine.query("select lub.save_talent_skill('تصميم',true)");await engine.exec("reset role");
  expect((await talentDirectory("القائد","تصميم",0)).map(p=>p.id)).toEqual([leader]);expect((await publicTalent(leader,pages))?.skills).toEqual(["تصميم"]);expect(JSON.stringify(await publicTalent(leader,pages))).not.toMatch(/secret2|lookup|university/);
 });
 
@@ -186,16 +186,21 @@ it("reads scoped tasks, selected submissions, personal summaries and former-memb
  const task=(await engine.query<{id:string}>("select lub.save_task(null,$1,null,null,'مهمة فعلية','وصفها',null,null,2,null) as id",[org])).rows[0].id;
  await engine.query("select lub.change_task_status($1,'Open',1)",[task]);await engine.exec("reset role");
  expect((await taskWorkspace(leader,org))?.scopes[0].tasks).toBe(true);expect(await taskWorkspace(admin,org)).toBeUndefined();
- expect((await listTasks(admin,{page:0})).items[0].task.id).toBe(task);
+ expect((await listTasks(leader,{org,view:"all",page:0})).items.map(x=>x.task.id)).toContain(task);
+ expect((await listTasks(admin,{view:"available",page:0})).items.map(x=>x.task.id)).toContain(task);
+ expect((await listTasks(admin,{view:"mine",page:0})).items).toHaveLength(0);
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");
  const participant=(await engine.query<{id:string}>("select lub.join_task($1) as id",[task])).rows[0].id;
  const submission=(await engine.query<{id:string}>("select lub.submit_task($1,'مخرج',array[]::uuid[],0,2) as id",[participant])).rows[0].id;await engine.exec("reset role");
+ const joinedTasks=await listTasks(admin,{view:"available",page:0});expect(joinedTasks.items.find(x=>x.task.id===task)?.participant?.id).toBe(participant);expect(joinedTasks.items.find(x=>x.task.id===task)?.latest_submission?.status_code).toBe("Submitted");
  const detail=await taskDetail(leader,task,participant);expect(detail?.selected?.id).toBe(participant);expect(detail?.submissions[0].id).toBe(submission);expect(detail?.submissions[0].task_snapshot.description).toBe("وصفها");expect(detail?.team[0].name).toBe("المشرف");
  expect((await getMyPageData(admin)).tasks[0].id).toBe(task);
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.review_task_submission($1,'Rejected','تعديل',null)",[submission]);await engine.exec("reset role");
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_task_status($1,'Completed',2)",[task]);await engine.exec("reset role");
+ expect((await listTasks(admin,{view:"available",page:0})).items.map(x=>x.task.id)).not.toContain(task);expect((await listTasks(admin,{view:"mine",page:0})).items.find(x=>x.task.id===task)?.task.status_code).toBe("Completed");
  expect((await taskNotifications(admin,0))[0].target_url).toBe(`/tasks/${task}`);
  await engine.query("update lub.organization_memberships set status_code='Ended',end_date=current_date where id=$1",[member]);
- const history=await taskDetail(admin,task);expect(history?.current).toBe(false);expect(history?.team).toEqual([]);expect(history?.submissions[0].message).toBe("مخرج");expect((await listTasks(admin,{page:0,mine:true})).items[0].historical).toBe(true);
+ const history=await taskDetail(admin,task);expect(history?.current).toBe(false);expect(history?.team).toEqual([]);expect(history?.submissions[0].message).toBe("مخرج");expect((await listTasks(admin,{view:"mine",page:0})).items.find(x=>x.task.id===task)?.historical).toBe(true);
 });
 
 it("reads active organizations without an account, and explicitly includes archives when requested", async () => {

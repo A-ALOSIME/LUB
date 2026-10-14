@@ -15,7 +15,7 @@ import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
 import { saveProfile } from "./actions";
-import { ProfileDetailsSection, ProfilePrivacySection } from "./profile-form-sections";
+import { ProfileDetailsSection } from "./profile-form-sections";
 import type { StudentProfile } from "./repository";
 
 export function ProfileForm({
@@ -40,8 +40,8 @@ export function ProfileForm({
       : "بيانات حسابك";
   const cardDescription = profile
     ? en
-      ? "Manage your personal details and public profile preferences."
-      : "إدارة بياناتك الشخصية وتفضيلات ظهور ملفك العام."
+      ? "Manage your personal details."
+      : "إدارة بياناتك الشخصية."
     : en
       ? "Add your basic details once to use them across your account."
       : "أكمل بياناتك الأساسية مرة واحدة لاستخدامها في حسابك.";
@@ -80,8 +80,6 @@ export function ProfileForm({
             locale={locale}
             errors={state.fieldErrors}
           />
-          <div className="account-settings-divider" role="presentation" />
-          <ProfilePrivacySection profile={profile} locale={locale} />
           {state.error && (
             <div role="alert" className="account-settings-form-error">
               {actionFeedback(state.error, locale)}

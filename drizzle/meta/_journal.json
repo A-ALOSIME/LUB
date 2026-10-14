@@ -218,6 +218,20 @@
       "when": 1791911292364,
       "tag": "0030_bitter_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791924067852,
+      "tag": "0031_talent_public_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791946116867,
+      "tag": "0032_application_notification_targets",
+      "breakpoints": true
     }
   ]
 }

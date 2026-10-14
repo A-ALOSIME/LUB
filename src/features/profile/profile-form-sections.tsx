@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Mail } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
@@ -79,7 +78,6 @@ function ProfileTextField({
     </Field>
   );
 }
-
 export function ProfileDetailsSection({
   profile,
   email,
@@ -218,62 +216,6 @@ export function ProfileDetailsSection({
           </div>
         </div>
       </div>
-    </FieldSet>
-  );
-}
-
-export function ProfilePrivacySection({
-  profile,
-  locale,
-}: {
-  profile?: StudentProfile;
-  locale: Locale;
-}) {
-  const en = locale === "en";
-  const options = [
-    {
-      name: "publicProfileEnabled",
-      label: en ? "Show my public profile" : "السماح بظهور ملفي العام",
-      checked: profile?.publicProfileEnabled ?? false,
-    },
-    {
-      name: "showTotalHours",
-      label: en ? "Show total hours" : "إظهار إجمالي ساعاتي",
-      checked: profile?.showTotalHours ?? true,
-    },
-  ] as const;
-
-  return (
-    <FieldSet className="account-settings-section">
-      <FieldLegend className="account-settings-legend">
-        {en ? "Privacy" : "الخصوصية"}
-      </FieldLegend>
-      <FieldDescription>
-        {en
-          ? "Choose what other members can see on your public profile."
-          : "اختر المعلومات التي يمكن للأعضاء رؤيتها في ملفك العام."}
-      </FieldDescription>
-
-      <FieldGroup className="account-settings-privacy-options">
-        {options.map((option) => (
-          <Field
-            key={option.name}
-            orientation="horizontal"
-            className="account-settings-privacy-option"
-          >
-            <Checkbox
-              id={option.name}
-              name={option.name}
-              value="on"
-              defaultChecked={option.checked}
-              className="account-settings-checkbox"
-            />
-            <FieldLabel htmlFor={option.name} className="account-settings-field-label">
-              {option.label}
-            </FieldLabel>
-          </Field>
-        ))}
-      </FieldGroup>
     </FieldSet>
   );
 }

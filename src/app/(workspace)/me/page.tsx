@@ -5,8 +5,6 @@ import { requireStudentUser as requireUser } from "@/features/auth/authorization
 import { getMyPageData } from "@/features/organizations/my-page-repository";
 import { StorageUnavailable } from "@/components/storage-unavailable";
 import { isProfileStorageConfigured } from "@/lib/env";
-import { taskLabels } from "@/features/tasks/repository";
-import { taskLabelsEn } from "@/features/tasks/display";
 import { getPreferences } from "@/lib/preferences";
 import { formatPersonalDate, formatPersonalNumber } from "@/features/organizations/personal-display";
 
@@ -55,31 +53,25 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
 
           <section id="memberships" aria-labelledby="memberships-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--memberships scroll-mt-6">
             <SectionHeading id="memberships-title" eyebrow={en ? "ORGANIZATIONS" : "العضويات والأدوار"} title={en ? "Memberships and role history" : "عضوياتي وسجل أدواري"} />
-            {memberships.length ? <ul className="mt-4 divide-y divide-line">
-              {memberships.map(membership => <li key={membership.id} className="py-4 first:pt-1 last:pb-1">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <Link href={`/organizations/${membership.slug}`} dir="auto" className="text-lg font-semibold text-action hover:underline">{membership.organizationName}</Link>
-                  <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">{en ? membership.statusCode === "Active" ? "Active" : membership.statusCode === "Inactive" ? "Inactive" : "Ended" : membership.statusCode === "Active" ? "نشطة" : membership.statusCode === "Inactive" ? "غير نشطة" : "منتهية"}</span>
-                </div>
-                {membership.organizationStatus === "Archived" && <p className="mt-1 text-sm text-muted">{en ? "Organization archived" : "الجهة مؤرشفة"}</p>}
-                <p className="mt-2 text-sm leading-7 text-muted">{en ? "From " : "من "}{formatDate(membership.startDate)}{membership.endDate && <> {en ? "to" : "إلى"} {formatDate(membership.endDate)}</>}</p>
-                {membership.roles.length > 0 && <ul className="mt-3 space-y-2 border-s-2 border-line ps-4 text-sm leading-7">
-                  {membership.roles.map((role, index) => <li key={`${role.code}-${role.startDate}-${index}`}><span className="font-semibold">{roleLabels[role.code]}</span><span className="text-muted"> · {en ? "from" : "من"} {formatDate(role.startDate)}{role.endDate ? <> {en ? "to" : "إلى"} {formatDate(role.endDate)}</> : en ? ", ongoing" : "، مستمر"}</span></li>)}
-                </ul>}
+            {memberships.length ? <ol className="mt-5 space-y-5 border-s-2 border-line ps-5">
+              {memberships.map(membership => <li key={membership.id} className="relative min-w-0 before:absolute before:start-[-1.45rem] before:top-1.5 before:size-3 before:rounded-full before:border-2 before:border-action before:bg-surface">
+                <article className="min-w-0 rounded-xl border border-line bg-surface p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={"/organizations/" + membership.slug} dir="auto" className="break-words text-base font-semibold text-action hover:underline">{membership.organizationName}</Link>
+                      <p className="mt-1 text-sm leading-6 text-muted">{en ? "Membership" : "العضوية"} · {formatDate(membership.startDate)}{membership.endDate && <> – {formatDate(membership.endDate)}</>}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted">{en ? membership.statusCode === "Active" ? "Active" : membership.statusCode === "Inactive" ? "Inactive" : "Ended" : membership.statusCode === "Active" ? "نشطة" : membership.statusCode === "Inactive" ? "غير نشطة" : "منتهية"}</span>
+                  </div>
+                  {membership.organizationStatus === "Archived" && <p className="mt-2 text-xs text-muted">{en ? "Organization archived" : "الجهة مؤرشفة"}</p>}
+                  {membership.roles.length > 0 && <ol className="mt-4 space-y-2 border-s border-line ps-4">
+                    {membership.roles.map((role, index) => <li key={role.code + role.startDate + index} className="relative text-sm leading-6 before:absolute before:start-[-1.32rem] before:top-2 before:size-2 before:rounded-full before:bg-action">
+                      <span className="font-medium">{roleLabels[role.code]}</span><span className="text-muted"> · {en ? "from" : "من"} {formatDate(role.startDate)}{role.endDate ? <> {en ? "to" : "إلى"} {formatDate(role.endDate)}</> : en ? ", ongoing" : "، مستمر"}</span>
+                    </li>)}
+                  </ol>}
+                </article>
               </li>)}
-            </ul> : <p className="mt-4 leading-7 text-muted">{en ? "Your membership history will appear here when it is available." : "يظهر سجل عضوياتك هنا عند توفره."}</p>}
-          </section>
-
-          <section id="tasks" aria-labelledby="tasks-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--tasks scroll-mt-6">
-            <SectionHeading id="tasks-title" eyebrow={en ? "PARTICIPATION" : "المشاركة"} title={en ? "Current tasks" : "مشاركاتي الحالية"} />
-            {tasks.length ? <ul className="mt-4 divide-y divide-line">{tasks.map(task => <li key={task.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-1 last:pb-1"><Link dir="auto" className="font-semibold text-action hover:underline" href={`/tasks/${task.id}`}>{task.title}</Link><span className="text-sm text-muted">{en ? taskLabelsEn[task.status] : taskLabels[task.status]}</span></li>)}</ul> : <p className="mt-4 leading-7 text-muted">{en ? "No current task participation to show." : "لا توجد مشاركات حالية لعرضها الآن."}</p>}
-            <Link className="mt-4 inline-block text-sm font-semibold text-action hover:underline" href="/tasks">{en ? "Tasks and participation history" : "المهام وسجل المشاركات"}<span aria-hidden="true" className="ms-2">←</span></Link>
-          </section>
-
-          <section id="events" aria-labelledby="events-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--events scroll-mt-6">
-            <SectionHeading id="events-title" eyebrow={en ? "EVENTS" : "الفعاليات"} title={en ? "My events" : "فعالياتي"} />
-            <p className="mt-3 leading-7 text-muted">{en ? "Your registrations and attendance are saved in your event history." : "تسجيلاتي وحضوري محفوظان في سجل الفعاليات."}</p>
-            <Link href="/events/mine" className="mt-4 inline-block text-sm font-semibold text-action hover:underline">{en ? "View my events" : "عرض فعالياتي"}<span aria-hidden="true" className="ms-2">←</span></Link>
+            </ol> : <p className="mt-4 leading-7 text-muted">{en ? "Your membership history will appear here when it is available." : "يظهر سجل عضوياتك هنا عند توفره."}</p>}
           </section>
   </main>;
 }

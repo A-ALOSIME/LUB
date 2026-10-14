@@ -112,6 +112,9 @@ input[aria-invalid="true"]:focus, textarea[aria-invalid="true"]:focus { border-c
 [data-theme="dark"] .error-message { color: #ffd1ca; background: #4b2727; border-color: #a2574f; }
 [data-theme="dark"] .text-red-800 { color: #ffb4ac; }
 [data-theme="dark"] .notice-success { background: #1d3b35; border-color: #477c6c; }
+.talent-settings-page [data-slot="field-label"], .talent-form-dialog [data-slot="field-label"] { margin-block-end: 0; }
+.talent-settings-page [data-slot="input"], .talent-form-dialog [data-slot="input"], .talent-settings-page [data-slot="native-select"], .talent-form-dialog [data-slot="native-select"] { min-height: 2.25rem; padding-block: .4rem; }
+.talent-settings-page [data-slot="textarea"], .talent-form-dialog [data-slot="textarea"] { min-height: 5rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 @media (max-width: 1023px) {
   .site-header-inner { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tools brand" "nav nav"; gap: 0 .75rem; }

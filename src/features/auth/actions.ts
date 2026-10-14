@@ -19,8 +19,6 @@ function signupProfileFromForm(form: FormData) {
     major: form.get("major"),
     academicLevel: form.get("academicLevel"),
     phone: form.get("phone") ?? "",
-    publicProfileEnabled: form.get("publicProfileEnabled") === "on",
-    showTotalHours: form.get("showTotalHours") === "on",
   };
 }
 

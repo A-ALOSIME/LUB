@@ -15,7 +15,7 @@ vi.mock("next/cache", () => ({ updateTag: deps.updateTag, revalidatePath: deps.r
 import { completeSignup } from "./complete-signup";
 
 const user = { id: "verified-user", email: "student@example.com", emailVerifiedAt: "2026-10-12T10:00:00Z" };
-const profile: SignupProfileInput = { fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", publicProfileEnabled: false, showTotalHours: true };
+const profile: SignupProfileInput = { fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "" };
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -18,7 +18,6 @@ export async function saveProfile(_previous: FormState, form: FormData): Promise
   const input = profileSchema.safeParse({
     fullName: form.get("fullName"), universityId: form.get("universityId") || undefined,
     major: form.get("major"), academicLevel: form.get("academicLevel"), phone: form.get("phone") ?? "",
-    publicProfileEnabled: form.get("publicProfileEnabled") === "on", showTotalHours: form.get("showTotalHours") === "on",
   });
   if (!input.success) return { error: "راجع الحقول الموضحة وأكمل البيانات.", fieldErrors: z.flattenError(input.error).fieldErrors };
   try { await saveStudentProfile(user, input.data); }

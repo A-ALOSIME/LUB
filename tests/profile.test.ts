@@ -39,22 +39,23 @@ beforeEach(async () => {
 afterEach(async () => { await engine.close(); vi.unstubAllEnvs(); });
 
 describe("actual profile persistence", () => {
-  it("atomically creates identity, encrypted profile, opt-in settings and a redacted audit event", async () => {
+  it("atomically creates identity, a private default profile and a redacted audit event", async () => {
     await saveStudentProfile(alice, profile());
     const student = await getStudentProfile(alice.id);
     expect(student?.fullName).toBe("أحمد محمد");
-    expect(student?.publicProfileEnabled).toBe(false);
+    expect(student).not.toHaveProperty("publicProfileEnabled");
+    expect((await engine.query("select public_profile_enabled from lub.profile_settings")).rows).toEqual([{ public_profile_enabled: false }]);
     expect(JSON.stringify(student)).not.toContain("202612345");
     expect(Object.keys(student ?? {})).not.toContain("universityIdCiphertext");
     const stored = (await engine.query<{ university_id_ciphertext: string }>("select university_id_ciphertext from lub.student_profiles")).rows[0];
     expect(stored.university_id_ciphertext).not.toContain("202612345");
     const audits = await engine.query("select action_code, metadata from lub.audit_log");
-    expect(audits.rows).toEqual([{ action_code: "PROFILE_CREATED", metadata: { publicProfileEnabled: false, showTotalHours: true } }]);
+    expect(audits.rows).toEqual([{ action_code: "PROFILE_CREATED", metadata: {} }]);
   });
   it("edits the same profile and retains the original university number", async () => {
     await saveStudentProfile(alice, profile());
     const original = (await engine.query("select university_id_ciphertext from lub.student_profiles")).rows;
-    await saveStudentProfile(alice, { ...profile(), universityId: undefined, major: "علوم الحاسب", publicProfileEnabled: true });
+    await saveStudentProfile(alice, { ...profile(), universityId: undefined, major: "علوم الحاسب" });
     expect((await getStudentProfile(alice.id))?.major).toBe("علوم الحاسب");
     expect((await engine.query("select university_id_ciphertext from lub.student_profiles")).rows).toEqual(original);
     expect((await engine.query("select action_code from lub.audit_log order by created_at")).rows).toEqual([{ action_code: "PROFILE_CREATED" }, { action_code: "PROFILE_UPDATED" }]);

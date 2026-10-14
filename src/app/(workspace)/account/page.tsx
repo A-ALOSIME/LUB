@@ -8,7 +8,7 @@ import { getPreferences } from "@/lib/preferences";
 import { redirect } from "next/navigation";
 
 export async function generateMetadata() {
-  return localizedMetadata("الحساب والخصوصية", "Account and privacy");
+  return localizedMetadata("بيانات الحساب", "Account details");
 }
 
 export default async function Account() {
@@ -27,12 +27,12 @@ export default async function Account() {
       <header className="account-settings-page-header">
         <div className="account-settings-page-heading min-w-0">
           <h1 className="text-base font-semibold tracking-tight">
-            {en ? "Account and privacy" : "الحساب والخصوصية"}
+            {en ? "Account details" : "بيانات الحساب"}
           </h1>
           <p className="text-sm leading-6 text-muted-foreground">
             {en
-              ? "Update your account details and choose what appears on your public profile."
-              : "حدّث بيانات حسابك واختر ما يظهر في ملفك العام."}
+              ? "Update your personal account details."
+              : "حدّث بيانات حسابك الشخصية."}
           </p>
         </div>
       </header>

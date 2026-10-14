@@ -47,7 +47,7 @@ it("returns to the validated saved application after exchange and consumes the c
 });
 
 it("completes an encrypted pending signup when the user follows the email link", async () => {
-  const profile = { fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", publicProfileEnabled: false, showTotalHours: true };
+  const profile = { fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "" };
   const request = new NextRequest("http://127.0.0.1:3000/auth/callback?code=valid");
   request.cookies.set("lub-signup-draft", encryptSignupDraft(JSON.stringify(profile), "student@example.com"));
   const response = await GET(request);

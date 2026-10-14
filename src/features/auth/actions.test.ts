@@ -38,7 +38,7 @@ function form(values: Record<string, string>) {
   return data;
 }
 function signupForm(overrides: Record<string, string> = {}) {
-  return form({ email: "student@example.com", mode: "signup", fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", publicProfileEnabled: "", showTotalHours: "on", ...overrides });
+  return form({ email: "student@example.com", mode: "signup", fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", ...overrides });
 }
 describe("OTP server actions", () => {
   it("does not call the provider for invalid input", async () => {

@@ -1,9 +1,30 @@
 // @vitest-environment jsdom
-import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
-import {afterEach,expect,it,vi} from "vitest";
-vi.mock("./actions",()=>({mutateTalent:async()=>({error:"تعذّر حفظ الملف"})}));
-vi.mock("@/features/forms/actions",()=>({mutateWorkflow:vi.fn()}));
-import {TalentForm,LinkFields,NewProject} from "./form";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+
+vi.mock("./actions", () => ({ mutateTalent: async () => ({ error: "تعذّر حفظ الملف" }) }));
+vi.mock("@/features/forms/actions", () => ({ mutateWorkflow: vi.fn() }));
+
+import { HiddenSwitch, NewProject } from "./form";
+
 afterEach(cleanup);
-it("keeps contact details private by default and retains typed content after failure",async()=>{render(<TalentForm operation="link" label="حفظ"><LinkFields/></TalentForm>);expect((screen.getByLabelText("إظهار قناة التواصل للعامة") as HTMLInputElement).checked).toBe(false);fireEvent.change(screen.getByLabelText("عنوان قناة التواصل"),{target:{value:"موقعي"}});fireEvent.change(screen.getByLabelText("الرابط أو البريد أو الهاتف"),{target:{value:"https://example.invalid"}});fireEvent.submit(screen.getByRole("button",{name:"حفظ"}).closest("form")!);await waitFor(()=>expect(document.activeElement).toBe(screen.getByRole("alert")));expect((screen.getByLabelText("عنوان قناة التواصل") as HTMLInputElement).value).toBe("موقعي");});
-it("switches the verified source without submitting both task and contribution IDs",()=>{const {container}=render(<NewProject sources={[{id:"task-source",kind:"Task",title:"مهمة"},{id:"event-source",kind:"Event",title:"مساهمة"}]}/>);expect(container.querySelector<HTMLInputElement>('input[name="participant"]')?.value).toBe("task-source");fireEvent.change(screen.getByLabelText("النشاط الموثق"),{target:{value:"event-source"}});expect(container.querySelector('input[name="participant"]')).toBeNull();expect(container.querySelector<HTMLInputElement>('input[name="contribution"]')?.value).toBe("event-source");expect((screen.getByLabelText("إظهار هذا الإنجاز للعامة") as HTMLInputElement).checked).toBe(false);});
+
+it("submits the current switch value as an explicit boolean", () => {
+  const { container } = render(<form><HiddenSwitch name="visible" label="إظهار قناة التواصل للعامة" /></form>);
+  const value = container.querySelector<HTMLInputElement>('input[name="visible"]')!;
+  expect(value.value).toBe("false");
+  fireEvent.click(screen.getByRole("switch", { name: "إظهار قناة التواصل للعامة" }));
+  expect(value.value).toBe("true");
+});
+
+it("switches the verified source without submitting both task and contribution IDs", () => {
+  const { container } = render(<NewProject sources={[
+    { id: "00000000-0000-4000-8000-000000000001", kind: "Task", title: "مهمة" },
+    { id: "00000000-0000-4000-8000-000000000002", kind: "Event", title: "مساهمة" },
+  ]} />);
+  expect(container.querySelector<HTMLInputElement>('input[name="participant"]')?.value).toBe("00000000-0000-4000-8000-000000000001");
+  fireEvent.change(screen.getByLabelText("النشاط الموثق"), { target: { value: "00000000-0000-4000-8000-000000000002" } });
+  expect(container.querySelector('input[name="participant"]')).toBeNull();
+  expect(container.querySelector<HTMLInputElement>('input[name="contribution"]')?.value).toBe("00000000-0000-4000-8000-000000000002");
+  expect((screen.getByRole("switch", { name: "إبراز الإنجاز في أعلى الملف" }) as HTMLButtonElement).getAttribute("aria-checked")).toBe("false");
+});

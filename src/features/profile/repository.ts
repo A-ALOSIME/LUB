@@ -26,10 +26,8 @@ export async function getStudentProfile(userId: string) {
     const [profile] = await tx.select({
       fullName: studentProfiles.fullNameAr, major: studentProfiles.majorName,
       academicLevel: studentProfiles.academicLevel, phone: users.phone,
-      publicProfileEnabled: profileSettings.publicProfileEnabled, showTotalHours: profileSettings.showTotalHours,
     }).from(studentProfiles)
       .innerJoin(users, eq(users.id, studentProfiles.userId))
-      .innerJoin(profileSettings, eq(profileSettings.userId, studentProfiles.userId))
       .where(eq(studentProfiles.userId, userId)).limit(1);
     return profile;
   });
@@ -52,12 +50,11 @@ export async function saveStudentProfile(user: VerifiedUser, input: ProfileInput
     } else if (input.universityId) {
       await tx.insert(studentProfiles).values({ userId: user.id, ...profile, universityIdCiphertext: encryptIdentifier(input.universityId, user.id), universityIdLookupHash: identifierLookup(input.universityId) });
     }
-    const settings = { publicProfileEnabled: input.publicProfileEnabled, showTotalHours: input.showTotalHours, updatedAt };
-    await tx.insert(profileSettings).values({ userId: user.id, ...settings }).onConflictDoUpdate({ target: profileSettings.userId, set: settings });
+    await tx.insert(profileSettings).values({ userId: user.id }).onConflictDoNothing();
     await tx.insert(auditLog).values({
       actorUserId: user.id, actionCode: existing ? "PROFILE_UPDATED" : "PROFILE_CREATED",
       entityType: "student_profiles", entityId: user.id,
-      metadata: { publicProfileEnabled: input.publicProfileEnabled, showTotalHours: input.showTotalHours },
+      metadata: {},
     });
   });
 }

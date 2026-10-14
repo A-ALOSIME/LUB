@@ -13,8 +13,6 @@ type SignupDraft = {
   major: string;
   academicLevel: string;
   phone: string;
-  publicProfileEnabled: boolean;
-  showTotalHours: boolean;
 };
 
 const emptyDraft: SignupDraft = {
@@ -24,12 +22,9 @@ const emptyDraft: SignupDraft = {
   major: "",
   academicLevel: "",
   phone: "",
-  publicProfileEnabled: false,
-  showTotalHours: true,
 };
 
 type TextField = "email" | "fullName" | "universityId" | "major" | "academicLevel" | "phone";
-type PreferenceField = "publicProfileEnabled" | "showTotalHours";
 
 export function SignupFlow({ available, returnTo, locale }: { available: boolean; returnTo: string; locale: Locale }) {
   const en = locale === "en";
@@ -38,7 +33,6 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
   const [draft, setDraft] = useState(emptyDraft);
   const emailToVerify = !changeDetails && !sending ? state.email : undefined;
   const updateText = (field: TextField, value: string) => setDraft(current => ({ ...current, [field]: value }));
-  const updatePreference = (field: PreferenceField, value: boolean) => setDraft(current => ({ ...current, [field]: value }));
   const error = (field: string) => state.fieldErrors?.[field]?.[0];
   const fieldError = (field: string) => error(field) && <p id={`${field}-error`} className="mt-2 text-sm text-red-800">{actionFeedback(error(field), locale)}</p>;
   const fieldProps = (field: string) => ({ "aria-invalid": Boolean(error(field)), "aria-describedby": error(field) ? `${field}-error` : undefined });
@@ -89,17 +83,6 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
       <input id="signup-phone" name="phone" type="tel" dir="ltr" autoComplete="tel" maxLength={16} value={draft.phone} onChange={event => updateText("phone", event.currentTarget.value)} {...fieldProps("phone")} />
       {fieldError("phone")}
     </div>
-    <fieldset className="space-y-4 border-t border-line pt-5">
-      <legend className="px-1 text-lg font-semibold">{en ? "Privacy choices" : "خيارات الخصوصية"}</legend>
-      <label className="mb-0 flex items-start gap-3">
-        <input type="checkbox" name="publicProfileEnabled" checked={draft.publicProfileEnabled} onChange={event => updatePreference("publicProfileEnabled", event.currentTarget.checked)} className="mt-1 size-5 min-h-0 shrink-0 accent-action" />
-        <span>{en ? "Allow my public profile to appear" : "السماح بظهور ملفي العام"}<span className="mt-1 block text-sm leading-7 font-normal text-muted">{en ? "Your university details stay private." : "تبقى بياناتك الجامعية خاصة."}</span></span>
-      </label>
-      <label className="mb-0 flex items-start gap-3">
-        <input type="checkbox" name="showTotalHours" checked={draft.showTotalHours} onChange={event => updatePreference("showTotalHours", event.currentTarget.checked)} className="mt-1 size-5 min-h-0 shrink-0 accent-action" />
-        <span>{en ? "Show my total hours on my public profile" : "إظهار إجمالي ساعاتي في ملفي العام"}</span>
-      </label>
-    </fieldset>
     {state.error && <p className="error-message" role="alert">{actionFeedback(state.error, locale)}</p>}
     <button disabled={!available || sending} className="button w-full">{en ? sending ? "Sending code…" : "Send verification code" : sending ? "جارٍ إرسال الرمز…" : "إرسال رمز التحقق"}</button>
   </form>;

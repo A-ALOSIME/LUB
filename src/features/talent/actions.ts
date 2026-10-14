@@ -1,28 +1,116 @@
 "use server";
-import {z} from "zod";
-import {sql} from "drizzle-orm";
-import {revalidatePath,updateTag} from "next/cache";
-import {withUser} from "@/db/client";
-import {requireUser} from "@/features/auth/session";
-import {studentOperationError} from "@/features/auth/authorization";
-import {normalizeDigits} from "@/lib/validation";
-import type {WorkflowState} from "@/features/forms/actions";
-const id=(f:FormData,k:string)=>z.uuid().parse(f.get(k));
-const optionalId=(f:FormData,k:string)=>f.get(k)?id(f,k):null;
-const text=(f:FormData,k:string,max:number,min=0)=>z.string().trim().min(min).max(max).parse(f.get(k)??"");
-const checked=(f:FormData,k:string)=>f.get(k)==="on";
-export async function mutateTalent(_previous:WorkflowState,f:FormData):Promise<WorkflowState>{const user=await requireUser();const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};try{
- const operation=z.enum(["settings","link","remove-link","skill","remove-skill","project","organization","event","contribution"]).parse(f.get("operation"));
- const query=(()=>{switch(operation){
- case "settings":return sql`select lub.save_talent_settings(${text(f,"bio",1000)},${checked(f,"enabled")},${checked(f,"hours")},${checked(f,"roles")},${checked(f,"events")},${checked(f,"projects")})`;
- case "link":{const kind=z.enum(["Email","Phone","Website","LinkedIn","GitHub"]).parse(f.get("kind"));const input=text(f,"value",2048,1);const value=kind==="Email"?z.email().max(254).parse(input):kind==="Phone"?z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input)):z.url({protocol:/^https$/}).parse(input);return sql`select lub.save_talent_link(${optionalId(f,"link")},${kind},${text(f,"label",80,1)},${value},${checked(f,"visible")})`;}
- case "remove-link":return sql`select lub.remove_talent_link(${id(f,"link")})`;
- case "skill":return sql`select lub.save_talent_skill(${text(f,"name",80,2)},${checked(f,"visible")})`;
- case "remove-skill":return sql`select lub.remove_talent_skill(${text(f,"name",80,2)})`;
- case "project":return sql`select lub.save_talent_project(${optionalId(f,"project")},${optionalId(f,"participant")},${optionalId(f,"contribution")},${text(f,"title",120,2)},${text(f,"description",1000)},${checked(f,"visible")},${checked(f,"featured")})`;
- case "organization":return sql`select lub.set_talent_organization(${id(f,"org")},${checked(f,"hours")},${checked(f,"history")})`;
- case "event":return sql`select lub.set_talent_event(${id(f,"registration")},${checked(f,"visible")})`;
- case "contribution":return sql`select lub.set_talent_contribution(${id(f,"contribution")},${checked(f,"visible")})`;
- }})();await withUser(user.id,tx=>tx.execute(query));
- }catch{return {error:"تعذّر حفظ الملف المهاري. راجع الحقول؛ الروابط تبدأ بـ HTTPS، والإنجاز يحتاج نشاطًا معتمدًا تملكه داخل LUB."};}
- updateTag("public-talent");revalidatePath("/talent","layout");revalidatePath("/account/talent");revalidatePath("/me");return{success:"تم حفظ خيارات الملف المهاري والخصوصية."};}
+
+import { revalidatePath, updateTag } from "next/cache";
+import { sql } from "drizzle-orm";
+import { z } from "zod";
+import { withUser } from "@/db/client";
+import { requireUser } from "@/features/auth/session";
+import { studentOperationError } from "@/features/auth/authorization";
+import { normalizeDigits } from "@/lib/validation";
+import type { WorkflowState } from "@/features/forms/actions";
+
+const id = (form: FormData, key: string) => z.uuid().parse(form.get(key));
+const optionalId = (form: FormData, key: string) => form.get(key) ? id(form, key) : null;
+const text = (form: FormData, key: string, max: number, min = 0) => z.string().trim().min(min).max(max).parse(form.get(key) ?? "");
+const checked = (form: FormData, key: string) => form.get(key) === "true";
+const linkKind = z.enum(["Email", "Phone", "Website", "LinkedIn", "GitHub"]);
+
+export async function mutateTalent(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
+  const user = await requireUser();
+  const adminError = await studentOperationError(user.id);
+  if (adminError) return { error: adminError };
+
+  try {
+    const operation = z.enum(["profile", "link", "update-link", "remove-link", "skill", "remove-skill", "project"]).parse(form.get("operation"));
+    await withUser(user.id, async (tx) => {
+      switch (operation) {
+        case "profile": {
+          await tx.execute(sql`select lub.save_talent_settings(${text(form, "bio", 1000)},${checked(form, "enabled")})`);
+
+          const linkIds = z.array(z.uuid()).max(10).parse(form.getAll("linkId"));
+          for (const linkId of linkIds) {
+            const fields = `link_${linkId}_`;
+            const kind = linkKind.parse(form.get(`${fields}kind`));
+            const label = text(form, `${fields}label`, 80, 1);
+            const input = text(form, `${fields}value`, 2048, 1);
+            const value = kind === "Email"
+              ? z.email().max(254).parse(input)
+              : kind === "Phone"
+                ? z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input))
+                : z.url({ protocol: /^https$/ }).parse(input);
+            await tx.execute(sql`select lub.save_talent_link(${linkId},${kind},${label},${value},${checked(form, `${fields}visible`)})`);
+          }
+
+          const skillCount = z.coerce.number().int().min(0).max(30).parse(form.get("skillCount") ?? "0");
+          for (let index = 0; index < skillCount; index++) {
+            await tx.execute(sql`select lub.save_talent_skill(${text(form, `skill_${index}_name`, 80, 2)},${checked(form, `skill_${index}_visible`)})`);
+          }
+
+          const projectCount = z.coerce.number().int().min(0).max(25).parse(form.get("projectCount") ?? "0");
+          for (let index = 0; index < projectCount; index++) {
+            const fields = `project_${index}_`;
+            await tx.execute(sql`select lub.save_talent_project(
+              ${id(form, `${fields}id`)},
+              ${optionalId(form, `${fields}participant`)},
+              ${optionalId(form, `${fields}contribution`)},
+              ${text(form, `${fields}title`, 120, 2)},
+              ${text(form, `${fields}description`, 1000)},
+              ${checked(form, `${fields}featured`)}
+            )`);
+          }
+          break;
+        }
+        case "link": {
+          const kind = linkKind.parse(form.get("kind"));
+          const input = text(form, "value", 2048, 1);
+          const value = kind === "Email"
+            ? z.email().max(254).parse(input)
+            : kind === "Phone"
+              ? z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input))
+              : z.url({ protocol: /^https$/ }).parse(input);
+          await tx.execute(sql`select lub.save_talent_link(null,${kind},${kind},${value},${checked(form, "visible")})`);
+          break;
+        }
+        case "update-link": {
+          const link = id(form, "link");
+          const kind = linkKind.parse(form.get("kind"));
+          const label = text(form, "label", 80, 1);
+          const input = text(form, "value", 2048, 1);
+          const value = kind === "Email"
+            ? z.email().max(254).parse(input)
+            : kind === "Phone"
+              ? z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input))
+              : z.url({ protocol: /^https$/ }).parse(input);
+          await tx.execute(sql`select lub.save_talent_link(${link},${kind},${label},${value},${checked(form, "visible")})`);
+          break;
+        }
+        case "remove-link":
+          await tx.execute(sql`select lub.remove_talent_link(${id(form, "link")})`);
+          break;
+        case "skill":
+          await tx.execute(sql`select lub.save_talent_skill(${text(form, "name", 80, 2)},${checked(form, "visible")})`);
+          break;
+        case "remove-skill":
+          await tx.execute(sql`select lub.remove_talent_skill(${text(form, "name", 80, 2)})`);
+          break;
+        case "project": {
+          const participant = optionalId(form, "participant");
+          const contribution = optionalId(form, "contribution");
+          await tx.execute(sql`select lub.save_talent_project(
+            ${optionalId(form, "project")},${participant},${contribution},
+            ${text(form, "title", 120, 2)},${text(form, "description", 1000)},${checked(form, "featured")}
+          )`);
+          break;
+        }
+      }
+    });
+  } catch {
+    return { error: "تعذّر حفظ الملف المهاري. راجع الحقول؛ الروابط تبدأ بـ HTTPS، والإنجاز يحتاج نشاطًا معتمدًا تملكه داخل LUB." };
+  }
+
+  updateTag("public-talent");
+  revalidatePath("/talent", "layout");
+  revalidatePath("/account/talent");
+  revalidatePath("/me");
+  return { success: "تم حفظ الملف المهاري والخصوصية." };
+}
