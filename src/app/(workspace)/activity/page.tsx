@@ -56,7 +56,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   if (!documentData) throw new Error("Documents storage unavailable")
 
   const en = locale === "en"
-  return <main id="main" dir={en ? "ltr" : "rtl"} className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-4">
+  return <main id="main" dir={en ? "ltr" : "rtl"} className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-4 pb-20 lg:pb-0">
     <header className="flex flex-col gap-1">
       <h1 className="text-2xl font-semibold tracking-tight">{en ? "My activity" : "نشاطي"}</h1>
       <p className="text-sm text-muted-foreground">{en ? "Tasks, event registrations, and approved hours in one place." : "مهامك وفعالياتك وساعاتك في مكان واحد."}</p>
