@@ -23,7 +23,7 @@ export default defineConfig({
     entrypoint: "src/worker-entry.js",
     compatibilityDate: "2026-09-30",
     compatibilityFlags: ["nodejs_compat"],
-    placement: { mode: "smart" },
+    placement: { region: "aws:ap-northeast-1" },
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
