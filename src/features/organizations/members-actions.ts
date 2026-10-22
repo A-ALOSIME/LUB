@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { requireManagementUser } from "./access";
 import { endOrganizationMembership, endOrganizationPermission, grantOrganizationPermission } from "./management-repository";
@@ -37,6 +37,8 @@ export async function mutateOrganizationMembers(_previous: WorkflowState, form: 
     }
     revalidatePath(`/manage/organizations/${organizationId}`, "layout");
     revalidatePath("/me");
+    updateTag("public-organizations");
+    updateTag("public-talent");
     return { success: "تم حفظ التغيير." };
   } catch {
     return { error: "تعذّر حفظ التغيير. راجع الصلاحية والنطاق والعضوية النشطة." };

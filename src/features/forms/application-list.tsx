@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { CalendarDays, Info } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CalendarDays, ClipboardList, Info, Plus } from "lucide-react";
+import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "cn";
+import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
 import type { Locale } from "@/lib/preferences";
 import { canWithdrawApplication } from "./application-eligibility";
 import { ApplicationRowActions } from "./application-row-actions";
 import type { ApplicationStatusCounts, ApplicationStatusFilter } from "./application-status";
 import type { Application } from "./repository";
 import { ApplicationStatusFilters } from "./application-status-filters";
+import { formatRiyadhDateTime } from "@/lib/datetime";
 
 const statusLabels: Record<string, { ar: string; en: string; className: string }> = {
   Submitted: { ar: "قيد المراجعة", en: "Under review", className: "border-primary/40 bg-primary/5 text-primary" },
@@ -22,13 +22,7 @@ const statusLabels: Record<string, { ar: string; en: string; className: string }
 };
 
 function formatApplicationDate(value: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    calendar: "gregory",
-    timeZone: "Asia/Riyadh",
-  }).format(new Date(value));
+  return formatRiyadhDateTime(value, locale);
 }
 
 function formatCount(value: number) {
@@ -51,10 +45,8 @@ function applicationsHref({ status, preview, page = 1 }: {
 function ApplicationStatusBadge({ application, locale }: { application: Application; locale: Locale }) {
   const en = locale === "en";
   const status = statusLabels[application.status_code] ?? statusLabels.Submitted;
-
-  return <Badge variant="outline" className={cn("h-6 px-2", status.className)}>
-    {en ? status.en : status.ar}
-  </Badge>;
+  const tone = application.status_code === "Accepted" ? "accepted" : application.status_code === "Rejected" ? "rejected" : application.status_code === "Submitted" || application.status_code === "Interview" ? "review" : "inactive";
+  return <OrganizationStatusBadge status={tone}>{en ? status.en : status.ar}</OrganizationStatusBadge>;
 }
 
 function ApplicationActions({ application, locale, preview }: { application: Application; locale: Locale; preview: boolean }) {
@@ -98,8 +90,8 @@ function ApplicationTable({ rows, locale, preview }: { rows: Application[]; loca
             <ApplicationActions application={application} locale={locale} preview={preview} />
           </TableCell>
         </TableRow>) : <TableRow>
-          <TableCell colSpan={4} className="h-32 whitespace-normal px-4 text-center text-muted-foreground">
-            {en ? "No applications match these filters." : "ما فيه طلبات تطابق خيارات التصفية."}
+          <TableCell colSpan={4} className="whitespace-normal px-4 py-3">
+            <WorkspaceEmptyState icon={ClipboardList} title={en ? "No matching applications" : "لا توجد طلبات مطابقة"} description={en ? "Try changing the selected status." : "جرّب تغيير حالة الطلب."} />
           </TableCell>
         </TableRow>}
       </TableBody>
@@ -126,9 +118,7 @@ function ApplicationCards({ rows, locale, preview }: { rows: Application[]; loca
           {formatApplicationDate(application.created_at, locale)}
         </time>
       </div>
-    </article>) : <div role="status" className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-      {en ? "No applications match these filters." : "ما فيه طلبات تطابق خيارات التصفية."}
-    </div>}
+    </article>) : <WorkspaceEmptyState icon={ClipboardList} title={en ? "No matching applications" : "لا توجد طلبات مطابقة"} description={en ? "Try changing the selected status." : "جرّب تغيير حالة الطلب."} />}
   </div>;
 }
 
@@ -145,26 +135,23 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
   const noApplications = counts.all === 0;
 
   return <div className="flex min-w-0 flex-col gap-4">
-    {noApplications ? <Empty role="status" className="gap-3 border border-border border-dashed bg-card/40 px-4 py-7">
-      <EmptyHeader className="gap-1">
-        <EmptyTitle className="font-normal text-muted-foreground">{en ? "You have not applied to any organizations yet." : "ما قدمت على أي جهة حتى الآن."}</EmptyTitle>
-      </EmptyHeader>
-      <EmptyContent className="w-fit">
-        <Link href="/organizations" className={buttonVariants({ size: "sm" })}>{en ? "Start a new application" : "تقديم طلب جديد"}</Link>
-      </EmptyContent>
-    </Empty> : <>
+    {noApplications ? <WorkspaceEmptyState
+      icon={ClipboardList}
+      title={en ? "No applications yet" : "ما قدمت على أي جهة حتى الآن"}
+      description={en ? "Browse clubs and councils to find a community to join." : "تصفح الأندية والمجالس واختر الجهة التي تناسبك."}
+      action={<Link href="/organizations" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{en ? "Browse clubs and councils" : "تصفح الأندية والمجالس"}</Link>}
+    /> : <>
     {preview && <div role="note" className="flex items-start gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3.5 text-sm">
       <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
       <p>{en ? "Sample data for preview only. No applications are stored; row actions are disabled." : "بيانات تجريبية للمعاينة فقط. لا يتم حفظ أي طلبات، وإجراءات الصفوف معطّلة."}</p>
     </div>}
 
-    {counts.all > 0 && <div className="flex justify-start">
-      <Link href="/organizations" className={buttonVariants({ size: "sm" })}>{en ? "Start a new application" : "تقديم طلب جديد"}</Link>
-    </div>}
-
     <Card className="min-w-0 gap-0 py-0">
       <CardHeader className="gap-3 px-4 pt-4 pb-0 sm:px-5 sm:pt-5">
-        <ApplicationStatusFilters status={status} counts={counts} preview={preview} locale={locale} />
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <ApplicationStatusFilters status={status} counts={counts} preview={preview} locale={locale} />
+          <Link href="/organizations" className={buttonVariants({ size: "sm", className: "w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{en ? "Start a new application" : "تقديم طلب جديد"}</Link>
+        </div>
       </CardHeader>
 
       <CardContent className="p-0 pt-2">

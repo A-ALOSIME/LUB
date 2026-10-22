@@ -12,6 +12,8 @@ it("toggles channel visibility from the eye button and updates the submitted val
 
   const button = screen.getByRole("button", { name: "Hide LinkedIn from the public profile" });
   expect(button.getAttribute("aria-pressed")).toBe("true");
+  expect(button.textContent).toContain("Public");
+  expect(button.className).toContain("bg-primary");
   expect(container.querySelector<HTMLInputElement>('input[name="link_visible"]')?.value).toBe("true");
 
   fireEvent.click(button);
@@ -19,4 +21,6 @@ it("toggles channel visibility from the eye button and updates the submitted val
   expect(screen.getByRole("button", { name: "Show LinkedIn on the public profile" }).getAttribute("aria-pressed")).toBe("false");
   expect(container.querySelector<HTMLInputElement>('input[name="link_visible"]')?.value).toBe("false");
   expect(container.querySelector("svg.lucide-eye-off")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Show LinkedIn on the public profile" }).textContent).toContain("Private");
+  expect(screen.getByRole("button", { name: "Show LinkedIn on the public profile" }).className).toContain("text-muted-foreground");
 });

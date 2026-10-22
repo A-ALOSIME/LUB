@@ -38,7 +38,7 @@ function OtpVerification({ email, returnTo, locale }: { email: string; returnTo:
   const [state, verify, pending] = useActionState<FormState, FormData>(verifyCode, {});
   return <form action={verify} className="space-y-5">
     <input type="hidden" name="returnTo" value={returnTo} /><input type="hidden" name="email" value={email} /><input type="hidden" name="mode" value="login" />
-    <div><label htmlFor="token">{en?"Verification code":"رمز التحقق"}</label><input id="token" name="token" dir="ltr" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>
+    <div><label htmlFor="token">{en?"Verification code":"رمز التحقق"}</label><input id="token" name="token" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>
     {state.error && <p className="error-message" id="verification-error" role="alert">{actionFeedback(state.error,locale)}</p>}
     <button disabled={pending} className="button w-full">{en?pending?"Verifying…":"Verify and sign in":pending ? "جارٍ التحقق…" : "تحقق وادخل"}</button>
   </form>;

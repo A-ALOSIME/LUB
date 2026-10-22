@@ -11,8 +11,9 @@ export function IntentPrefetchLink(props: Props) {
 
   return <Link
     {...props}
-    prefetch={prefetch ? null : false}
+    prefetch={prefetch ? true : false}
     onMouseEnter={event => { props.onMouseEnter?.(event); startPrefetch(); }}
     onFocus={event => { props.onFocus?.(event); startPrefetch(); }}
+    onTouchStart={event => { props.onTouchStart?.(event); startPrefetch(); }}
   />;
 }

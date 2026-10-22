@@ -20,8 +20,8 @@ function iconName(link: OrganizationProfileLink): SocialIconName {
   return "link";
 }
 
-function SocialIcon({ name }: { name: SocialIconName }) {
-  const common = { viewBox: "0 0 24 24", width: 22, height: 22, "aria-hidden": true as const, focusable: false as const };
+function SocialIcon({ name, className }: { name: SocialIconName; className?: string }) {
+  const common = { viewBox: "0 0 24 24", width: 22, height: 22, "aria-hidden": true as const, focusable: false as const, className };
   switch (name) {
     case "x": return <svg {...common}><path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.5l-5.1-6.7L5.7 22H2.5l7.3-8.3L1.8 2h6.7l4.6 6.1zm-1.1 17.8h1.7L7.3 4.1H5.5z" /></svg>;
     case "linkedin": return <svg {...common}><path fill="currentColor" d="M20.45 2H3.55A1.55 1.55 0 0 0 2 3.55v16.9A1.55 1.55 0 0 0 3.55 22h16.9A1.55 1.55 0 0 0 22 20.45V3.55A1.55 1.55 0 0 0 20.45 2ZM8.1 18.9H5.15V9.4H8.1ZM6.63 8.1a1.71 1.71 0 1 1 .02-3.42 1.71 1.71 0 0 1-.02 3.42Zm12.28 10.8h-2.94v-4.62c0-1.1-.02-2.5-1.53-2.5-1.53 0-1.76 1.2-1.76 2.42v4.7H9.74V9.4h2.82v1.3h.04a3.1 3.1 0 0 1 2.79-1.53c2.98 0 3.53 1.96 3.53 4.51Z" /></svg>;
@@ -36,6 +36,11 @@ function SocialIcon({ name }: { name: SocialIconName }) {
     case "website": return <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M3.5 12h17M12 3c2.3 2.4 3.3 5.4 3.3 9s-1 6.6-3.3 9c-2.3-2.4-3.3-5.4-3.3-9S9.7 5.4 12 3Z" /></svg>;
     default: return <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13.5 8.6 15a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M14 10.5l1.4-1.4a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0M8.8 12h6.4" /></svg>;
   }
+}
+
+export function OrganizationSocialIcon({ kind, className = "size-5" }: { kind: string; className?: string }) {
+  const link = { label: kind, value: "", href: undefined };
+  return <SocialIcon name={iconName(link)} className={className} />;
 }
 
 export function SocialLinkIcons({ links, en }: { links: readonly OrganizationProfileLink[]; en: boolean }) {

@@ -11,7 +11,7 @@ beforeEach(()=>{vi.clearAllMocks();vi.stubEnv("IDENTIFIER_ENCRYPTION_KEY",Buffer
 afterEach(()=>vi.unstubAllEnvs());
 it("keeps the normalized number/hash out of navigation and binds encrypted searches to actor and organization",async()=>{
  const form=new FormData();form.set("org",org);form.set("university","٢١٢٣٤٥");form.set("status","Submitted");
- await expect(searchApplications(form)).rejects.toThrow("redirect:/manage/organizations/"+org+"/applications?status=Submitted");
+ await expect(searchApplications(form)).rejects.toThrow("redirect:/manage/organizations/"+org+"/members?section=applications&status=Submitted");
  const envelope=cookie.set.mock.calls[0][1] as string;const hash=identifierLookup("212345");
  expect(envelope).not.toContain("212345");expect(envelope).not.toContain(hash);
  expect(decryptIdentifier(envelope,`application-search:${user}:${org}`)).toBe(hash);

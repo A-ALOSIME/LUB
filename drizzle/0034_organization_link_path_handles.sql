@@ -1,0 +1,2 @@
+ALTER TABLE "lub"."organization_links" DROP CONSTRAINT "org_link_https_check";--> statement-breakpoint
+ALTER TABLE "lub"."organization_links" ADD CONSTRAINT "org_link_https_check" CHECK (("lub"."organization_links"."url" ~ '^https://[^/@[:space:]?#]+([/?#][^[:space:]]*)?$' or "lub"."organization_links"."url" ~ '^mailto:[^[:space:]@]+@[^[:space:]@]+$' or "lub"."organization_links"."url" ~ '^tel:\+?[0-9().-]+$') and char_length("lub"."organization_links"."url") <= 2048);

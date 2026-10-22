@@ -12,6 +12,6 @@ try {
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
   console.log("LUB migrations applied.");
 } catch {
-  console.error("Migration failed. Check database access and Supabase prerequisites; no connection details were logged.");
+  console.error("Migration failed. Check database access; no connection details were logged.");
   process.exitCode = 1;
 } finally { await client.end(); }

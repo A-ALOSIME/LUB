@@ -52,7 +52,7 @@ export function NotificationBell({ items, unreadCount, locale }: { items: TaskNo
   }
 
   return <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={unreadCount ? (en ? `${number} unread notifications` : `${number} إشعارات غير مقروءة`) : (en ? "Notifications" : "الإشعارات")} className="relative" />}>
+    <PopoverTrigger render={<Button type="button" variant="ghost" size="icon" aria-label={unreadCount ? (en ? `${number} unread notifications` : `${number} إشعارات غير مقروءة`) : (en ? "Notifications" : "الإشعارات")} className="relative h-9 w-9 rounded-md hover:bg-accent" />}>
       <Bell aria-hidden="true" />
       {unreadCount > 0 && <span dir="ltr" aria-hidden="true" className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">{unreadCount > 99 ? "99+" : number}</span>}
     </PopoverTrigger>
@@ -78,7 +78,7 @@ export function NotificationBell({ items, unreadCount, locale }: { items: TaskNo
             </span>
           </button>
         </li>)}
-      </ul> : <p role="status" className="px-3 py-6 text-center text-sm text-muted-foreground">{en ? "No notifications yet." : "لا توجد إشعارات حتى الآن."}</p>}
+      </ul> : <p role="status" className="px-3 py-3 text-sm text-muted-foreground">{en ? "No notifications yet." : "لا توجد إشعارات حتى الآن."}</p>}
       {error && <p role="alert" className="px-3 py-2 text-xs text-destructive">{error}</p>}
       <div className="border-t border-border/70 p-2">
         <Link href="/notifications" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2 text-center text-sm font-medium text-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{en ? "View all" : "عرض الكل"}</Link>

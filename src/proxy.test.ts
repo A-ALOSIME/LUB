@@ -7,11 +7,6 @@ import { proxy } from "./proxy";
 beforeEach(() => { vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", ""); vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", ""); });
 afterEach(() => vi.unstubAllEnvs());
 describe("session proxy", () => {
-  it("keeps generated document files script-free instead of replacing their CSP with the app policy",async()=>{
-    const file=await proxy(new NextRequest('http://localhost/documents/00000000-0000-4000-8000-000000000001/file?view=print'));
-    expect(file.headers.get('content-security-policy')).toContain("default-src 'none'");expect(file.headers.get('content-security-policy')).toContain('sandbox allow-modals');expect(file.headers.get('content-security-policy')).not.toContain('nonce-');
-    const list=await proxy(new NextRequest('http://localhost/documents'));expect(list.headers.get('content-security-policy')).toContain('nonce-');
-  });
   it("uses a fresh CSP nonce on each response and prevents HTML caching", async () => {
     vi.stubEnv("NODE_ENV", "production");
     const first = await proxy(new NextRequest("http://localhost/me"));

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FilterToggleGroup } from "@/components/ui/filter-toggle-group";
+import { FilterTabs } from "@/components/ui/filter-tabs";
 import type { Locale } from "@/lib/preferences";
 import { applicationStatusTabs, type ApplicationStatusCounts, type ApplicationStatusFilter } from "./application-status";
 
@@ -21,7 +21,7 @@ export function ApplicationStatusFilters({ status, counts, preview, locale }: {
   const router = useRouter();
   const en = locale === "en";
 
-  return <FilterToggleGroup
+  return <FilterTabs
     value={status}
     ariaLabel={en ? "Filter applications by status" : "تصفية الطلبات حسب الحالة"}
     dir={en ? "ltr" : "rtl"}

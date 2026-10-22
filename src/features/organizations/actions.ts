@@ -5,18 +5,21 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/features/auth/session";
 import { getAccountStatus } from "@/features/profile/repository";
-import { createOrganizationSchema, organizationProfileSchema, committeeSchema, announcementSchema, mutationOperationSchema, type MutationState } from "./validation";
+import { createOrganizationSchema, organizationProfileSchema, organizationPublicProfileContentJsonSchema, committeeSchema, announcementSchema, mutationOperationSchema, type MutationOperation, type MutationState } from "./validation";
 import { createOrganization, saveOrganizationProfile, appointPrimaryLeader, setOrganizationStatus, grantSuperAdmin, endSuperAdmin, saveCommittee, copyCommittee, setCommitteeStatus, saveAnnouncement, archiveAnnouncement } from "./management-repository";
+import { getAuthConfig } from "@/lib/env";
+import { isOrganizationImageUrl } from "./logo-file";
 
 const emailSchema = z.email("اكتب بريدًا صحيحًا للحساب المتحقق.").transform(value => value.toLowerCase());
 const confirmation = z.literal("on", { error: "أكّد الإجراء قبل المتابعة." });
 export async function mutateOrganization(_previous: MutationState, form: FormData): Promise<MutationState> {
   const user = await requireUser();
   let created = false;
+  let operation: MutationOperation | "unknown" = "unknown";
   let success = "تم حفظ التغيير.";
   try {
     if (await getAccountStatus(user.id) !== "Active") return { error: "أكمل بيانات حسابك وتأكد من أنه نشط قبل المتابعة." };
-    const operation = mutationOperationSchema.parse(form.get("operation"));
+    operation = mutationOperationSchema.parse(form.get("operation"));
     const organizationId = () => z.uuid().parse(form.get("organizationId"));
     const texts = { nameAr: form.get("nameAr"), summary: form.get("summary") ?? "", mission: form.get("mission") ?? "" };
     switch (operation) {
@@ -25,7 +28,15 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
         created = true;
         break;
       case "org-profile":
-        await saveOrganizationProfile(user.id, organizationId(), organizationProfileSchema.parse({ ...texts, logoUrl: form.get("logoUrl") ?? "", showLeadershipPublicly: form.get("showLeadershipPublicly") === "on", tagNames: form.get("tagNames") ?? "", websiteUrl: form.get("websiteUrl") ?? "" }));
+        {
+          const id = organizationId();
+          const publicProfileContent = organizationPublicProfileContentJsonSchema.parse(String(form.get("publicProfileContent") ?? "{}"));
+          const authConfig = getAuthConfig();
+          if (publicProfileContent.partnersImageUrl && (!authConfig || !isOrganizationImageUrl(publicProfileContent.partnersImageUrl, id, authConfig.url))) {
+            return { error: "صورة الشركاء يجب أن تكون مرفوعة إلى مساحة الجهة." };
+          }
+          await saveOrganizationProfile(user.id, id, organizationProfileSchema.parse({ ...texts, showLeadershipPublicly: form.get("showLeadershipPublicly") === "on", tagNames: form.get("tagNames") ?? "", contacts: form.get("contacts") ?? "[]", publicProfileContent }));
+        }
         success = "تم حفظ بيانات الجهة.";
         break;
       case "org-status":
@@ -49,7 +60,7 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
         success = "تم إنهاء صلاحية المشرف العام.";
         break;
       case "save-committee":
-        await saveCommittee(user.id, organizationId(), committeeSchema.parse({ name: form.get("name"), description: form.get("description") ?? "", isPublic: form.get("isPublic") === "on" }), form.get("committeeId") ? z.uuid().parse(form.get("committeeId")) : undefined);
+        await saveCommittee(user.id, organizationId(), committeeSchema.parse({ name: form.get("name"), description: form.get("description") ?? "", isPublic: form.get("isPublic") === "on", parentCommitteeId: form.get("parentCommitteeId") ?? "" }), form.get("committeeId") ? z.uuid().parse(form.get("committeeId")) : undefined);
         success = "تم حفظ اللجنة.";
         break;
       case "copy-committee":
@@ -81,11 +92,22 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
       return { error: "راجع بيانات النموذج وأكّد الإجراء إذا طُلب منك.", fieldErrors };
     }
     const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
+    if (operation === "org-profile") {
+      const details = cause && typeof cause === "object" ? cause as Record<string, unknown> : {};
+      console.error("Organization profile save failed", {
+        name: cause instanceof Error ? cause.name : typeof cause,
+        code: typeof details.code === "string" ? details.code : undefined,
+        constraint: typeof details.constraint_name === "string" ? details.constraint_name : undefined,
+        table: typeof details.table_name === "string" ? details.table_name : undefined,
+        column: typeof details.column_name === "string" ? details.column_name : undefined,
+      });
+    }
     if (cause instanceof Error && cause.message === "Last active Super Admin cannot be ended") return { error: "لا يمكن إنهاء صلاحية آخر مشرف عام نشط." };
     if (cause instanceof Error && cause.message === "Verified onboarded candidate required") return { error: "الحساب المحدد يحتاج التحقق من بريده وإكمال بياناته أولًا." };
     return { error: "تعذّر تنفيذ الإجراء. تحقق من صلاحياتك وصحة البيانات. عند تعيين حساب، يجب أن يكون متحققًا ومكتمل البيانات." };
   }
   updateTag("public-organizations");
+  updateTag("public-talent");
   revalidatePath("/organizations", "layout");
   revalidatePath("/manage", "layout");
   revalidatePath("/me");

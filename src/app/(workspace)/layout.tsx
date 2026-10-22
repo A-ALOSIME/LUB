@@ -1,33 +1,32 @@
 import { cache, Suspense } from "react";
 import { headers } from "next/headers";
-import { AccountHeader } from "@/components/account-header";
 import { getPreferences } from "@/lib/preferences";
 import { requireVerifiedProxyIdentity } from "@/features/auth/session";
 import { hasSuperAdminNavigationAccess } from "@/features/organizations/management-navigation";
 import { MyPageNavigation } from "@/features/organizations/my-page-navigation";
-import { getManagementOverview } from "@/features/organizations/management-repository";
+import { getAdminAccountProfile, getManagementOverview } from "@/features/organizations/management-repository";
 import { taskNotificationCounts, taskNotifications } from "@/features/tasks/repository";
+import { WorkspaceSidebarLayout } from "@/features/organizations/workspace-sidebar-layout";
+import { WorkspaceManagementHeader } from "@/features/organizations/workspace-management-header";
+import { SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
+import { Brand } from "@/components/brand";
+import type { Locale } from "@/lib/preferences";
 
-function AccountHeaderLoading() {
-  return <header className="site-header" aria-hidden="true">
-    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-8 px-5 sm:px-8">
-      <div className="h-9 w-24 animate-pulse rounded bg-mist" />
-      <div className="flex items-center gap-3 py-2">
-        <div className="h-9 w-28 animate-pulse rounded-lg bg-mist" />
-        <div className="size-9 animate-pulse rounded-lg bg-mist" />
-        <div className="h-9 w-20 animate-pulse rounded-lg bg-mist" />
-      </div>
-    </div>
+function WorkspaceHeaderLoading() {
+  return <header className="workspace-management-header" aria-hidden="true">
+    <div className="workspace-management-breadcrumbs"><div className="h-5 w-36 animate-pulse rounded bg-mist" /></div>
+    <div className="workspace-management-actions"><div className="size-9 animate-pulse rounded-lg bg-mist" /></div>
   </header>;
 }
 
-function WorkspaceNavigationLoading() {
-  return <aside className="workspace-sidebar panel" aria-hidden="true">
-    <div className="h-5 w-28 animate-pulse rounded bg-mist" />
-    <div className="mt-5 space-y-3">
-      {["one", "two", "three", "four"].map(item => <div key={item} className="h-10 animate-pulse rounded-lg bg-mist" />)}
-    </div>
-  </aside>;
+function WorkspaceNavigationLoading({ locale }: { locale: Locale }) {
+  return <div className="workspace-sidebar-content" aria-hidden="true">
+    <SidebarHeader className="workspace-sidebar-header"><Brand en={locale === "en"} className="workspace-sidebar-brand" /></SidebarHeader>
+    <SidebarContent className="workspace-sidebar-scroll"><div className="space-y-3 p-2">
+      {["one", "two", "three", "four"].map(item => <div key={item} className="h-8 animate-pulse rounded-lg bg-mist" />)}
+    </div></SidebarContent>
+    <SidebarFooter className="workspace-sidebar-footer"><div className="h-9 w-full animate-pulse rounded bg-mist" /></SidebarFooter>
+  </div>;
 }
 
 const getWorkspaceState = cache(async () => {
@@ -41,39 +40,60 @@ const getWorkspaceState = cache(async () => {
   const superAdminAccess = managementView === "account"
     ? await hasSuperAdminNavigationAccess(managementView, user.id, requestNonce)
     : overview?.access.superAdmin ?? false;
+  const superAdmin = organizationsPage || superAdminAccess;
+  let displayName = overview?.displayName ?? null;
+  if (!displayName && superAdmin) {
+    try {
+      displayName = (await getAdminAccountProfile(user.id)).fullName;
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "FORBIDDEN") throw error;
+    }
+  }
 
   return {
     userId: user.id,
     locale: preferences.locale,
+    theme: preferences.theme,
     en: preferences.locale === "en",
-    superAdmin: organizationsPage || superAdminAccess,
+    superAdmin,
+    managementArea: requestHeaders.get("x-lub-area") === "management",
     overview,
+    displayName,
   };
 });
 
 async function WorkspaceHeader() {
-  const { superAdmin, userId } = await getWorkspaceState();
-  if (superAdmin) return <AccountHeader isSuperAdmin />;
+  const { userId, locale, theme, overview } = await getWorkspaceState();
   const [items, counts] = await Promise.all([taskNotifications(userId, 0), taskNotificationCounts(userId)]);
-  return <AccountHeader isSuperAdmin={false} notifications={items.slice(0, 5)} unreadNotificationCount={counts.unread} />;
-}
-
-async function WorkspaceNavigation() {
-  const { locale, superAdmin, overview } = await getWorkspaceState();
-  return <MyPageNavigation
+  return <WorkspaceManagementHeader
     locale={locale}
-    organizations={superAdmin ? [] : overview?.access.organizations ?? []}
-    sectionBase="/me"
-    superAdmin={superAdmin}
+    theme={theme}
+    organizations={overview?.access.organizations ?? []}
+    notifications={items.slice(0, 5)}
+    unreadCount={counts.unread}
   />;
 }
 
-export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  return <>
-    <Suspense fallback={<AccountHeaderLoading />}><WorkspaceHeader /></Suspense>
-    <div className="workspace-layout-grid mx-auto grid w-full items-start gap-5 px-4 py-6 sm:px-8 sm:py-9 xl:px-10">
-      <Suspense fallback={<WorkspaceNavigationLoading />}><WorkspaceNavigation /></Suspense>
+async function WorkspaceNavigation() {
+  const { locale, superAdmin, overview, displayName } = await getWorkspaceState();
+  return <MyPageNavigation
+    locale={locale}
+    organizations={superAdmin ? [] : overview?.access.organizations ?? []}
+    superAdmin={superAdmin}
+    userName={displayName}
+  />;
+}
+
+export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
+  const { managementArea, locale } = await getWorkspaceState();
+  return <WorkspaceSidebarLayout
+    management={managementArea}
+    dir={locale === "ar" ? "rtl" : "ltr"}
+    header={<Suspense fallback={<WorkspaceHeaderLoading />}><WorkspaceHeader /></Suspense>}
+    navigation={<Suspense fallback={<WorkspaceNavigationLoading locale={locale} />}><WorkspaceNavigation /></Suspense>}
+  >
+    <div className="workspace-layout-grid mx-auto w-full px-4 py-6 sm:px-8 sm:py-9 xl:px-10">
       <div className="workspace-stage min-w-0">{children}</div>
     </div>
-  </>;
+  </WorkspaceSidebarLayout>;
 }

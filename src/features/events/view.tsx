@@ -1,6 +1,8 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { ManagementActionSheet } from "@/components/management-action-sheet";
 import type {EventCard,EventDetail} from "./repository";
 import {EventForm,EventFields,EventAttachment,EventRegistrationForm} from "./form";
 import {EventIcon} from "./icon";
@@ -8,6 +10,7 @@ import {localOrganizationContent} from "@/features/organizations/local-content";
 
 import {eventDate,eventDateEn,eventDay,eventDayEn,eventTime,eventTimeEn,eventLabels,eventLabelsEn} from "./display";
 import type {Locale} from "@/lib/preferences";
+import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
 export {eventDate,eventLabels} from "./display";
 export {EventIcon} from "./icon";
 export function EventCards({items,locale="ar"}:{items:EventCard[];locale?:Locale}) {
@@ -21,7 +24,7 @@ export function EventCards({items,locale="ar"}:{items:EventCard[];locale?:Locale
         <div className="event-card-copy">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <h2 dir="auto" className="m-0 text-xl font-semibold">{e.title}</h2>
-            {e.status_code!=="Published"&&<span className="event-card-status">{labels[e.status_code]}</span>}
+            {e.status_code!=="Published"&&<OrganizationStatusBadge status={e.status_code==="Draft"?"draft":"closed"}>{labels[e.status_code]}</OrganizationStatusBadge>}
           </div>
           <p className="event-card-meta"><EventIcon name="calendar"/><span>{en?"Date":"التاريخ"}</span><time dateTime={e.starts_at}>{day(e.starts_at)}</time></p>
           <p className="event-card-meta"><EventIcon name="clock"/><span>{en?"Time":"الوقت"}</span><time dateTime={e.starts_at}>{time(e.starts_at)}</time></p>
@@ -59,7 +62,7 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
           <span><span className="block text-xs font-medium text-muted">{c("تنظمها", "Organized by")}</span><bdi>{data.org_name}</bdi></span>
         </Link>
         <p className="event-detail-status">
-          <span className={"workspace-status" + (e.status_code === "Published" ? " is-current" : "")}>{labels[e.status_code]}</span>
+          <OrganizationStatusBadge status={e.status_code === "Published" ? "published" : e.status_code === "Draft" ? "draft" : "closed"}>{labels[e.status_code]}</OrganizationStatusBadge>
           <span>{labels[e.location_type_code]}</span>
         </p>
         <h1 dir="auto" className="event-detail-title">{e.title}</h1>
@@ -132,25 +135,28 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
       <h2 id="manage-event-title">{c("إدارة الفعالية", "Manage event")}</h2>
       <div className="mt-5 grid gap-5">
         {["Draft", "Published"].includes(e.status_code) && <>
-          <details><summary className="cursor-pointer font-semibold">{c("تعديل البيانات", "Edit details")}</summary><div className="mt-4">
+          <ManagementActionSheet label={c("تعديل البيانات", "Edit details")} title={c("تعديل الفعالية", "Edit event")} locale={locale} presentation="sheet">
             <EventForm operation="save" fields={{ ...base, org: e.organization_id }} label={c("حفظ الفعالية", "Save event")} locale={locale}><EventFields value={e} organization={e.organization_id} locale={locale} /></EventForm>
-          </div></details>
-          <EventForm operation="status" fields={base} label={c("تغيير الحالة", "Change status")} locale={locale}>
-            <label>{c("الإجراء", "Action")}<select name="status">{e.status_code === "Draft" ? <option value="Published">{c("نشر الفعالية", "Publish event")}</option> : <option value="Completed">{c("إكمال يدوي واعتماد ساعات الحضور", "Complete manually and approve attendance hours")}</option>}<option value="Cancelled">{c("إلغاء الفعالية", "Cancel event")}</option></select></label>
+          </ManagementActionSheet>
+          <ManagementActionSheet label={c("تغيير الحالة", "Change status")} title={c("تغيير حالة الفعالية", "Change event status")} locale={locale}>
+          <EventForm operation="status" fields={base} label={c("حفظ الحالة", "Save status")} locale={locale}>
+            <label>{c("الإجراء", "Action")}<NativeSelect name="status">{e.status_code === "Draft" ? <option value="Published">{c("نشر الفعالية", "Publish event")}</option> : <option value="Completed">{c("إكمال يدوي واعتماد ساعات الحضور", "Complete manually and approve attendance hours")}</option>}<option value="Cancelled">{c("إلغاء الفعالية", "Cancel event")}</option></NativeSelect></label>
             <label className="flex items-center gap-3"><input type="checkbox" name="confirm" required className="size-5" />{c("راجعت البيانات والحضور والموافقة الخارجية اللازمة", "I reviewed the details, attendance and required external approval")}</label>
           </EventForm>
+          </ManagementActionSheet>
         </>}
-        {e.status_code === "Published" && <EventForm operation="feature" fields={{ event: e.id }} label={c("حفظ التمييز", "Save featured status")} locale={locale}>
+        {e.status_code === "Published" && <ManagementActionSheet label={c("تمييز الفعالية", "Feature event")} title={c("إبراز الفعالية", "Feature event")} locale={locale}>
+        <EventForm operation="feature" fields={{ event: e.id }} label={c("حفظ التمييز", "Save featured status")} locale={locale}>
           <label className="flex items-center gap-3"><input type="checkbox" name="featured" defaultChecked={e.is_featured} className="size-5" />{c("تمييز الفعالية في صفحة الجهة", "Feature this event on the organization page")}</label>
-        </EventForm>}
-        {["Published", "Completed"].includes(e.status_code) && <EventForm operation="public-content" fields={{ event: e.id }} label={c("حفظ المنشورات العامة", "Save public updates")} locale={locale}>
+        </EventForm></ManagementActionSheet>}
+        {["Published", "Completed"].includes(e.status_code) && <ManagementActionSheet label={c("تحديثات عامة", "Public updates")} title={c("تحديثات الفعالية العامة", "Public event updates")} locale={locale}><EventForm operation="public-content" fields={{ event: e.id }} label={c("حفظ المنشورات العامة", "Save public updates")} locale={locale}>
           <label>{c("ملخص أو تقرير عام", "Public summary or report")}<textarea name="report" rows={5} maxLength={5000} defaultValue={e.public_report} /></label>
           <label>{c("روابط الصور العامة (رابط HTTPS في كل سطر، حتى 4 صور)", "Public photo URLs (one HTTPS URL per line, up to 4)")}<textarea name="photos" dir="ltr" rows={4} maxLength={8200} defaultValue={e.public_photos?.join("\n") ?? ""} /></label>
           <p className="text-sm text-muted">{c("هذه الروابط والملخص تظهر للزوار. المرفقات التشغيلية أدناه تبقى خاصة.", "These URLs and the summary are public. Operational attachments below remain private.")}</p>
-        </EventForm>}
-        <EventForm operation="duplicate" fields={{ event: e.id }} label={c("نسخ إلى مسودة جديدة", "Copy to a new draft")} locale={locale} />
+        </EventForm></ManagementActionSheet>}
+        <ManagementActionSheet label={c("نسخ الفعالية", "Duplicate event")} title={c("نسخ الفعالية إلى مسودة", "Copy event to a draft")} locale={locale}><EventForm operation="duplicate" fields={{ event: e.id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}><p className="text-sm text-muted">{c("سيتم إنشاء نسخة مستقلة كمسودة. لن تتغير الفعالية الأصلية.", "An independent draft copy will be created. The original event will not change.")}</p></EventForm></ManagementActionSheet>
         <Link href={"/manage/organizations/" + e.organization_id + "/events"} className="text-link">{c("كل فعاليات الجهة", "All organization events")}</Link>
-        <EventAttachment event={e.id} locale={locale} />
+        <ManagementActionSheet label={c("إضافة مرفق", "Add attachment")} title={c("مرفق الفعالية", "Event attachment")} locale={locale}><EventAttachment event={e.id} locale={locale} /></ManagementActionSheet>
         {data.assets.map(asset => <p key={asset.id}><a className="text-link" href={"/files/" + asset.id} dir="auto">{asset.file_name}</a></p>)}
       </div>
     </section>}
@@ -162,22 +168,21 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
         <li key={registration.id} className="workspace-panel">
           <h3 dir="auto" className="font-semibold">{registration.name}</h3>
           <p className="my-3 text-muted">{labels[registration.status_code]} · {labels[registration.attendance]}</p>
-          {registration.definition && registration.answers && <details className="mb-4">
-            <summary className="cursor-pointer">{c("إجابات التسجيل", "Registration answers")}</summary>
-            <dl className="mt-4 space-y-3">{registration.definition.sections.flatMap(section => section.fields).filter(field => registration.answers?.[field.id] !== undefined).map(field =>
+          {registration.definition && registration.answers && <ManagementActionSheet label={c("إجابات التسجيل", "Registration answers")} title={c(`إجابات ${registration.name}`, `Answers from ${registration.name}`)} locale={locale} presentation="sheet">
+            <dl className="space-y-3">{registration.definition.sections.flatMap(section => section.fields).filter(field => registration.answers?.[field.id] !== undefined).map(field =>
               <div key={field.id}><dt dir="auto">{field.label}</dt><dd dir="auto" className="text-muted wrap-anywhere">{field.type === "File" ? <a className="text-link" href={"/files/" + registration.answers?.[field.id]}>{c("تنزيل المرفق", "Download attachment")}</a> : String(registration.answers?.[field.id])}</dd></div>
             )}</dl>
-          </details>}
+          </ManagementActionSheet>}
           {e.status_code === "Published" && registration.status_code === "Registered" && <>
-            {data.canAttend && <EventForm operation="attendance" fields={{ registration: registration.id }} label={c("حفظ الحضور", "Save attendance")} locale={locale}>
-              <label>{c("الحضور", "Attendance")}<select name="status" defaultValue={registration.attendance}>{["Pending", "Present", "Absent", "Excused"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</select></label>
-            </EventForm>}
-            {data.canContribute && <details className="mt-4"><summary className="cursor-pointer">{c("إثبات مساهمة بارزة", "Record significant contribution")}</summary><div className="mt-4">
+            {data.canAttend && <ManagementActionSheet label={c("تسجيل الحضور", "Record attendance")} title={c("حالة حضور العضو", "Member attendance")} locale={locale}><EventForm operation="attendance" fields={{ registration: registration.id }} label={c("حفظ الحضور", "Save attendance")} locale={locale}>
+              <label>{c("الحضور", "Attendance")}<NativeSelect name="status" defaultValue={registration.attendance}>{["Pending", "Present", "Absent", "Excused"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</NativeSelect></label>
+            </EventForm></ManagementActionSheet>}
+            {data.canContribute && <ManagementActionSheet label={c("إثبات مساهمة", "Record contribution")} title={c("مساهمة بارزة", "Significant contribution")} locale={locale}>
               <EventForm operation="contribution" fields={{ event: e.id, student: registration.user_id }} label={c("إثبات المساهمة", "Record contribution")} locale={locale}>
-                <label>{c("النوع", "Type")}<select name="kind">{["Presenter", "Trainer", "Core_Contributor"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</select></label>
+                <label>{c("النوع", "Type")}<NativeSelect name="kind">{["Presenter", "Trainer", "Core_Contributor"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</NativeSelect></label>
                 <label>{c("وصف موجز للمساهمة", "Brief contribution description")}<input name="title" required minLength={2} maxLength={120} /></label>
               </EventForm>
-            </div></details>}
+            </ManagementActionSheet>}
           </>}
         </li>
       )}</ul>

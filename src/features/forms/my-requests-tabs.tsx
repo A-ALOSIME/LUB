@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { FilterToggleGroup } from "@/components/ui/filter-toggle-group";
+import { FilterTabs } from "@/components/ui/filter-tabs";
 import type { Locale } from "@/lib/preferences";
 import { requestsTabHref, type RequestsTab } from "./my-requests-navigation";
 
@@ -21,7 +21,7 @@ export function MyRequestsTabs({
   const en = locale === "en";
 
   return <div className="flex min-w-0 flex-col gap-4">
-    <FilterToggleGroup
+    <FilterTabs
       value={activeTab}
       ariaLabel={en ? "My request categories" : "أنواع طلباتي"}
       dir={en ? "ltr" : "rtl"}
@@ -29,8 +29,9 @@ export function MyRequestsTabs({
         { value: "applications", label: en ? "Applications" : "طلبات الانضمام" },
         { value: "renewals", label: en ? "Renewals" : "طلبات التجديد" },
       ]}
-      size="default"
+      size="sm"
       activeTone="primary"
+      className="workspace-segmented-control"
       onValueChange={next => {
         if ((next === "applications" || next === "renewals") && next !== activeTab) {
           router.push(requestsTabHref(next));

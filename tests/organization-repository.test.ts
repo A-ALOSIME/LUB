@@ -1,11 +1,10 @@
-import { storageFixture } from "./storage-fixture";
+import { applyMigrations, storageFixture } from "./storage-fixture";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { sql } from "drizzle-orm";
-import { readdirSync, readFileSync } from "node:fs";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
-import { discoverySchema, organizationProfileSchema } from "@/features/organizations/validation";
+import { discoverySchema, organizationProfileSchema, organizationPublicProfileContentSchema } from "@/features/organizations/validation";
 
 let engine: PGlite;
 let database: PgliteDatabase<typeof schema>;
@@ -44,7 +43,7 @@ beforeEach(async () => {
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
     insert into auth.users values ('${admin}'),('${leader}');`);
   await storageFixture(engine);
-  for (const file of readdirSync("drizzle").filter(x => x.endsWith(".sql")).sort()) await engine.exec(readFileSync(`drizzle/${file}`, "utf8"));
+  await applyMigrations(engine);
   await engine.exec(`insert into lub.users(id,email,email_verified_at) values ('${admin}','admin@example.invalid',now()),('${leader}','leader@example.invalid',now());
     insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values
     ('${admin}','المشرف','secret1','${"a".repeat(64)}','الحاسب','4'),('${leader}','القائد','secret2','${"b".repeat(64)}','الحاسب','4');
@@ -54,6 +53,12 @@ beforeEach(async () => {
     insert into lub.committees(organization_id,name,is_public) values('${org}','اللجنة العامة',true),('${org}','اللجنة الخاصة',false);`);
 }, 30000);
 afterEach(async () => { await engine.close(); });
+
+it("allows social handles in HTTPS paths while rejecting credentials in the host", async () => {
+  await engine.query("insert into lub.organization_links(organization_id,link_type,url) values ($1,'TikTok','https://www.tiktok.com/@lub')", [org]);
+  await expect(engine.query("insert into lub.organization_links(organization_id,link_type,url) values ($1,'Website','https://user@example.com/path')", [org]))
+    .rejects.toMatchObject({ code: "23514", constraint: "org_link_https_check" });
+});
 
 it("publishes only authorized public announcements and retains one pinned item", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
@@ -140,19 +145,16 @@ it("combines public organization sections in one select and filters only publish
  expect((await getPublicDirectory(discoverySchema.parse({upcoming:'on',open:'on'}))).organizations.map(o=>o.id)).toEqual([org]);
 });
 
-it("reads paginated document headers in one scoped query without assets or full snapshots",async()=>{
- const {documentWorkspace,myDocuments,documentAsset}=await import("@/features/documents/repository");
+it("exports scoped approved hours directly as CSV without persisting report documents",async()=>{
+ const {hoursExportWorkspace,hoursWorkspace}=await import("@/features/hours/repository");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
- const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
+ const exporter="00000000-0000-4000-8000-000000000003";await engine.query("insert into auth.users values($1)",[exporter]);await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'exporter@example.invalid',now())",[exporter]);await engine.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,'المصدّر','secret3',$2,'الحاسب','4')",[exporter,"c".repeat(64)]);
+ const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,exporter])).rows[0].id;
+ const adminMember=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");const term=(await engine.query<{id:string}>("select lub.create_academic_term('2026','T1','الفصل الأول',current_date-5,current_date+5) as id")).rows[0].id;
- await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);
- let first='';for(let i=0;i<27;i++){
-  const upload=(await engine.query<{document_id:string;upload_attempt:string;storage_key:string}>("with created as materialized(select lub.generate_document($1,null,'Hours_Certificate',$2,'All',null,null,null) as id) select upload.* from created cross join lateral lub.document_upload(created.id) upload",[org,member])).rows[0];first=upload.document_id;
-  await engine.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-generated-documents',$1,$2)",[upload.storage_key,leader]);await engine.query('select lub.complete_document($1,$2,true)',[first,upload.upload_attempt]);
- }
- await engine.exec("reset role");scopedReads=0;const own=await myDocuments(admin,0);expect(scopedReads).toBe(1);expect(own?.items).toHaveLength(26);expect(own?.items[0].canArchive).toBe(false);expect(JSON.stringify(own)).not.toContain('data_snapshot_json');expect(JSON.stringify(own)).not.toContain('secret1');expect((await myDocuments(admin,1))?.items).toHaveLength(2);
- scopedReads=0;const workspace=await documentWorkspace(leader,org,null,0,0);expect(scopedReads).toBe(1);expect(workspace?.account.onboarded).toBe(true);expect(workspace?.items).toHaveLength(26);expect(workspace?.members).toHaveLength(1);expect(workspace?.members[0]).toEqual({id:member,name:'المشرف',start_date:expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),end_date:null});expect(Object.hasOwn(workspace??{},"grants")).toBe(false);expect(workspace?.items[0].total).toBe('2.50');expect(await documentWorkspace(admin,org,null,0,0)).toBeUndefined();expect((await documentAsset(admin,first))?.mime_type).toBe('text/html');
- await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.grant_report_permission($1,null,null)",[member]);await engine.exec("reset role");
+ await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);await engine.query("select lub.grant_report_permission($1,null,null)",[member]);await engine.query("select lub.grant_report_permission($1,null,null)",[adminMember]);await engine.exec("reset role");
+ scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0,rulePage:0})).toBeUndefined();
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[exporter]);await engine.exec("set role authenticated");const exported=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,$2) as csv",[org,term])).rows[0].csv;expect(exported).toContain('"الاسم","الساعات المعتمدة"');expect(exported).toContain('2.50');expect(exported).not.toContain('storage_key');await engine.exec("reset role");
  const managed=await getManagementOrganization(admin,org);expect(managed?.organization.canReports).toBe(true);expect(managed?.organization.canHours).toBe(false);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
 });
 
@@ -336,12 +338,17 @@ it("keeps ended leadership roles in the student's own membership history", async
 });
 it("saves public profile, distinct interests and contacts atomically and audits the changes", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
-  await saveOrganizationProfile(leader, org, organizationProfileSchema.parse({ nameAr: "نادي التقنية", summary: "نبذة جديدة", mission: "رسالتنا", logoUrl: "https://example.com/logo.png", showLeadershipPublicly: true, tagNames: "تقني، تطوعي، تقني", websiteUrl: "https://example.com" }));
+  await saveOrganizationProfile(leader, org, organizationProfileSchema.parse({ nameAr: "نادي التقنية", summary: "نبذة جديدة", mission: "رسالتنا", showLeadershipPublicly: true, tagNames: "تقني، تطوعي، تقني", contacts: JSON.stringify([{ kind: "Website", value: "https://example.com" }, { kind: "Email", value: "team@example.com" }, { kind: "Phone", value: "+966512345678" }, { kind: "LinkedIn", value: "https://linkedin.com/company/club" }]), publicProfileContent: { vision: "رؤية الجهة", values: "التعاون", annualEventCount: "١٢", participatingStudentCount: "٤٠", offerings: "ورش العمل", goals: "التطوير", fields: "التقنية", programs: "برنامج سنوي", achievements: "إنجازاتنا", partners: "شركاؤنا", partnersImageUrl: "" } }));
   const detail = await getPublicOrganization("tech");
   expect(detail?.organization.tags).toEqual(["تطوعي", "تقني"]);
-  expect(detail?.organization.logoUrl).toBe("https://example.com/logo.png");
-  expect(detail?.contacts.map(x => x.url)).toEqual(["https://example.com"]);
+  expect(detail?.organization.linksCustomized).toBe(true);
+  expect(detail?.organization.publicProfileContent?.vision).toBe("رؤية الجهة");
+  expect(detail?.organization.memberCount).toBeGreaterThan(0);
+  expect(detail?.contacts.map(x => x.url)).toEqual(["https://example.com/", "mailto:team@example.com", "tel:+966512345678", "https://linkedin.com/company/club"]);
   expect(detail?.leadership).toEqual([{ fullName: "القائد", roleCode: "OL" }]);
+  expect((await getManagementOrganization(leader, org))?.organization.showLeadershipPublicly).toBe(true);
+  await saveOrganizationProfile(leader, org, organizationProfileSchema.parse({ nameAr: "نادي التقنية", summary: "نبذة جديدة", mission: "رسالتنا", showLeadershipPublicly: false, tagNames: "تقني، تطوعي", contacts: JSON.stringify([{ kind: "Website", value: "https://example.com" }]) }));
+  expect((await getManagementOrganization(leader, org))?.organization.showLeadershipPublicly).toBe(false);
   const tag = (await engine.query<{ id: string }>("select id from lub.tags where name_ar=$1", ["تقني"])).rows[0];
   expect((await getPublicDirectory(discoverySchema.parse({ tag: tag.id }))).organizations).toHaveLength(1);
   const audits = (await engine.query("select action_code,metadata from lub.audit_log where organization_id=$1", [org])).rows;
@@ -352,21 +359,24 @@ it("creates and copies committees without copying private roles or memberships, 
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
   const unrelated = await createOrganization(admin, { nameAr: "جهة أخرى", slug: "other-club", typeCode: "Club", summary: "", mission: "" });
   await expect(getManagementOrganization(leader, unrelated.id)).resolves.toBeUndefined();
-  const created = await saveCommittee(leader, org, { name: "لجنة التصميم", description: "نعمل على التصاميم", isPublic: false });
-  const copied = await copyCommittee(leader, org, created.id);
+  const created = await saveCommittee(leader, org, { name: "لجنة التصميم", description: "نعمل على التصاميم", isPublic: false, parentCommitteeId: null });
+  const child = await saveCommittee(leader, org, { name: "لجنة الهوية", description: "تصميم الهوية", isPublic: false, parentCommitteeId: created.id });
+  const copied = await copyCommittee(leader, org, child.id);
+  await expect(engine.query("update lub.committees set parent_committee_id=$1 where id=$2", [child.id, created.id])).rejects.toThrow(/cycle/i);
   selectedReads = 0;
   const managed = await getManagementOrganization(leader, org);
   expect(selectedReads).toBe(1);
-  expect(managed?.committees.some(x => x.id === copied.id && x.copiedFromCommitteeId === created.id)).toBe(true);
+  expect(managed?.committees.some(x => x.id === child.id && x.parentCommitteeId === created.id)).toBe(true);
+  expect(managed?.committees.some(x => x.id === copied.id && x.copiedFromCommitteeId === child.id && x.parentCommitteeId === created.id)).toBe(true);
   expect((await getPublicOrganization("tech"))?.committees.some(x => x.id === copied.id)).toBe(false);
   await setCommitteeStatus(leader, org, created.id, "Archived");
   expect((await getManagementOrganization(leader, org))?.committees.find(x => x.id === created.id)?.statusCode).toBe("Archived");
-  await expect(saveCommittee(admin, org, { name: "مرفوضة", description: "", isPublic: true })).rejects.toThrow();
+  await expect(saveCommittee(admin, org, { name: "مرفوضة", description: "", isPublic: true, parentCommitteeId: null })).rejects.toThrow();
 });
 it("rolls back profile and audit updates when a child record cannot be stored", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
   const before = (await engine.query("select count(*)::int as n from lub.audit_log")).rows;
-  await expect(saveOrganizationProfile(leader, org, { nameAr: "اسم لن يحفظ", summary: "", mission: "", logoUrl: "", showLeadershipPublicly: true, tagNames: ["x".repeat(41)], websiteUrl: "" })).rejects.toThrow();
+  await expect(saveOrganizationProfile(leader, org, { nameAr: "اسم لن يحفظ", summary: "", mission: "", showLeadershipPublicly: true, tagNames: ["x".repeat(41)], contacts: [], publicProfileContent: organizationPublicProfileContentSchema.parse({}) })).rejects.toThrow();
   expect((await getPublicOrganization("tech"))?.organization.nameAr).toBe("نادي التقنية");
   expect((await engine.query("select count(*)::int as n from lub.audit_log")).rows).toEqual(before);
 });
@@ -381,7 +391,7 @@ it("renders and edits only the assigned committee for a committee leader", async
   expect(access.organizations[0].canEdit).toBe(false);
   expect(access.organizations[0].canManageCommittees).toBe(false);
   expect((await getManagementOrganization(leader, org))?.committees.map(x => x.id)).toEqual([ownCommittee]);
-  await saveCommittee(leader, org, { name: "لجنتي", description: "محدّثة", isPublic: false }, ownCommittee);
+  await saveCommittee(leader, org, { name: "لجنتي", description: "محدّثة", isPublic: false, parentCommitteeId: null }, ownCommittee);
   expect((await getManagementOrganization(leader, org))?.committees[0].name).toBe("لجنتي");
   await expect(copyCommittee(leader, org, ownCommittee)).rejects.toThrow();
 });

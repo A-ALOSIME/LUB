@@ -23,18 +23,9 @@ export default async function Account() {
   if (!profile) redirect("/onboarding");
 
   return (
-    <main id="main" className="account-settings-page mx-auto w-full" dir={en ? "ltr" : "rtl"}>
-      <header className="account-settings-page-header">
-        <div className="account-settings-page-heading min-w-0">
-          <h1 className="text-base font-semibold tracking-tight">
-            {en ? "Account details" : "بيانات الحساب"}
-          </h1>
-          <p className="text-sm leading-6 text-muted-foreground">
-            {en
-              ? "Update your personal account details."
-              : "حدّث بيانات حسابك الشخصية."}
-          </p>
-        </div>
+    <main id="main" className="workspace-content account-settings-page" dir={en ? "ltr" : "rtl"}>
+      <header className="workspace-page-header">
+        <h1>{en ? "Account details" : "بيانات الحساب"}</h1>
       </header>
 
       <ProfileForm profile={profile} email={user.email} locale={locale} />

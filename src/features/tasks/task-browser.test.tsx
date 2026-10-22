@@ -82,16 +82,16 @@ it("switches instantly between open tasks and all current or past participations
     locale="ar"
   />);
 
-  const available = screen.getByRole("button", { name: "المتاحة" });
-  const mine = screen.getByRole("button", { name: "مشاركاتي" });
-  expect(available.getAttribute("aria-pressed")).toBe("true");
+  const available = screen.getByRole("tab", { name: "المتاحة" });
+  const mine = screen.getByRole("tab", { name: "مشاركاتي" });
+  expect(available.getAttribute("aria-selected")).toBe("true");
   expect(screen.getByText("مهمة متاحة")).toBeTruthy();
   expect(screen.getByText("منضم")).toBeTruthy();
   expect(screen.queryByText("مهمة منتهية")).toBeNull();
 
   fireEvent.click(mine);
 
-  expect(mine.getAttribute("aria-pressed")).toBe("true");
+  expect(mine.getAttribute("aria-selected")).toBe("true");
   const finished = screen.getByText("مهمة منتهية").closest("li");
   expect(finished?.textContent).toContain("حالة التسليم: معتمدة");
   expect(finished?.textContent).toContain("الساعات المعتمدة: 4.5");
@@ -99,14 +99,14 @@ it("switches instantly between open tasks and all current or past participations
   expect(screen.queryByText("مهمة متاحة")).toBeNull();
 
   fireEvent.click(available);
-  expect(view.container.querySelector('[aria-label="تصفية المهام"]')?.getAttribute("dir")).toBe("rtl");
+  expect(view.container.querySelector('[role="tablist"][aria-label="تصفية المهام"]')?.parentElement?.getAttribute("dir")).toBe("rtl");
   expect(screen.getByText("مهمة متاحة")).toBeTruthy();
 });
 
 it("shows a compact empty message that follows the selected filter", () => {
   render(<TaskBrowser availableItems={[]} mineItems={[]} locale="ar" />);
 
-  expect(screen.getByRole("status").textContent).toContain("لا توجد مهام متاحة");
-  fireEvent.click(screen.getByRole("button", { name: "مشاركاتي" }));
+  expect(screen.getByRole("heading", { name: "لا توجد مهام متاحة الآن" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("tab", { name: "مشاركاتي" }));
   expect(screen.getByRole("status").textContent).toContain("ما شاركت");
 });

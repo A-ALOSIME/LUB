@@ -1,4 +1,4 @@
-type IconName = "overview" | "organization" | "members" | "applications" | "events" | "documents" | "hours" | "renewals" | "tasks" | "permissions" | "public" | "account" | "settings" | "terms" | "admins" | "logout" | "notifications";
+type IconName = "overview" | "organization" | "members" | "applications" | "events" | "hours" | "renewals" | "tasks" | "permissions" | "public" | "account" | "settings" | "terms" | "admins" | "logout" | "notifications";
 
 const paths: Record<IconName, string> = {
   overview: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
@@ -6,7 +6,6 @@ const paths: Record<IconName, string> = {
   members: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8m14 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
   applications: "M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-5-5h-2m2 0v5h5M7 13h10M7 17h7M7 9h2",
   events: "M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
-  documents: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8m-8 4h8",
   hours: "M12 8v4l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
   renewals: "M20 7v5h-5M4 17v-5h5m11-1a8 8 0 0 0-14.9-3M4 13a8 8 0 0 0 14.9 3",
   tasks: "m9 11 3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",

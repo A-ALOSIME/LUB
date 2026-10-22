@@ -34,15 +34,8 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
       {notice === "profile-saved" && <p role="status" className="notice-success mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-action">{en ? "Your details were saved." : "تم حفظ بياناتك."}</p>}
       {notice === "signout-failed" && <p role="alert" className="error-message mb-6">{en ? "Could not sign out. Please try again." : "تعذّر تسجيل الخروج. حاول مرة ثانية."}</p>}
 
-          <header id="overview" className="workspace-hero workspace-my-page-hero scroll-mt-6">
-            <div className="workspace-my-page-copy">
-              <p className="workspace-my-page-kicker">
-                <span aria-hidden="true" className="workspace-my-page-kicker-mark" />
-                {en ? "YOUR LUB WORKSPACE" : "مساحتك في لُبّ"}
-              </p>
-              <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">{en ? "Hello, " : "أهلًا، "}<bdi>{profile.fullName}</bdi></h1>
-              <p className="mt-3 max-w-3xl leading-8 text-muted">{en ? "Your account, activity and organization management now share one workspace." : "حسابك ومشاركاتك وإدارة الجهات التي تملك صلاحيتها، كلها في مساحة واحدة."}</p>
-            </div>
+          <header id="overview" className="workspace-page-header scroll-mt-6">
+            <h1>{en ? "Hello, " : "أهلًا، "}<bdi>{profile.fullName}</bdi></h1>
           </header>
 
           <section aria-label={en ? "Account summary" : "ملخص الحساب"} className="workspace-summary-grid">
@@ -52,7 +45,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
           </section>
 
           <section id="memberships" aria-labelledby="memberships-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--memberships scroll-mt-6">
-            <SectionHeading id="memberships-title" eyebrow={en ? "ORGANIZATIONS" : "العضويات والأدوار"} title={en ? "Memberships and role history" : "عضوياتي وسجل أدواري"} />
+            <SectionHeading id="memberships-title" title={en ? "Memberships and role history" : "عضوياتي وسجل أدواري"} />
             {memberships.length ? <ol className="mt-5 space-y-5 border-s-2 border-line ps-5">
               {memberships.map(membership => <li key={membership.id} className="relative min-w-0 before:absolute before:start-[-1.45rem] before:top-1.5 before:size-3 before:rounded-full before:border-2 before:border-action before:bg-surface">
                 <article className="min-w-0 rounded-xl border border-line bg-surface p-4 sm:p-5">
@@ -71,7 +64,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
                   </ol>}
                 </article>
               </li>)}
-            </ol> : <p className="mt-4 leading-7 text-muted">{en ? "Your membership history will appear here when it is available." : "يظهر سجل عضوياتك هنا عند توفره."}</p>}
+            </ol> : <p className="workspace-empty">{en ? "No memberships yet." : "لا توجد عضويات."}</p>}
           </section>
   </main>;
 }
@@ -89,9 +82,8 @@ function SummaryItem({ icon, label, value }: { icon: "memberships" | "tasks" | "
   </div>;
 }
 
-function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: string; title: string }) {
+function SectionHeading({ id, title }: { id: string; title: string }) {
   return <div className="workspace-section-title">
-    <p className="text-xs font-semibold tracking-wide text-action">{eyebrow}</p>
-    <h2 id={id} className="mt-1 text-xl font-bold">{title}</h2>
+    <h2 id={id}>{title}</h2>
   </div>;
 }

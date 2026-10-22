@@ -12,61 +12,97 @@ import { createClient } from "@/lib/supabase/server";
 const maxFileSize = 5 * 1024 * 1024;
 const privateHeaders = { "Cache-Control": "private, no-store" };
 
+function failure(status: number, error: string) {
+  return NextResponse.json({ error }, { status, headers: privateHeaders });
+}
+
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== getAppOrigin()) return new NextResponse(null, { status: 403 });
+  let appOrigin: string;
+  try {
+    appOrigin = getAppOrigin();
+  } catch {
+    return failure(503, "upload_unavailable");
+  }
+  if (request.headers.get("origin") !== appOrigin) return failure(403, "origin_not_allowed");
 
   const user = await getVerifiedUser();
-  if (!user) return new NextResponse(null, { status: 401 });
+  if (!user) return failure(401, "session_required");
 
   const purpose = request.nextUrl.searchParams.get("purpose");
-  if (purpose && purpose !== "event-poster") return new NextResponse(null, { status: 400 });
-  if (!purpose && await isSuperAdminUser(user.id)) return new NextResponse(null, { status: 403 });
+  if (purpose && purpose !== "event-poster") return failure(400, "unsupported_upload_purpose");
+  if (!purpose && await isSuperAdminUser(user.id)) return failure(403, "upload_not_allowed");
   if (Number(request.headers.get("content-length") ?? 0) > maxFileSize + 1024 * 1024) {
-    return new NextResponse(null, { status: 413 });
+    return failure(413, "file_too_large");
   }
 
+  let form: FormData;
   try {
-    const form = await request.formData();
-    const file = form.get("file");
-    if (!(file instanceof File) || file.size > maxFileSize || !file.name || file.name.length > 120 || /[\x00-\x1f/\\]/.test(file.name)) {
-      throw new Error("Invalid upload");
-    }
+    form = await request.formData();
+  } catch {
+    return failure(400, "invalid_upload");
+  }
 
-    if (purpose) {
-      const organization = z.uuid().safeParse(form.get("organization"));
-      if (!organization.success) {
-        return NextResponse.json({ error: "الجهة غير صالحة." }, { status: 400, headers: privateHeaders });
-      }
+  const file = form.get("file");
+  if (!file || typeof file === "string" || !file.name || file.name.length > 120 || /[\x00-\x1f/\\]/.test(file.name)) {
+    return failure(400, "invalid_file");
+  }
+  if (file.size > maxFileSize) return failure(413, "file_too_large");
+
+  if (purpose) {
+    const organization = z.uuid().safeParse(form.get("organization"));
+    if (!organization.success) return failure(400, "invalid_organization");
+    try {
       const access = await withUser(user.id, tx => tx.execute(sql`
         select lub.has_org_permission(${organization.data}, 'EVENTS_MANAGE') as allowed
       `));
-      if (!access[0]?.allowed) return new NextResponse(null, { status: 403, headers: privateHeaders });
+      if (!access[0]?.allowed) return failure(403, "organization_permission_required");
+    } catch {
+      console.error("File upload authorization check failed.");
+      return failure(503, "authorization_unavailable");
     }
+  }
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const mime = inspectAttachment(bytes, file.type);
-    if (purpose && mime !== "image/jpeg" && mime !== "image/png") throw new Error("Invalid poster type");
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch {
+    return failure(400, "invalid_file");
+  }
+  let mime: string;
+  try {
+    mime = inspectAttachment(bytes, file.type);
+  } catch {
+    return failure(400, "invalid_file");
+  }
+  if (purpose && mime !== "image/jpeg" && mime !== "image/png") {
+    return failure(400, "unsupported_poster_type");
+  }
 
-    const id = randomUUID();
-    const key = `${user.id}/${id}`;
+  const id = randomUUID();
+  const key = `${user.id}/${id}`;
+  let removeUploadedObject: (() => Promise<unknown>) | undefined;
+  try {
     const bucket = (await createClient()).storage.from("lub-application-files");
     const { error } = await bucket.upload(key, bytes, { contentType: mime, upsert: false });
-    if (error) throw new Error("Storage upload failed");
-
-    try {
-      await withUser(user.id, tx => tx.execute(sql`
-        select lub.register_application_asset(${id}, ${key}, ${file.name}, ${mime}, ${file.size})
-      `));
-    } catch {
-      await bucket.remove([key]);
-      throw new Error("Asset registration failed");
+    if (error) {
+      console.error("File upload storage step failed.");
+      return failure(503, "storage_unavailable");
     }
-
-    return NextResponse.json({ id, name: file.name }, { headers: privateHeaders });
+    removeUploadedObject = () => bucket.remove([key]);
   } catch {
-    const message = purpose
-      ? "تعذّر رفع البوستر. استخدم صورة JPEG أو PNG حتى 5 ميجابايت."
-      : "تعذّر رفع الملف. اختر PDF أو JPEG أو PNG حتى 5 ميجابايت.";
-    return NextResponse.json({ error: message }, { status: 400, headers: privateHeaders });
+    console.error("File upload storage step failed.");
+    return failure(503, "storage_unavailable");
   }
+
+  try {
+    await withUser(user.id, tx => tx.execute(sql`
+      select lub.register_application_asset(${id}, ${key}, ${file.name}, ${mime}, ${file.size})
+    `));
+  } catch {
+    try { await removeUploadedObject?.(); } catch { /* Keep the response safe if cleanup also fails. */ }
+    console.error("File upload registration step failed.");
+    return failure(503, "asset_registration_unavailable");
+  }
+
+  return NextResponse.json({ id, name: file.name }, { headers: privateHeaders });
 }

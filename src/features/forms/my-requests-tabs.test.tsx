@@ -11,22 +11,22 @@ afterEach(() => {
   push.mockClear();
 });
 
-it("renders request sections as RTL single-selection buttons and keeps their URL routes", () => {
+it("renders request sections as shadcn tabs and keeps their URL routes", () => {
   render(<MyRequestsTabs activeTab="applications" locale="ar"><div>محتوى الطلبات</div></MyRequestsTabs>);
 
-  const group = screen.getByRole("group", { name: "أنواع طلباتي" });
-  expect(group.getAttribute("dir")).toBe("rtl");
-  expect(group.getAttribute("data-size")).toBe("default");
-  const applicationsButton = within(group).getByRole("button", { name: "طلبات الانضمام" });
-  expect(applicationsButton.getAttribute("aria-pressed")).toBe("true");
-  expect(applicationsButton.className).toContain("aria-pressed:bg-primary");
-  fireEvent.click(within(group).getByRole("button", { name: "طلبات التجديد" }));
+  const tablist = screen.getByRole("tablist", { name: "أنواع طلباتي" });
+  expect(tablist.parentElement?.classList.contains("workspace-filter-scroll")).toBe(true);
+  expect(tablist.parentElement?.getAttribute("dir")).toBe("rtl");
+  const applicationsTab = within(tablist).getByRole("tab", { name: "طلبات الانضمام" });
+  expect(applicationsTab.getAttribute("aria-selected")).toBe("true");
+  expect(applicationsTab.className).toContain("data-active:bg-primary");
+  fireEvent.click(within(tablist).getByRole("tab", { name: "طلبات التجديد" }));
   expect(push).toHaveBeenCalledWith("/applications?tab=renewals");
   expect(screen.getByText("محتوى الطلبات")).toBeTruthy();
 });
 
 it("lets the applications preview return to the saved requests view", () => {
   render(<MyRequestsTabs activeTab="applications" preview locale="ar"><div>المعاينة</div></MyRequestsTabs>);
-  fireEvent.click(screen.getByRole("button", { name: "طلبات الانضمام" }));
+  fireEvent.click(screen.getByRole("tab", { name: "طلبات الانضمام" }));
   expect(push).toHaveBeenCalledWith("/applications?tab=applications");
 });

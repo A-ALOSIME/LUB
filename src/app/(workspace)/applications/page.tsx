@@ -29,10 +29,9 @@ export default async function Applications({ searchParams }: { searchParams: Pro
     checkReadiness(data?.account);
     if (!data) throw new Error("Renewal storage unavailable");
 
-    return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 max-w-4xl space-y-5 pb-20 lg:pb-0">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{en ? "My requests" : "طلباتي"}</h1>
-        <p className="text-sm text-muted-foreground">{en ? "Track your applications and membership renewals in one place." : "تابع طلبات الانضمام والتجديد من مكان واحد."}</p>
+    return <main id="main" dir={en ? "ltr" : "rtl"} className="workspace-page--wide min-w-0 space-y-5 pb-20 lg:pb-0">
+      <header className="workspace-page-header">
+        <h1>{en ? "My requests" : "طلباتي"}</h1>
       </header>
       <MyRequestsTabs activeTab={tab} locale={locale}>
         <PersonalRenewalsView data={data} page={page} locale={locale} />
@@ -67,10 +66,9 @@ export default async function Applications({ searchParams }: { searchParams: Pro
       countOwnApplications(user.id),
     ]);
 
-  return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 max-w-4xl space-y-5 pb-20 lg:pb-0">
-    <header className="flex flex-col gap-1">
-      <h1 className="text-2xl font-semibold tracking-tight">{en ? "My requests" : "طلباتي"}</h1>
-      <p className="text-sm text-muted-foreground">{en ? "Track your applications and membership renewals in one place." : "تابع طلبات الانضمام والتجديد من مكان واحد."}</p>
+  return <main id="main" dir={en ? "ltr" : "rtl"} className="workspace-page--wide min-w-0 space-y-5 pb-20 lg:pb-0">
+    <header className="workspace-page-header">
+      <h1>{en ? "My requests" : "طلباتي"}</h1>
     </header>
     <MyRequestsTabs activeTab={tab} preview={preview} locale={locale}>
       <ApplicationList

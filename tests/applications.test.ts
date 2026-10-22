@@ -1,8 +1,7 @@
 import { PGlite } from "@electric-sql/pglite";
-import { readdirSync, readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import { initialDefinition } from "@/features/forms/definition";
-import { storageFixture } from "./storage-fixture";
+import { applyMigrations, storageFixture } from "./storage-fixture";
 let db: PGlite;
 const leader = "00000000-0000-4000-8000-000000000001";
 const student = "00000000-0000-4000-8000-000000000002";
@@ -16,7 +15,7 @@ beforeAll(async () => {
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
   await storageFixture(db);
-  for (const file of readdirSync("drizzle").filter(x => x.endsWith(".sql")).sort()) await db.exec(readFileSync(`drizzle/${file}`, "utf8"));
+  await applyMigrations(db);
 }, 30000);
 async function asUser(id: string) { await db.exec("reset role"); await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)", [id]); }
 async function owner() { await db.exec("reset role"); }

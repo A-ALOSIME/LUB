@@ -18,9 +18,7 @@ export default async function AdminAccountPage({ searchParams }: { searchParams:
   return <div className="workspace-content">
     <header className="workspace-page-header">
       <div>
-        <p className="workspace-eyebrow">{en ? "SYSTEM ADMINISTRATION" : "إدارة النظام"}</p>
-        <h1 className="mt-2 text-3xl font-bold">{en ? "Account settings" : "إعدادات الحساب"}</h1>
-        <p className="mt-3 leading-8 text-muted">{en ? "Change the name shown in system administration. Student features remain separate." : "غيّر الاسم الظاهر في صفحات إدارة النظام. تبقى ميزات الطالب مستقلة عن حسابك الإداري."}</p>
+        <h1>{en ? "Account settings" : "إعدادات الحساب"}</h1>
       </div>
     </header>
     {query.saved === "1" && <p role="status" className="panel p-4 text-action">{en ? "Name saved." : "تم حفظ الاسم."}</p>}

@@ -13,5 +13,10 @@ it("retains typed submission text and focuses the failure message",async()=>{
 });
 it("initializes editing dates in Riyadh and submits the explicit timezone",()=>{
  const {container}=render(<DateInput name="due" label="الموعد" value="2026-09-27T09:30:00Z"/>);
- expect((screen.getByLabelText("الموعد (توقيت الرياض)") as HTMLInputElement).value).toBe("2026-09-27T12:30");expect((container.querySelector('input[name="due"]') as HTMLInputElement).value).toBe("2026-09-27T12:30:00+03:00");
+ expect((screen.getByLabelText("الموعد") as HTMLInputElement).value).toContain("12:30");expect((container.querySelector('input[name="due"]') as HTMLInputElement).value).toBe("2026-09-27T12:30:00+03:00");
+ expect(container.querySelector('input[type="time"]')).toBeNull();
+ expect(screen.queryByRole("button",{name:/اختيار التاريخ/})).toBeNull();
+ fireEvent.click(screen.getByLabelText("الموعد"));
+ expect(screen.getByText("كل الأوقات بتوقيت الرياض")).toBeTruthy();
+ expect(document.querySelector('[data-week-start="saturday"]')).toBeTruthy();
 });

@@ -1,31 +1,144 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, type ReactNode } from "react";
+import { useActionState, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { mutateOrganization } from "./actions";
 import type { MutationOperation, MutationState } from "./validation";
 import type {Locale} from "@/lib/preferences";
 import {actionFeedback} from "@/lib/action-feedback";
-const fieldLabels: Record<string, string> = { nameAr: "اسم الجهة", name: "اسم اللجنة", slug: "اسم الرابط", typeCode: "نوع الجهة", summary: "النبذة", mission: "الرسالة", tagNames: "مجالات الاهتمام", websiteUrl: "رابط الموقع", logoUrl: "رابط الشعار", email: "البريد", description: "وصف اللجنة", title: "عنوان الإعلان", body: "نص الإعلان", pinned: "تثبيت الإعلان" };
-const fieldLabelsEn: Record<string, string> = { nameAr: "Organization name", name: "Committee name", slug: "URL name", typeCode: "Organization type", summary: "Summary", mission: "Mission", tagNames: "Interests", websiteUrl: "Website", logoUrl: "Logo URL", email: "Email", description: "Committee description", title: "Announcement title", body: "Announcement text", pinned: "Pin announcement" };
+import { ProfileFormContext } from "./profile-form-state";
+import { ManagementActionFooter } from "@/components/management-action-sheet";
+import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
 
-export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel, children, locale="ar", onSuccess }: {
-  operation: MutationOperation; fields?: Record<string, string>; submitLabel: string; confirmLabel?: string; children?: ReactNode;locale?:Locale; onSuccess?: () => void;
+function snapshot(form: HTMLFormElement) {
+  return JSON.stringify(Array.from(new FormData(form).entries()));
+}
+function formValues(form: HTMLFormElement) {
+  const values = Object.fromEntries(Array.from(new FormData(form).entries()).map(([name, value]) => [name, typeof value === "string" ? value : ""]));
+  for (const control of Array.from(form.elements)) {
+    if (control instanceof HTMLInputElement && control.name && (control.type === "checkbox" || control.type === "radio")) values[control.name] = control.checked ? control.value : "";
+  }
+  return values;
+}
+type FormControlsSnapshot = {
+  values: Record<string, string>;
+  controls: Array<{ type: "input"; value: string; checked: boolean } | { type: "textarea"; value: string } | { type: "select"; selected: boolean[] }>;
+};
+function captureFormControls(form: HTMLFormElement): FormControlsSnapshot {
+  const controls: FormControlsSnapshot["controls"] = [];
+  for (const control of Array.from(form.elements)) {
+    if (control instanceof HTMLInputElement) controls.push({ type: "input", value: control.value, checked: control.checked });
+    else if (control instanceof HTMLTextAreaElement) controls.push({ type: "textarea", value: control.value });
+    else if (control instanceof HTMLSelectElement) controls.push({ type: "select", selected: Array.from(control.options).map(option => option.selected) });
+  }
+  return { values: formValues(form), controls };
+}
+function restoreFormControls(form: HTMLFormElement, saved: FormControlsSnapshot) {
+  const controls = Array.from(form.elements).filter(control => control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement);
+  controls.forEach((control, index) => {
+    const state = saved.controls[index];
+    if (!state) return;
+    if (control instanceof HTMLInputElement && state.type === "input") {
+      if (control.type === "checkbox" || control.type === "radio") {
+        control.checked = state.checked;
+        control.defaultChecked = state.checked;
+      } else if (control.type !== "file") {
+        control.value = state.value;
+        control.defaultValue = state.value;
+      }
+    } else if (control instanceof HTMLTextAreaElement && state.type === "textarea") {
+      control.value = state.value;
+      control.defaultValue = state.value;
+    } else if (control instanceof HTMLSelectElement && state.type === "select") {
+      Array.from(control.options).forEach((option, optionIndex) => {
+        option.selected = state.selected[optionIndex] ?? false;
+        option.defaultSelected = option.selected;
+      });
+    }
+  });
+}
+const fieldLabels: Record<string, string> = { nameAr: "اسم الجهة", name: "اسم اللجنة", slug: "اسم الرابط", typeCode: "نوع الجهة", summary: "النبذة", mission: "الرسالة", tagNames: "مجالات الاهتمام", contacts: "قنوات التواصل", email: "البريد", description: "وصف اللجنة", title: "عنوان الإعلان", body: "نص الإعلان", pinned: "تثبيت الإعلان" };
+const fieldLabelsEn: Record<string, string> = { nameAr: "Organization name", name: "Committee name", slug: "URL name", typeCode: "Organization type", summary: "Summary", mission: "Mission", tagNames: "Interests", contacts: "Contact channels", email: "Email", description: "Committee description", title: "Announcement title", body: "Announcement text", pinned: "Pin announcement" };
+
+export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel, children, locale="ar", onSuccess, formClassName, buttonClassName, stickySaveBar = false, cancelInModal = true, inlineFooter = false }: {
+  operation: MutationOperation; fields?: Record<string, string>; submitLabel: string; confirmLabel?: string; children?: ReactNode;locale?:Locale; onSuccess?: () => void; formClassName?: string; buttonClassName?: string; stickySaveBar?: boolean; cancelInModal?: boolean; inlineFooter?: boolean;
 }) {
   const labels=locale==="en"?fieldLabelsEn:fieldLabels;
   const [state, action, pending] = useActionState<MutationState, FormData>(mutateOrganization, {});
   const errorId = useId();
+  const formId = useId();
   const errorRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const pendingSubmission = useRef<FormControlsSnapshot | null>(null);
+  const savedControls = useRef<FormControlsSnapshot | null>(null);
+  const baseline = useRef<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [resetValues, setResetValues] = useState<Record<string, string>>({});
+  const [changeVersion, setChangeVersion] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!stickySaveBar || !formRef.current) return;
+    const current = snapshot(formRef.current);
+    if (baseline.current === null) {
+      baseline.current = current;
+      savedControls.current = captureFormControls(formRef.current);
+    }
+    else setDirty(current !== baseline.current);
+  }, [changeVersion, stickySaveBar]);
   useEffect(() => { if (state.error) errorRef.current?.focus(); }, [state]);
+  useEffect(() => { if (state.error) pendingSubmission.current = null; }, [state.error]);
   useEffect(() => { if (state.success) onSuccess?.(); }, [state.success, onSuccess]);
-  return <form action={action} onReset={event => event.preventDefault()} className="space-y-5">
+  useEffect(() => {
+    if (!stickySaveBar || !state.success || !formRef.current) return;
+    setShowSuccess(true);
+    const frame = window.requestAnimationFrame(() => {
+      if (!formRef.current) return;
+      const saved = pendingSubmission.current ?? captureFormControls(formRef.current);
+      pendingSubmission.current = null;
+      restoreFormControls(formRef.current, saved);
+      savedControls.current = saved;
+      setResetValues(saved.values);
+      baseline.current = snapshot(formRef.current);
+      setResetKey(key => key + 1);
+      setDirty(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [state, stickySaveBar]);
+
+  const markChanged = useCallback(() => {
+    setShowSuccess(false);
+    setChangeVersion(version => version + 1);
+  }, []);
+
+  function trackChange(target: EventTarget | null) {
+    if (target instanceof Element && target.closest("[data-ignore-dirty]")) return;
+    markChanged();
+  }
+
+  function undoChanges() {
+    formRef.current?.reset();
+    if (formRef.current && savedControls.current) restoreFormControls(formRef.current, savedControls.current);
+    setResetKey(key => key + 1);
+    setDirty(false);
+    setShowSuccess(false);
+  }
+
+  return <form id={stickySaveBar ? formId : undefined} ref={formRef} action={action} noValidate={stickySaveBar} onReset={event => { if (!stickySaveBar) event.preventDefault(); }} onInputCapture={event => trackChange(event.target)} onChangeCapture={event => trackChange(event.target)} onClickCapture={event => trackChange(event.target)} onSubmitCapture={event => {
+    if (stickySaveBar && formRef.current) pendingSubmission.current = captureFormControls(formRef.current);
+    trackChange(event.target);
+  }} data-dirty={stickySaveBar && dirty ? "true" : undefined} className={`space-y-5 ${formClassName ?? ""}`}>
     <input type="hidden" name="operation" value={operation} />
     {Object.entries(fields).map(([name, value]) => <input type="hidden" name={name} value={value} key={name} />)}
-    <fieldset disabled={pending} aria-describedby={state.error ? errorId : undefined} className="space-y-5">
-      {children}
-      {confirmLabel && <label className="mb-0 flex items-start gap-3 text-sm leading-7"><input type="checkbox" name="confirmed" required className="mt-1 size-5 shrink-0 accent-action" /><span>{confirmLabel}</span></label>}
-      <button disabled={pending} className="button">{pending ? locale==="en"?"Working…":"جارٍ التنفيذ…" : submitLabel}</button>
-    </fieldset>
+    <ProfileFormContext.Provider value={{ resetKey, resetValues, markChanged }}>
+      <fieldset disabled={pending} aria-describedby={state.error ? errorId : undefined} className="space-y-5">
+        {children}
+        {confirmLabel && <label className="mb-0 flex items-start gap-3 text-sm leading-7"><input type="checkbox" name="confirmed" required className="mt-1 size-5 shrink-0 accent-action" /><span>{confirmLabel}</span></label>}
+        {!stickySaveBar && <ManagementActionFooter label={pending ? locale==="en"?"Working…":"جارٍ التنفيذ…" : submitLabel} pending={pending} buttonClassName={buttonClassName} showCancel={cancelInModal} sticky={!inlineFooter}/>}
+      </fieldset>
+    </ProfileFormContext.Provider>
     {state.error && <div id={errorId} ref={errorRef} tabIndex={-1} role="alert" className="error-message">{actionFeedback(state.error,locale)}{state.fieldErrors && <ul className="mt-3 space-y-2">{Object.entries(state.fieldErrors).filter(([key]) => labels[key]).map(([key, messages]) => <li key={key}>{labels[key]}: {messages?.map(message=>actionFeedback(message,locale)).join(" ")}</li>)}</ul>}</div>}
-    {state.success && <p role="status" className="rounded-lg border border-line bg-mist p-4 leading-7 text-action">{actionFeedback(state.success,locale)}</p>}
+    {stickySaveBar && showSuccess && state.success && <p role="status" className="organization-profile-save-success">{actionFeedback(state.success,locale)}</p>}
+    {stickySaveBar && <WorkspaceStickySaveBar formId={formId} locale={locale} visible={dirty} pending={pending} onUndo={undoChanges} />}
   </form>;
 }

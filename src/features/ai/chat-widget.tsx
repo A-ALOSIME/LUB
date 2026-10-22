@@ -8,11 +8,11 @@ import {readChatStream, type ChatSource} from "./chat-stream";
 
 type Message = {id: number; role: "user" | "assistant"; text: string; sources: ChatSource[]};
 
-export function ChatWidget({locale, inline = false}: {locale: "ar" | "en"; inline?: boolean}) {
+export function ChatWidget({locale, inline = false, initiallyOpen = false}: {locale: "ar" | "en"; inline?: boolean; initiallyOpen?: boolean}) {
   const pathname = usePathname(), id = useId();
   const panelId = "lub-chat-panel-" + id, titleId = "lub-chat-title-" + id, inputId = "lub-chat-question-" + id;
   const en = locale === "en";
-  const [open, setOpen] = useState(inline), [draft, setDraft] = useState("");
+  const [open, setOpen] = useState(inline || initiallyOpen), [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]), [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false), [error, setError] = useState("");
   const [copyStatus, setCopyStatus] = useState<{messageId: number; status: "copied" | "failed"} | null>(null);

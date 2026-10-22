@@ -17,10 +17,26 @@ it("verifies the session before reading submitted operations", async () => {
   expect(mocks.lifecycle).not.toHaveBeenCalled();
 });
 it("uses the verified actor and validated allowlisted fields, ignoring forged actor and lifecycle values", async () => {
-  const state = await mutateOrganization({}, form({ operation: "org-profile", organizationId: org, userId: "forged", nameAr: "نادي التقنية", summary: "نبذة", mission: "", tagNames: "تقني", websiteUrl: "", statusCode: "Archived" }));
+  const state = await mutateOrganization({}, form({ operation: "org-profile", organizationId: org, userId: "forged", nameAr: "نادي التقنية", summary: "نبذة", mission: "", tagNames: "تقني", contacts: "[]", statusCode: "Archived" }));
   expect(state.success).toBeDefined();
-  expect(mocks.save).toHaveBeenCalledWith("verified-user", org, { nameAr: "نادي التقنية", summary: "نبذة", mission: "", tagNames: ["تقني"], websiteUrl: "", logoUrl: "", showLeadershipPublicly: false });
+  expect(mocks.save).toHaveBeenCalledWith("verified-user", org, { nameAr: "نادي التقنية", summary: "نبذة", mission: "", tagNames: ["تقني"], contacts: [], showLeadershipPublicly: false, publicProfileContent: { vision: "", values: "", annualEventCount: "", participatingStudentCount: "", offerings: "", goals: "", fields: "", programs: "", achievements: "", partners: "", partnersImageUrl: "" } });
   expect(mocks.revalidate).toHaveBeenCalledWith("public-organizations");
+});
+it("persists public leadership only when the submitted visibility control is enabled", async () => {
+  await mutateOrganization({}, form({ operation: "org-profile", organizationId: org, nameAr: "نادي التقنية", summary: "نبذة", mission: "", tagNames: "تقني", contacts: "[]", showLeadershipPublicly: "on" }));
+  expect(mocks.save).toHaveBeenCalledWith("verified-user", org, { nameAr: "نادي التقنية", summary: "نبذة", mission: "", tagNames: ["تقني"], contacts: [], showLeadershipPublicly: true, publicProfileContent: { vision: "", values: "", annualEventCount: "", participatingStudentCount: "", offerings: "", goals: "", fields: "", programs: "", achievements: "", partners: "", partnersImageUrl: "" } });
+});
+it("logs only safe database metadata when an organization profile save fails", async () => {
+  const error = Object.assign(new Error("private profile value must not be logged"), { code: "23514", constraint_name: "org_link_https_check", table_name: "organization_links" });
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.save.mockRejectedValue(error);
+
+  const response = await mutateOrganization({}, form({ operation: "org-profile", organizationId: org, nameAr: "private profile value", summary: "نبذة", mission: "", tagNames: "", contacts: "[]" }));
+
+  expect(response.error).toBeDefined();
+  expect(log).toHaveBeenCalledWith("Organization profile save failed", { name: "Error", code: "23514", constraint: "org_link_https_check", table: "organization_links", column: undefined });
+  expect(JSON.stringify(log.mock.calls)).not.toContain("private profile value");
+  log.mockRestore();
 });
 it("requires explicit confirmation for primary appointment and archive changes", async () => {
   expect((await mutateOrganization({}, form({ operation: "appoint-leader", organizationId: org, email: "member@example.com" }))).error).toBeDefined();

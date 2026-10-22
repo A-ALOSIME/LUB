@@ -1,16 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { LoaderCircle, Save, ShieldCheck } from "lucide-react";
+import { useActionState, useState } from "react";
+import { LoaderCircle, RotateCcw, Save, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
@@ -31,86 +24,82 @@ export function ProfileForm({
 }) {
   const en = locale === "en";
   const [state, save, pending] = useActionState<FormState, FormData>(saveProfile, {});
-  const cardTitle = profile
-    ? en
-      ? "Account settings"
-      : "إعدادات الحساب"
-    : en
-      ? "Your details"
-      : "بيانات حسابك";
-  const cardDescription = profile
-    ? en
-      ? "Manage your personal details."
-      : "إدارة بياناتك الشخصية."
-    : en
-      ? "Add your basic details once to use them across your account."
-      : "أكمل بياناتك الأساسية مرة واحدة لاستخدامها في حسابك.";
-  const saveLabel = en
-    ? pending
-      ? "Saving…"
-      : profile
-        ? "Save changes"
-        : "Save and continue"
-    : pending
-      ? "جارٍ الحفظ…"
-      : profile
-        ? "حفظ التعديلات"
-        : "حفظ ومتابعة";
+  const [dirty, setDirty] = useState(false);
+  const saveLabel = profile
+    ? en ? "Save changes" : "حفظ التعديلات"
+    : en ? "Save details" : "حفظ البيانات";
 
   // Prevent React's post-action reset from clearing entries after validation errors.
   return (
-    <Card className="account-settings-card">
-      <form
-        action={save}
-        onReset={(event) => event.preventDefault()}
-        className="account-settings-form"
-        dir={en ? "ltr" : "rtl"}
-      >
-        {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
+    <>
+      <Card className="account-settings-card">
+        <form
+          id="account-settings-form"
+          action={save}
+          onReset={(event) => event.preventDefault()}
+          onInputCapture={() => setDirty(true)}
+          onChangeCapture={() => setDirty(true)}
+          className="account-settings-form"
+          dir={en ? "ltr" : "rtl"}
+        >
+          {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
-        <CardHeader className="account-settings-card-header">
-          <CardTitle>{cardTitle}</CardTitle>
-          <CardDescription>{cardDescription}</CardDescription>
-        </CardHeader>
-
-        <CardContent className="account-settings-content">
-          <ProfileDetailsSection
-            profile={profile}
-            email={email}
-            locale={locale}
-            errors={state.fieldErrors}
-          />
-          {state.error && (
-            <div role="alert" className="account-settings-form-error">
-              {actionFeedback(state.error, locale)}
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="account-settings-footer">
-          <Button
-            type="submit"
-            size="lg"
-            disabled={pending}
-            className="account-settings-save w-fit"
-          >
-            {pending ? (
-              <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" />
-            ) : (
-              <Save data-icon="inline-start" aria-hidden="true" />
+          <CardContent className="account-settings-content">
+            <ProfileDetailsSection
+              profile={profile}
+              email={email}
+              locale={locale}
+              errors={state.fieldErrors}
+            />
+            {state.error && (
+              <div role="alert" className="account-settings-form-error">
+                {actionFeedback(state.error, locale)}
+              </div>
             )}
-            {saveLabel}
-          </Button>
+          </CardContent>
+          <CardFooter className="account-settings-footer">
+            {dirty && (
+              <span className="account-settings-footer-status" role="status" aria-live="polite">
+                {en ? "You have unsaved changes" : "لديك تغييرات غير محفوظة"}
+              </span>
+            )}
+            <div className="account-settings-footer-actions">
+              <Button
+                type="submit"
+                className="account-settings-save"
+                disabled={pending}
+              >
+                {pending ? (
+                  <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" />
+                ) : (
+                  <Save data-icon="inline-start" aria-hidden="true" />
+                )}
+                {pending ? en ? "Saving…" : "جارٍ الحفظ…" : saveLabel}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="account-settings-undo"
+                disabled={!dirty || pending}
+                onClick={() => window.location.reload()}
+              >
+                <RotateCcw data-icon="inline-start" aria-hidden="true" />
+                {en ? "Undo" : "تراجع"}
+              </Button>
+            </div>
+          </CardFooter>
+        </form>
+      </Card>
+
+      <Card className="account-settings-privacy-card" dir={en ? "ltr" : "rtl"}>
+        <CardContent className="account-settings-privacy-content">
+          <h2 className="account-settings-privacy-title">{en ? "Privacy" : "الخصوصية"}</h2>
           <p className="account-settings-footer-note">
             <ShieldCheck aria-hidden="true" />
-            <span>
-              {en
-                ? "Your university number and account email are never public."
-                : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}
-            </span>
+            <span>{en ? "Your university number and account email are never public." : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}</span>
           </p>
-        </CardFooter>
-      </form>
-    </Card>
+        </CardContent>
+      </Card>
+    </>
   );
 }

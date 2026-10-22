@@ -65,7 +65,11 @@ describe("organization profile content", () => {
   it("shows committee names and curated highlights without a details toggle", () => {
     render(<OrganizationProfileContent profile={profile} en={false} />);
 
-    expect(screen.getByText("لجنة التصميم").closest("details")).toBeNull();
+    const committee = screen.getByText("لجنة التصميم");
+    const committeeCard = committee.closest(".organization-profile-committee-item");
+    expect(committee.closest("details")).toBeNull();
+    expect(committeeCard?.querySelector("svg")).not.toBeNull();
+    expect(committeeCard?.querySelector('[data-status="public"]')?.textContent).toBe("عامة");
     expect(screen.getByText("هدف بارز").closest("details")).toBeNull();
     expect(screen.queryByText("هدف غير مختار")).toBeNull();
     expect(screen.getByText("معلومة محفوظة").closest("details")).not.toBeNull();

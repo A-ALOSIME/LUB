@@ -14,7 +14,7 @@ describe("profile form interactions", () => {
     fireEvent.change(screen.getByLabelText("الرقم الجامعي"), { target: { value: "invalid-number" } });
     fireEvent.change(screen.getByLabelText("التخصص"), { target: { value: "نظم المعلومات" } });
     fireEvent.change(screen.getByLabelText("المستوى الدراسي"), { target: { value: "5" } });
-    fireEvent.submit(screen.getByRole("button", { name: "حفظ ومتابعة" }).closest("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "حفظ البيانات" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("راجع الرقم"));
     expect((screen.getByLabelText("الاسم الكامل بالعربية") as HTMLInputElement).value).toBe("أحمد محمد");
     expect((screen.getByLabelText("الرقم الجامعي") as HTMLInputElement).value).toBe("invalid-number");
@@ -24,20 +24,33 @@ describe("profile form interactions", () => {
   it("edits stored data without requesting the university number again", () => {
     render(<ProfileForm email="student@example.com" profile={{ fullName: "أحمد محمد", major: "نظم المعلومات", academicLevel: "5", phone: null }} />);
     expect(screen.queryByLabelText("الرقم الجامعي")).toBeNull();
-    expect(screen.getByRole("button", { name: "حفظ التعديلات" })).toBeTruthy();
+    const saveButton = screen.getByRole("button", { name: "حفظ التعديلات" });
+    expect((saveButton as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByLabelText("التخصص") as HTMLInputElement).value).toBe("نظم المعلومات");
-    expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("ltr");
-    const fields = document.querySelector(".account-settings-fields");
+    fireEvent.change(screen.getByLabelText("التخصص"), { target: { value: "نظم المعلومات الإدارية" } });
+    expect((screen.getByRole("button", { name: "حفظ التعديلات" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByLabelText("التخصص") as HTMLInputElement).value).toBe("نظم المعلومات الإدارية");
+    expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("rtl");
+    const fieldRows = Array.from(document.querySelectorAll(".account-settings-field-row"));
     expect(
-      Array.from(fields?.querySelectorAll(":scope > [data-slot='field']") ?? []).map(
+      Array.from(fieldRows[0]?.querySelectorAll("[data-slot='field']") ?? []).map(
         (field) => field.querySelector("input, select")?.getAttribute("name")
       )
-    ).toEqual(["fullName", "major", "academicLevel", "phone"]);
+    ).toEqual(["fullName", "major"]);
+    expect(
+      Array.from(fieldRows[1]?.querySelectorAll("[data-slot='field']") ?? []).map(
+        (field) => field.querySelector("input, select")?.getAttribute("name")
+      )
+    ).toEqual(["academicLevel", "phone"]);
+    expect(fieldRows[1]?.querySelector(".account-settings-email")).toBeNull();
+    expect(document.querySelector(".account-settings-divider")?.nextElementSibling?.classList.contains("account-settings-email")).toBe(true);
     expect(screen.queryByText("يُحفظ اختيارك لحين إتاحة الملفات العامة، وتبقى بياناتك الجامعية خاصة.")).toBeNull();
     expect(screen.queryByText("اعرض ساعاتك المعتمدة عند إتاحة ملفك العام.")).toBeNull();
-    const footer = document.querySelector(".account-settings-footer");
-    expect(footer?.firstElementChild?.matches("button")).toBe(true);
-    expect(footer?.lastElementChild?.classList.contains("account-settings-footer-note")).toBe(true);
+    expect(document.querySelector(".account-settings-footer")).not.toBeNull();
+    expect(document.querySelector(".account-settings-footer-note")?.closest("[data-slot='card']"))
+      .not.toBe(document.querySelector(".account-settings-card"));
+    expect(document.querySelector(".account-settings-privacy-title")?.textContent).toBe("الخصوصية");
+    expect(document.querySelector(".workspace-sticky-save-bar")).toBeNull();
     expect(screen.queryByText("بياناتك محمية")).toBeNull();
     expect(screen.getByText("رقمك الجامعي وبريد حسابك لا يظهران للعامة.")).toBeTruthy();
     expect(

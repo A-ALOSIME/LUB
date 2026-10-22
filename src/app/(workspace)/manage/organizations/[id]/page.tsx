@@ -1,96 +1,127 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Globe, Info, UsersRound } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { WorkspaceIcon } from "@/components/workspace-icon";
 import { loadManagementPageData } from "@/features/organizations/access";
-import { CommitteeFields } from "@/features/organizations/form-fields";
+import { CommitteeDialog } from "@/features/organizations/committee-dialog";
+import { OrganizationCommitteeChart } from "@/features/organizations/organization-committee-chart";
+import { localOrganizationContent } from "@/features/organizations/local-content";
+import { OrganizationContactChannelEditor } from "@/features/organizations/contact-channel-editor";
+import { OrganizationCharacterCountTextarea } from "@/features/organizations/character-count-textarea";
+import { profileLinksToContactChannels, storedLinksToContactChannels } from "@/features/organizations/contact-channels";
+import { OrganizationInterestEditor } from "@/features/organizations/organization-interest-editor";
+import { OrganizationLogoEditor } from "@/features/organizations/logo-editor";
+import { OrganizationLeadershipVisibilityButton } from "@/features/organizations/organization-leadership-switch";
+import { OrganizationPublicProfileEditor } from "@/features/organizations/public-profile-editor";
+import { buildCommitteeTree } from "@/features/organizations/committee-tree";
 import { getManagementOrganization } from "@/features/organizations/management-repository";
+import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
 import { MutationForm } from "@/features/organizations/mutation-form";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { getPreferences } from "@/lib/preferences";
-import { AnnouncementDialog } from "./announcement-dialog";
+import { Button } from "@/components/ui/button";
 
 export async function generateMetadata() {
-  return localizedMetadata("بيانات الجهة", "Organization details");
+  return localizedMetadata("الجهة", "Organization");
 }
 
-export default async function ManageOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, { locale }] = await Promise.all([params, getPreferences()]);
+export default async function ManageOrganizationPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ section?: string }>;
+}) {
+  const [{ id }, { locale }, search] = await Promise.all([params, getPreferences(), searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
   const { data: managed } = await loadManagementPageData(userId => getManagementOrganization(userId, id));
   if (!managed) notFound();
 
-  const { organization, committees } = managed;
+  const { organization, committees, contacts } = managed;
   const en = locale === "en";
   const c = (ar: string, english: string) => en ? english : ar;
+  const curatedProfile = localOrganizationContent(organization.nameAr, organization.typeCode);
+  const savedChannels = storedLinksToContactChannels(contacts);
+  const initialChannels = organization.linksCustomized || savedChannels.length
+    ? savedChannels
+    : profileLinksToContactChannels(curatedProfile?.links);
+  const showCommittees = committees.length > 0 || organization.canManageCommittees;
+  const committeeTree = buildCommitteeTree(committees);
+  const parentOptions = committees.filter(committee => committee.statusCode === "Active" && committee.canEdit).map(({ id, name }) => ({ id, name }));
+  const tabs = [
+    { id: "about", label: c("عن الجهة", "About"), icon: <Info aria-hidden="true" /> },
+    ...(showCommittees ? [{ id: "committees", label: c("اللجان", "Committees"), icon: <UsersRound aria-hidden="true" /> }] : []),
+  ];
+  const initialSection = search.section === "committees" && showCommittees ? "committees" : "about";
 
-  return <div className="organization-settings space-y-6">
-    <header className="organization-settings-header">
+  return <div className="organization-settings space-y-5">
+    <header className="workspace-page-header organization-about-heading">
       <div className="min-w-0">
-        <nav aria-label={c("مسار الصفحة", "Breadcrumb")} className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted">
-          <Link href="/me" className="hover:text-action">{c("مساحتي", "My workspace")}</Link>
-          <span aria-hidden="true">/</span><span dir="auto">{organization.nameAr}</span>
-        </nav>
-        <h1 className="text-3xl font-bold leading-tight">{c("بيانات الجهة", "Organization details")}</h1>
-        <p className="mt-2 text-sm leading-7 text-muted">{c("حدّث ما يظهر عن جهتك للزوار، وأدر الإعلانات واللجان من هنا.", "Update public organization details, announcements and committees here.")}</p>
+        <h1>{c("الجهة", "Organization")}</h1>
       </div>
-      <Link href={`/organizations/${organization.slug}`} className="button button-secondary shrink-0">{c("عرض الصفحة العامة", "View public page")}</Link>
     </header>
 
-    {organization.canEdit && <Card className="organization-settings-card" aria-label={c("بيانات الجهة", "Organization details")}>
-      <CardContent>
-        <div className="organization-settings-identity">
-          <div className="organization-settings-logo">
-            {organization.logoUrl ? <Image src={organization.logoUrl} alt="" width={76} height={76} unoptimized className="h-full w-full object-contain" /> : <WorkspaceIcon name="organization" className="size-8 text-action" />}
+    <OrganizationSectionTabs items={tabs} initialSection={initialSection} defaultSection="about" legacyHashSections={{ "#committees": "committees" }} sticky={false} label={c("أقسام الجهة", "Organization sections")} dir={en ? "ltr" : "rtl"}>
+      <OrganizationSectionTabPanel id="about">
+        {organization.canEdit ? <MutationForm operation="org-profile" fields={{ organizationId: id }} submitLabel={c("حفظ", "Save")} locale={locale} formClassName="organization-settings-form" buttonClassName="button button-compact w-fit" stickySaveBar>
+          <div className="organization-settings-sections">
+            <Card className="organization-settings-card" aria-label={c("بيانات الجهة الأساسية", "Basic organization details")}>
+              <CardHeader className="organization-settings-card-header">
+                <h2 className="organization-settings-section-title">{c("بيانات الجهة الأساسية", "Basic details")}</h2>
+              </CardHeader>
+              <CardContent className="organization-settings-card-content">
+                <div className="organization-settings-fields">
+                  <div className="organization-settings-identity-field full">
+                    <OrganizationLogoEditor organizationId={id} organizationName={organization.nameAr} logoUrl={organization.logoUrl} fallbackLogoUrl={curatedProfile?.logoSrc} locale={locale} />
+                    <div className="organization-settings-field min-w-0">
+                      <label htmlFor="edit-name">{c("اسم الجهة", "Organization name")}</label>
+                      <Input id="edit-name" name="nameAr" dir={en ? "ltr" : "rtl"} placeholder={c("مثال: نادي علوم الحاسب", "e.g. Computer Science Club")} required minLength={2} maxLength={120} defaultValue={organization.nameAr} />
+                    </div>
+                  </div>
+                  <div className="organization-about-text-fields full">
+                    <div className="organization-settings-field">
+                      <label htmlFor="edit-summary">{c("النبذة", "Short description")}</label>
+                      <OrganizationCharacterCountTextarea id="edit-summary" name="summary" defaultValue={organization.summary} maxLength={1000} locale={locale} rows={2} placeholder={c("مثال: مجتمع طلابي يجمع المهتمين بالتقنية", "Example: A student community for technology enthusiasts")} />
+                    </div>
+                    <div className="organization-settings-field">
+                      <label htmlFor="edit-mission">{c("رسالة الجهة", "Mission")}</label>
+                      <OrganizationCharacterCountTextarea id="edit-mission" name="mission" defaultValue={organization.mission} maxLength={3000} locale={locale} rows={2} placeholder={c("مثال: تمكين الطلاب وتطوير مهاراتهم", "Example: Empowering students and growing their skills")} />
+                    </div>
+                  </div>
+                  <div className="organization-settings-field full organization-settings-interests">
+                    <label>{c("مجالات الاهتمام", "Interests")}</label>
+                    <OrganizationInterestEditor initialInterests={managed.tagNames} locale={locale} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <OrganizationPublicProfileEditor organizationId={id} locale={locale} initialValue={organization.publicProfileContent} />
+            <Card className="organization-settings-card organization-contact-settings-card" aria-label={c("قنوات التواصل", "Contact channels")}>
+              <CardContent className="organization-settings-card-content">
+                <OrganizationContactChannelEditor initialChannels={initialChannels} locale={locale} />
+              </CardContent>
+            </Card>
+            <div className="organization-settings-visibility-row">
+              <OrganizationLeadershipVisibilityButton defaultChecked={organization.showLeadershipPublicly} locale={locale} />
+              <Button render={<Link href={`/organizations/${organization.slug}`} aria-label={c("عرض الصفحة العامة", "View public page")} title={c("عرض الصفحة العامة", "View public page")} />} variant="outline" size="lg" className="organization-public-page-button">
+                <Globe aria-hidden="true" data-icon="inline-start" />{c("عرض", "View")}
+              </Button>
+            </div>
           </div>
-          <div className="min-w-0"><p className="text-sm font-semibold text-muted">{c("هوية الجهة", "Organization identity")}</p><p dir="auto" className="mt-1 break-words text-lg font-bold">{organization.nameAr}</p></div>
-        </div>
-        <MutationForm operation="org-profile" fields={{ organizationId: id }} submitLabel={c("حفظ بيانات الجهة", "Save organization details")} locale={locale}>
-          <div className="organization-settings-fields">
-            <div className="organization-settings-field full"><label htmlFor="edit-name">{c("اسم الجهة", "Organization name")}</label><Input id="edit-name" name="nameAr" dir="auto" required minLength={2} maxLength={120} defaultValue={organization.nameAr} /></div>
-            <div className="organization-settings-field"><label htmlFor="edit-summary">{c("النبذة", "Short description")}</label><Textarea id="edit-summary" name="summary" dir="auto" rows={4} maxLength={1000} defaultValue={organization.summary} /></div>
-            <div className="organization-settings-field"><label htmlFor="edit-mission">{c("رسالة الجهة", "Mission")}</label><Textarea id="edit-mission" name="mission" dir="auto" rows={4} maxLength={3000} defaultValue={organization.mission} /></div>
-            <div className="organization-settings-field"><label htmlFor="edit-tags">{c("مجالات الاهتمام", "Interests")}</label><Input id="edit-tags" name="tagNames" dir="auto" maxLength={500} defaultValue={managed.tagNames} aria-describedby="tags-help" /><p id="tags-help" className="text-xs leading-5 text-muted">{c("افصل المجالات بفاصلة، حتى 10 مجالات.", "Separate up to 10 interests with commas.")}</p></div>
-            <div className="organization-settings-field"><label htmlFor="edit-website">{c("رابط الموقع أو التواصل", "Website or contact URL")}</label><Input id="edit-website" name="websiteUrl" type="url" dir="ltr" maxLength={2048} defaultValue={managed.websiteUrl} placeholder="https://" /></div>
-            <div className="organization-settings-field full"><label htmlFor="edit-logo">{c("رابط الشعار", "Logo URL")}</label><Input id="edit-logo" name="logoUrl" type="url" dir="ltr" maxLength={2048} defaultValue={organization.logoUrl} placeholder="https://" /><p className="text-xs leading-5 text-muted">{c("رابط HTTPS مباشر للصورة؛ يظهر الشعار الحالي في الأعلى.", "A direct HTTPS image URL; the current logo appears above.")}</p></div>
-          </div>
-          <label className="organization-settings-visibility"><input type="checkbox" name="showLeadershipPublicly" defaultChecked={organization.showLeadershipPublicly} /><span><strong>{c("إظهار قيادة الجهة للعامة", "Show leadership publicly")}</strong><small>{c("يظهر القادة على الصفحة العامة عند تفعيله.", "Leaders appear on the public page when enabled.")}</small></span></label>
-        </MutationForm>
-      </CardContent>
-    </Card>}
+        </MutationForm> : <Card className="organization-settings-card"><CardContent>
+          <p className="organization-settings-empty">{c("لا تملك صلاحية تعديل بيانات الجهة.", "You do not have permission to edit organization details.")}</p>
+        </CardContent></Card>}
+      </OrganizationSectionTabPanel>
 
-    {organization.canEdit && <Card className="organization-settings-card" aria-labelledby="announcements-title">
-      <CardHeader className="organization-settings-section-header">
-        <div><CardTitle id="announcements-title" className="text-xl font-bold">{c("إعلانات الجهة", "Announcements")}</CardTitle><p className="mt-1 text-sm text-muted">{c("الإعلانات المنشورة تظهر للزوار. يمكن تثبيت إعلان واحد.", "Published announcements are visible to visitors. One can be pinned.")}</p></div>
-        <AnnouncementDialog organizationId={id} locale={locale} />
-      </CardHeader>
-      <CardContent>
-        {organization.announcements.length ? <ul className="organization-settings-list">
-          {organization.announcements.map(announcement => <li key={announcement.id} className="organization-settings-list-row">
-            <div className="min-w-0"><p dir="auto" className="truncate font-semibold">{announcement.title}</p><div className="mt-2 flex flex-wrap gap-2"><Badge variant={announcement.published ? "secondary" : "outline"}>{announcement.published ? c("منشور", "Published") : c("مسودة", "Draft")}</Badge>{announcement.pinned && <Badge variant="outline">{c("مثبّت", "Pinned")}</Badge>}</div></div>
-            <AnnouncementDialog organizationId={id} announcement={announcement} locale={locale} />
-          </li>)}
-        </ul> : <div className="organization-settings-empty">{c("ما فيه إعلانات بعد. أضف أول إعلان من الزر أعلاه.", "No announcements yet. Add the first one above.")}</div>}
-      </CardContent>
-    </Card>}
-
-    {(committees.length > 0 || organization.canManageCommittees) && <Card id="committees" className="organization-settings-card" aria-labelledby="committees-title">
-      <CardHeader><CardTitle id="committees-title" className="text-xl font-bold">{c("اللجان", "Committees")}</CardTitle></CardHeader>
-      <CardContent className="space-y-3">
-        {committees.map(committee => <details key={committee.id} className="organization-settings-committee">
-          <summary><span dir="auto" className="min-w-0 break-words font-semibold">{committee.name}</span><Badge variant="outline">{committee.statusCode === "Archived" ? c("مؤرشفة", "Archived") : committee.isPublic ? c("ظاهرة للعامة", "Public") : c("داخلية", "Internal")}</Badge></summary>
-          <div className="space-y-5 border-t border-line p-5">
-            {committee.statusCode === "Active" && committee.canEdit && <MutationForm operation="save-committee" fields={{ organizationId: id, committeeId: committee.id }} submitLabel={c("حفظ اللجنة", "Save committee")} locale={locale}><CommitteeFields prefix={committee.id} value={committee} locale={locale}/></MutationForm>}
-            {organization.canManageCommittees && <div className="flex flex-wrap gap-4 border-t border-line pt-4"><MutationForm operation="copy-committee" fields={{ organizationId: id, committeeId: committee.id }} submitLabel={c("نسخ اللجنة", "Copy committee")} locale={locale}/><MutationForm operation="committee-status" fields={{ organizationId: id, committeeId: committee.id, status: committee.statusCode === "Archived" ? "Active" : "Archived" }} submitLabel={committee.statusCode === "Archived" ? c("استعادة اللجنة", "Restore committee") : c("أرشفة اللجنة", "Archive committee")} confirmLabel={committee.statusCode === "Archived" ? c("أؤكد استعادة اللجنة", "I confirm restoring this committee") : c("أؤكد أرشفة اللجنة مع حفظ تاريخها", "I confirm archiving this committee while preserving its history")} locale={locale}/></div>}
-          </div>
-        </details>)}
-        {organization.canManageCommittees && <details className="organization-settings-committee"><summary className="font-semibold text-action">{c("إضافة لجنة", "Add committee")}</summary><div className="border-t border-line p-5"><MutationForm operation="save-committee" fields={{ organizationId: id }} submitLabel={c("إنشاء اللجنة", "Create committee")} locale={locale}><CommitteeFields prefix="new-committee" locale={locale}/></MutationForm></div></details>}
-      </CardContent>
-    </Card>}
+      {showCommittees && <OrganizationSectionTabPanel id="committees" legacyId="committees">
+        <header className="organization-committees-heading" dir={en ? "ltr" : "rtl"}>
+          <h2>{c("هيكل اللجان", "Committee structure")}</h2>
+          {organization.canManageCommittees && <CommitteeDialog organizationId={id} locale={locale} parentOptions={parentOptions} />}
+        </header>
+        <OrganizationCommitteeChart organizationId={id} organizationName={organization.nameAr} committees={committeeTree} canManage={organization.canManageCommittees} locale={locale} parentOptions={parentOptions} emptyMessage={c("ما فيه لجان مسجلة حتى الآن.", "No committees have been added yet.")} />
+      </OrganizationSectionTabPanel>}
+    </OrganizationSectionTabs>
   </div>;
 }

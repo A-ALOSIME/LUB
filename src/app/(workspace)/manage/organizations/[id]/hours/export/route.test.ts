@@ -1,0 +1,13 @@
+import { beforeEach, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+const mocks=vi.hoisted(()=>({user:vi.fn(),withUser:vi.fn(),execute:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({getVerifiedUser:mocks.user}));
+vi.mock("@/db/client",()=>({withUser:mocks.withUser}));
+import { GET } from "./route";
+const id="00000000-0000-4000-8000-000000000001";
+const call=(query="")=>GET(new NextRequest(`http://localhost/manage/organizations/${id}/hours/export${query}`),{params:Promise.resolve({id})});
+beforeEach(()=>{vi.resetAllMocks();mocks.user.mockResolvedValue({id:"verified"});mocks.withUser.mockImplementation(async (_user,operation)=>operation({execute:mocks.execute}));mocks.execute.mockResolvedValue([{csv:'"Organization","Hours"\r\n"LUB","2.5"\r\n'}]);});
+it("requires a verified user before querying the export",async()=>{mocks.user.mockResolvedValue(null);expect((await call()).status).toBe(401);expect(mocks.withUser).not.toHaveBeenCalled();});
+it("returns a private UTF-8 CSV attachment for the selected scope",async()=>{const response=await call("?committee=00000000-0000-4000-8000-000000000002&term=00000000-0000-4000-8000-000000000003");expect(response.status).toBe(200);expect(response.headers.get("Content-Disposition")).toContain("attachment; filename=hours.csv");expect(response.headers.get("Cache-Control")).toBe("private, no-store");expect(response.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");expect(await response.text()).toContain("LUB");expect(mocks.withUser).toHaveBeenCalledWith("verified",expect.any(Function));});
+it("rejects malformed scope parameters without querying the database",async()=>{expect((await call("?committee=invalid")).status).toBe(400);expect(mocks.withUser).not.toHaveBeenCalled();});
+it("maps permission denial to forbidden and hides empty results",async()=>{mocks.withUser.mockRejectedValueOnce({code:"42501"});expect((await call()).status).toBe(403);mocks.withUser.mockResolvedValueOnce([]);expect((await call()).status).toBe(404);});

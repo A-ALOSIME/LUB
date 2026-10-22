@@ -5,7 +5,6 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -90,132 +89,137 @@ export function ProfileDetailsSection({
   errors?: FieldErrors;
 }) {
   const en = locale === "en";
+  const academicLevelField = (
+    <Field className="account-settings-field">
+      <FieldLabel htmlFor="academicLevel">
+        {en ? "Academic level" : "المستوى الدراسي"}
+      </FieldLabel>
+      <NativeSelect
+        id="academicLevel"
+        name="academicLevel"
+        required
+        defaultValue={profile?.academicLevel ?? ""}
+        className="account-settings-select"
+        aria-invalid={Boolean(errors?.academicLevel?.[0])}
+        aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
+      >
+        <NativeSelectOption value="" disabled>
+          {en ? "Select your level" : "اختر المستوى"}
+        </NativeSelectOption>
+        {Array.from({ length: 12 }, (_, index) => (
+          <NativeSelectOption key={index + 1} value={String(index + 1)}>
+            {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
+          </NativeSelectOption>
+        ))}
+        <NativeSelectOption value="graduate">
+          {en ? "Graduate studies" : "دراسات عليا"}
+        </NativeSelectOption>
+      </NativeSelect>
+      {errors?.academicLevel?.[0] && (
+        <p id="academicLevel-error" className="text-sm text-destructive" aria-live="polite">
+          {actionFeedback(errors.academicLevel[0], locale)}
+        </p>
+      )}
+    </Field>
+  );
+  const emailField = (
+    <div
+      className="account-settings-email"
+      role="group"
+      aria-label={en ? "Verified email" : "البريد المتحقق منه"}
+    >
+      <span className="account-settings-email-icon" aria-hidden="true">
+        <Mail />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium">
+          {en ? "Verified email" : "البريد المتحقق منه"}
+        </p>
+        <div className="account-settings-email-address">
+          <p className="m-0 break-all text-sm text-muted-foreground">
+            <bdi>{email}</bdi>
+          </p>
+          <span className="account-settings-verified">{en ? "Verified" : "موثّق"}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const phoneField = (
+    <ProfileTextField
+      name="phone"
+      label={
+        <>
+          {en ? "Phone number" : "رقم الهاتف"}
+          <span className="font-normal text-muted-foreground">
+            {en ? "(optional)" : "(اختياري)"}
+          </span>
+        </>
+      }
+      value={profile?.phone ?? ""}
+      locale={locale}
+      errors={errors}
+      maxLength={16}
+      autoComplete="tel"
+      dir={en ? "ltr" : "rtl"}
+    />
+  );
 
   return (
     <FieldSet className="account-settings-section">
-      <FieldLegend className="account-settings-legend">
-        {en ? "Personal details" : "البيانات الأساسية"}
-      </FieldLegend>
-      <FieldDescription>
-        {en
-          ? "These details are used to identify your student account."
-          : "تُستخدم هذه البيانات للتعريف بحسابك الطلابي."}
-      </FieldDescription>
-
       <FieldGroup className="account-settings-fields">
-        <ProfileTextField
-          name="fullName"
-          label={en ? "Full name in Arabic" : "الاسم الكامل بالعربية"}
-          value={profile?.fullName}
-          locale={locale}
-          errors={errors}
-          required
-          minLength={3}
-          maxLength={120}
-          autoComplete="name"
-        />
-
-        {!profile && (
+        <div className="account-settings-field-row">
           <ProfileTextField
-            name="universityId"
-            label={en ? "University number" : "الرقم الجامعي"}
+            name="fullName"
+            label={en ? "Full name in Arabic" : "الاسم الكامل بالعربية"}
+            value={profile?.fullName}
             locale={locale}
             errors={errors}
             required
-            minLength={6}
-            maxLength={15}
-            dir="ltr"
-            inputMode="numeric"
-            hint={
-              en
-                ? "Stored securely and never shown on your public profile."
-                : "يُحفظ بشكل آمن ولا يظهر في ملفك العام."
-            }
+            minLength={3}
+            maxLength={120}
+            autoComplete="name"
           />
-        )}
-
-        <ProfileTextField
-          name="major"
-          label={en ? "Major" : "التخصص"}
-          value={profile?.major}
-          locale={locale}
-          errors={errors}
-          required
-          minLength={2}
-          maxLength={120}
-        />
-
-        <Field className="account-settings-field">
-          <FieldLabel htmlFor="academicLevel">
-            {en ? "Academic level" : "المستوى الدراسي"}
-          </FieldLabel>
-          <NativeSelect
-            id="academicLevel"
-            name="academicLevel"
+          <ProfileTextField
+            name="major"
+            label={en ? "Major" : "التخصص"}
+            value={profile?.major}
+            locale={locale}
+            errors={errors}
             required
-            defaultValue={profile?.academicLevel ?? ""}
-            className="account-settings-select"
-            aria-invalid={Boolean(errors?.academicLevel?.[0])}
-            aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
-          >
-            <NativeSelectOption value="" disabled>
-              {en ? "Select your level" : "اختر المستوى"}
-            </NativeSelectOption>
-            {Array.from({ length: 12 }, (_, index) => (
-              <NativeSelectOption key={index + 1} value={String(index + 1)}>
-                {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
-              </NativeSelectOption>
-            ))}
-            <NativeSelectOption value="graduate">
-              {en ? "Graduate studies" : "دراسات عليا"}
-            </NativeSelectOption>
-          </NativeSelect>
-          {errors?.academicLevel?.[0] && (
-            <p id="academicLevel-error" className="text-sm text-destructive" aria-live="polite">
-              {actionFeedback(errors.academicLevel[0], locale)}
-            </p>
-          )}
-        </Field>
-
-        <ProfileTextField
-          name="phone"
-          label={
-            <>
-              {en ? "Phone number" : "رقم الهاتف"}
-              <span className="font-normal text-muted-foreground">
-                {en ? "(optional)" : "(اختياري)"}
-              </span>
-            </>
-          }
-          value={profile?.phone ?? ""}
-          locale={locale}
-          errors={errors}
-          maxLength={16}
-          autoComplete="tel"
-          dir="ltr"
-        />
-      </FieldGroup>
-
-      <div
-        className="account-settings-email"
-        role="group"
-        aria-label={en ? "Verified email" : "البريد المتحقق منه"}
-      >
-        <span className="account-settings-email-icon" aria-hidden="true">
-          <Mail />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-medium">
-            {en ? "Verified email" : "البريد المتحقق منه"}
-          </p>
-          <div className="account-settings-email-address">
-            <p className="m-0 break-all text-sm text-muted-foreground">
-              <bdi>{email}</bdi>
-            </p>
-            <span className="account-settings-verified">{en ? "Verified" : "موثّق"}</span>
-          </div>
+            minLength={2}
+            maxLength={120}
+          />
         </div>
-      </div>
+        <div className="account-settings-field-row">
+          {!profile && (
+            <ProfileTextField
+              name="universityId"
+              label={en ? "University number" : "الرقم الجامعي"}
+              locale={locale}
+              errors={errors}
+              required
+              minLength={6}
+              maxLength={15}
+              dir={en ? "ltr" : "rtl"}
+              inputMode="numeric"
+            />
+          )}
+          {academicLevelField}
+          {profile ? phoneField : null}
+        </div>
+        {!profile ? (
+          <div className="account-settings-field-row">
+            {phoneField}
+            {emailField}
+          </div>
+        ) : (
+          <>
+            <div className="account-settings-divider" aria-hidden="true" />
+            {emailField}
+          </>
+        )}
+      </FieldGroup>
     </FieldSet>
   );
 }

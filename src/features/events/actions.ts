@@ -32,5 +32,5 @@ export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<Wo
  }
  }})();await withUser(user.id,tx=>tx.execute(query));
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات وحدّث الصفحة. التسجيل له موعد وسعة؛ الإكمال يحتاج انتهاء الفعالية ومراجعة الحضور وفصلًا يغطي ساعات الأعضاء."};}
- updateTag("events");updateTag("public-organizations");revalidatePath("/events","layout");revalidatePath("/activity");revalidatePath("/organizations","layout");revalidatePath("/manage","layout");revalidatePath("/me");revalidatePath("/hours");revalidatePath("/notifications");return{success:"تم حفظ التغيير."};
+ updateTag("events");updateTag("public-organizations");updateTag("public-talent");revalidatePath("/events","layout");revalidatePath("/activity");revalidatePath("/organizations","layout");revalidatePath("/manage","layout");revalidatePath("/me");revalidatePath("/hours");revalidatePath("/notifications");return{success:"تم حفظ التغيير."};
 }

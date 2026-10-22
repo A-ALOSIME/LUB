@@ -1,7 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync, readdirSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
-import { storageFixture } from "./storage-fixture";
+import { applyMigrations, storageFixture } from "./storage-fixture";
 
 let db: PGlite;
 const owner = "00000000-0000-4000-8000-000000000001";
@@ -43,9 +42,7 @@ beforeAll(async () => {
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
     grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`);
   await storageFixture(db);
-  for (const file of readdirSync("drizzle").filter((name) => name.endsWith(".sql")).sort()) {
-    await db.exec(readFileSync(`drizzle/${file}`, "utf8"));
-  }
+  await applyMigrations(db);
 }, 30_000);
 
 beforeEach(async () => {

@@ -3,17 +3,9 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { getPreferences } from "@/lib/preferences";
-import { ChatWidget } from "@/features/ai/chat-widget";
+import { DeferredChatWidget } from "@/features/ai/deferred-chat-widget";
 import "./globals.css";
 
-const thmanyahSans = localFont({
-  src: [
-    { path: "../assets/fonts/thmanyahsans-regular.woff2", weight: "400" },
-    { path: "../assets/fonts/thmanyahsans-bold.woff2", weight: "700" },
-  ],
-  variable: "--font-thmanyah-sans",
-  display: "swap",
-});
 const thmanyahDisplay = localFont({
   src: "../assets/fonts/thmanyahdisplay-bold.woff2",
   variable: "--font-thmanyah-display",
@@ -52,12 +44,12 @@ export async function generateMetadata(): Promise<Metadata> {
 async function StudentChatWidget({ locale }: { locale: "ar" | "en" }) {
   const requestHeaders = await headers();
   if (requestHeaders.get("x-lub-area") === "management") return null;
-  return <ChatWidget locale={locale} />;
+  return <DeferredChatWidget locale={locale} />;
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { locale, theme } = await getPreferences();
-  return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={`${thmanyahSans.variable} ${thmanyahDisplay.variable}`}><body className="min-h-screen antialiased">
+  return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={thmanyahDisplay.variable}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
     {children}
     <Suspense fallback={null}><StudentChatWidget locale={locale} /></Suspense>

@@ -1,7 +1,9 @@
 import Image from "next/image";
-import type { LocalOrganizationContent, OrganizationProfileSection } from "./local-content";
+import type { OrganizationProfilePresentation } from "./organization-public-profile";
+import type { OrganizationProfileSection } from "./local-content";
 import { AnimatedStat } from "./animated-stat";
 import { organizationSectionTitle } from "./section-groups";
+import { OrganizationStatusBadge } from "./organization-status-badge";
 
 export type ProfileIconName = "vision" | "mission" | "goals" | "teams" | "events" | "partners" | "programs" | "values" | "technology" | "membership" | "reach";
 
@@ -51,6 +53,7 @@ function isCommitteeSection(title: string): boolean {
 
 function ProfileSection({ section, en, sectionId, expandSections, hideIcon }: { section: OrganizationProfileSection; en: boolean; sectionId: string; expandSections: boolean; hideIcon: boolean }) {
   const items = section.highlightsOnly ? section.items?.filter(item => item.highlighted) : section.items;
+  const committeeSection = isCommitteeSection(section.title);
   const icon = sectionIcon(section.title, Boolean(section.highlightsOnly));
   const title = organizationSectionTitle(section.title);
   const isGoalsList = section.title === "أهداف النادي";
@@ -59,7 +62,11 @@ function ProfileSection({ section, en, sectionId, expandSections, hideIcon }: { 
   const content = <>
     {section.body && <p dir="auto" className="mb-5 max-w-prose leading-8 text-muted">{section.body}</p>}
     {items && <ul className={`organization-profile-items grid gap-x-8 gap-y-3 sm:grid-cols-2${isGoalsList ? " organization-profile-items--bulleted" : ""}`}>
-      {items.map((item, index) => <li key={`${item.title}-${index}`} className="organization-profile-item">
+      {items.map((item, index) => <li key={`${item.title}-${index}`} className={`organization-profile-item${committeeSection ? " organization-profile-committee-item" : ""}`}>
+        {committeeSection && <div className="organization-profile-committee-heading">
+          <span className="organization-profile-committee-icon"><OrganizationProfileIcon name="teams" /></span>
+          <OrganizationStatusBadge status="public">{en ? "Public" : "عامة"}</OrganizationStatusBadge>
+        </div>}
         <h3 dir="auto" className="font-semibold leading-7">{item.title}</h3>
         {item.body && <p dir="auto" className="mt-2 text-sm leading-7 text-muted">{item.body}</p>}
       </li>)}
@@ -91,7 +98,7 @@ export function OrganizationProfileContent({
   expandSections = false,
   showSectionIcons = true,
 }: {
-  profile: LocalOrganizationContent;
+  profile: OrganizationProfilePresentation;
   en: boolean;
   visibleSectionIndexes?: readonly number[];
   showOverview?: boolean;

@@ -53,6 +53,6 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
   const result=await withUser(user.id,tx=>tx.execute(query));
   if (operation==="bulk" && !form.get("undoBulk")) bulk=z.uuid().parse(result[0]?.id);
  } catch { return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
- updateTag("public-organizations"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
+ updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
  return { success: form.get("undoBulk") ? "تم التراجع عن الطلبات التي لم تتغير بعد العملية؛ التغييرات اللاحقة محفوظة." : "تم حفظ التغيير.", bulk };
 }

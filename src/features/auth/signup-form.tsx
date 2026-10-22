@@ -58,7 +58,7 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
     </div>
     <div>
       <label htmlFor="signup-university-id">{en ? "University number" : "الرقم الجامعي"}</label>
-      <input id="signup-university-id" name="universityId" dir="ltr" inputMode="numeric" autoComplete="off" required minLength={6} maxLength={15} value={draft.universityId} onChange={event => updateText("universityId", event.currentTarget.value)} aria-invalid={Boolean(error("universityId"))} aria-describedby={error("universityId") ? "universityId-error university-id-help" : "university-id-help"} />
+      <input id="signup-university-id" name="universityId" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="off" required minLength={6} maxLength={15} value={draft.universityId} onChange={event => updateText("universityId", event.currentTarget.value)} aria-invalid={Boolean(error("universityId"))} aria-describedby={error("universityId") ? "universityId-error university-id-help" : "university-id-help"} />
       <p id="university-id-help" className="mt-2 text-sm leading-7 text-muted">{en ? "Stored securely and never shown on your public profile." : "يُحفظ الرقم الجامعي بشكل آمن ولا يظهر في ملفك العام."}</p>
       {fieldError("universityId")}
     </div>
@@ -80,7 +80,7 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
     </div>
     <div>
       <label htmlFor="signup-phone">{en ? "Phone number" : "رقم الهاتف"} <span className="text-sm font-normal text-muted">{en ? "(optional)" : "(اختياري)"}</span></label>
-      <input id="signup-phone" name="phone" type="tel" dir="ltr" autoComplete="tel" maxLength={16} value={draft.phone} onChange={event => updateText("phone", event.currentTarget.value)} {...fieldProps("phone")} />
+      <input id="signup-phone" name="phone" type="tel" dir={en ? "ltr" : "rtl"} autoComplete="tel" maxLength={16} value={draft.phone} onChange={event => updateText("phone", event.currentTarget.value)} {...fieldProps("phone")} />
       {fieldError("phone")}
     </div>
     {state.error && <p className="error-message" role="alert">{actionFeedback(state.error, locale)}</p>}
@@ -95,7 +95,7 @@ function SignupOtpForm({ email, returnTo, locale }: { email: string; returnTo: s
     <input type="hidden" name="returnTo" value={returnTo} />
     <input type="hidden" name="mode" value="signup" />
     <input type="hidden" name="email" value={email} />
-    <div><label htmlFor="signup-token">{en ? "Verification code" : "رمز التحقق"}</label><input id="signup-token" name="token" dir="ltr" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "signup-verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>
+    <div><label htmlFor="signup-token">{en ? "Verification code" : "رمز التحقق"}</label><input id="signup-token" name="token" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "signup-verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>
     {state.error && <p className="error-message" id="signup-verification-error" role="alert">{actionFeedback(state.error, locale)}</p>}
     <button disabled={pending} className="button w-full">{en ? pending ? "Verifying…" : "Verify and create account" : pending ? "جارٍ التحقق…" : "تحقق وأنشئ الحساب"}</button>
   </form>;

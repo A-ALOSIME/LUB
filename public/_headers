@@ -9,3 +9,30 @@
 
 /event-posters/*
   Cache-Control: public, max-age=86400
+
+/brand/lub-wordmark.4ceb459ef153.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/brand/symbol-reversed.3ac50976fb8f.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/brand/logo-en-reversed-transparent.4413739bac0b.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/brand/logo-en-light.8eafe2d31f96.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/brand/logo-reversed.4c09d1c07d25.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/brand/logo.d904bc5ef68d.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

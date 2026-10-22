@@ -21,10 +21,10 @@ import { POST } from "./route";
 const org = "00000000-0000-4000-8000-000000000001";
 const userId = "00000000-0000-4000-8000-000000000002";
 
-function posterRequest(organization = org) {
+function posterRequest(organization = org, file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "poster.png", { type: "image/png" })) {
   const form = new FormData();
   form.set("organization", organization);
-  form.set("file", new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "poster.png", { type: "image/png" }));
+  form.set("file", file);
   return new NextRequest("http://127.0.0.1:3000/files/upload?purpose=event-poster", {
     method: "POST",
     headers: { origin: "http://127.0.0.1:3000" },
@@ -49,7 +49,30 @@ it("rejects an event poster when the user cannot manage that organization", asyn
   const response = await POST(posterRequest());
 
   expect(response.status).toBe(403);
+  expect(await response.json()).toEqual({ error: "organization_permission_required" });
   expect(mocks.upload).not.toHaveBeenCalled();
+});
+
+it("returns a safe format error for non-image event posters", async () => {
+  mocks.execute.mockResolvedValueOnce([{ allowed: true }]);
+
+  const file = new File([new TextEncoder().encode("%PDF-1.7")], "poster.pdf", { type: "application/pdf" });
+  const response = await POST(posterRequest(org, file));
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ error: "unsupported_poster_type" });
+  expect(mocks.upload).not.toHaveBeenCalled();
+});
+
+it("returns a safe storage error without leaking provider details", async () => {
+  mocks.execute.mockResolvedValueOnce([{ allowed: true }]);
+  mocks.upload.mockResolvedValueOnce({ error: { message: "private provider detail" } });
+
+  const response = await POST(posterRequest());
+
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ error: "storage_unavailable" });
+  expect(mocks.execute).toHaveBeenCalledOnce();
 });
 
 it("stores an authorized poster as a private image asset", async () => {
@@ -63,6 +86,16 @@ it("stores an authorized poster as a private image asset", async () => {
   expect(mocks.upload.mock.calls[0][2]).toEqual({ contentType: "image/png", upsert: false });
   expect(mocks.execute).toHaveBeenCalledTimes(2);
   expect(response.headers.get("cache-control")).toContain("no-store");
+});
+
+it("accepts a valid poster when the browser omits its declared MIME type", async () => {
+  mocks.execute.mockResolvedValueOnce([{ allowed: true }]).mockResolvedValueOnce([]);
+
+  const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "poster.png", { type: "application/octet-stream" });
+  const response = await POST(posterRequest(org, file));
+
+  expect(response.status).toBe(200);
+  expect(mocks.upload.mock.calls[0][2]).toEqual({ contentType: "image/png", upsert: false });
 });
 
 it("rejects an invalid organization before checking access", async () => {

@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/preferences"
+import { formatRiyadhDateTime } from "@/lib/datetime"
 
 export function notificationDate(value: string, locale: Locale, now = Date.now()) {
   const date = new Date(value)
@@ -15,13 +16,7 @@ export function notificationDate(value: string, locale: Locale, now = Date.now()
           : [Math.round(elapsed / (24 * 60 * 60 * 1000)), "day"]
     return new Intl.RelativeTimeFormat(numberLocale, { numeric: "auto" }).format(-amount, unit as Intl.RelativeTimeFormatUnit)
   }
-  return new Intl.DateTimeFormat(numberLocale, {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    calendar: "gregory",
-    timeZone: "Asia/Riyadh",
-  }).format(date)
+  return formatRiyadhDateTime(date, locale)
 }
 
 export function notificationHref(targetUrl: string | null | undefined) {
@@ -30,7 +25,7 @@ export function notificationHref(targetUrl: string | null | undefined) {
   const source = new URLSearchParams(rawQuery)
   if (path === "/renewals" || path === "/applications" && source.get("tab") === "renewals") return "/applications?tab=renewals"
   if (path === "/applications") return "/applications"
-  if (path === "/documents") return "/activity?tab=hours&documents=1"
+  if (path === "/documents") return "/activity?tab=hours"
   if (path === "/hours") {
     const params = new URLSearchParams({ tab: "hours" })
     for (const key of ["page", "term"]) {

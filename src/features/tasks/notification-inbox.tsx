@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Bell, CalendarDays, Check, ClipboardCheck, Clock3, MailCheck, Megaphone, UsersRound } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilterToggleGroup } from "@/components/ui/filter-toggle-group";
+import { Card, CardContent } from "@/components/ui/card";
+import { FilterTabs } from "@/components/ui/filter-tabs";
 import { cn } from "cn";
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
@@ -151,14 +151,9 @@ function NotificationInboxState({
 
   return <div className="flex min-w-0 flex-col gap-4">
     <Card className="min-w-0 gap-0 overflow-hidden py-0">
-      <CardHeader className="gap-4 border-b p-4 sm:p-5">
-        <div className="flex flex-col gap-1">
-          <CardTitle>{en ? "Your inbox" : "صندوق الإشعارات"}</CardTitle>
-          <p className="text-sm text-muted-foreground">{en ? "Updates about your applications, events, tasks, and hours." : "آخر المستجدات عن طلباتك وفعالياتك ومهامك وساعاتك."}</p>
-        </div>
-
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <FilterToggleGroup
+          <FilterTabs
             value={activeFilter}
             ariaLabel={en ? "Notification filters" : "تصفية الإشعارات"}
             dir={en ? "ltr" : "rtl"}
@@ -176,7 +171,7 @@ function NotificationInboxState({
             ? <Button type="button" variant="outline" size="sm" onClick={() => markPreviewRead()}><Check aria-hidden="true" data-icon="inline-start" />{en ? "Mark all as read" : "تحديد الكل كمقروء"}</Button>
             : <NotificationMutationAction operation="read-all" locale={locale} onMessage={setToast} />)}
         </div>
-      </CardHeader>
+      </div>
 
       <CardContent className="p-0">
         {visibleItems.length > 0
@@ -215,10 +210,9 @@ function NotificationInboxState({
               </li>;
             })}
           </ul>
-          : <div role="status" className="flex flex-col items-center gap-2 px-4 py-12 text-center">
-            <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground"><Bell aria-hidden="true" className="size-5" /></span>
-            <h2 className="text-sm font-medium">{activeFilter === "unread" ? en ? "You’re all caught up." : "ما عندك إشعارات غير مقروءة." : en ? "No notifications yet." : "لا توجد إشعارات حتى الآن."}</h2>
-            <p className="max-w-sm text-sm text-muted-foreground">{activeFilter === "unread" ? en ? "New updates will appear here." : "ستظهر هنا عندما يصلك تحديث جديد." : en ? "Updates about your activity will appear here." : "تظهر هنا التحديثات المتعلقة بنشاطك."}</p>
+          : <div role="status" className="flex items-center gap-3 px-4 py-5 text-start">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><Bell aria-hidden="true" className="size-4" /></span>
+            <p className="m-0 text-sm text-muted-foreground">{activeFilter === "unread" ? en ? "You’re all caught up." : "ما عندك إشعارات غير مقروءة." : en ? "No notifications yet." : "لا توجد إشعارات حتى الآن."}</p>
           </div>}
       </CardContent>
 

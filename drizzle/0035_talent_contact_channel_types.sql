@@ -1,0 +1,2 @@
+ALTER TABLE "lub"."profile_links" DROP CONSTRAINT "talent_link_check";--> statement-breakpoint
+ALTER TABLE "lub"."profile_links" ADD CONSTRAINT "talent_link_check" CHECK ("lub"."profile_links"."link_type" in ('Email','Phone','Website','LinkedIn','GitHub','X','TikTok','Instagram') and length(trim("lub"."profile_links"."label")) between 1 and 80 and length(trim("lub"."profile_links"."url_or_value"))>0);

@@ -2,6 +2,19 @@ import { describe, expect, it } from "vitest";
 import { localOrganizationContent } from "./local-content";
 
 describe("local organization profile matching", () => {
+  it("retains the curated About information for the Computer Science council, Tuwaiq, and Zaheer", () => {
+    const computerCouncil = localOrganizationContent("المجلس الاستشاري لعلوم الحاسب", "Council");
+    const tuwaiq = localOrganizationContent("نادي طويق", "Club");
+    const zaheer = localOrganizationContent("نادي ظهير", "Club");
+
+    expect(computerCouncil?.about).toContain("حلقة وصل بين طلبة قسم علوم الحاسب");
+    expect(computerCouncil?.sections.some(section => section.title === "ماذا نقدم؟")).toBe(true);
+    expect(tuwaiq?.vision).toContain("الخيار الأول");
+    expect(tuwaiq?.sections.some(section => section.title === "الهيكل التنظيمي للنادي")).toBe(true);
+    expect(zaheer?.vision).toContain("منصة رائدة");
+    expect(zaheer?.sections.some(section => section.title === "أهداف النادي")).toBe(true);
+  });
+
   it("uses the current Information Technology student council profile without the outdated duplicate", () => {
     const outdatedCouncil = localOrganizationContent("المجلس الاستشاري لتقنية المعلومات", "Council");
     const studentCouncil = localOrganizationContent("المجلس الاستشاري الطلابي لقسم تقنية المعلومات", "Council");
@@ -72,14 +85,6 @@ describe("local organization profile matching", () => {
     expect(dhaheer?.sections.some(section => section.image)).toBe(false);
   });
 
-  it("uses the student council introduction PDF for its computer science profile", () => {
-    const council = localOrganizationContent("المجلس الاستشاري الطلابي لقسم علوم الحاسب", "Council");
-    const offerings = council?.sections.find(section => section.title === "ماذا نقدم؟");
-
-    expect(council?.about).toContain("حلقة وصل بين طلبة قسم علوم الحاسب والقسم");
-    expect(council?.mission).toContain("حلقة وصل فاعلة");
-    expect(offerings?.items?.map(item => item.title)).toHaveLength(7);
-  });
   it("uses the student council introduction PDF for its computer science profile", () => {
     const council = localOrganizationContent("المجلس الاستشاري الطلابي لقسم علوم الحاسب", "Council");
     const offerings = council?.sections.find(section => section.title === "ماذا نقدم؟");

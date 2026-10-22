@@ -29,13 +29,8 @@ export function SuperAdminDashboard({ locale, summary, notice }: {
   ];
 
   return <div className="workspace-content workspace-admin-overview">
-    <header id="overview" className="workspace-hero workspace-admin-hero">
-      <div>
-        <p className="workspace-eyebrow">{en ? "SYSTEM WORKSPACE" : "مساحة إدارة النظام"}</p>
-        <h1 className="mt-2 text-3xl font-bold">{en ? "System overview" : "نظرة عامة"}</h1>
-        <p className="mt-3 max-w-2xl leading-8 text-muted">{en ? "Your administrative tools live in the workspace menu." : "تجد أدوات إدارة النظام وإعدادات الحساب في القائمة الجانبية."}</p>
-      </div>
-      <span aria-hidden="true" className="workspace-sidebar-mark workspace-admin-hero-mark"><SectionIcon name="organizations" /></span>
+    <header id="overview" className="workspace-page-header">
+      <h1>{en ? "System overview" : "نظرة عامة"}</h1>
     </header>
     {notice === "organization-created" && <p role="status" className="panel p-4 text-action">{en ? "Organization created. You can now appoint its primary leader." : "تم إنشاء الجهة. يمكنك الآن تعيين قائدها الأساسي."}</p>}
     <section aria-label={en ? "System summary" : "ملخص النظام"} className="workspace-summary-grid">

@@ -1,12 +1,8 @@
 import type { Locale } from "@/lib/preferences";
+import { formatRiyadhDate } from "@/lib/datetime";
 
 export function formatPersonalDate(value: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ar-SA", {
-    dateStyle: "medium",
-    calendar: "gregory",
-    numberingSystem: "latn",
-    timeZone: "Asia/Riyadh",
-  }).format(new Date(value));
+  return formatRiyadhDate(value, locale);
 }
 
 export function formatPersonalNumber(value: number | string, locale: Locale) {

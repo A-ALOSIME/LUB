@@ -3,11 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getAuthConfig } from "@/lib/env";
 import { getCachedSupabaseJwks } from "@/lib/supabase-jwks-cache";
-import {documentFileCsp,isDocumentFile} from "@/features/documents/security";
 
 export async function proxy(request: NextRequest) {
   const nonce = randomBytes(16).toString("base64");
-  const csp = isDocumentFile(request.nextUrl.pathname)?documentFileCsp:[
+  const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'", "img-src 'self' data:", "font-src 'self'",

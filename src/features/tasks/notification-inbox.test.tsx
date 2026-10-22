@@ -36,10 +36,10 @@ it("shows sample notifications and lets the user inspect unread and read states 
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(6);
 
   fireEvent.click(screen.getByRole("button", { name: /تحديد الكل كمقروء/ }));
-  fireEvent.click(screen.getByRole("button", { name: /غير مقروءة/ }));
+  fireEvent.click(screen.getByRole("tab", { name: /غير مقروءة/ }));
 
   expect(screen.getByText("ما عندك إشعارات غير مقروءة.")).toBeTruthy();
-  expect(within(screen.getByRole("group", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("0");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("0");
 });
 
 it("filters the preview list while keeping English digit counts", () => {
@@ -52,8 +52,8 @@ it("filters the preview list while keeping English digit counts", () => {
   />);
 
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(4);
-  expect(within(screen.getByRole("group", { name: "تصفية الإشعارات" })).getByRole("button", { name: /الكل/ }).textContent).toContain("6");
-  expect(within(screen.getByRole("group", { name: "تصفية الإشعارات" })).getByRole("button", { name: /غير مقروءة/ }).textContent).toContain("4");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).toContain("6");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("4");
 });
 
 it("uses the shared segmented filter and keeps unread filtering in the URL", () => {
@@ -64,9 +64,9 @@ it("uses the shared segmented filter and keeps unread filtering in the URL", () 
     locale="ar"
   />);
 
-  const group = screen.getByRole("group", { name: "تصفية الإشعارات" });
-  expect(group.getAttribute("dir")).toBe("rtl");
-  fireEvent.click(within(group).getByRole("button", { name: /غير مقروءة/ }));
+  const group = screen.getByRole("tablist", { name: "تصفية الإشعارات" });
+  expect(group.parentElement?.getAttribute("dir")).toBe("rtl");
+  fireEvent.click(within(group).getByRole("tab", { name: /غير مقروءة/ }));
   expect(routerPush).toHaveBeenCalledWith("/notifications?filter=unread");
 });
 
@@ -112,7 +112,7 @@ it("normalizes legacy renewal notification links and keeps only safe internal de
   expect(notificationHref("/events/mine?page=1")).toBe("/activity?tab=events&page=1");
   expect(notificationHref("/events")).toBe("/activity?tab=events");
   expect(notificationHref("/hours?term=term-id&page=3")).toBe("/activity?tab=hours&page=3&term=term-id");
-  expect(notificationHref("/documents")).toBe("/activity?tab=hours&documents=1");
+  expect(notificationHref("/documents")).toBe("/activity?tab=hours");
   expect(notificationHref("https://example.com")).toBeNull();
   expect(notificationHref(null)).toBeNull();
 });
@@ -120,5 +120,5 @@ it("normalizes legacy renewal notification links and keeps only safe internal de
 it("uses relative dates for recent notifications and full dates after a week", () => {
   const now = Date.parse("2026-10-14T12:00:00+03:00");
   expect(notificationDate("2026-10-14T10:00:00+03:00", "en", now)).toBe("2 hours ago");
-  expect(notificationDate("2026-10-01T10:00:00+03:00", "en", now)).toBe("October 1, 2026");
+  expect(notificationDate("2026-10-01T10:00:00+03:00", "en", now)).toContain("Thursday, 1 October 2026, 10:00 am");
 });

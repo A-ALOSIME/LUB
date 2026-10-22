@@ -1,6 +1,5 @@
-import { storageFixture } from "./storage-fixture";
+import { applyMigrations, storageFixture } from "./storage-fixture";
 import { PGlite } from "@electric-sql/pglite";
-import { readdirSync, readFileSync } from "node:fs";
 import { beforeAll, beforeEach, afterAll, afterEach, describe, expect, it } from "vitest";
 
 const alice = "00000000-0000-4000-8000-000000000001";
@@ -21,9 +20,7 @@ beforeAll(async () => {
     insert into auth.users values ('${alice}'), ('${bob}');
   `);
   await storageFixture(db);
-  for (const file of readdirSync("drizzle").filter((name) => name.endsWith(".sql")).sort()) {
-    await db.exec(readFileSync(`drizzle/${file}`, "utf8"));
-  }
+  await applyMigrations(db);
 }, 30000);
 beforeEach(async () => { await db.exec("begin"); });
 afterEach(async () => { await db.exec("rollback"); });

@@ -3,15 +3,8 @@ import { LocalizedText } from "@/components/localized-text";
 const rows = ["one", "two", "three"];
 
 export default function Loading() {
-  return <div role="status" aria-busy="true" className="workspace-content space-y-6">
+  return <div role="status" aria-busy="true" className="workspace-content organization-management-page space-y-6">
     <span className="sr-only"><LocalizedText ar="جارٍ تحميل إدارة الجهة…" en="Loading organization workspace…" /></span>
-    <header aria-hidden="true" className="workspace-page-header">
-      <div className="w-full space-y-3">
-        <div className="h-3 w-32 animate-pulse rounded bg-mist" />
-        <div className="h-8 w-64 max-w-full animate-pulse rounded bg-mist" />
-        <div className="h-4 w-80 max-w-full animate-pulse rounded bg-mist" />
-      </div>
-    </header>
     <section aria-hidden="true" className="panel space-y-5 p-4 sm:p-5">
       <div className="flex items-center gap-3 border-b border-line pb-4">
         <div className="size-12 animate-pulse rounded-xl bg-mist" />

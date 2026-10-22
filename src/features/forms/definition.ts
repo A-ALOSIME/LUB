@@ -74,4 +74,4 @@ export function validateAnswers(definition: FormDefinition, input: unknown): Ans
   return output;
 }
 
-export const initialDefinition: FormDefinition = { layout: "SinglePage", sections: [{ id: "10000000-0000-4000-8000-000000000001", title: "عن مشاركتك", description: "البيانات الأساسية موجودة في ملفك؛ نحتاج التعرف على اهتمامك فقط.", fields: [{ id: "10000000-0000-4000-8000-000000000002", type: "LongText", label: "ليش ترغب بالانضمام؟", help: "", required: true, options: [], maxLength: 1000 }, { id: "10000000-0000-4000-8000-000000000003", type: "LongText", label: "خبرتك أو مهاراتك المرتبطة بالجهة", help: "", required: false, options: [], maxLength: 1500 }] }] };
+export const initialDefinition: FormDefinition = { layout: "SinglePage", sections: [{ id: "10000000-0000-4000-8000-000000000001", title: "عن مشاركتك", description: "", fields: [{ id: "10000000-0000-4000-8000-000000000002", type: "LongText", label: "ليش ترغب بالانضمام؟", help: "", required: true, options: [], maxLength: 1000 }, { id: "10000000-0000-4000-8000-000000000003", type: "LongText", label: "خبرتك أو مهاراتك المرتبطة بالجهة", help: "", required: false, options: [], maxLength: 1500 }] }] };

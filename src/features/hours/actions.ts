@@ -1,7 +1,7 @@
 "use server";
 import {z} from "zod";
 import {sql} from "drizzle-orm";
-import {revalidatePath} from "next/cache";
+import {revalidatePath,updateTag} from "next/cache";
 import {withUser} from "@/db/client";
 import {requireUser} from "@/features/auth/session";
 import {studentOperationError} from "@/features/auth/authorization";
@@ -19,17 +19,18 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${day(f,"starts")}::date,${day(f,"ends")}::date)`;
- case "add":case "self":return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},${id(f,"term")},${amount(f)}::numeric,${day(f,"day")}::date,${text(f,"reason",3000)},${op==="self"})`;
+ case "add":case "self":{const activityDay=day(f,"day");return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},(select id from lub.academic_terms where ${activityDay}::date between start_date and end_date),${amount(f)}::numeric,${activityDay}::date,${text(f,"reason",3000)},${op==="self"})`;}
  case "review":{const status=z.enum(["Approved","Rejected","Voided"]).parse(f.get("status"));if(status==="Voided"&&f.get("confirm")!=="on")throw new Error();return sql`select lub.review_hours(${id(f,"record")},${status},${text(f,"note",3000,status==="Approved"?0:1)})`;}
  case "rule":return sql`select lub.save_hour_rule(${optionalId(f,"rule")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"name",120,2)},${amount(f)}::numeric,${day(f,"starts")}::date,${f.get("ends")?day(f,"ends"):null}::date,${f.get("active")==="on"},${f.get("rule")?z.coerce.number().int().positive().parse(f.get("revision")):null}::int)`;
  case "self-policy":return sql`select lub.set_self_report_hours(${id(f,"org")},${f.get("enabled")==="on"})`;
  case "import":return sql`select lub.import_task_hours(${id(f,"participant")})`;
  case "campaign":return sql`select lub.create_renewal(${id(f,"org")},${id(f,"term")},${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("leaders")==="on"})`;
- case "exclude":return sql`select lub.exclude_renewal_member(${id(f,"campaign")},${id(f,"member")},${text(f,"reason",300,f.get("excluded")==="on"?1:0)},${f.get("excluded")==="on"})`;
+ case "exclude":{const excluded=f.get("excluded")==="on";if(!excluded&&f.get("confirm")!=="on")throw new Error();return sql`select lub.exclude_renewal_member(${id(f,"campaign")},${id(f,"member")},${text(f,"reason",300,excluded?1:0)},${excluded})`;}
  case "campaign-status":{const status=z.enum(["Open","Closed","Archived"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_renewal_status(${id(f,"campaign")},${status})`;}
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
  }})();await withUser(user.id,tx=>tx.execute(query));
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. الرفض والإبطال يحتاجان سببًا."};}
+ updateTag("public-talent");
  revalidatePath("/hours");revalidatePath("/activity");revalidatePath("/applications");revalidatePath("/renewals");revalidatePath("/manage","layout");revalidatePath("/tasks","layout");revalidatePath("/me");revalidatePath("/notifications");
  return {success:"تم حفظ التغيير."};
 }

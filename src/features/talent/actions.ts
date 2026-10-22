@@ -7,13 +7,20 @@ import { withUser } from "@/db/client";
 import { requireUser } from "@/features/auth/session";
 import { studentOperationError } from "@/features/auth/authorization";
 import { normalizeDigits } from "@/lib/validation";
+import { normalizeOrganizationContact, organizationContactAddableKinds } from "@/features/organizations/contact-channels";
 import type { WorkflowState } from "@/features/forms/actions";
 
 const id = (form: FormData, key: string) => z.uuid().parse(form.get(key));
 const optionalId = (form: FormData, key: string) => form.get(key) ? id(form, key) : null;
 const text = (form: FormData, key: string, max: number, min = 0) => z.string().trim().min(min).max(max).parse(form.get(key) ?? "");
 const checked = (form: FormData, key: string) => form.get(key) === "true";
-const linkKind = z.enum(["Email", "Phone", "Website", "LinkedIn", "GitHub"]);
+const linkKind = z.enum([...organizationContactAddableKinds, "GitHub"]);
+
+function contactValue(kind: z.infer<typeof linkKind>, input: string) {
+  const normalized = normalizeOrganizationContact({ kind, value: kind === "Phone" ? normalizeDigits(input) : input });
+  if (!normalized) throw new Error("Invalid talent contact channel");
+  return normalized.value;
+}
 
 export async function mutateTalent(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
   const user = await requireUser();
@@ -33,11 +40,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
             const kind = linkKind.parse(form.get(`${fields}kind`));
             const label = text(form, `${fields}label`, 80, 1);
             const input = text(form, `${fields}value`, 2048, 1);
-            const value = kind === "Email"
-              ? z.email().max(254).parse(input)
-              : kind === "Phone"
-                ? z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input))
-                : z.url({ protocol: /^https$/ }).parse(input);
+            const value = contactValue(kind, input);
             await tx.execute(sql`select lub.save_talent_link(${linkId},${kind},${label},${value},${checked(form, `${fields}visible`)})`);
           }
 
@@ -63,11 +66,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
         case "link": {
           const kind = linkKind.parse(form.get("kind"));
           const input = text(form, "value", 2048, 1);
-          const value = kind === "Email"
-            ? z.email().max(254).parse(input)
-            : kind === "Phone"
-              ? z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input))
-              : z.url({ protocol: /^https$/ }).parse(input);
+          const value = contactValue(kind, input);
           await tx.execute(sql`select lub.save_talent_link(null,${kind},${kind},${value},${checked(form, "visible")})`);
           break;
         }
@@ -76,11 +75,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
           const kind = linkKind.parse(form.get("kind"));
           const label = text(form, "label", 80, 1);
           const input = text(form, "value", 2048, 1);
-          const value = kind === "Email"
-            ? z.email().max(254).parse(input)
-            : kind === "Phone"
-              ? z.string().regex(/^\+?[0-9]{8,15}$/).parse(normalizeDigits(input))
-              : z.url({ protocol: /^https$/ }).parse(input);
+          const value = contactValue(kind, input);
           await tx.execute(sql`select lub.save_talent_link(${link},${kind},${label},${value},${checked(form, "visible")})`);
           break;
         }

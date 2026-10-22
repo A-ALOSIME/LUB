@@ -1,3 +1,3 @@
-import documents from "../../../services/ai/knowledge.json";
-export const publicKnowledge=documents;
-export type KnowledgeSource=(typeof documents)[number];
+import knowledgeSources from "../../../services/ai/knowledge.json";
+export const publicKnowledge=knowledgeSources;
+export type KnowledgeSource=(typeof knowledgeSources)[number];

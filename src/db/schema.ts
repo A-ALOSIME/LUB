@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { OrganizationPublicProfileContent } from "@/features/organizations/organization-public-profile";
 import { pgSchema, uuid, varchar, text, boolean, timestamp, jsonb, check, index, date, uniqueIndex, unique, foreignKey, primaryKey, integer, numeric, type AnyPgColumn } from "drizzle-orm/pg-core";
 import type { FormDefinition, Answers } from "@/features/forms/definition";
 
@@ -52,7 +53,9 @@ export const organizations = lub.table("organizations", {
   nameAr: varchar("name_ar", { length: 120 }).notNull(),
   summary: text("summary").notNull().default(""),
   mission: text("mission").notNull().default(""),
+  publicProfileContent: jsonb("public_profile_content").$type<OrganizationPublicProfileContent>(),
   logoUrl: text("logo_url").notNull().default(""),
+  linksCustomized: boolean("links_customized").notNull().default(false),
   statusCode: varchar("status_code", { length: 20 }).notNull().default("Active"),
   showLeadershipPublicly: boolean("show_leadership_publicly").notNull().default(true),
   selfReportHoursEnabled: boolean("self_report_hours_enabled").notNull().default(false),
@@ -83,7 +86,7 @@ export const organizationLinks = lub.table("organization_links", {
   linkType: varchar("link_type", { length: 80 }).notNull(),
   url: text("url").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
-}, t => [check("org_link_https_check", sql`${t.url} ~ '^https://[^[:space:]]+$' and char_length(${t.url}) <= 2048`)]).enableRLS();
+}, t => [check("org_link_https_check", sql`(${t.url} ~ '^https://[^/@[:space:]?#]+([/?#][^[:space:]]*)?$' or ${t.url} ~ '^mailto:[^[:space:]@]+@[^[:space:]@]+$' or ${t.url} ~ '^tel:\\+?[0-9().-]+$') and char_length(${t.url}) <= 2048`)]).enableRLS();
 
 export const announcements = lub.table("announcements", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -104,14 +107,18 @@ export const committees = lub.table("committees", {
   isPublic: boolean("is_public").notNull().default(true),
   statusCode: varchar("status_code", { length: 20 }).notNull().default("Active"),
   copiedFromCommitteeId: uuid("copied_from_committee_id").references((): AnyPgColumn => committees.id, { onDelete: "restrict" }),
+  parentCommitteeId: uuid("parent_committee_id"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [
   unique("committee_org_identity_unique").on(t.id, t.organizationId),
+  foreignKey({ columns: [t.parentCommitteeId, t.organizationId], foreignColumns: [t.id, t.organizationId] }).onDelete("restrict"),
+  check("committee_parent_not_self_check", sql`${t.parentCommitteeId} is null or ${t.parentCommitteeId} <> ${t.id}`),
   check("committee_status_check", sql`${t.statusCode} in ('Active', 'Archived')`),
   check("committee_archive_check", sql`(${t.statusCode} = 'Archived') = (${t.archivedAt} is not null)`),
   check("committee_text_check", sql`char_length(${t.name}) between 2 and 120 and char_length(${t.description}) <= 2000`),
   index("committee_org_idx").on(t.organizationId),
+  index("committee_parent_idx").on(t.organizationId, t.parentCommitteeId),
 ]).enableRLS();
 
 export const organizationMemberships = lub.table("organization_memberships", {
@@ -320,7 +327,7 @@ export const eventAssets=lub.table("event_assets",{
 },t=>[primaryKey({columns:[t.eventId,t.assetId]}),check("event_asset_type_check",sql`${t.assetTypeCode} in ('Approval','Attendance','Report','Photo','Poster')`)]).enableRLS();
 export const profileLinks=lub.table("profile_links",{
  id:uuid("id").primaryKey().defaultRandom(),userId:uuid("user_id").notNull().references(()=>users.id),linkType:varchar("link_type",{length:20}).notNull(),label:varchar("label",{length:80}).notNull(),urlOrValue:varchar("url_or_value",{length:2048}).notNull(),isPublic:boolean("is_public").notNull().default(false),
-},t=>[check("talent_link_check",sql`${t.linkType} in ('Email','Phone','Website','LinkedIn','GitHub') and length(trim(${t.label})) between 1 and 80 and length(trim(${t.urlOrValue}))>0`),index("talent_link_user_idx").on(t.userId)]).enableRLS();
+},t=>[check("talent_link_check",sql`${t.linkType} in ('Email','Phone','Website','LinkedIn','GitHub','X','TikTok','Instagram') and length(trim(${t.label})) between 1 and 80 and length(trim(${t.urlOrValue}))>0`),index("talent_link_user_idx").on(t.userId)]).enableRLS();
 export const skills=lub.table("skills",{
  id:uuid("id").primaryKey().defaultRandom(),nameAr:varchar("name_ar",{length:80}).notNull().unique(),isActive:boolean("is_active").notNull().default(true),
 },t=>[check("talent_skill_name_check",sql`length(trim(${t.nameAr})) between 2 and 80`)]).enableRLS();
@@ -330,9 +337,3 @@ export const studentSkills=lub.table("student_skills",{
 export const studentProjects=lub.table("student_projects",{
  id:uuid("id").primaryKey().defaultRandom(),userId:uuid("user_id").notNull().references(()=>users.id),taskParticipantId:uuid("task_participant_id").unique().references(()=>taskParticipants.id),eventContributionId:uuid("event_contribution_id").unique().references(()=>eventContributions.id),displayTitle:varchar("display_title",{length:120}).notNull(),displayDescription:varchar("display_description",{length:1000}).notNull().default(""),isFeatured:boolean("is_featured").notNull().default(false),createdAt:createdAt(),updatedAt:updatedAt(),
 },t=>[check("talent_project_source_check",sql`(${t.taskParticipantId} is null)<>(${t.eventContributionId} is null) and length(trim(${t.displayTitle})) between 2 and 120`),index("talent_project_user_idx").on(t.userId,t.isFeatured,t.createdAt)]).enableRLS();
-export const assets=lub.table("assets",{
- id:uuid("id").primaryKey().defaultRandom(),uploadedByUserId:uuid("uploaded_by_user_id").notNull().references(()=>users.id),storageKey:varchar("storage_key",{length:100}).notNull().unique(),originalName:varchar("original_name",{length:100}).notNull(),mimeType:varchar("mime_type",{length:40}).notNull(),sizeBytes:integer("size_bytes").notNull(),checksumSha256:varchar("checksum_sha256",{length:64}).notNull(),visibilityCode:varchar("visibility_code",{length:20}).notNull().default("Private"),body:text("body").notNull(),createdAt:createdAt(),
-},t=>[check("generated_asset_check",sql`${t.visibilityCode}='Private' and ${t.mimeType} in ('text/html','text/csv') and ${t.sizeBytes}=octet_length(${t.body}) and ${t.sizeBytes} between 1 and 2097152 and ${t.checksumSha256}=encode(sha256(convert_to(${t.body},'UTF8')),'hex')`)]).enableRLS();
-export const generatedDocuments=lub.table("generated_documents",{
- id:uuid("id").primaryKey().defaultRandom(),organizationId:uuid("organization_id").notNull().references(()=>organizations.id),committeeId:uuid("committee_id").references(()=>committees.id),documentTypeCode:varchar("document_type_code",{length:40}).notNull(),subjectUserId:uuid("subject_user_id").references(()=>users.id),academicTermId:uuid("academic_term_id").references(()=>academicTerms.id),periodStart:date("period_start"),periodEnd:date("period_end"),assetId:uuid("asset_id").notNull().unique().references(()=>assets.id),dataSnapshotJson:jsonb("data_snapshot_json").notNull(),templateSnapshotJson:jsonb("template_snapshot_json").notNull(),generatedByUserId:uuid("generated_by_user_id").notNull().references(()=>users.id),generatedAt:timestamp("generated_at",{withTimezone:true}).notNull().defaultNow(),statusCode:varchar("status_code",{length:20}).notNull().default("Generating"),archivedAt:timestamp("archived_at",{withTimezone:true}),uploadAttempt:uuid("upload_attempt").notNull().defaultRandom(),uploadStartedAt:timestamp("upload_started_at",{withTimezone:true}).notNull().defaultNow(),
-},t=>[check("document_kind_check",sql`${t.documentTypeCode} in ('Hours_Report','Hours_Certificate') and (${t.documentTypeCode}='Hours_Certificate')=(${t.subjectUserId} is not null)`),check("document_state_check",sql`${t.statusCode} in ('Generating','Ready','Failed','Archived') and (${t.statusCode}='Archived')=(${t.archivedAt} is not null) and (${t.periodStart} is null)=(${t.periodEnd} is null) and (${t.periodStart} is null or ${t.periodEnd}>=${t.periodStart})`),index("document_org_time_idx").on(t.organizationId,t.generatedAt,t.id),index("document_subject_time_idx").on(t.subjectUserId,t.generatedAt,t.id)]).enableRLS();

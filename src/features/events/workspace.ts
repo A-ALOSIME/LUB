@@ -7,9 +7,12 @@ type EventWorkspace = {
   name: string;
   status: string | null;
   onboarded: boolean;
+  canViewEvents: boolean;
   canManage: boolean;
-  events: Array<Pick<Event, "id" | "title" | "starts_at" | "status_code" | "has_poster">>;
+  canManageAnnouncements: boolean;
+  events: Array<Pick<Event, "id" | "title" | "starts_at" | "ends_at" | "status_code" | "has_poster"> & { registrant_count: number }>;
   templates: Array<{ id: string; name: string }>;
+  announcements: Array<{ id: string; title: string; body: string; published: boolean; pinned: boolean; createdAt: string }>;
 };
 
 export async function eventWorkspaceOverview(user: string, org: string, page: number) {
@@ -19,25 +22,36 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
         o.name_ar as name,
         (select status_code from lub.users where id=${user}) as status,
         exists(select 1 from lub.student_profiles where user_id=${user}) as onboarded,
+        lub.has_event_access(o.id) as "canViewEvents",
         lub.has_org_permission(o.id, 'EVENTS_MANAGE') as "canManage",
-        coalesce((
+        lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE') as "canManageAnnouncements",
+        case when lub.has_event_access(o.id) then coalesce((
           select jsonb_agg(e) from (
-            select e.id, e.title, e.starts_at, e.status_code,
-              exists(select 1 from lub.public_event_poster(e.id)) as has_poster
+            select e.id, e.title, e.starts_at, e.ends_at, e.status_code,
+              exists(select 1 from lub.public_event_poster(e.id)) as has_poster,
+              (select count(*)::int from lub.event_registrations r where r.event_id=e.id) as registrant_count
             from lub.events e where e.organization_id=o.id
             order by e.starts_at desc, e.id limit 26 offset ${page * 25}
           ) e
-        ), '[]'::jsonb) as events,
-        coalesce((
+        ), '[]'::jsonb) else '[]'::jsonb end as events,
+        case when lub.has_event_access(o.id) then coalesce((
           select jsonb_agg(t) from (
             select t.id, t.name from lub.form_templates t
             where (t.organization_id=o.id or t.is_system_template)
               and exists(select 1 from lub.form_versions v where v.form_template_id=t.id and v.status_code='Published')
             order by t.name, t.id limit 100
           ) t
-        ), '[]'::jsonb) as templates
+        ), '[]'::jsonb) else '[]'::jsonb end as templates,
+        case when lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE') then coalesce((
+          select jsonb_agg(a) from (
+            select a.id, a.title, a.body, a.published_at is not null as published,
+              a.pinned_at is not null as pinned, a.created_at as "createdAt"
+            from lub.announcements a where a.organization_id=o.id and a.archived_at is null
+            order by a.pinned_at desc nulls last, a.created_at desc, a.id limit 30
+          ) a
+        ), '[]'::jsonb) else '[]'::jsonb end as announcements
       from lub.organizations o
-      where o.id=${org} and lub.has_event_access(o.id)
+      where o.id=${org} and (lub.has_event_access(o.id) or lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE'))
     `);
     return rows[0] as unknown as EventWorkspace | undefined;
   });

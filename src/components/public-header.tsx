@@ -5,6 +5,7 @@ import { getVerifiedProxyIdentity } from "@/features/auth/session";
 import { isSuperAdminUser } from "@/features/auth/authorization";
 import { getPreferences } from "@/lib/preferences";
 import { signOut } from "@/features/auth/actions";
+import { IntentPrefetchLink } from "@/features/organizations/intent-prefetch-link";
 
 export async function PublicHeader() {
   const [user, preferences] = await Promise.all([getVerifiedProxyIdentity(), getPreferences()]);
@@ -13,7 +14,7 @@ export async function PublicHeader() {
   return <SiteHeader en={en} accountActions={<>
     <DisplayControls {...preferences} />
     {user
-      ? <><Link href={superAdmin ? "/manage" : "/me"} prefetch={false} className="button button-compact whitespace-nowrap">{en ? "My workspace" : "مساحتي"}</Link><form action={signOut}><button className="header-link whitespace-nowrap">{en ? "Log out" : <><span className="sm:hidden">خروج</span><span className="hidden sm:inline">تسجيل الخروج</span></>}</button></form></>
+      ? <><IntentPrefetchLink href={superAdmin ? "/manage" : "/me"} className="button button-compact whitespace-nowrap">{en ? "My workspace" : "مساحتي"}</IntentPrefetchLink><form action={signOut}><button className="header-link whitespace-nowrap">{en ? "Log out" : <><span className="sm:hidden">خروج</span><span className="hidden sm:inline">تسجيل الخروج</span></>}</button></form></>
       : <><Link href="/login" prefetch={false} className="header-link whitespace-nowrap"><span className="sm:hidden">{en ? "Log in" : "دخول"}</span><span className="hidden sm:inline">{en ? "Log in" : "تسجيل الدخول"}</span></Link><Link href="/signup" prefetch={false} className="button button-compact whitespace-nowrap"><span className="sm:hidden">{en ? "Sign up" : "حساب"}</span><span className="hidden sm:inline">{en ? "Sign up" : "إنشاء حساب"}</span></Link></>}
   </>} />;
 }

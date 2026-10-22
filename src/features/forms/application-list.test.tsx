@@ -36,14 +36,13 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
     "الحالة",
     "إجراءات",
   ]);
-  expect(screen.getByRole("button", { name: /الكل/ }).textContent).toContain("5");
-  expect(screen.getByRole("button", { name: /قيد المراجعة/ }).textContent).toContain("2");
-  expect(screen.getByRole("button", { name: /مقبول/ }).textContent).toContain("1");
-  expect(screen.getByRole("button", { name: /مرفوض/ }).textContent).toContain("1");
-  expect(screen.getByRole("button", { name: /مسحوب/ }).textContent).toContain("1");
-  expect(screen.getByRole("button", { name: /الكل/ }).getAttribute("aria-pressed")).toBe("true");
-  expect(screen.getByRole("group", { name: "تصفية الطلبات حسب الحالة" }).getAttribute("dir")).toBe("rtl");
-  expect(screen.getByRole("group", { name: "تصفية الطلبات حسب الحالة" }).getAttribute("data-size")).toBe("sm");
+  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("5");
+  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toContain("2");
+  expect(screen.getByRole("tab", { name: /مقبول/ }).textContent).toContain("1");
+  expect(screen.getByRole("tab", { name: /مرفوض/ }).textContent).toContain("1");
+  expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toContain("1");
+  expect(screen.getByRole("tab", { name: /الكل/ }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.getByRole("tablist", { name: "تصفية الطلبات حسب الحالة" }).parentElement?.getAttribute("dir")).toBe("rtl");
   expect(screen.getAllByRole("row")[0].className).toContain("border-border/60");
   expect(screen.getAllByRole("button", { name: "إجراءات الطلب" }).every(button => button.hasAttribute("disabled"))).toBe(true);
   expect(screen.queryByText("المراجع")).toBeNull();
@@ -59,7 +58,7 @@ it("changes request filters through the URL without the underline tab treatment"
     status="all"
   />);
 
-  fireEvent.click(screen.getByRole("button", { name: /قيد المراجعة/ }));
+  fireEvent.click(screen.getByRole("tab", { name: /قيد المراجعة/ }));
   expect(push).toHaveBeenCalledWith("/applications?tab=applications&preview=1&status=review");
 });
 
@@ -71,8 +70,9 @@ it("shows one first-time call to action in the empty state", () => {
     status="all"
   />);
 
-  expect(screen.getAllByText("ما قدمت على أي جهة حتى الآن.")).toHaveLength(1);
-  expect(screen.getAllByRole("link", { name: "تقديم طلب جديد" })).toHaveLength(1);
+  expect(screen.getByRole("heading", { name: "ما قدمت على أي جهة حتى الآن" })).toBeTruthy();
+  expect(screen.getByText("تصفح الأندية والمجالس واختر الجهة التي تناسبك.")).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: "تصفح الأندية والمجالس" })).toHaveLength(1);
   expect(screen.queryByRole("table")).toBeNull();
   expect(screen.queryByRole("columnheader")).toBeNull();
   expect(screen.queryByRole("group", { name: "تصفية الطلبات حسب الحالة" })).toBeNull();
@@ -87,10 +87,10 @@ it("hides zero counts from application status filters", () => {
     locale="ar"
   />);
 
-  expect(screen.getByRole("button", { name: /الكل/ }).textContent).toContain("2");
-  expect(screen.getByRole("button", { name: "مقبول" }).textContent).toBe("مقبول");
-  expect(screen.getByRole("button", { name: "مرفوض" }).textContent).toBe("مرفوض");
-  expect(screen.getByRole("button", { name: "مسحوب" }).textContent).toBe("مسحوب");
+  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("2");
+  expect(screen.getByRole("tab", { name: "مقبول" }).textContent).toBe("مقبول");
+  expect(screen.getByRole("tab", { name: "مرفوض" }).textContent).toBe("مرفوض");
+  expect(screen.getByRole("tab", { name: "مسحوب" }).textContent).toBe("مسحوب");
 });
 
 it("shows one new application action above the list when applications exist", () => {

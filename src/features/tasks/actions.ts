@@ -1,7 +1,7 @@
 "use server";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { withUser } from "@/db/client";
 import { requireUser } from "@/features/auth/session";
 import { studentOperationError } from "@/features/auth/authorization";
@@ -37,9 +37,17 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  case "read":return sql`select lub.read_task_notification(${id(f,"notification")})`;
  case "read-all":return sql`select lub.read_task_notification(n.id) from lub.notifications n where n.recipient_user_id=${user.id} and n.read_at is null`;
  }
- })();const rows=await withUser(user.id,tx=>tx.execute(query));
+ })();const rows=operation==="save-task"&&f.get("saveTemplate")==="on"
+  ? await withUser(user.id,async tx=>{
+    const saved=await tx.execute(query);
+    const task=z.uuid().parse(saved[0]?.id);
+    await tx.execute(sql`select lub.save_task_template(null,${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000)},${hours(f)}::numeric,true,null,null)`);
+    return [{id:task}];
+  })
+  : await withUser(user.id,tx=>tx.execute(query));
  if(operation==="save-task")target=z.uuid().parse(rows[0]?.id);
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيرت المهمة أو المشاركة. رفض التسليم يحتاج ملاحظة؛ اعتماد المهمة يحتاج فصلًا أكاديميًا يغطي تاريخ الاعتماد."};}
+ if(!["read","read-all"].includes(String(f.get("operation"))))updateTag("public-talent");
  revalidatePath("/tasks","layout");revalidatePath("/activity");revalidatePath("/manage","layout");revalidatePath("/notifications");revalidatePath("/me");
  return {success:"تم حفظ التغيير.",task:target};
 }

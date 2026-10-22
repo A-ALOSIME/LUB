@@ -35,9 +35,9 @@ export function TaskList({items,mode,locale="ar",compact=false}:{items:TaskCard[
   </li>;
  })}</ul>;
 }
-export function TaskPagination({page,more,base,query={},locale="ar"}:{page:number;more:boolean;base:string;query?:Record<string,string>;locale?:Locale}){
+export function TaskPagination({page,more,base,query={},locale="ar",pageParam="page"}:{page:number;more:boolean;base:string;query?:Record<string,string>;locale?:Locale;pageParam?:string}){
  const en=locale==="en";
- const url=(next:number)=>`${base}?${new URLSearchParams({...query,page:String(next)})}`;
+ const url=(next:number)=>`${base}?${new URLSearchParams({...query,[pageParam]:String(next)})}`;
  if(page===0&&!more)return null;
  return <nav aria-label={en?"Record pages":"صفحات السجلات"} className="mt-6 flex flex-wrap items-center gap-4">{page>0&&<Link className="button button-secondary" href={url(page-1)}>{en?"Previous":"السابق"}</Link>}<span>{en?`Page ${page+1}`:`الصفحة ${page+1}`}</span>{more&&<Link className="button button-secondary" href={url(page+1)}>{en?"Next":"التالي"}</Link>}</nav>;
 }

@@ -1,8 +1,7 @@
-import { storageFixture } from "./storage-fixture";
+import { applyMigrations, storageFixture } from "./storage-fixture";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { sql } from "drizzle-orm";
-import { readdirSync, readFileSync } from "node:fs";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { profileSchema } from "@/lib/validation";
@@ -33,7 +32,7 @@ beforeEach(async () => {
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
     insert into auth.users values ('${alice.id}'), ('${bob.id}');`);
   await storageFixture(engine);
-  for (const file of readdirSync("drizzle").filter((name) => name.endsWith(".sql")).sort()) await engine.exec(readFileSync(`drizzle/${file}`, "utf8"));
+  await applyMigrations(engine);
 }, 30000);
 // The repository creates its own transactions. Use a fresh database, not nested BEGIN/COMMIT.
 afterEach(async () => { await engine.close(); vi.unstubAllEnvs(); });

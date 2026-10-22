@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { FilterToggleGroup } from "@/components/ui/filter-toggle-group"
+import { FilterTabs } from "@/components/ui/filter-tabs"
 import type { Locale } from "@/lib/preferences"
 
 export type ActivityHourStatus = "all" | "approved" | "pending" | "rejected"
@@ -10,7 +10,7 @@ export function ActivityHourFilter({ value, locale }: { value: ActivityHourStatu
   const en = locale === "en"
   const router = useRouter()
 
-  return <FilterToggleGroup
+  return <FilterTabs
     value={value}
     ariaLabel={en ? "Hour record status" : "حالة سجل الساعات"}
     dir={en ? "ltr" : "rtl"}

@@ -232,6 +232,55 @@
       "when": 1791946116867,
       "tag": "0032_application_notification_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792157948840,
+      "tag": "0033_organization_logo_contact_management",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792201179031,
+      "tag": "0034_organization_link_path_handles",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792354418342,
+      "tag": "0035_talent_contact_channel_types",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792422395445,
+      "tag": "0036_silent_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792643226137,
+      "tag": "0037_volatile_komodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792684590000,
+      "tag": "0038_direct_hours_export",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792688442000,
+      "tag": "0039_restore_reports_access",
+      "breakpoints": true
     }
   ]
 }

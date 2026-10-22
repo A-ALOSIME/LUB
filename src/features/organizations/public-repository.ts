@@ -2,7 +2,8 @@ import "server-only";
 import { and, eq, asc, ilike, sql } from "drizzle-orm";
 import { withVisitor } from "@/db/client";
 import { organizations } from "@/db/schema";
-import { slugSchema, organizationProfileSchema, type DiscoveryFilters } from "./validation";
+import { slugSchema, type DiscoveryFilters } from "./validation";
+import { contactChannelFromStoredLink } from "./contact-channels";
 
 const publicFields = {
   id: organizations.id, slug: organizations.slug, nameAr: organizations.nameAr,
@@ -46,8 +47,9 @@ export type DirectoryOrganization = Awaited<ReturnType<typeof getPublicDirectory
 export async function getPublicOrganization(slug: string,committeePage=0) {
   if (!slugSchema.safeParse(slug).success) return undefined;
   return withVisitor(async tx => {
-    const [result] = await tx.select({ ...publicFields, mission: organizations.mission, logoUrl: organizations.logoUrl,
-      committees:sql<Array<{id:string;name:string;description:string}>>`coalesce((select jsonb_agg(c) from(select c.id,c.name,c.description from lub.committees c where c.organization_id=lub.organizations.id and c.is_public and c.status_code='Active' order by c.name,c.id limit 26 offset ${committeePage*25}) c),'[]'::jsonb)`,
+    const [result] = await tx.select({ ...publicFields, mission: organizations.mission, publicProfileContent: organizations.publicProfileContent, logoUrl: organizations.logoUrl, linksCustomized: organizations.linksCustomized,
+      memberCount: sql<number>`lub.public_member_count(lub.organizations.id)`,
+      committees:sql<Array<{id:string;name:string;description:string;parentCommitteeId:string|null}>>`coalesce((select jsonb_agg(c) from(select c.id,c.name,c.description,c.parent_committee_id as "parentCommitteeId" from lub.committees c where c.organization_id=lub.organizations.id and c.is_public and c.status_code='Active' order by c.name,c.id limit 26 offset ${committeePage*25}) c),'[]'::jsonb)`,
       contacts:sql<Array<{id:string;label:string;url:string}>>`coalesce((select jsonb_agg(l) from(select l.id,l.link_type as label,l.url from lub.organization_links l where l.organization_id=lub.organizations.id order by l.sort_order,l.id limit 20) l),'[]'::jsonb)`,
       leadership:sql<Array<{fullName:string;roleCode:string}>>`coalesce((select jsonb_agg(jsonb_build_object('fullName',p.full_name,'roleCode',p.role_code)) from lub.public_leadership(lub.organizations.id) p),'[]'::jsonb)`,
       rounds:sql<Array<{id:string;title:string;open:boolean}>>`coalesce((select jsonb_agg(r) from(select r.id,r.title,lub.round_is_open(r.id) as open from lub.registration_rounds r where r.organization_id=lub.organizations.id order by r.opens_at desc,r.id limit 50) r),'[]'::jsonb)`,
@@ -58,6 +60,10 @@ export async function getPublicOrganization(slug: string,committeePage=0) {
     if (!result) return undefined;
     const{committees,contacts,leadership,rounds,upcomingEvents,announcements,...organization}=result;
     organization.tags = normalizePublicTags(organization.tags);
-    return { organization, committees:committees.slice(0,25),moreCommittees:committees.length>25, contacts: contacts.filter(link => organizationProfileSchema.shape.websiteUrl.safeParse(link.url).success), leadership,rounds,upcomingEvents,announcements };
+    const safeContacts = contacts.flatMap(link => {
+      const channel = contactChannelFromStoredLink(link.label, link.url);
+      return channel ? [{ ...link, kind: channel.kind, value: channel.value, url: channel.kind === "Email" ? `mailto:${channel.value}` : channel.kind === "Phone" ? `tel:${channel.value}` : channel.value }] : [];
+    });
+    return { organization, committees:committees.slice(0,25),moreCommittees:committees.length>25, contacts: safeContacts, leadership,rounds,upcomingEvents,announcements };
   });
 }

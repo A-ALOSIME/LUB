@@ -1,20 +1,20 @@
 import Link from "next/link"
-import { CalendarDays, Clock, FileText } from "lucide-react"
+import { CalendarDays, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { buttonVariants } from "@/components/ui/button"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
-import { ActivityDocumentsSheet } from "./activity-documents-sheet"
+import { LiveFilterForm } from "@/components/live-filter-form"
+import { WorkspaceEmptyState } from "@/components/workspace-empty-state"
 import { ActivityHourFilter, type ActivityHourStatus } from "./activity-hour-filter"
-import { DocumentForm } from "@/features/documents/form"
-import type { DocumentItem } from "@/features/documents/repository"
 import type { HourRecord, HoursData } from "@/features/hours/repository"
 import { HoursFields, TermSelect, hourLabels, hourLabelsEn } from "@/features/hours/view"
+import { HoursStatusSummary } from "@/features/hours/hours-status-summary"
 import { HoursForm } from "@/features/hours/form"
 import { eventDate, eventLabels } from "@/features/events/view"
 import { eventDateEn, eventLabelsEn } from "@/features/events/display"
 import { TaskPagination } from "@/features/tasks/task-list"
 import type { Locale } from "@/lib/preferences"
+import { formatRiyadhDate } from "@/lib/datetime"
 
 type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; attendance: string }
 
@@ -39,7 +39,12 @@ export function ActivityEventRows({ events, page, locale }: { events: MyEvent[];
         </ItemContent>
         <ItemActions><Badge variant={statusVariant(event.attendance === "Pending" ? event.registration : event.attendance)}>{labels[event.attendance] ?? labels[event.registration] ?? event.attendance}</Badge></ItemActions>
       </Item>)}
-    </ItemGroup> : <p role="status" className="py-3 text-sm text-muted-foreground">{en ? "You have not registered for an event yet." : "ما سجلت في فعالية بعد."}</p>}
+    </ItemGroup> : <WorkspaceEmptyState
+      icon={CalendarDays}
+      title={en ? "No event registrations yet" : "ما سجلت في فعالية بعد"}
+      description={en ? "Browse upcoming events to find one to join." : "تصفح الفعاليات القادمة للعثور على فعالية تناسبك."}
+      action={<Link href="/events" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><CalendarDays data-icon="inline-start" aria-hidden="true" />{en ? "Browse events" : "تصفح الفعاليات"}</Link>}
+    />}
     {(page > 0 || events.length > 25) && <nav aria-label={en ? "My event pages" : "صفحات فعالياتي"} className="flex flex-wrap gap-3">
       {page > 0 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page - 1}`}>{en ? "Previous" : "السابق"}</Link>}
       {events.length > 25 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page + 1}`}>{en ? "Next" : "التالي"}</Link>}
@@ -51,15 +56,13 @@ function ActivityHourRows({ items, locale }: { items: HourRecord[]; locale: Loca
   const en = locale === "en"
   const labels = en ? hourLabelsEn : hourLabels
   const c = (ar: string, english: string) => en ? english : ar
-  if (!items.length) return <p role="status" className="py-3 text-sm text-muted-foreground">{c("لا توجد سجلات بهذه الحالة.", "No records match this status.")}</p>
-
   return <ItemGroup role="list" aria-label={c("سجلات الساعات", "Hour records")}>
     {items.slice(0, 25).map(item => <Item key={item.id} role="listitem" size="sm" className="items-start">
       <ItemMedia variant="icon" className="mt-0.5"><Clock aria-hidden="true" /></ItemMedia>
       <ItemContent>
         <ItemTitle>{item.owner ?? c("سجل ساعات", "Hours record")} · {item.hours} {c("ساعة", "hours")}</ItemTitle>
         <ItemDescription className="flex flex-col gap-0.5">
-          <span dir="auto">{item.org_name} · {item.term_name} · {item.activity_date} · {labels[item.source_code] ?? item.source_code}</span>
+          <span dir="auto">{item.org_name} · {item.term_name} · {formatRiyadhDate(item.activity_date, locale)} · {labels[item.source_code] ?? item.source_code}</span>
           <span dir="auto" className="line-clamp-2">{item.description}</span>
         </ItemDescription>
         {item.decisions.length > 0 && <details className="mt-1 text-xs text-muted-foreground">
@@ -80,44 +83,11 @@ function ActivityHourRows({ items, locale }: { items: HourRecord[]; locale: Loca
   </ItemGroup>
 }
 
-function ActivityDocumentRows({ items, locale }: { items: DocumentItem[]; locale: Locale }) {
-  const en = locale === "en"
-  const c = (ar: string, english: string) => en ? english : ar
-  const statuses: Record<string, string> = en
-    ? { Archived: "Archived", Ready: "Ready", Generating: "Preparing", Failed: "Failed" }
-    : { Archived: "مؤرشف", Ready: "جاهز", Generating: "جارٍ التجهيز", Failed: "تعذّر التجهيز" }
-  if (!items.length) return <p role="status" className="py-6 text-center text-sm text-muted-foreground">{c("لا توجد مستندات محفوظة.", "No saved documents.")}</p>
-
-  return <ItemGroup role="list" aria-label={c("مستنداتي", "My documents")}>
-    {items.slice(0, 25).map(document => <Item key={document.id} role="listitem" size="sm" className="items-start">
-      <ItemMedia variant="icon" className="mt-0.5"><FileText aria-hidden="true" /></ItemMedia>
-      <ItemContent>
-        <ItemTitle>{document.document_type_code === "Hours_Certificate" ? c("بيان الساعات التطوعية", "Volunteer hours certificate") : c("تقرير الساعات", "Hours report")}</ItemTitle>
-        <ItemDescription dir="auto">{document.name} · {document.scope} · {document.period} · {document.total} {c("ساعة", "hours")}</ItemDescription>
-        {document.canArchive && document.status_code === "Ready" && <details className="mt-1 text-xs">
-          <summary className="cursor-pointer">{c("أرشفة النسخة", "Archive copy")}</summary>
-          <div className="pt-2"><DocumentForm operation="archive" fields={{ document: document.id }} label={c("أرشفة", "Archive")} locale={locale}>
-            <label className="flex items-center gap-2"><input name="confirm" type="checkbox" required className="size-4" />{c("أؤكد الأرشفة مع بقاء النسخة المحفوظة", "I confirm archiving while keeping the saved copy")}</label>
-          </DocumentForm></div>
-        </details>}
-      </ItemContent>
-      <ItemActions className="flex-col items-end sm:flex-row sm:items-center">
-        <Badge variant={statusVariant(document.status_code)}>{statuses[document.status_code] ?? document.status_code}</Badge>
-        {document.status_code === "Ready" || document.status_code === "Archived"
-          ? <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/documents/${document.id}/file`}>{c("تنزيل", "Download")}</Link>
-          : document.canRetry && <DocumentForm operation="retry" fields={{ document: document.id }} label={c("إعادة التجهيز", "Retry")} locale={locale} />}
-      </ItemActions>
-    </Item>)}
-  </ItemGroup>
-}
-
-export function ActivityHours({ data, page, term, status, documents, documentsPage, locale }: {
+export function ActivityHours({ data, page, term, status, locale }: {
   data: HoursData
   page: number
   term: string | null
   status: ActivityHourStatus
-  documents: DocumentItem[]
-  documentsPage: number
   locale: Locale
 }) {
   const en = locale === "en"
@@ -125,45 +95,35 @@ export function ActivityHours({ data, page, term, status, documents, documentsPa
   const statusCode = status === "all" ? null : status === "approved" ? "Approved" : status === "pending" ? "Pending" : "Rejected"
 
   return <div className="flex min-w-0 flex-col gap-4">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-base font-semibold">{c("سجل الساعات", "Hours history")}</h2>
-      <ActivityDocumentsSheet locale={locale}>
-        <ActivityDocumentRows items={documents} locale={locale} />
-        {(documentsPage > 0 || documents.length > 25) && <nav aria-label={en ? "Document pages" : "صفحات المستندات"} className="flex flex-wrap gap-2 py-3">
-          {documentsPage > 0 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=hours&documents=1&docPage=${documentsPage - 1}`}>{en ? "Previous" : "السابق"}</Link>}
-          {documents.length > 25 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=hours&documents=1&docPage=${documentsPage + 1}`}>{en ? "Next" : "التالي"}</Link>}
-        </nav>}
-      </ActivityDocumentsSheet>
+    <div className="grid min-w-0 grid-cols-1 items-end gap-3 lg:grid-cols-[minmax(12rem,14rem)_minmax(0,1fr)]">
+      <LiveFilterForm action="/activity" method="get" className="min-w-0">
+        <input type="hidden" name="tab" value="hours" />
+        <input type="hidden" name="page" value="0" />
+        {statusCode && <input type="hidden" name="hourStatus" value={status} />}
+        <TermSelect terms={data.terms} all value={term ?? ""} locale={locale} className="w-full min-w-0" />
+      </LiveFilterForm>
+      <div className="min-w-0 max-w-full overflow-x-auto"><ActivityHourFilter value={status} locale={locale} /></div>
     </div>
 
-    <form action="/activity" method="get" className="flex flex-wrap items-end gap-3">
-      <input type="hidden" name="tab" value="hours" />
-      {statusCode && <input type="hidden" name="hourStatus" value={status} />}
-      <div className="min-w-0 flex-1 sm:max-w-xs"><TermSelect terms={data.terms} all value={term ?? ""} locale={locale} /></div>
-      <Button type="submit" variant="outline" size="sm">{c("عرض الفترة", "Show period")}</Button>
-    </form>
-
-    <Card size="sm">
-      <CardHeader className="flex-row items-center justify-between gap-3">
-        <CardTitle>{c("الرصيد المعتمد", "Approved balance")}</CardTitle>
-        <span className="text-lg font-semibold tabular-nums">{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(data.total))} <span className="text-sm font-normal text-muted-foreground">{c("ساعة", "hours")}</span></span>
-      </CardHeader>
-      {data.byOrg.length > 0 && <CardContent className="flex flex-col gap-2">
-        {data.byOrg.map((organization, index) => <div key={`${organization.name}-${index}`} className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2 text-sm">
-          <bdi>{organization.name}</bdi><span className="tabular-nums">{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(organization.total))} {c("ساعة", "hours")}</span>
-        </div>)}
-      </CardContent>}
-    </Card>
-
-    <ActivityHourFilter value={status} locale={locale} />
-    <ActivityHourRows items={data.records} locale={locale} />
+    <HoursStatusSummary totals={data.hoursByStatus} locale={locale} />
+    {data.byOrg.length > 0 && <details className="min-w-0 rounded-lg border border-border/70 p-3">
+      <summary className="cursor-pointer text-sm font-medium">{c("توزيع الساعات حسب الجهة", "Hours by organization")}</summary>
+      <ul className="mt-3 flex flex-col gap-2 border-t border-border/60 pt-3 text-sm">
+        {data.byOrg.map((organization, index) => <li key={`${organization.name}-${index}`} className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <bdi>{organization.name}</bdi><span className="tabular-nums">{new Intl.NumberFormat(en ? "en-US" : "ar-SA-u-nu-latn", { maximumFractionDigits: 2 }).format(Number(organization.total))} {c("ساعة", "hours")}</span>
+        </li>)}
+      </ul>
+    </details>}
+    {data.records.length
+      ? <ActivityHourRows items={data.records} locale={locale} />
+      : <WorkspaceEmptyState icon={Clock} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("لا توجد سجلات لهذه الفترة والحالة.", "No records match this term and status.")} />}
     {(page > 0 || data.records.length > 25) && <TaskPagination page={page} more={data.records.length > 25} base="/activity" query={{ tab: "hours", ...(term ? { term } : {}), ...(statusCode ? { hourStatus: status } : {}) }} locale={locale} />}
 
     {data.memberships.filter(membership => membership.self).map(membership => <details key={membership.id} className="rounded-lg border border-border/70 p-3">
       <summary className="cursor-pointer text-sm font-medium">{c("طلب ساعات ذاتي", "Self-reported hours request")} · <bdi>{membership.name}</bdi></summary>
       <div className="pt-3"><HoursForm operation="self" fields={{ member: membership.id }} label={c("إرسال للمراجعة", "Submit for review")} locale={locale}>
         <label>{c("نطاق العمل", "Work scope")}<select name="committee"><option value="">{c("الجهة بالكامل", "Whole organization")}</option>{membership.committees.map(item => <option key={item.id} value={item.id} dir="auto">{item.name}</option>)}</select></label>
-        <HoursFields terms={data.terms} locale={locale} />
+        <HoursFields locale={locale} />
       </HoursForm></div>
     </details>)}
   </div>

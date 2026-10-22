@@ -6,7 +6,6 @@ const privatePaths = [
   "/activity",
   "/applications",
   "/auth/",
-  "/documents",
   "/events/mine",
   "/events/*/register",
   "/files/",
