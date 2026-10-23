@@ -18,6 +18,29 @@ vi.mock("@/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 afterEach(cleanup);
 
 describe("organization profile unsaved changes", () => {
+  it.each([-1, 1])("protects browser traversal by %i without adding history entries", async direction => {
+    const navigation = { currentEntry: { index: 4 } };
+    Object.defineProperty(window, "navigation", { value: navigation, configurable: true });
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    const push = vi.spyOn(window.history, "pushState");
+    try {
+      render(<MutationForm operation="org-profile" submitLabel="حفظ" stickySaveBar><Input name="nameAr" aria-label="اسم الجهة" defaultValue="نادي التقنية" /></MutationForm>);
+      fireEvent.change(screen.getByRole("textbox", { name: "اسم الجهة" }), { target: { value: "لا تضيع تعديلاتي" } });
+      navigation.currentEntry.index = 4 + direction;
+      fireEvent.popState(window);
+      expect(go).toHaveBeenLastCalledWith(-direction);
+      navigation.currentEntry.index = 4;
+      fireEvent.popState(window);
+      const dialog = await screen.findByRole("alertdialog");
+      expect(screen.getByRole("textbox", { name: "اسم الجهة", hidden: true })).toHaveProperty("value", "لا تضيع تعديلاتي");
+      fireEvent.click(within(dialog).getByRole("button", { name: "تجاهل التغييرات" }));
+      expect(go).toHaveBeenLastCalledWith(direction);
+      expect(push).not.toHaveBeenCalled();
+    } finally {
+      cleanup(); go.mockRestore(); push.mockRestore();
+      Reflect.deleteProperty(window, "navigation");
+    }
+  });
   it("retains edits and the save bar when a save fails, and reports a persistent error toast", async () => {
     let finish: ((state: { error: string }) => void) | undefined;
     mockMutation.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));

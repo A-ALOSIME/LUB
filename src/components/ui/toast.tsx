@@ -5,6 +5,7 @@ import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { installNavigationHistory } from "@/lib/navigation-history"
 import { XIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const toast = ToastPrimitive.createToastManager()
@@ -203,6 +204,7 @@ function Toaster({
   toastManager = toast,
   ...props
 }: ToastPrimitive.Provider.Props) {
+  React.useEffect(installNavigationHistory, [])
   return (
     <ToastProvider toastManager={toastManager} {...props}>
       {children}

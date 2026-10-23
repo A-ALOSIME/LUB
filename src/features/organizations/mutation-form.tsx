@@ -11,6 +11,7 @@ import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
 import { useActionToast } from "@/components/action-toast";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { navigationHistoryIndex } from "@/lib/navigation-history";
 
 function snapshot(form: HTMLFormElement) {
   return JSON.stringify(Array.from(new FormData(form).entries()));
@@ -95,6 +96,9 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
   useEffect(() => { if (state.error && !stickySaveBar) errorRef.current?.focus(); }, [state, stickySaveBar]);
   useEffect(() => {
     if (!stickySaveBar || !dirty) return;
+    const historyIndex = navigationHistoryIndex();
+    let restoringHistory = false;
+    let allowTraversal = false;
     function beforeUnload(event: BeforeUnloadEvent) {
       event.preventDefault();
       event.returnValue = "";
@@ -116,15 +120,37 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
       departure.current = (event as CustomEvent<() => void>).detail;
       setLeaveOpen(true);
     }
+    function beforeHistory(event: PopStateEvent) {
+      if (allowTraversal) { allowTraversal = false; return; }
+      const destinationIndex = navigationHistoryIndex();
+      if (typeof historyIndex !== "number" || typeof destinationIndex !== "number") return;
+      const restoreBy = historyIndex - destinationIndex;
+      if (restoringHistory) {
+        event.stopImmediatePropagation();
+        if (!restoreBy) restoringHistory = false;
+        else window.history.go(restoreBy);
+        return;
+      }
+      if (!restoreBy) return;
+      // Restore the current entry before Next handles the traversal. No extra
+      // entries are added, so both Back and Forward keep their original order.
+      event.stopImmediatePropagation();
+      departure.current = () => { allowTraversal = true; window.history.go(-restoreBy); };
+      restoringHistory = true;
+      window.history.go(restoreBy);
+      setLeaveOpen(true);
+    }
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", beforeNavigate, true);
     window.addEventListener("workspace-before-navigate", beforeSection);
+    window.addEventListener("popstate", beforeHistory, true);
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", beforeNavigate, true);
       window.removeEventListener("workspace-before-navigate", beforeSection);
+      window.removeEventListener("popstate", beforeHistory, true);
     };
-  }, [dirty, locale, pending, stickySaveBar]);
+  }, [dirty, locale, stickySaveBar]);
   useEffect(() => { if (state.error) pendingSubmission.current = null; }, [state.error]);
   useEffect(() => { if (state.success) onSuccess?.(); }, [state.success, onSuccess]);
   useEffect(() => {
