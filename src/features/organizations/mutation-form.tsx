@@ -8,6 +8,9 @@ import {actionFeedback} from "@/lib/action-feedback";
 import { ProfileFormContext } from "./profile-form-state";
 import { ManagementActionFooter } from "@/components/management-action-sheet";
 import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
+import { useActionToast } from "@/components/action-toast";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 function snapshot(form: HTMLFormElement) {
   return JSON.stringify(Array.from(new FormData(form).entries()));
@@ -75,7 +78,10 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
   const [resetValues, setResetValues] = useState<Record<string, string>>({});
   const [changeVersion, setChangeVersion] = useState(0);
   const [dirty, setDirty] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const departure = useRef<(() => void) | null>(null);
+  const bypassDeparture = useRef(false);
+  useActionToast(state, locale, stickySaveBar ? locale === "en" ? "Saved" : "تم الحفظ" : undefined);
 
   useEffect(() => {
     if (!stickySaveBar || !formRef.current) return;
@@ -86,36 +92,43 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
     }
     else setDirty(current !== baseline.current);
   }, [changeVersion, stickySaveBar]);
-  useEffect(() => { if (state.error) errorRef.current?.focus(); }, [state]);
+  useEffect(() => { if (state.error && !stickySaveBar) errorRef.current?.focus(); }, [state, stickySaveBar]);
   useEffect(() => {
-    if (!stickySaveBar || !dirty || pending) return;
+    if (!stickySaveBar || !dirty) return;
     function beforeUnload(event: BeforeUnloadEvent) {
       event.preventDefault();
       event.returnValue = "";
     }
     function beforeNavigate(event: MouseEvent) {
+      if (bypassDeparture.current) return;
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
       if (!link || link.hasAttribute("download") || link.target && link.target !== "_self") return;
       const destination = new URL(link.href, window.location.href);
       if (destination.origin === window.location.origin && destination.pathname === window.location.pathname && destination.search === window.location.search) return;
-      if (!window.confirm(locale === "en" ? "You have unsaved changes. Leave this page and discard them?" : "لديك تغييرات غير محفوظة. هل تريد مغادرة الصفحة وتجاهلها؟")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      event.preventDefault();
+      event.stopPropagation();
+      departure.current = () => { bypassDeparture.current = true; link.click(); bypassDeparture.current = false; };
+      setLeaveOpen(true);
+    }
+    function beforeSection(event: Event) {
+      event.preventDefault();
+      departure.current = (event as CustomEvent<() => void>).detail;
+      setLeaveOpen(true);
     }
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", beforeNavigate, true);
+    window.addEventListener("workspace-before-navigate", beforeSection);
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", beforeNavigate, true);
+      window.removeEventListener("workspace-before-navigate", beforeSection);
     };
   }, [dirty, locale, pending, stickySaveBar]);
   useEffect(() => { if (state.error) pendingSubmission.current = null; }, [state.error]);
   useEffect(() => { if (state.success) onSuccess?.(); }, [state.success, onSuccess]);
   useEffect(() => {
     if (!stickySaveBar || !state.success || !formRef.current) return;
-    setShowSuccess(true);
     const frame = window.requestAnimationFrame(() => {
       if (!formRef.current) return;
       const saved = pendingSubmission.current ?? captureFormControls(formRef.current);
@@ -126,12 +139,15 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
       baseline.current = snapshot(formRef.current);
       setResetKey(key => key + 1);
       setDirty(false);
+      setLeaveOpen(false);
+      const continueNavigation = departure.current;
+      departure.current = null;
+      continueNavigation?.();
     });
     return () => window.cancelAnimationFrame(frame);
   }, [state, stickySaveBar]);
 
   const markChanged = useCallback(() => {
-    setShowSuccess(false);
     setChangeVersion(version => version + 1);
   }, []);
 
@@ -145,10 +161,9 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
     if (formRef.current && savedControls.current) restoreFormControls(formRef.current, savedControls.current);
     setResetKey(key => key + 1);
     setDirty(false);
-    setShowSuccess(false);
   }
 
-  return <form id={stickySaveBar ? formId : undefined} ref={formRef} action={action} noValidate={stickySaveBar} onReset={event => { if (!stickySaveBar) event.preventDefault(); }} onInputCapture={event => trackChange(event.target)} onChangeCapture={event => trackChange(event.target)} onClickCapture={event => trackChange(event.target)} onSubmitCapture={event => {
+  return <form id={stickySaveBar ? formId : undefined} ref={formRef} action={action} noValidate={stickySaveBar} onReset={event => event.preventDefault()} onInputCapture={event => trackChange(event.target)} onChangeCapture={event => trackChange(event.target)} onClickCapture={event => trackChange(event.target)} onSubmitCapture={event => {
     if (stickySaveBar && formRef.current) pendingSubmission.current = captureFormControls(formRef.current);
     trackChange(event.target);
   }} data-dirty={stickySaveBar && dirty ? "true" : undefined} className={`space-y-5 ${formClassName ?? ""}`}>
@@ -161,8 +176,20 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
         {!stickySaveBar && <ManagementActionFooter label={pending ? locale==="en"?"Working…":"جارٍ التنفيذ…" : submitLabel} pending={pending} buttonClassName={buttonClassName} showCancel={cancelInModal} sticky={!inlineFooter}/>}
       </fieldset>
     </ProfileFormContext.Provider>
-    {state.error && <div id={errorId} ref={errorRef} tabIndex={-1} role="alert" className="error-message">{actionFeedback(state.error,locale)}{state.fieldErrors && <ul className="mt-3 space-y-2">{Object.entries(state.fieldErrors).filter(([key]) => labels[key]).map(([key, messages]) => <li key={key}>{labels[key]}: {messages?.map(message=>actionFeedback(message,locale)).join(" ")}</li>)}</ul>}</div>}
-    {stickySaveBar && showSuccess && state.success && <p role="status" className="organization-profile-save-success">{actionFeedback(state.success,locale)}</p>}
+    {state.error && <div id={errorId} ref={errorRef} tabIndex={-1} role="alert" className={stickySaveBar ? "sr-only" : "error-message"}>{actionFeedback(state.error,locale)}{state.fieldErrors && <ul className="mt-3 space-y-2">{Object.entries(state.fieldErrors).filter(([key]) => labels[key]).map(([key, messages]) => <li key={key}>{labels[key]}: {messages?.map(message=>actionFeedback(message,locale)).join(" ")}</li>)}</ul>}</div>}
     {stickySaveBar && <WorkspaceStickySaveBar formId={formId} locale={locale} visible={dirty} pending={pending} onUndo={undoChanges} />}
+    {stickySaveBar && <AlertDialog open={leaveOpen} onOpenChange={open => { if (!pending) { setLeaveOpen(open); if (!open) departure.current = null; } }}>
+      <AlertDialogContent dir={locale === "en" ? "ltr" : "rtl"} data-ignore-dirty>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{locale === "en" ? "Unsaved changes" : "لديك تغييرات غير محفوظة"}</AlertDialogTitle>
+          <AlertDialogDescription>{locale === "en" ? "Save your changes before leaving?" : "هل تريد حفظ التغييرات قبل المتابعة؟"}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <Button type="button" disabled={pending} onClick={() => formRef.current?.requestSubmit()}>{pending ? locale === "en" ? "Saving…" : "جاري الحفظ" : locale === "en" ? "Save" : "حفظ"}</Button>
+          <Button type="button" variant="destructive" disabled={pending} onClick={() => { const next = departure.current; departure.current = null; undoChanges(); setLeaveOpen(false); next?.(); }}>{locale === "en" ? "Discard changes" : "تجاهل التغييرات"}</Button>
+          <Button type="button" variant="outline" disabled={pending} onClick={() => { departure.current = null; setLeaveOpen(false); }}>{locale === "en" ? "Stay" : "البقاء"}</Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>}
   </form>;
 }

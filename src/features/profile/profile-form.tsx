@@ -9,6 +9,7 @@ import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
 import { saveProfile } from "./actions";
 import { ProfileDetailsSection } from "./profile-form-sections";
+import { useActionToast } from "@/components/action-toast";
 import type { StudentProfile } from "./repository";
 
 export function ProfileForm({
@@ -24,6 +25,7 @@ export function ProfileForm({
 }) {
   const en = locale === "en";
   const [state, save, pending] = useActionState<FormState, FormData>(saveProfile, {});
+  useActionToast(state, locale);
   const [dirty, setDirty] = useState(false);
   const saveLabel = profile
     ? en ? "Save changes" : "حفظ التعديلات"

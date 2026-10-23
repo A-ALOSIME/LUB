@@ -30,7 +30,8 @@ describe("profile form interactions", () => {
     fireEvent.change(screen.getByLabelText("التخصص"), { target: { value: "نظم المعلومات الإدارية" } });
     expect((screen.getByRole("button", { name: "حفظ التعديلات" }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByLabelText("التخصص") as HTMLInputElement).value).toBe("نظم المعلومات الإدارية");
-    expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("rtl");
+    expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("ltr");
+    expect(screen.getByRole("combobox", { name: "رمز الدولة" })).toHaveProperty("value", "966");
     const fieldRows = Array.from(document.querySelectorAll(".account-settings-field-row"));
     expect(
       Array.from(fieldRows[0]?.querySelectorAll("[data-slot='field']") ?? []).map(

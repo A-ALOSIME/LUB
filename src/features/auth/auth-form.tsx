@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToast } from "@/components/action-toast";
 import Link from "next/link";
 import { requestCode, verifyCode, type CodeState } from "./actions";
 import type { FormState } from "@/lib/validation";
@@ -20,6 +21,7 @@ export function AuthForm({ mode, available, returnTo = "/me", locale="ar" }: { m
 function LoginFlow({ available, returnTo, locale }: { available: boolean; returnTo: string; locale: Locale }) {
   const en=locale==="en";
   const [state, send, sending] = useActionState<CodeState, FormData>(requestCode, {});
+  useActionToast(state, locale);
   const [changeEmail, setChangeEmail] = useState(false);
   const verifyingEmail = !changeEmail && !sending ? state.email : undefined;
   return <>
@@ -36,6 +38,7 @@ function LoginFlow({ available, returnTo, locale }: { available: boolean; return
 function OtpVerification({ email, returnTo, locale }: { email: string; returnTo: string; locale: Locale }) {
   const en=locale==="en";
   const [state, verify, pending] = useActionState<FormState, FormData>(verifyCode, {});
+  useActionToast(state, locale);
   return <form action={verify} className="space-y-5">
     <input type="hidden" name="returnTo" value={returnTo} /><input type="hidden" name="email" value={email} /><input type="hidden" name="mode" value="login" />
     <div><label htmlFor="token">{en?"Verification code":"رمز التحقق"}</label><input id="token" name="token" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>

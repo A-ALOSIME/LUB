@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionToast } from "@/components/action-toast";
 import { Bell, CalendarDays, Check, ClipboardCheck, Clock3, MailCheck, Megaphone, UsersRound } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +54,7 @@ function NotificationMutationAction({
   onMessage: (message: string) => void;
 }) {
   const [state, action, pending] = useActionState<TaskState, FormData>(mutateTask, {});
+  useActionToast(state, locale);
   const en = locale === "en";
 
   useEffect(() => {

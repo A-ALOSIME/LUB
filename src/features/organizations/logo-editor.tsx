@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Camera, LoaderCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
+import { useActionToast } from "@/components/action-toast";
 
 const logoBucketUrl = "/storage/v1/object/public/lub-organization-logos/organizations/";
 
@@ -20,6 +21,7 @@ export function OrganizationLogoEditor({ organizationId, organizationName, logoU
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  useActionToast(useMemo(() => ({ error, success }), [error, success]), locale);
   const inputRef = useRef<HTMLInputElement>(null);
   const en = locale === "en";
   const currentLogo = logoUrl || fallbackLogoUrl;

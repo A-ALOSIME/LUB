@@ -5,6 +5,7 @@ import { CommitteeListRow } from "@/features/organizations/committee-list-row";
 import { chunkCommitteeChartNodes } from "@/features/organizations/committee-chart-layout";
 import type { CommitteeTreeNode } from "@/features/organizations/committee-tree";
 import type { Locale } from "@/lib/preferences";
+import { ManagementCommitteeTree } from "./management-committee-tree";
 
 type ManagedCommittee = {
   id: string;
@@ -103,6 +104,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     children: toChartItems(committees, en, readOnly),
   }, node => node.children?.length ? node.children : undefined);
   const hasCommittees = Boolean(treeRoot.children?.length);
+  if (!readOnly) return <ManagementCommitteeTree {...{ organizationId, organizationName, rootDetails, committees, canManage, locale, parentOptions, emptyMessage }} />;
 
   return <div className={`organization-org-chart-viewport${readOnly ? " organization-org-chart-viewport--public" : ""}`}>
     <ul className="organization-org-chart-tree" aria-label={c("الهيكل التنظيمي للجان", "Committee organization chart")}>

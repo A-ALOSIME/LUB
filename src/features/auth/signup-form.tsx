@@ -5,6 +5,8 @@ import { requestCode, verifyCode, type CodeState } from "./actions";
 import type { FormState } from "@/lib/validation";
 import type { Locale } from "@/lib/preferences";
 import { actionFeedback } from "@/lib/action-feedback";
+import { PhoneInput } from "@/components/phone-input";
+import { useActionToast } from "@/components/action-toast";
 
 type SignupDraft = {
   email: string;
@@ -29,6 +31,7 @@ type TextField = "email" | "fullName" | "universityId" | "major" | "academicLeve
 export function SignupFlow({ available, returnTo, locale }: { available: boolean; returnTo: string; locale: Locale }) {
   const en = locale === "en";
   const [state, send, sending] = useActionState<CodeState, FormData>(requestCode, {});
+  useActionToast(state, locale);
   const [changeDetails, setChangeDetails] = useState(false);
   const [draft, setDraft] = useState(emptyDraft);
   const emailToVerify = !changeDetails && !sending ? state.email : undefined;
@@ -80,7 +83,7 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
     </div>
     <div>
       <label htmlFor="signup-phone">{en ? "Phone number" : "رقم الهاتف"} <span className="text-sm font-normal text-muted">{en ? "(optional)" : "(اختياري)"}</span></label>
-      <input id="signup-phone" name="phone" type="tel" dir={en ? "ltr" : "rtl"} autoComplete="tel" maxLength={16} value={draft.phone} onChange={event => updateText("phone", event.currentTarget.value)} {...fieldProps("phone")} />
+      <PhoneInput id="signup-phone" name="phone" locale={locale} value={draft.phone} onChange={value => updateText("phone", value)} {...fieldProps("phone")} />
       {fieldError("phone")}
     </div>
     {state.error && <p className="error-message" role="alert">{actionFeedback(state.error, locale)}</p>}
@@ -91,6 +94,7 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
 function SignupOtpForm({ email, returnTo, locale }: { email: string; returnTo: string; locale: Locale }) {
   const en = locale === "en";
   const [state, verify, pending] = useActionState<FormState, FormData>(verifyCode, {});
+  useActionToast(state, locale);
   return <form action={verify} className="space-y-5">
     <input type="hidden" name="returnTo" value={returnTo} />
     <input type="hidden" name="mode" value="signup" />

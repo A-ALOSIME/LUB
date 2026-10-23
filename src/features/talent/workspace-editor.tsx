@@ -20,6 +20,8 @@ import type { WorkflowState } from "@/features/forms/actions";
 import { TalentForm, NewProject, ProjectFields } from "./form";
 import { TalentChannelIcon, talentAddableChannelKinds, talentChannelLabel, type TalentChannelKind } from "./contact-channel";
 import { ContactChannelAddMenu } from "@/features/organizations/contact-channel-add-menu";
+import { PhoneInput } from "@/components/phone-input";
+import { useActionToast } from "@/components/action-toast";
 import { TalentPagination } from "./view";
 import { Textarea } from "@/components/ui/textarea";
 import { ContactVisibilityButton } from "./contact-visibility-button";
@@ -92,21 +94,21 @@ function AddContactDialog({ locale, disabled }: { locale: Locale; disabled: bool
         <Field>
           <FieldLabel htmlFor={valueId}>{en ? talentChannelLabel(kind, true) : talentChannelLabel(kind, false)}</FieldLabel>
           <div className="relative">
-            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted-foreground">
+            {kind !== "Phone" && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted-foreground">
               <TalentChannelIcon kind={kind} className="size-4" />
-            </span>
-            <Input
+            </span>}
+            {kind === "Phone" ? <PhoneInput id={valueId} name="value" locale={locale} required /> : <Input
               id={valueId}
               name="value"
               type={kind === "Email" ? "email" : "text"}
-              inputMode={kind === "Phone" ? "tel" : kind === "Email" ? "email" : "url"}
+              inputMode={kind === "Email" ? "email" : "url"}
               placeholder={selected.placeholder}
-              dir={kind === "Phone" ? (en ? "ltr" : "rtl") : "ltr"}
-              className="ps-9 text-start font-sans"
+              dir="ltr"
+              className="ps-9 text-right font-sans"
               required
               maxLength={2048}
               autoComplete="off"
-            />
+            />}
           </div>
         </Field>
         <Field orientation="horizontal" className="items-center justify-between gap-4 border-t border-border pt-3">
@@ -158,8 +160,8 @@ function EditContactDialog({ link, locale }: { link: TalentWorkspace["links"][nu
         <Field>
           <FieldLabel htmlFor={valueId}>{label}</FieldLabel>
           <div className="relative">
-            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted-foreground"><TalentChannelIcon kind={link.link_type} className="size-4" /></span>
-            <Input id={valueId} name="value" defaultValue={link.url_or_value} type={link.link_type === "Email" ? "email" : "text"} inputMode={link.link_type === "Phone" ? "tel" : link.link_type === "Email" ? "email" : "url"} dir={link.link_type === "Phone" ? (en ? "ltr" : "rtl") : "ltr"} className="ps-9 text-start font-sans" required maxLength={2048} autoComplete="off" />
+            {link.link_type === "Phone" ? <PhoneInput id={valueId} name="value" defaultValue={link.url_or_value} locale={locale} required /> : <><span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted-foreground"><TalentChannelIcon kind={link.link_type} className="size-4" /></span>
+            <Input id={valueId} name="value" defaultValue={link.url_or_value} type={link.link_type === "Email" ? "email" : "text"} inputMode={link.link_type === "Email" ? "email" : "url"} dir="ltr" className="ps-9 text-right font-sans" required maxLength={2048} autoComplete="off" /></>}
           </div>
         </Field>
         <Field orientation="horizontal" className="items-center justify-between gap-4 border-t border-border pt-3">
@@ -247,6 +249,7 @@ function ProfileSettingsForm({ data, user, pages, locale }: { data: TalentWorksp
     return result;
   }, []);
   const [state, action, pending] = useActionState<WorkflowState, FormData>(submit, {});
+  useActionToast(state, locale);
   const en = locale === "en";
   const publishLabel = en ? "Publish my profile in talent discovery" : "نشر ملفي في اكتشاف المواهب";
   const markDirty = useCallback(() => { setDirty(true); setShowSuccess(false); }, []);

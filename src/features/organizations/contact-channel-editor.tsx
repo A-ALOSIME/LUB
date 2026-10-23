@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ManagementActionFooter, ManagementActionSheet } from "@/components/management-action-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/phone-input";
 import { normalizeOrganizationContact, organizationContactKinds, organizationContactLabel, type OrganizationContactChannel, type OrganizationContactKind } from "./contact-channels";
 import { useProfileFormState } from "./profile-form-state";
 import { ContactChannelAddMenu } from "./contact-channel-add-menu";
@@ -18,6 +19,7 @@ const channelPlaceholder: Record<OrganizationContactKind, string> = {
   X: "https://x.com/...", YouTube: "https://youtube.com/@...", TikTok: "https://tiktok.com/@...",
   WhatsApp: "https://wa.me/...", Telegram: "https://t.me/...",
 };
+const channelNamesAr: Partial<Record<OrganizationContactKind, string>> = { Website: "موقع", Email: "إيميل", Phone: "جوال", TikTok: "تيك توك", LinkedIn: "لينكدإن", X: "إكس" };
 
 type EditableChannel = OrganizationContactChannel & { id: string };
 
@@ -113,10 +115,11 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
         const errorId = `organization-contact-error-${channel.id}`;
         const channelError = touched.has(channel.id) ? valueError(channel, en) : "";
         return <li className="organization-contact-row" key={channel.id}>
-          <span className="organization-contact-icon" title={organizationContactLabel(channel.kind, en)} aria-hidden="true"><OrganizationSocialIcon kind={channel.kind} className="size-5" /></span>
+          <span className="organization-contact-label"><span className="organization-contact-icon" aria-hidden="true"><OrganizationSocialIcon kind={channel.kind} className="size-5" /></span><span>{en ? organizationContactLabel(channel.kind, true) : channelNamesAr[channel.kind] ?? organizationContactLabel(channel.kind, false)}</span></span>
           <div className="organization-contact-value">
             <div className="organization-contact-field-wrap">
-              <Input value={channel.value} onChange={event => setChannels(current => current.map(item => item.id === channel.id ? { ...item, value: event.target.value } : item))} onBlur={() => setTouched(current => new Set(current).add(channel.id))} type={channel.kind === "Email" ? "email" : channel.kind === "Phone" ? "tel" : "url"} inputMode={channel.kind === "Phone" ? "tel" : channel.kind === "Email" ? "email" : "url"} dir={channel.kind === "Phone" ? (en ? "ltr" : "rtl") : "ltr"} className="text-end" aria-label={`${organizationContactLabel(channel.kind, en)} ${en ? "value" : "القيمة"}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required maxLength={2048} />
+              {channel.kind === "Phone" ? <PhoneInput value={channel.value} locale={locale} onChange={value => { setChannels(current => current.map(item => item.id === channel.id ? { ...item, value } : item)); markChanged(); }} onBlur={() => setTouched(current => new Set(current).add(channel.id))} aria-label={`${organizationContactLabel(channel.kind, en)} ${en ? "value" : "القيمة"}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required />
+                : <Input value={channel.value} onChange={event => setChannels(current => current.map(item => item.id === channel.id ? { ...item, value: event.target.value } : item))} onBlur={() => setTouched(current => new Set(current).add(channel.id))} type={channel.kind === "Email" ? "email" : "url"} inputMode={channel.kind === "Email" ? "email" : "url"} dir="ltr" className="text-right" aria-label={`${organizationContactLabel(channel.kind, en)} ${en ? "value" : "القيمة"}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required maxLength={2048} />}
               <Button type="button" variant="ghost" size="icon-sm" className="organization-contact-delete" aria-label={en ? `Remove ${organizationContactLabel(channel.kind, true)}` : `حذف ${organizationContactLabel(channel.kind, false)}`} title={en ? `Remove ${organizationContactLabel(channel.kind, true)}` : `حذف ${organizationContactLabel(channel.kind, false)}`} onClick={() => setDeleteId(channel.id)}>
                 <Trash2 aria-hidden="true" />
               </Button>
@@ -138,7 +141,7 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
       <p className="text-sm leading-6 text-muted">{en ? "Enter the public contact value." : "أدخل وسيلة التواصل التي ستظهر للزوار."}</p>
       <form noValidate onSubmit={event => { event.stopPropagation(); addChannel(event); }} className="grid gap-3">
         <label htmlFor={valueId} className="text-sm font-semibold">{organizationContactLabel(kind, en)}</label>
-        <Input id={valueId} autoFocus value={value} onChange={event => { setValue(event.target.value); setError(""); }} type={kind === "Email" ? "email" : kind === "Phone" ? "tel" : "url"} inputMode={kind === "Phone" ? "tel" : kind === "Email" ? "email" : "url"} dir={kind === "Phone" ? (en ? "ltr" : "rtl") : "ltr"} className="text-end" placeholder={channelPlaceholder[kind]} maxLength={2048} required />
+        {kind === "Phone" ? <PhoneInput id={valueId} autoFocus value={value} locale={locale} onChange={value => { setValue(value); setError(""); }} required /> : <Input id={valueId} autoFocus value={value} onChange={event => { setValue(event.target.value); setError(""); }} type={kind === "Email" ? "email" : "url"} inputMode={kind === "Email" ? "email" : "url"} dir="ltr" className="text-right" placeholder={channelPlaceholder[kind]} maxLength={2048} required />}
         {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
         <ManagementActionFooter label={en ? "Add channel" : "إضافة القناة"} />
       </form>

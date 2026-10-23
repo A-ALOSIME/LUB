@@ -8,6 +8,7 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/phone-input";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -146,23 +147,11 @@ export function ProfileDetailsSection({
   );
 
   const phoneField = (
-    <ProfileTextField
-      name="phone"
-      label={
-        <>
-          {en ? "Phone number" : "رقم الهاتف"}
-          <span className="font-normal text-muted-foreground">
-            {en ? "(optional)" : "(اختياري)"}
-          </span>
-        </>
-      }
-      value={profile?.phone ?? ""}
-      locale={locale}
-      errors={errors}
-      maxLength={16}
-      autoComplete="tel"
-      dir={en ? "ltr" : "rtl"}
-    />
+    <Field className="account-settings-field">
+      <FieldLabel htmlFor="phone">{en ? "Phone number (optional)" : "رقم الهاتف (اختياري)"}</FieldLabel>
+      <PhoneInput id="phone" name="phone" defaultValue={profile?.phone ?? ""} locale={locale} aria-invalid={Boolean(errors?.phone?.[0])} aria-describedby={errors?.phone?.[0] ? "phone-error" : undefined} />
+      {errors?.phone?.[0] && <p id="phone-error" className="text-sm text-destructive">{actionFeedback(errors.phone[0], locale)}</p>}
+    </Field>
   );
 
   return (

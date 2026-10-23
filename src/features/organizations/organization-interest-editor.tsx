@@ -4,6 +4,7 @@ import { useId, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useProfileFormState } from "./profile-form-state";
 import type { Locale } from "@/lib/preferences";
 
@@ -49,11 +50,11 @@ function OrganizationInterestEditorState({ initialInterests, locale }: { initial
   return <div className="organization-interest-editor">
     <input type="hidden" name="tagNames" value={interests.join(",")} readOnly />
     {interests.length > 0 && <ul className="organization-interest-list" aria-label={c("مجالات الاهتمام المحددة", "Selected interests")}>
-      {interests.map(interest => <li key={interest} className="organization-interest-chip">
-        <span dir="auto">{interest}</span>
+      {interests.map(interest => <li key={interest}>
+        <Badge variant="secondary"><span dir="auto">{interest}</span>
         <Button type="button" variant="ghost" size="icon-xs" aria-label={c(`حذف ${interest}`, `Remove ${interest}`)} onClick={() => { setInterests(current => current.filter(item => item !== interest)); setError(""); markChanged(); }}>
           <X aria-hidden="true" />
-        </Button>
+        </Button></Badge>
       </li>)}
     </ul>}
     <div className="organization-interest-add">

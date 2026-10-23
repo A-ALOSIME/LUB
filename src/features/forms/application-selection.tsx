@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useActionToast } from "@/components/action-toast";
 import { Inbox, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -39,6 +40,7 @@ export function ApplicationSelection({ rows, locale = "ar", canBulk, selectedApp
     return result;
   }, {});
   const router = useRouter();
+  useActionToast(state, locale);
   const pathname = usePathname();
   const search = useSearchParams();
   const en = locale === "en";

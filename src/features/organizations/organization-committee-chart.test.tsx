@@ -4,19 +4,31 @@ import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
 vi.mock("@/features/organizations/committee-dialog", () => ({
-  CommitteeDialog: ({ open }: { open: boolean }) => open ? <div role="dialog">تعديل اللجنة</div> : null,
+  CommitteeDialog: ({ open, parentCommitteeId }: { open: boolean; parentCommitteeId?: string }) => open ? <div role="dialog">تعديل اللجنة{parentCommitteeId && <span>{parentCommitteeId}</span>}</div> : null,
 }));
 vi.mock("@/features/organizations/committee-status-dialog", () => ({
   CommitteeStatusDialog: ({ open }: { open: boolean }) => open ? <div role="alertdialog">تأكيد أرشفة اللجنة</div> : null,
 }));
 vi.mock("@/features/organizations/mutation-form", () => ({ MutationForm: () => null }));
 vi.mock("@/components/management-action-sheet", () => ({
+  ManagementActionProvider: ({ children }: { children: ReactNode }) => children,
   ManagementActionSheet: ({ open, children }: { open: boolean; children: ReactNode }) => open ? <div role="dialog">{children}</div> : null,
 }));
 
 import { OrganizationCommitteeChart } from "./organization-committee-chart";
 
 afterEach(cleanup);
+
+it("offers edit, a preselected subcommittee parent and a destructive last delete action", async () => {
+  render(<OrganizationCommitteeChart organizationId="org-1" organizationName="الجهة" committees={[committee("parent-a", "الفعاليات", null, true)]} canManage locale="ar" parentOptions={[{ id: "parent-a", name: "الفعاليات" }]} emptyMessage="لا توجد لجان" />);
+  fireEvent.click(screen.getByRole("button", { name: "إجراءات الفعاليات" }));
+  const menu = await screen.findByRole("menu");
+  const items = menu.querySelectorAll('[role="menuitem"]');
+  expect([...items].map(item => item.textContent)).toEqual(["تعديل", "إضافة لجنة فرعية", "حذف"]);
+  expect(items[2].getAttribute("data-variant")).toBe("destructive");
+  fireEvent.click(screen.getByRole("menuitem", { name: "إضافة لجنة فرعية" }));
+  expect((await screen.findByRole("dialog")).textContent).toContain("parent-a");
+});
 
 type TestCommittee = {
   id: string;
@@ -46,7 +58,7 @@ const committee = (id: string, name: string, parentCommitteeId: string | null, c
   children,
 });
 
-it("renders the organization root, sibling committees, and nested branches as a chart", () => {
+it("renders the organization root and indented committee rows with collapsible branches", async () => {
   render(<OrganizationCommitteeChart
     organizationId="org-1"
     organizationName="نادي الاختبار"
@@ -61,16 +73,21 @@ it("renders the organization root, sibling committees, and nested branches as a 
   />);
 
   expect(screen.getByText("نادي الاختبار")).toBeTruthy();
-  expect(screen.getByRole("list", { name: "الهيكل التنظيمي للجان" }).querySelectorAll(".organization-committee-node")).toHaveLength(3);
-  expect(document.querySelectorAll(".organization-org-chart-row")).toHaveLength(2);
+  expect(screen.getByRole("list", { name: "هيكل اللجان" }).querySelectorAll(".management-committee-row")).toHaveLength(4);
+  expect(document.querySelectorAll(".committee-branch-line")).toHaveLength(3);
 
-  const first = screen.getByText("لجنة أ").closest(".organization-committee-node") as HTMLElement;
-  const second = screen.getByText("لجنة ب").closest(".organization-committee-node") as HTMLElement;
+  const first = screen.getByText("لجنة أ").closest(".management-committee-row") as HTMLElement;
+  const second = screen.getByText("لجنة ب").closest(".management-committee-row") as HTMLElement;
   expect(first.style.position).toBe("");
   expect(second.style.position).toBe("");
-  expect(first.closest(".organization-org-chart-row")).toBeTruthy();
+  expect(first.closest(".management-committee-item")?.getAttribute("style")).toContain("--committee-depth: 1");
+  fireEvent.click(screen.getByRole("button", { name: "طي لجنة أ" }));
+  expect(screen.queryByText("فرعية ١")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "فتح لجنة أ" }));
+  expect(screen.getByText("فرعية ١")).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("button", { name: "تعديل لجنة أ" }));
+  fireEvent.click(screen.getByRole("button", { name: "إجراءات لجنة أ" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "تعديل" }));
   expect(screen.getByRole("dialog").textContent).toContain("تعديل اللجنة");
 });
 
@@ -109,7 +126,7 @@ it("keeps direct public committees as compact sibling leaves", () => {
   expect(document.querySelectorAll(".organization-org-chart-children--branch")).toHaveLength(0);
 });
 
-it("wraps twelve sibling committees into rows of at most four without fixed horizontal positions", () => {
+it("lists twelve sibling committees as identically structured rows at the same depth", () => {
   const committees = Array.from({ length: 12 }, (_, index) => committee(`committee-${index + 1}`, `لجنة ${index + 1}`, null));
   render(<OrganizationCommitteeChart
     organizationId="org-1"
@@ -121,12 +138,12 @@ it("wraps twelve sibling committees into rows of at most four without fixed hori
     emptyMessage="ما فيه لجان مسجلة حتى الآن."
   />);
 
-  const chart = screen.getByRole("list", { name: "الهيكل التنظيمي للجان" });
-  const rows = [...chart.querySelectorAll(".organization-org-chart-row")];
-  expect(rows).toHaveLength(3);
-  expect(rows.every(row => row.querySelectorAll(":scope > .organization-committee-row").length <= 4)).toBe(true);
-  expect(chart.querySelectorAll(".organization-committee-node")).toHaveLength(12);
-  expect(chart.querySelectorAll(".organization-committee-node[style]")).toHaveLength(0);
+  const chart = screen.getByRole("list", { name: "هيكل اللجان" });
+  const rows = [...chart.querySelectorAll(".management-committee-item")];
+  expect(rows).toHaveLength(13);
+  expect(rows.slice(1).every(row => row.querySelectorAll(":scope > .management-committee-row").length === 1)).toBe(true);
+  expect(chart.querySelectorAll(".management-committee-row:not(.management-committee-row--organization)")).toHaveLength(12);
+  expect(rows.slice(1).every(row => (row as HTMLElement).style.getPropertyValue("--committee-depth") === "1")).toBe(true);
 });
 
 it("shows leadership inside the organization root instead of a separate card", () => {
@@ -141,7 +158,7 @@ it("shows leadership inside the organization root instead of a separate card", (
     emptyMessage="ما فيه لجان مسجلة حتى الآن."
   />);
 
-  const root = screen.getByText("نادي الاختبار").closest(".organization-org-chart-root");
+  const root = screen.getByText("نادي الاختبار").closest(".management-committee-row--organization");
   expect(root?.textContent).toContain("القائد: أحمد");
 });
 

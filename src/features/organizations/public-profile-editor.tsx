@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useRef, useState, type ChangeEvent } from "react";
+import { useId, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { CalendarDays, ImagePlus, LoaderCircle, UsersRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ListEntryInput } from "@/components/list-entry-input";
+import { useActionToast } from "@/components/action-toast";
 import type { Locale } from "@/lib/preferences";
 import { useProfileFormState } from "./profile-form-state";
 import { normalizeOrganizationPublicProfileContent, type OrganizationPublicProfileContent } from "./organization-public-profile";
@@ -51,6 +53,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
   const [content, setContent] = useState(initialValue);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  useActionToast(useMemo(() => ({ error }), [error]), locale);
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -125,9 +128,10 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-fields">
-          {textFields.slice(2).map(field => <div className={`organization-settings-field${field.key === "achievements" || field.key === "partners" ? " full" : ""}`} key={field.key}>
+          {textFields.slice(2).map(field => <div className="organization-settings-field" key={field.key}>
             <FieldLabel htmlFor={`${inputId}-${field.key}`}>{en ? ({ offerings: "What we offer", goals: "Goals", fields: "Fields", programs: "Programs", achievements: "Achievements", partners: "Partners" } as Record<string, string>)[field.key] : field.label}</FieldLabel>
-            <Textarea id={`${inputId}-${field.key}`} dir={en ? "ltr" : "rtl"} rows={field.rows} maxLength={5000} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={event => update(field.key, event.target.value)} />
+            {field.key === "offerings" ? <Textarea id={`${inputId}-${field.key}`} dir={en ? "ltr" : "rtl"} rows={field.rows} maxLength={5000} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={event => update(field.key, event.target.value)} />
+              : <ListEntryInput id={`${inputId}-${field.key}`} label={en ? field.key : field.label} locale={locale} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={value => update(field.key, value)} />}
           </div>)}
           <div className="organization-settings-field full organization-partner-image-field">
             <FieldLabel htmlFor={`${inputId}-partner-image`}>{en ? "Partners image" : "صورة الشركاء"}</FieldLabel>

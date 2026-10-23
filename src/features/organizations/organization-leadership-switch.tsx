@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useId, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import type { Locale } from "@/lib/preferences";
 import { useProfileFormState } from "./profile-form-state";
 
@@ -16,25 +16,17 @@ export function OrganizationLeadershipVisibilityButton({ defaultChecked, locale 
 
 function LeadershipVisibilityButtonState({ defaultChecked, locale, onChange }: { defaultChecked: boolean; locale: Locale; onChange: () => void }) {
   const [visible, setVisible] = useState(defaultChecked);
+  const id = useId();
   const en = locale === "en";
-  const status = visible
-    ? en ? "Organization leadership: public" : "قيادة الجهة: ظاهرة للعامة"
-    : en ? "Organization leadership: hidden" : "قيادة الجهة: مخفية";
-
-  return <div className="organization-settings-visibility">
+  return <Card className="organization-settings-card organization-public-visibility">
+    <CardHeader><CardTitle>{en ? "Public visibility" : "الظهور للعامة"}</CardTitle></CardHeader>
+    <CardContent>
+    <div className="flex items-center justify-between gap-4">
+    <label htmlFor={id}>{en ? "Show organization leadership on the public page" : "إظهار قيادة الجهة في الصفحة العامة"}</label>
     <input type="hidden" name="showLeadershipPublicly" value={visible ? "on" : ""} readOnly />
-    <Button
-      type="button"
-      variant={visible ? "default" : "outline"}
-      size="lg"
-      className={visible ? "organization-leadership-visibility-button" : "organization-leadership-visibility-button text-muted-foreground"}
-      aria-label={status}
-      aria-pressed={visible}
-      title={en ? "Show leadership on the public page" : "إظهار قيادة الجهة في الصفحة العامة"}
-      onClick={() => { setVisible(current => !current); onChange(); }}
-    >
-      {visible ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
-      <span>{status}</span>
-    </Button>
-  </div>;
+    <Switch id={id} checked={visible} onCheckedChange={checked => { setVisible(checked); onChange(); }} aria-describedby={`${id}-description`} />
+    </div>
+    <p id={`${id}-description`} className="mt-2 text-sm text-muted-foreground">{en ? "Visitors can see the leadership team when this option is enabled." : "عند التفعيل، يتمكن الزوار من رؤية قيادة الجهة في صفحتها العامة."}</p>
+    </CardContent>
+  </Card>;
 }

@@ -48,7 +48,7 @@ export default async function ManageOrganizationPage({
     ? savedChannels
     : profileLinksToContactChannels(curatedProfile?.links);
   const showCommittees = committees.length > 0 || organization.canManageCommittees;
-  const committeeTree = buildCommitteeTree(committees);
+  const committeeTree = buildCommitteeTree(committees.filter(committee => committee.statusCode === "Active"));
   const parentOptions = committees.filter(committee => committee.statusCode === "Active" && committee.canEdit).map(({ id, name }) => ({ id, name }));
   const tabs = [
     { id: "about", label: c("الأساسية", "Basics"), icon: <Info aria-hidden="true" /> },
@@ -59,12 +59,14 @@ export default async function ManageOrganizationPage({
     ...(showCommittees ? [{ id: "committees", label: c("اللجان", "Committees"), icon: <UsersRound aria-hidden="true" /> }] : []),
   ];
   const initialSection = tabs.some(tab => tab.id === search.section) ? search.section! : "about";
+  const publicPageButton = <div className="organization-public-page-footer"><Button nativeButton={false} render={<Link href={`/organizations/${organization.slug}`} aria-label={c("عرض الصفحة العامة", "View public page")} title={c("عرض الصفحة العامة", "View public page")} />} variant="outline" size="lg" className="organization-public-page-button">
+    <Globe aria-hidden="true" data-icon="inline-start" />{c("عرض", "View")}
+  </Button></div>;
 
   return <div className="organization-settings space-y-5">
     <header className="workspace-page-header organization-about-heading">
       <div className="min-w-0">
         <h1>{c("بيانات الجهة", "Organization details")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{c("حدّث ملف الجهة الذي يظهر للزوار، وأدر بيانات التواصل واللجان.", "Update your public organization profile, contact details, and committees.")}</p>
       </div>
     </header>
 
@@ -103,9 +105,11 @@ export default async function ManageOrganizationPage({
               </CardContent>
             </Card>
           </div>
+          {publicPageButton}
         </OrganizationSectionTabPanel>
         <OrganizationSectionTabPanel id="profile">
           <OrganizationPublicProfileEditor organizationId={id} locale={locale} initialValue={organization.publicProfileContent} />
+          {publicPageButton}
         </OrganizationSectionTabPanel>
         <OrganizationSectionTabPanel id="contacts">
           <div className="organization-settings-sections">
@@ -114,12 +118,8 @@ export default async function ManageOrganizationPage({
                 <OrganizationContactChannelEditor initialChannels={initialChannels} locale={locale} />
               </CardContent>
             </Card>
-            <div className="organization-settings-visibility-row">
               <OrganizationLeadershipVisibilityButton defaultChecked={organization.showLeadershipPublicly} locale={locale} />
-              <Button render={<Link href={`/organizations/${organization.slug}`} aria-label={c("عرض الصفحة العامة", "View public page")} title={c("عرض الصفحة العامة", "View public page")} />} variant="outline" size="lg" className="organization-public-page-button">
-                <Globe aria-hidden="true" data-icon="inline-start" />{c("عرض", "View")}
-              </Button>
-            </div>
+            {publicPageButton}
           </div>
         </OrganizationSectionTabPanel>
         </MutationForm> : <OrganizationSectionTabPanel id="about"><Card className="organization-settings-card"><CardContent>
@@ -132,6 +132,7 @@ export default async function ManageOrganizationPage({
           {organization.canManageCommittees && <CommitteeDialog organizationId={id} locale={locale} parentOptions={parentOptions} />}
         </header>
         <OrganizationCommitteeChart organizationId={id} organizationName={organization.nameAr} committees={committeeTree} canManage={organization.canManageCommittees} locale={locale} parentOptions={parentOptions} emptyMessage={c("ما فيه لجان مسجلة حتى الآن.", "No committees have been added yet.")} />
+        {publicPageButton}
       </OrganizationSectionTabPanel>}
     </OrganizationSectionTabs>
   </div>;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { visibleFields,type Answers,type FormDefinition } from "./definition";
 import { WorkflowForm } from "./mutation-form";
 import { FilePickerInput } from "@/components/file-picker-input";
+import { PhoneInput } from "@/components/phone-input";
 import type {Locale} from "@/lib/preferences";
 export function ApplicationForm({ round,version,definition,initial={},application,revision,committee,committees,event,mutation,locale="ar" }: { round:string;version:string;definition:FormDefinition;initial?:Answers;application?:string;revision?:number;committee?:string|null;committees:Array<{id:string;name:string}>;event?:string;mutation?:Parameters<typeof WorkflowForm>[0]["mutation"];locale?:Locale }) {
  const en=locale==="en";
@@ -13,7 +14,8 @@ export function ApplicationForm({ round,version,definition,initial={},applicatio
  return <WorkflowForm mutation={mutation} disabled={uploading!==null} operation={event?"register":"submit"} fields={{round,version,answers:JSON.stringify(answers),...(event?{event,revision:String(revision??"")}:{}) ,...(application?{application,revision:String(revision)}:{})}} label={en?event?revision?"Save registration answers":"Register for event":application?"Save application changes":"Submit application":event?revision?"حفظ إجابات التسجيل":"تسجيل في الفعالية":application?"حفظ تعديل الطلب":"إرسال طلب الانضمام"} locale={locale}>
  {definition.sections.map((section,index)=><fieldset hidden={definition.layout==="Progressive"&&step!==index} key={section.id} className="space-y-5"><legend dir={en?"ltr":"rtl"} className="mb-4 text-xl font-semibold">{section.title}</legend><p dir={en?"ltr":"rtl"} className="text-muted leading-8">{section.description}</p>
  {section.fields.filter(f=>visible.has(f.id)).map(f=><div key={f.id}><label htmlFor={f.id} dir={en?"ltr":"rtl"}>{f.label}{f.required?" *":en?" (optional)":" (اختياري)"}</label>{f.help&&<p id={`${f.id}-help`} dir={en?"ltr":"rtl"} className="mb-2 text-sm leading-7 text-muted">{f.help}</p>}
- {f.type==="LongText"?<textarea id={f.id} dir={en?"ltr":"rtl"} value={String(answers[f.id]??"")} maxLength={f.maxLength} onChange={e=>set(f.id,e.target.value)}/>
+ {f.type==="ShortText" && /جوال|هاتف|\b(phone|mobile|telephone)\b/i.test(f.label)?<PhoneInput id={f.id} value={String(answers[f.id]??"")} locale={locale} onChange={value=>set(f.id,value)} required={f.required}/>
+ :f.type==="LongText"?<textarea id={f.id} dir={en?"ltr":"rtl"} value={String(answers[f.id]??"")} maxLength={f.maxLength} onChange={e=>set(f.id,e.target.value)}/>
  :["Select","Radio"].includes(f.type)?<NativeSelect id={f.id} value={String(answers[f.id]??"")} onChange={e=>set(f.id,e.target.value)}><option value="">{en?"Choose an answer":"اختر الإجابة"}</option>{f.options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</NativeSelect>
  :f.type==="MultiSelect"?<fieldset id={f.id} className="space-y-2"><legend className="sr-only">{f.label}</legend>{f.options.map(o=><label key={o.value} className="flex items-center gap-3"><input type="checkbox" className="size-5" checked={Array.isArray(answers[f.id])&&(answers[f.id] as string[]).includes(o.value)} onChange={e=>{const old=Array.isArray(answers[f.id])?answers[f.id] as string[]:[];set(f.id,e.target.checked?[...old,o.value]:old.filter(x=>x!==o.value));}}/>{o.label}</label>)}</fieldset>
  :f.type==="Checkbox"?<input id={f.id} type="checkbox" className="size-5" checked={answers[f.id]===true} onChange={e=>set(f.id,e.target.checked)}/>

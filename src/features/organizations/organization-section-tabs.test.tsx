@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "./organization-section-tabs";
 
@@ -40,13 +40,16 @@ describe("organization profile section navigation", () => {
     expect(window.location.search).toBe("?committeePage=2&section=structure");
   });
 
-  it("moves through the tabs with RTL arrow keys", () => {
+  it("moves focus with RTL arrow keys and activates the focused shadcn tab explicitly", async () => {
     renderTabs();
     const aboutTab = screen.getByRole("tab", { name: "عن النادي" });
+    aboutTab.focus();
 
     fireEvent.keyDown(aboutTab, { key: "ArrowLeft" });
 
-    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "اللجان" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("tab", { name: "اللجان" })));
+    expect(screen.getByRole("tab", { name: "عن النادي" }).getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(screen.getByRole("tab", { name: "اللجان" }));
     expect(screen.getByRole("tab", { name: "اللجان" }).getAttribute("aria-selected")).toBe("true");
     expect(window.location.search).toBe("?section=structure");
   });

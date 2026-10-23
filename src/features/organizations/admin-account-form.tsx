@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useActionToast } from "@/components/action-toast";
 import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
 import { actionFeedback } from "@/lib/action-feedback";
@@ -9,6 +10,7 @@ import { saveAdminAccountName } from "./admin-account-actions";
 export function AdminAccountForm({ fullName, email, locale }: { fullName: string; email: string; locale: Locale }) {
   const en = locale === "en";
   const [state, action, pending] = useActionState<FormState, FormData>(saveAdminAccountName, {});
+  useActionToast(state, locale);
   const nameError = state.fieldErrors?.fullName?.[0];
 
   return <form action={action} className="space-y-5">
