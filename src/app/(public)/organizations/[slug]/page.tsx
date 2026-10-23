@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { eventDate } from "@/features/events/display";
 import { readPublicOrganization as getPublicOrganization } from "@/features/organizations/public-data";
 import { localOrganizationContent } from "@/features/organizations/local-content";
-import { groupOrganizationProfileSections, type OrganizationProfileGroup, type OrganizationProfileGroupKind } from "@/features/organizations/section-groups";
+import { groupOrganizationProfileSections, orderOrganizationTabs, type OrganizationProfileGroup, type OrganizationProfileGroupKind } from "@/features/organizations/section-groups";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
 import { selectOrganizationEventHighlights } from "@/features/organizations/event-highlights";
 import { OrganizationProfileContent, OrganizationProfileIcon, type ProfileIconName } from "@/features/organizations/profile-content";
@@ -24,6 +24,7 @@ import type { CSSProperties } from "react";
 import { buildCommitteeTree } from "@/features/organizations/committee-tree";
 import { buildOrganizationProfilePresentation } from "@/features/organizations/organization-public-profile";
 import { OrganizationCommitteeChart } from "@/features/organizations/organization-committee-chart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}){
   const [{slug},{locale}]=await Promise.all([params,getPreferences()]);
@@ -53,8 +54,7 @@ function profileGroupIcon(kind: OrganizationProfileGroupKind): ProfileIconName {
     case "fields": return "technology";
     case "partnerships": return "partners";
     case "membership": return "membership";
-    case "programs":
-    case "custom": return "programs";
+    case "programs": return "programs";
   }
 }
 
@@ -63,13 +63,12 @@ function profileGroupLabel(group: OrganizationProfileGroup, en: boolean): string
   switch (group.kind) {
     case "about": return "About";
     case "programs": return "Programs";
-    case "structure": return group.label === "اللجان" ? "Committees" : "Structure";
+    case "structure": return "Committees";
     case "activities": return "Events";
     case "fields": return "Fields";
     case "partnerships": return "Partners";
     case "impact": return "Achievements";
     case "membership": return "Membership";
-    case "custom": return group.label;
   }
 }
 
@@ -98,11 +97,8 @@ export default async function OrganizationPage({ params, searchParams }: {
   const featuredEvent = eventHighlights.find(item => item.featured);
   const otherEventHighlights = eventHighlights.filter(item => item.id !== featuredEvent?.id);
   const otherAnnouncements = announcements.filter(item => !item.pinned);
-  const hasMainDetail = Boolean(committees.length);
-  const hasUpdates = Boolean(rounds.length || eventHighlights.length || announcements.length);
-  const hasOrganizationStructure = Boolean(committees.length || leadership.length);
   const hasActivity = Boolean(pinnedAnnouncement || featuredEvent || otherAnnouncements.length || otherEventHighlights.length);
-  const profileSectionGroups = groupOrganizationProfileSections(presentation.sections, { mergeFieldsWithPrograms: organization.slug === "ieee-club", separateGoals: organization.slug === "dhaheer-club" });
+  const profileSectionGroups = groupOrganizationProfileSections(presentation.sections);
   const namedLeadershipDetails = leadership.map(person => `${en
     ? person.roleCode === "OL" ? "Leader" : "Deputy leader"
     : person.roleCode === "OL" ? "القائد" : "نائب القائد"}: ${person.fullName}`);
@@ -119,25 +115,27 @@ export default async function OrganizationPage({ params, searchParams }: {
   const rootLeadershipDetails = [...new Set(namedLeadershipDetails)];
   const committeeTree = buildCommitteeTree(databaseCommitteeRecords);
   const aboutProfileGroup = profileSectionGroups.find(group => group.kind === "about");
-  const aboutLabel = en ? "About" : `عن ${organization.nameAr.includes("مجتمع") ? "المجتمع" : organization.typeCode === "Council" ? "المجلس" : "النادي"}`;
+  const leadershipInOverview = leadership.length > 0 && committees.length === 0;
+  const hasOverview = Boolean(aboutProfileGroup?.entries.length || presentation.motto?.trim() || presentation.vision?.trim() || presentation.mission?.trim() || presentation.stats?.length || leadershipInOverview);
   const sectionNavItems: { id: string; label: string; icon: ProfileIconName; profileSectionIndexes: number[] }[] = [
-    { id: "about", label: aboutLabel, icon: "reach", profileSectionIndexes: aboutProfileGroup?.entries.map(entry => entry.index) ?? [] },
-    ...profileSectionGroups.filter(group => group.kind !== "about").map(group => ({
+    ...(hasOverview ? [{ id: "about", label: en ? "About" : "عن الجهة", icon: "reach" as const, profileSectionIndexes: aboutProfileGroup?.entries.map(entry => entry.index) ?? [] }] : []),
+    ...profileSectionGroups.filter(group => group.kind !== "about" && group.kind !== "structure").map(group => ({
       id: group.id,
       label: profileGroupLabel(group, en),
       icon: profileGroupIcon(group.kind),
       profileSectionIndexes: group.entries.map(entry => entry.index),
     })),
   ];
-  if (hasOrganizationStructure && !sectionNavItems.some(item => item.id === "structure")) {
-    sectionNavItems.push({ id: "structure", label: en ? "Committees" : committees.length ? "اللجان" : "القيادة", icon: "teams", profileSectionIndexes: [] });
+  if (committees.length > 0) {
+    sectionNavItems.push({ id: "structure", label: en ? "Committees" : "اللجان", icon: "teams", profileSectionIndexes: [] });
   }
   if (hasActivity && !sectionNavItems.some(item => item.id === "activities")) {
     sectionNavItems.push({ id: "activities", label: en ? "Events" : "الفعاليات", icon: "events", profileSectionIndexes: [] });
   }
   if (rounds.length) sectionNavItems.push({ id: "applications", label: en ? "Applications" : "التقديم", icon: "membership", profileSectionIndexes: [] });
   const requestedSection = Array.isArray(query.section) ? query.section[0] : query.section;
-  const activeSection = sectionNavItems.find(item => item.id === requestedSection) ?? sectionNavItems[0];
+  const orderedNavItems = orderOrganizationTabs(sectionNavItems);
+  const activeSection = orderedNavItems.find(item => item.id === requestedSection) ?? orderedNavItems[0];
 
   const visibleSummary=organization.summary ?? profile?.about ?? "";
   const canonicalUrl=`https://lub.community/organizations/${organization.slug}`;
@@ -192,15 +190,17 @@ export default async function OrganizationPage({ params, searchParams }: {
       </div>
     </header>
 
-    <OrganizationSectionTabs
-      items={sectionNavItems.map(item => ({ ...item, icon: <OrganizationProfileIcon name={item.icon} /> }))}
+    {activeSection && <OrganizationSectionTabs
+      items={orderedNavItems.map(item => ({ ...item, icon: <OrganizationProfileIcon name={item.icon} /> }))}
       initialSection={activeSection.id}
       label={en ? `${organization.nameAr} sections` : `أقسام ${organization.nameAr}`}
       dir={en ? "ltr" : "rtl"}
       centered
+      showSingleTab
     >
-      {sectionNavItems.map(item => <OrganizationSectionTabPanel key={item.id} id={item.id}>
-        {presentation && item.id !== "structure" && (item.profileSectionIndexes.length > 0 || item.id === "about") && <div id={`organization-profile-${item.id}`} className="organization-section-nav-target"><OrganizationProfileContent profile={presentation} en={en} visibleSectionIndexes={item.profileSectionIndexes} showOverview={item.id === "about"} expandSections showSectionIcons={!(organization.slug === "ieee-club" && item.id === "programs")} /></div>}
+      {orderedNavItems.map(item => <OrganizationSectionTabPanel key={item.id} id={item.id}>
+        {presentation && item.id !== "structure" && (item.profileSectionIndexes.length > 0 || item.id === "about") && <div id={`organization-profile-${item.id}`} className="organization-section-nav-target"><OrganizationProfileContent profile={presentation} en={en} visibleSectionIndexes={item.profileSectionIndexes} showOverview={item.id === "about"} expandSections /></div>}
+        {item.id === "about" && leadershipInOverview && <Card><CardHeader><CardTitle>{en ? "Organization leadership" : "قيادة الجهة"}</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">{rootLeadershipDetails.map(detail => <p key={detail} dir="auto">{detail}</p>)}</CardContent></Card>}
         {item.id === "activities" && hasActivity && <section className="organization-section-nav-target mt-8" aria-labelledby="organization-updates-title">
           <h2 id="organization-updates-title" className="text-xl font-bold">{en ? "Activities and updates" : "الفعاليات والمستجدات"}</h2>
           <div className="organization-update-list">
@@ -213,8 +213,7 @@ export default async function OrganizationPage({ params, searchParams }: {
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={en ? "Organization structure" : "هيكل الجهة"}>
           <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{en ? "Committees" : "اللجان"}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={en ? "No public committees yet." : "لا توجد لجان عامة حالياً."} /></section>
         </section>}
-        {item.id === "about" && !hasMainDetail && !leadership.length && !hasUpdates && !presentation && !socialLinks.some(link => link.href) && <div className="mt-8 border-t border-line pt-6"><p className="leading-8 text-muted">{en ? "More details and activities will appear here when published." : "تفاصيل الجهة وأنشطتها الإضافية تظهر هنا عند نشرها."}</p><Link href="/organizations" className="text-link mt-3 inline-block">{en ? "Explore other organizations" : "استكشف الجهات الأخرى"}</Link></div>}
       </OrganizationSectionTabPanel>)}
-    </OrganizationSectionTabs>
+    </OrganizationSectionTabs>}
   </main></>;
 }

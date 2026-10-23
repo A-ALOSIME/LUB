@@ -139,13 +139,10 @@ it("does not restore deleted committees or leadership from curated profile descr
   vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...organizationData, committees: [], leadership: [] });
   const page = await OrganizationPage({ params: Promise.resolve({ slug: "oss-club" }), searchParams: Promise.resolve({ section: "structure" }) });
   render(page);
-  const chart = screen.getByRole("group", { name: "الهيكل التنظيمي للجان" });
-  expect(chart.querySelectorAll(".committee-flow-card")).toHaveLength(1);
-  expect(chart.querySelectorAll("[data-edge]")).toHaveLength(0);
-  expect(chart.querySelector(".committee-flow-meta")).toBeNull();
+  expect(screen.queryByRole("tab", { name: "اللجان" })).toBeNull();
+  expect(screen.queryByRole("group", { name: "الهيكل التنظيمي للجان" })).toBeNull();
   expect(screen.queryByText("رئيسة المجتمع • مديرة العمليات")).toBeNull();
   expect(screen.queryByRole("button", { name: "عرض تفاصيل إدارة الابتكار التقني" })).toBeNull();
-  expect(screen.getByRole("status").textContent).toContain("لا توجد لجان عامة حالياً.");
 });
 
 it("keeps contact links above section pages and groups the club overview", async () => {
@@ -158,9 +155,9 @@ it("keeps contact links above section pages and groups the club overview", async
   const navigation = screen.getByRole("navigation", { name: "أقسام نادي الأمن السيبراني" });
   const contact = document.getElementById("organization-contact");
 
-  expect(screen.getByRole("tab", { name: "عن النادي" }).getAttribute("aria-selected")).toBe("true");
-  expect(screen.getByRole("tab", { name: "اللجان" }).getAttribute("aria-selected")).toBe("false");
-  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(2);
+  expect(screen.getByRole("tab", { name: "عن الجهة" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.queryByRole("tab", { name: "اللجان" })).toBeNull();
+  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(1);
   expect(screen.getByRole("heading", { name: "الأهداف" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "اللجان" })).toBeNull();
   expect(contact).toBeTruthy();
@@ -193,21 +190,21 @@ it("keeps IEEE overview content visible with concise section names", async () =>
   expect(screen.queryByText(/تعرّف على أعمال النادي، وانضم إليه/)).toBeNull();
 });
 
-it("gives Dhaheer goals their own page as a concise list", async () => {
+it("shows Dhaheer goals in the common overview as a concise list", async () => {
   const page = await OrganizationPage({
     params: Promise.resolve({ slug: "dhaheer-club" }),
-    searchParams: Promise.resolve({ section: "details-0" }),
+    searchParams: Promise.resolve({ section: "about" }),
   });
   render(page);
 
   const navigation = screen.getByRole("navigation", { name: "أقسام نادي ظهير" });
-  expect(screen.getByRole("tab", { name: "الأهداف" }).getAttribute("aria-selected")).toBe("true");
-  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(2);
+  expect(screen.getByRole("tab", { name: "عن الجهة" }).getAttribute("aria-selected")).toBe("true");
+  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(1);
   expect(screen.getByRole("heading", { name: "التطوع وخدمة المجتمع" })).toBeTruthy();
-  expect(document.querySelector("#organization-profile-details-0 .organization-profile-items--bulleted")).toBeTruthy();
+  expect(document.querySelector("#organization-profile-about .organization-profile-items--bulleted")).toBeTruthy();
 });
 
-it("renders IEEE programs and fields together on one concise page", async () => {
+it("shows IEEE programs and fields in their separate standard tabs", async () => {
   const page = await OrganizationPage({
     params: Promise.resolve({ slug: "ieee-club" }),
     searchParams: Promise.resolve({ section: "programs" }),
@@ -215,13 +212,14 @@ it("renders IEEE programs and fields together on one concise page", async () => 
   render(page);
 
   expect(screen.getByRole("heading", { name: "البرامج" })).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "المجالات" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "المجالات" })).toBeNull();
+  expect(screen.getByRole("tab", { name: "المجالات" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "المعسكرات" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "الأهداف" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "IEEE عالميًا" })).toBeNull();
   expect(screen.getByRole("tab", { name: "البرامج" }).getAttribute("aria-selected")).toBe("true");
-  expect(screen.queryByRole("tab", { name: "المجالات" })).toBeNull();
-  expect(document.querySelectorAll("#organization-profile-programs .organization-profile-section-icon").length).toBe(0);
+  expect(screen.getByRole("tab", { name: "المجالات" }).getAttribute("aria-selected")).toBe("false");
+  expect(document.querySelectorAll("#organization-profile-programs .organization-profile-section-icon").length).toBeGreaterThan(0);
 });
 
 it("shows the IEEE committees only on the structure page", async () => {
@@ -236,4 +234,30 @@ it("shows the IEEE committees only on the structure page", async () => {
   expect(screen.getByText("الإعلام")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "هدفنا وأهداف النادي" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "البرامج" })).toBeNull();
+});
+
+it("uses the same populated tab names and order for clubs and councils, ending in committees", async () => {
+  const data = await readPublicOrganization("custom-logo-club");
+  if (!data) throw new Error("Expected organization");
+  for (const typeCode of ["Club", "Council"]) {
+    vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...data, organization: { ...data.organization, typeCode, mission: "", memberCount: 0, publicProfileContent: { goals: "هدف", fields: "مجال", programs: "برنامج", achievements: "إنجاز", partners: "شريك" } }, committees: [{ id: "committee", name: "لجنة", description: "", parentCommitteeId: null }] });
+    const ui = render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({}) }));
+    expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["عن الجهة", "المجالات", "البرامج", "الإنجازات", "الشركاء", "اللجان"]);
+    expect(screen.queryByRole("tab", { name: "الهيكلة" })).toBeNull();
+    ui.unmount();
+  }
+});
+it("removes empty tabs and recreates them when actual content or committees are added", async () => {
+  const data = await readPublicOrganization("custom-logo-club");
+  if (!data) throw new Error("Expected organization");
+  const empty = { ...data, organization: { ...data.organization, mission: "", memberCount: 0, publicProfileContent: { vision: "", offerings: "", goals: "", fields: "", programs: "", achievements: "", partners: "" } }, committees: [], leadership: [] };
+  vi.mocked(readPublicOrganization).mockResolvedValueOnce(empty);
+  const ui = render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({ section: "structure" }) }));
+  expect(screen.queryByRole("tablist")).toBeNull();
+  expect(screen.queryByRole("group", { name: "الهيكل التنظيمي للجان" })).toBeNull();
+  ui.unmount();
+  vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...empty, organization: { ...empty.organization, publicProfileContent: { partners: "شريك جديد" } }, committees: [{ id: "new", name: "لجنة جديدة", description: "", parentCommitteeId: null }] });
+  render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({}) }));
+  expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["الشركاء", "اللجان"]);
+  expect(screen.getByRole("heading", { name: "الشركاء" })).toBeTruthy();
 });

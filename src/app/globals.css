@@ -1260,12 +1260,14 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 .committee-flow .react-flow__handle { width: 1px; min-width: 1px; height: 1px; min-height: 1px; border: 0; opacity: 0; }
 .committee-flow-card { width: 256px; height: 128px; padding: 0; gap: 0; box-shadow: none; }
 .committee-flow-card-content { display: flex; height: 100%; flex-direction: column; justify-content: center; gap: .5rem; padding: .75rem; }
-.committee-flow-node-heading { display: flex; min-width: 0; align-items: center; gap: .4rem; }
-.committee-flow-node-heading > svg { width: 1.15rem; height: 1.15rem; flex: none; color: var(--muted-foreground); }
-.committee-flow-name { display: -webkit-box; min-width: 0; flex: 0 1 auto; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; padding: 0; text-align: start; overflow-wrap: anywhere; font-size: .9rem; font-weight: 600; line-height: 1.5; }
+.committee-flow-node-heading { position: relative; display: flex; min-width: 0; align-items: center; justify-content: center; gap: .4rem; }
+.committee-flow-node-heading > svg { position: absolute; inset-inline-start: 0; width: 1.15rem; height: 1.15rem; color: var(--muted-foreground); }
+.committee-flow-name { display: -webkit-box; min-width: 0; width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; padding: 0 1rem; text-align: center; overflow-wrap: anywhere; font-size: .9rem; font-weight: 600; line-height: 1.4; }
 button.committee-flow-name { cursor: pointer; }
 button.committee-flow-name:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
-.committee-flow-meta { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; margin: 0; padding-inline-end: 1.75rem; overflow-wrap: anywhere; color: var(--muted-foreground); font-size: .75rem; line-height: 1.5; }
+.committee-flow-meta { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; margin: 0; padding-inline: 1.75rem; text-align: center; overflow-wrap: anywhere; color: var(--muted-foreground); font-size: .75rem; line-height: 1.5; }
+.committee-flow-actions { display: flex; flex: none; justify-content: center; gap: .25rem; }
+.committee-flow-card:has(.committee-flow-actions) .committee-flow-meta { -webkit-line-clamp: 1; }
 .committee-flow-collapse { position: absolute; inset-inline-end: .5rem; inset-block-end: .25rem; }
 .committee-flow-controls > div { display: flex; gap: .25rem; }
 .organization-public-profile-stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; gap: 1rem; }

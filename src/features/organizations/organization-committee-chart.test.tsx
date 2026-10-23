@@ -37,25 +37,23 @@ it('connects root, siblings, and deeper branches and supports collapsing and reo
   fireEvent.click(screen.getByRole('button', { name: 'فتح أ' }));
   expect(screen.getByText('فرعية')).toBeTruthy();
 });
-it('offers edit, preselected child parent, and a destructive last delete with confirmation', async () => {
+it('shows icon actions directly, preselects a child parent, and confirms deletion', async () => {
   const ui = render(<OrganizationCommitteeChart {...props} committees={[committee('أ')]} />);
-  fireEvent.click(screen.getByRole('button', { name: 'إجراءات أ' }));
-  const menu = await screen.findByRole('menu');
-  const items = menu.querySelectorAll('[role="menuitem"]');
-  expect([...items].map(item => item.textContent)).toEqual(['تعديل', 'إضافة لجنة فرعية', 'حذف']);
-  expect(items[2].getAttribute('data-variant')).toBe('destructive');
-  fireEvent.click(screen.getByRole('menuitem', { name: 'إضافة لجنة فرعية' }));
+  const actions = screen.getByRole('group', { name: 'إجراءات أ' });
+  expect([...actions.querySelectorAll('button')].map(button => button.getAttribute('aria-label'))).toEqual(['تعديل اللجنة: أ', 'إضافة لجنة فرعية: أ', 'حذف اللجنة: أ']);
+  expect(actions.textContent).toBe('');
+  expect(screen.queryByText('عامة')).toBeNull();
+  expect(screen.queryByRole('menu')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'إضافة لجنة فرعية: أ' }));
   expect((await screen.findByRole('dialog')).textContent).toContain('أ');
   ui.unmount();
   render(<OrganizationCommitteeChart {...props} committees={[committee('أ')]} />);
-  fireEvent.click(screen.getByRole('button', { name: 'إجراءات أ' }));
-  fireEvent.click(await screen.findByRole('menuitem', { name: 'حذف' }));
+  fireEvent.click(screen.getByRole('button', { name: 'حذف اللجنة: أ' }));
   expect((await screen.findByRole('alertdialog')).textContent).toContain('حذف اللجنة؟');
 });
-it('opens the edit dialog from the node menu', async () => {
+it('opens the edit dialog directly from its icon', async () => {
   render(<OrganizationCommitteeChart {...props} committees={[committee('أ')]} />);
-  fireEvent.click(screen.getByRole('button', { name: 'إجراءات أ' }));
-  fireEvent.click(await screen.findByRole('menuitem', { name: 'تعديل' }));
+  fireEvent.click(screen.getByRole('button', { name: 'تعديل اللجنة: أ' }));
   expect((await screen.findByRole('dialog')).textContent).toContain('تعديل اللجنة');
 });
 it('shows root and unified empty state with no committees', () => {
@@ -80,7 +78,8 @@ it('uses identical node positions and edges publicly and never exposes managemen
   ui.rerender(<OrganizationCommitteeChart {...props} committees={committees} readOnly />);
   expect(positions()).toEqual(managed);
   expect(document.querySelectorAll('[data-edge]')).toHaveLength(3);
-  expect(screen.queryByRole('button', { name: 'إجراءات أ' })).toBeNull();
+  expect(screen.queryByRole('group', { name: 'إجراءات أ' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'حذف اللجنة: أ' })).toBeNull();
   expect(screen.queryByText('عامة')).toBeNull();
   expect(screen.queryByText('بدون قائد')).toBeNull();
   expect(screen.queryByText('0 أعضاء')).toBeNull();

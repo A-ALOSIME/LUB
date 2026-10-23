@@ -8,8 +8,7 @@ export type OrganizationProfileGroupKind =
   | "fields"
   | "partnerships"
   | "impact"
-  | "membership"
-  | "custom";
+  | "membership";
 
 export type OrganizationProfileGroup = {
   id: string;
@@ -26,13 +25,18 @@ export function organizationSectionTitle(title: string): string {
     "هدفنا وأهداف النادي": "الأهداف",
     "برامج النادي": "البرامج",
     "المجالات التقنية": "المجالات",
-    "أبرز أعمال الفرع وإنجازاته": "إنجازات النادي",
+    "أبرز أعمال الفرع وإنجازاته": "الإنجازات",
+    "إنجازات النادي/المجلس": "الإنجازات",
+    "إنجازات النادي": "الإنجازات",
+    "إنجازات المجلس": "الإنجازات",
+    "أهداف النادي/المجلس": "الأهداف",
+    "أهداف المجلس": "الأهداف",
     "اللجان والفريق": "اللجان",
     "مهام المسارات التخصصية": "المسارات",
     "قيمة المشاركة والعضوية": "العضوية",
     "فعاليات المجلس عبر الأعوام": "الفعاليات",
-    "الهيكل التنظيمي للنادي": "الهيكلة",
-    "الهيكل التنظيمي": "الهيكلة",
+    "الهيكل التنظيمي للنادي": "اللجان",
+    "الهيكل التنظيمي": "اللجان",
     "الإدارات واللجان": "اللجان",
     "مجالات عمل المجلس": "المجالات",
     "الأثر والمخرجات": "الأثر",
@@ -45,9 +49,8 @@ export function organizationSectionTitle(title: string): string {
   return normalized;
 }
 
-function sectionGroupKind(title: string, separateGoals: boolean): OrganizationProfileGroupKind | null {
+function sectionGroupKind(title: string): OrganizationProfileGroupKind | null {
   if (/^ملاحظة$|^note$/i.test(title.trim())) return null;
-  if (separateGoals && /^أهداف النادي$/.test(title.trim())) return "custom";
   if (/رؤية|رسالة|هدف|أهداف|قيم|من نحن|نبذة|الفئة المستهدفة|توجهات المجتمع|كيف يعمل|ما يميز طريقة العمل|قيمة المشاركة والعضوية|اكتشف النادي|من IEEE العالمية|انطلاقة فرع|about|vision|mission|goals|values/i.test(title)) return "about";
   if (/لجان|لجنة|فرق|فريق|هيكل|إدارات|إدارة|أمين النادي|committee|team|structure|administration/i.test(title)) return "structure";
   if (/شركاء|شراكات|شراكة|تعاون|رعاية|partners|partnership|collaboration|sponsor/i.test(title)) return "partnerships";
@@ -56,41 +59,48 @@ function sectionGroupKind(title: string, separateGoals: boolean): OrganizationPr
   if (/مجالات|المجال|تقنيات|تخصصات|technology fields|domains/i.test(title)) return "fields";
   if (/مشاركة|عضوية|منافع|membership|participation/i.test(title)) return "membership";
   if (/برامج|برنامج|مسارات|مسار|ورش|معسكر|دورات|تعلم|مساهمة|ماذا نقدم|courses|programs|tracks|workshops|camps|learning|contribution/i.test(title)) return "programs";
-  return "custom";
+  return "about";
 }
 
-function groupLabel(kind: OrganizationProfileGroupKind, entries: OrganizationProfileGroup["entries"]): string {
-  const titles = [...new Set(entries.map(({ section }) => section.title))];
-
+function groupLabel(kind: OrganizationProfileGroupKind): string {
   switch (kind) {
     case "about": return "عن الجهة";
-    case "programs": return titles.some(title => /مسار|track/i.test(title)) && !titles.some(title => /برامج|برنامج|workshop|camp|courses/i.test(title)) ? "المسارات" : "البرامج";
-    case "structure": return titles.some(title => /لجان|لجنة|فرق|فريق|committee|team/i.test(title)) ? "اللجان" : "الهيكلة";
+    case "programs": return "البرامج";
+    case "structure": return "اللجان";
     case "activities": return "الفعاليات";
     case "fields": return "المجالات";
     case "partnerships": return "الشركاء";
     case "impact": return "الإنجازات";
     case "membership": return "العضوية";
-    case "custom": return organizationSectionTitle(titles[0]);
   }
+}
+
+export const organizationTabOrder = ["about", "fields", "programs", "impact", "activities", "membership", "applications", "partnerships", "structure"] as const;
+
+export function orderOrganizationTabs<T extends { id: string }>(tabs: readonly T[]): T[] {
+  const rank = (id: string) => organizationTabOrder.findIndex(key => key === id);
+  return [...tabs].sort((a, b) => rank(a.id) - rank(b.id));
+}
+
+export function hasOrganizationSectionContent(section: OrganizationProfileSection): boolean {
+  return Boolean(section.body?.trim() || section.image?.src.trim() || section.items?.some(item => (!section.highlightsOnly || item.highlighted) && (item.title.trim() || item.body?.trim())));
 }
 
 export function groupOrganizationProfileSections(
   sections: readonly OrganizationProfileSection[],
-  options: { mergeFieldsWithPrograms?: boolean; separateGoals?: boolean } = {},
 ): OrganizationProfileGroup[] {
   const groups = new Map<string, OrganizationProfileGroup>();
 
   sections.forEach((section, index) => {
-    const detectedKind = sectionGroupKind(section.title, Boolean(options.separateGoals));
-    if (!detectedKind) return;
-    const kind = options.mergeFieldsWithPrograms && detectedKind === "fields" ? "programs" : detectedKind;
-    const id = kind === "custom" ? `details-${index}` : kind;
+    if (!hasOrganizationSectionContent(section)) return;
+    const kind = sectionGroupKind(section.title);
+    if (!kind) return;
+    const id = kind;
     const group = groups.get(id) ?? { id, kind, label: "", entries: [] };
     group.entries.push({ index, section });
-    group.label = groupLabel(group.kind, group.entries);
+    group.label = groupLabel(group.kind);
     groups.set(id, group);
   });
 
-  return [...groups.values()];
+  return orderOrganizationTabs([...groups.values()]);
 }

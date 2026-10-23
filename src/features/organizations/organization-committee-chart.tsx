@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Handle, Panel, Position, ReactFlow, useReactFlow, useStore, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Building2, ChevronDown, ChevronUp, Maximize, Minus, MoreHorizontal, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Building2, ChevronDown, ChevronUp, Maximize, Minus, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
@@ -39,19 +38,17 @@ function CommitteeNode({ data }: NodeProps<ChartNode>) {
         <div className="committee-flow-node-heading">
           {!committee && <Building2 aria-hidden="true" />}
           {committee ? <button type="button" className="committee-flow-name" onClick={() => onAction("details")} aria-haspopup="dialog" aria-label={c(`عرض تفاصيل ${name}`, `View details for ${name}`)}><bdi>{name}</bdi></button> : <strong className="committee-flow-name" dir="auto">{name}</strong>}
-          {committee && !readOnly && <Badge variant="secondary">{committee.isPublic ? c("عامة", "Public") : c("مخفية", "Hidden")}</Badge>}
-          {committee && !readOnly && (committee.canEdit || canManage) && <DropdownMenu>
-            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" className="ms-auto" aria-label={c(`إجراءات ${name}`, `Actions for ${name}`)} />}><MoreHorizontal aria-hidden="true" /></DropdownMenuTrigger>
-            <DropdownMenuContent align="end" dir={en ? "ltr" : "rtl"}>
-              <DropdownMenuGroup>
-                {committee.canEdit && <DropdownMenuItem onClick={() => onAction("edit")}><Pencil aria-hidden="true" />{c("تعديل", "Edit")}</DropdownMenuItem>}
-                {canManage && <DropdownMenuItem onClick={() => onAction("child")}><Plus aria-hidden="true" />{c("إضافة لجنة فرعية", "Add subcommittee")}</DropdownMenuItem>}
-              </DropdownMenuGroup>
-              {canManage && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem variant="destructive" onClick={() => onAction("delete")}><Trash2 aria-hidden="true" />{c("حذف", "Delete")}</DropdownMenuItem></DropdownMenuGroup></>}
-            </DropdownMenuContent>
-          </DropdownMenu>}
         </div>
         {meta.length > 0 && <p className="committee-flow-meta">{meta.join(" · ")}</p>}
+        {committee && !readOnly && (committee.canEdit || canManage) && <div className="committee-flow-actions" role="group" aria-label={c(`إجراءات ${name}`, `Actions for ${name}`)}>
+          {([
+            ...(committee.canEdit ? [{ kind: "edit" as const, icon: Pencil, label: c("تعديل اللجنة", "Edit committee") }] : []),
+            ...(canManage ? [{ kind: "child" as const, icon: Plus, label: c("إضافة لجنة فرعية", "Add subcommittee") }, { kind: "delete" as const, icon: Trash2, label: c("حذف اللجنة", "Delete committee") }] : []),
+          ]).map(({ kind, icon: Icon, label }) => <Tooltip key={kind}>
+            <TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={`${label}: ${name}`} onClick={() => onAction(kind)} />}><Icon aria-hidden="true" /></TooltipTrigger>
+            <TooltipContent dir={en ? "ltr" : "rtl"}>{label}</TooltipContent>
+          </Tooltip>)}
+        </div>}
         {hasChildren && <Button type="button" variant="ghost" size="icon-sm" className="committee-flow-collapse" aria-expanded={expanded} aria-label={c(`${expanded ? "طي" : "فتح"} ${name}`, `${expanded ? "Collapse" : "Expand"} ${name}`)} onClick={onToggle}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</Button>}
       </CardContent>
     </Card>
@@ -103,10 +100,10 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     return { nodes, edges: layout.connections.map(edge => ({ ...edge, id: `${edge.source}-${edge.target}`, type: "step" })), height: layout.height };
   }, [organizationId, organizationName, committees, en, collapsed, locale, rootDetails, readOnly, canManage]);
 
-  return <div className="committee-flow" dir={en ? "ltr" : "rtl"}>
+  return <TooltipProvider><div className="committee-flow" dir={en ? "ltr" : "rtl"}>
     <div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) }}>
       <ReactFlow<ChartNode> key={graph.nodes.map(node => node.id).join("|")} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
-        fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5}
+        fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5} proOptions={{ hideAttribution: true }}
         nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false} elementsSelectable={false}
         deleteKeyCode={null} zoomOnDoubleClick={false} zoomOnScroll={false} preventScrolling={false}
         role="group" aria-label={c("الهيكل التنظيمي للجان", "Committee organization chart")}>
@@ -127,5 +124,5 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
         {action?.kind === "delete" && !readOnly && <ManagementActionProvider locale={locale} close={() => setAction(null)}><MutationForm operation="committee-status" fields={{ organizationId, committeeId: action.committee.id, status: "Archived", confirmed: "on" }} submitLabel={c("حذف اللجنة", "Delete committee")} buttonClassName="button button-danger" locale={locale} inlineFooter onSuccess={() => setAction(null)} /></ManagementActionProvider>}
       </AlertDialogContent>
     </AlertDialog>
-  </div>;
+  </div></TooltipProvider>;
 }

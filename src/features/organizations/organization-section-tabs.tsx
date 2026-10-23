@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type SectionTab = { id: string; label: string; icon?: ReactNode };
 const activeSectionContext = createContext<string | null>(null);
 
-export function OrganizationSectionTabs({ items, initialSection, label, dir, children, defaultSection, legacyHashSections = {}, sticky = true, centered = false, action, sectionActions = {}, actionHiddenSections = [] }: {
+export function OrganizationSectionTabs({ items, initialSection, label, dir, children, defaultSection, legacyHashSections = {}, sticky = true, centered = false, showSingleTab = false, action, sectionActions = {}, actionHiddenSections = [] }: {
   items: SectionTab[];
   initialSection: string;
   label: string;
@@ -17,6 +17,7 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
   legacyHashSections?: Record<string, string>;
   sticky?: boolean;
   centered?: boolean;
+  showSingleTab?: boolean;
   action?: ReactNode;
   sectionActions?: Record<string, ReactNode>;
   actionHiddenSections?: string[];
@@ -89,7 +90,7 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
   const activeAction = sectionActions[activeSection] ?? action;
   const hasActionSlot = Boolean(action) || Object.values(sectionActions).some(Boolean);
   const showAction = Boolean(activeAction) && !actionHiddenSections.includes(activeSection);
-  const sectionNavigation = items.length > 1 && <nav className={`workspace-segmented-control organization-section-nav${sticky ? "" : " organization-section-nav--static"}`} aria-label={label}>
+  const sectionNavigation = (items.length > 1 || showSingleTab) && <nav className={`workspace-segmented-control organization-section-nav${sticky ? "" : " organization-section-nav--static"}`} aria-label={label}>
     <TabsList className="organization-section-nav-list" aria-label={label} dir={dir}>
       {items.map(item => <TabsTrigger
           key={item.id}
@@ -106,7 +107,7 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
   </nav>;
 
   return <activeSectionContext.Provider value={activeSection}><DirectionProvider direction={dir}><Tabs className="organization-section-tabs-root" value={activeSection} onValueChange={value => { if (typeof value === "string") selectSection(value); }} dir={dir}>
-    {items.length > 1
+    {items.length > 1 || showSingleTab
       ? hasActionSlot
         ? <div className={`organization-section-tabs-toolbar${showAction ? " organization-section-tabs-toolbar--has-action" : ""}`}>
           {sectionNavigation}
