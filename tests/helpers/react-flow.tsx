@@ -11,5 +11,4 @@ export const Handle = () => null;
 export const Panel = ({ children }: { children: ReactNode }) => children;
 export const Position = { Top: 'top', Bottom: 'bottom' };
 export const useReactFlow = () => ({ zoomIn: () => {}, zoomOut: () => {}, fitView: fitChart });
-export const useNodesInitialized = () => true;
 export const useStore = (selector: (state: { width: number; height: number }) => unknown) => selector(flowViewport);

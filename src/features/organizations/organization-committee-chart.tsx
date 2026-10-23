@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Handle, Panel, Position, ReactFlow, useNodesInitialized, useReactFlow, useStore, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, Panel, Position, ReactFlow, useReactFlow, useStore, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Building2, ChevronDown, ChevronUp, Maximize, Minus, MoreHorizontal, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +41,7 @@ function CommitteeNode({ data }: NodeProps<ChartNode>) {
           {committee ? <button type="button" className="committee-flow-name" onClick={() => onAction("details")} aria-haspopup="dialog" aria-label={c(`عرض تفاصيل ${name}`, `View details for ${name}`)}><bdi>{name}</bdi></button> : <strong className="committee-flow-name" dir="auto">{name}</strong>}
           {committee && !readOnly && <Badge variant="secondary">{committee.isPublic ? c("عامة", "Public") : c("مخفية", "Hidden")}</Badge>}
           {committee && !readOnly && (committee.canEdit || canManage) && <DropdownMenu>
-            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={c(`إجراءات ${name}`, `Actions for ${name}`)} />}><MoreHorizontal aria-hidden="true" /></DropdownMenuTrigger>
+            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" className="ms-auto" aria-label={c(`إجراءات ${name}`, `Actions for ${name}`)} />}><MoreHorizontal aria-hidden="true" /></DropdownMenuTrigger>
             <DropdownMenuContent align="end" dir={en ? "ltr" : "rtl"}>
               <DropdownMenuGroup>
                 {committee.canEdit && <DropdownMenuItem onClick={() => onAction("edit")}><Pencil aria-hidden="true" />{c("تعديل", "Edit")}</DropdownMenuItem>}
@@ -64,11 +64,10 @@ function ChartControls({ en }: { en: boolean }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const width = useStore(state => state.width);
   const height = useStore(state => state.height);
-  const initialized = useNodesInitialized();
   // A chart mounted in a hidden tab must fit again when its real canvas size is known.
   useEffect(() => {
-    if (initialized && width > 0 && height > 0) void fitView({ padding: .15, minZoom: .55, maxZoom: 1 });
-  }, [fitView, width, height, initialized]);
+    if (width > 0 && height > 0) void fitView({ padding: .15, minZoom: .55, maxZoom: 1 });
+  }, [fitView, width, height]);
   return <Panel position="bottom-left" className="committee-flow-controls"><div role="group" aria-label={en ? "Chart controls" : "التحكم بالمخطط"}>
     <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom in" : "تكبير المخطط"} onClick={() => void zoomIn()}><Plus aria-hidden="true" /></Button>
     <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom out" : "تصغير المخطط"} onClick={() => void zoomOut()}><Minus aria-hidden="true" /></Button>
