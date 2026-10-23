@@ -57,7 +57,10 @@ function OrganizationInterestEditorState({ initialInterests, locale }: { initial
       </li>)}
     </ul>}
     <div className="organization-interest-add">
-      <Input id={inputId} aria-label={c("مجال اهتمام جديد", "New interest")} placeholder={c("مثال: برمجة، أمن سيبراني", "Example: programming, cybersecurity")} dir={en ? "ltr" : "rtl"} className={en ? "text-left" : "text-right"} value={draft} onChange={event => { setDraft(event.target.value); setError(""); }} onKeyDown={handleKeyDown} maxLength={40} />
+      <div className="flex min-w-0 items-center gap-2">
+        <Input id={inputId} aria-label={c("مجال اهتمام جديد", "New interest")} placeholder={c("مثال: أمن سيبراني", "Example: cybersecurity")} dir={en ? "ltr" : "rtl"} className={en ? "text-left" : "text-right"} value={draft} onChange={event => { setDraft(event.target.value); setError(""); }} onKeyDown={handleKeyDown} maxLength={40} />
+        <Button type="button" variant="outline" size="sm" disabled={!draft.trim() || interests.length >= 10} onClick={add} aria-label={c("إضافة المجال", "Add interest")}>{c("إضافة", "Add")}</Button>
+      </div>
       <div className="organization-interest-meta" dir={en ? "ltr" : "rtl"}>
         <small dir={en ? "ltr" : "rtl"}>{c("أضف المجال بالضغط على Enter", "Press Enter to add an interest")}</small>
         <span className="organization-interest-count">{c(`${interests.length} من 10`, `${interests.length} of 10`)}</span>

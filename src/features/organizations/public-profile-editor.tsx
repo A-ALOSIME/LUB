@@ -100,6 +100,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
     <Card className="organization-settings-card" aria-labelledby={`${inputId}-stats-title`}>
       <CardHeader className="organization-settings-card-header">
         <h2 id={`${inputId}-stats-title`} className="organization-settings-section-title">{en ? "Organization statistics" : "إحصائيات الجهة"}</h2>
+        <p className="text-sm text-muted-foreground">{en ? "Enter figures from your organization's annual records. These are displayed on the public profile and are not calculated by LUB." : "أدخل الأرقام من سجلات الجهة السنوية. تظهر في الملف العام، ولا يحسبها لُبّ تلقائيًا."}</p>
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-stats">

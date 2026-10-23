@@ -87,6 +87,30 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
     else setDirty(current !== baseline.current);
   }, [changeVersion, stickySaveBar]);
   useEffect(() => { if (state.error) errorRef.current?.focus(); }, [state]);
+  useEffect(() => {
+    if (!stickySaveBar || !dirty || pending) return;
+    function beforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    function beforeNavigate(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || link.hasAttribute("download") || link.target && link.target !== "_self") return;
+      const destination = new URL(link.href, window.location.href);
+      if (destination.origin === window.location.origin && destination.pathname === window.location.pathname && destination.search === window.location.search) return;
+      if (!window.confirm(locale === "en" ? "You have unsaved changes. Leave this page and discard them?" : "لديك تغييرات غير محفوظة. هل تريد مغادرة الصفحة وتجاهلها؟")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", beforeNavigate, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", beforeNavigate, true);
+    };
+  }, [dirty, locale, pending, stickySaveBar]);
   useEffect(() => { if (state.error) pendingSubmission.current = null; }, [state.error]);
   useEffect(() => { if (state.success) onSuccess?.(); }, [state.success, onSuccess]);
   useEffect(() => {

@@ -6,6 +6,7 @@ import { OrganizationContactChannelEditor } from "./contact-channel-editor";
 import { OrganizationInterestEditor } from "./organization-interest-editor";
 import { OrganizationLeadershipVisibilityButton } from "./organization-leadership-switch";
 import { MutationForm } from "./mutation-form";
+import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "./organization-section-tabs";
 
 const mockMutation = vi.hoisted(() => vi.fn(async (_previous: unknown, data: FormData) => {
   return { success: `Saved ${String(data.get("nameAr"))}` };
@@ -15,6 +16,44 @@ vi.mock("./actions", () => ({ mutateOrganization: mockMutation }));
 afterEach(cleanup);
 
 describe("organization profile unsaved changes", () => {
+  it("keeps edits in hidden sections and submits the whole profile together", async () => {
+    render(<OrganizationSectionTabs items={[{ id: "about", label: "الأساسية" }, { id: "contacts", label: "التواصل" }]} initialSection="about" label="بيانات الجهة" dir="rtl">
+      <MutationForm operation="org-profile" submitLabel="حفظ" locale="ar" stickySaveBar>
+        <OrganizationSectionTabPanel id="about"><Input name="nameAr" aria-label="اسم الجهة" defaultValue="نادي التقنية" /></OrganizationSectionTabPanel>
+        <OrganizationSectionTabPanel id="contacts"><Input name="websiteUrl" aria-label="رابط الموقع" defaultValue="https://example.com" /></OrganizationSectionTabPanel>
+      </MutationForm>
+    </OrganizationSectionTabs>);
+    fireEvent.change(screen.getByRole("textbox", { name: "اسم الجهة" }), { target: { value: "نادي الأمن" } });
+    fireEvent.click(screen.getByRole("tab", { name: "التواصل" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "رابط الموقع" }), { target: { value: "https://example.edu" } });
+    fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
+    await waitFor(() => {
+      const submitted = mockMutation.mock.calls.at(-1)?.[1];
+      expect(submitted?.get("nameAr")).toBe("نادي الأمن");
+      expect(submitted?.get("websiteUrl")).toBe("https://example.edu");
+    });
+  });
+
+  it("protects dirty forms from link navigation and reload, then clears the guard on undo", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      render(<><a href="/another-workspace">مساحة أخرى</a><MutationForm operation="org-profile" submitLabel="حفظ" locale="ar" stickySaveBar>
+        <Input name="nameAr" aria-label="اسم الجهة" defaultValue="نادي التقنية" />
+      </MutationForm></>);
+      fireEvent.change(screen.getByRole("textbox", { name: "اسم الجهة" }), { target: { value: "نادي الأمن" } });
+      await screen.findByText("لديك تغييرات غير محفوظة");
+      expect(fireEvent.click(screen.getByRole("link", { name: "مساحة أخرى" }))).toBe(false);
+      expect(confirm).toHaveBeenCalledOnce();
+      const unload = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(unload);
+      expect(unload.defaultPrevented).toBe(true);
+      fireEvent.click(screen.getByRole("button", { name: "تراجع" }));
+      const cleanUnload = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(cleanUnload);
+      expect(cleanUnload.defaultPrevented).toBe(false);
+    } finally { confirm.mockRestore(); }
+  });
+
   it("re-reads the saved leadership visibility correctly after a fresh profile load", async () => {
     let savedVisibility = true;
     mockMutation.mockImplementationOnce(async (_previous, data) => {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { Globe, Info, UsersRound } from "lucide-react";
+import { FileText, Globe, Info, MessageSquare, UsersRound } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { loadManagementPageData } from "@/features/organizations/access";
@@ -24,7 +24,7 @@ import { getPreferences } from "@/lib/preferences";
 import { Button } from "@/components/ui/button";
 
 export async function generateMetadata() {
-  return localizedMetadata("الجهة", "Organization");
+  return localizedMetadata("بيانات الجهة", "Organization details");
 }
 
 export default async function ManageOrganizationPage({
@@ -51,21 +51,26 @@ export default async function ManageOrganizationPage({
   const committeeTree = buildCommitteeTree(committees);
   const parentOptions = committees.filter(committee => committee.statusCode === "Active" && committee.canEdit).map(({ id, name }) => ({ id, name }));
   const tabs = [
-    { id: "about", label: c("عن الجهة", "About"), icon: <Info aria-hidden="true" /> },
+    { id: "about", label: c("الأساسية", "Basics"), icon: <Info aria-hidden="true" /> },
+    ...(organization.canEdit ? [
+      { id: "profile", label: c("المحتوى والإنجازات", "Content and achievements"), icon: <FileText aria-hidden="true" /> },
+      { id: "contacts", label: c("التواصل والنشر", "Contact and visibility"), icon: <MessageSquare aria-hidden="true" /> },
+    ] : []),
     ...(showCommittees ? [{ id: "committees", label: c("اللجان", "Committees"), icon: <UsersRound aria-hidden="true" /> }] : []),
   ];
-  const initialSection = search.section === "committees" && showCommittees ? "committees" : "about";
+  const initialSection = tabs.some(tab => tab.id === search.section) ? search.section! : "about";
 
   return <div className="organization-settings space-y-5">
     <header className="workspace-page-header organization-about-heading">
       <div className="min-w-0">
-        <h1>{c("الجهة", "Organization")}</h1>
+        <h1>{c("بيانات الجهة", "Organization details")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{c("حدّث ملف الجهة الذي يظهر للزوار، وأدر بيانات التواصل واللجان.", "Update your public organization profile, contact details, and committees.")}</p>
       </div>
     </header>
 
     <OrganizationSectionTabs items={tabs} initialSection={initialSection} defaultSection="about" legacyHashSections={{ "#committees": "committees" }} sticky={false} label={c("أقسام الجهة", "Organization sections")} dir={en ? "ltr" : "rtl"}>
-      <OrganizationSectionTabPanel id="about">
-        {organization.canEdit ? <MutationForm operation="org-profile" fields={{ organizationId: id }} submitLabel={c("حفظ", "Save")} locale={locale} formClassName="organization-settings-form" buttonClassName="button button-compact w-fit" stickySaveBar>
+      {organization.canEdit ? <MutationForm operation="org-profile" fields={{ organizationId: id }} submitLabel={c("حفظ", "Save")} locale={locale} formClassName="organization-settings-form" buttonClassName="button button-compact w-fit" stickySaveBar>
+        <OrganizationSectionTabPanel id="about">
           <div className="organization-settings-sections">
             <Card className="organization-settings-card" aria-label={c("بيانات الجهة الأساسية", "Basic organization details")}>
               <CardHeader className="organization-settings-card-header">
@@ -97,7 +102,13 @@ export default async function ManageOrganizationPage({
                 </div>
               </CardContent>
             </Card>
-            <OrganizationPublicProfileEditor organizationId={id} locale={locale} initialValue={organization.publicProfileContent} />
+          </div>
+        </OrganizationSectionTabPanel>
+        <OrganizationSectionTabPanel id="profile">
+          <OrganizationPublicProfileEditor organizationId={id} locale={locale} initialValue={organization.publicProfileContent} />
+        </OrganizationSectionTabPanel>
+        <OrganizationSectionTabPanel id="contacts">
+          <div className="organization-settings-sections">
             <Card className="organization-settings-card organization-contact-settings-card" aria-label={c("قنوات التواصل", "Contact channels")}>
               <CardContent className="organization-settings-card-content">
                 <OrganizationContactChannelEditor initialChannels={initialChannels} locale={locale} />
@@ -110,10 +121,10 @@ export default async function ManageOrganizationPage({
               </Button>
             </div>
           </div>
-        </MutationForm> : <Card className="organization-settings-card"><CardContent>
+        </OrganizationSectionTabPanel>
+        </MutationForm> : <OrganizationSectionTabPanel id="about"><Card className="organization-settings-card"><CardContent>
           <p className="organization-settings-empty">{c("لا تملك صلاحية تعديل بيانات الجهة.", "You do not have permission to edit organization details.")}</p>
-        </CardContent></Card>}
-      </OrganizationSectionTabPanel>
+        </CardContent></Card></OrganizationSectionTabPanel>}
 
       {showCommittees && <OrganizationSectionTabPanel id="committees" legacyId="committees">
         <header className="organization-committees-heading" dir={en ? "ltr" : "rtl"}>
