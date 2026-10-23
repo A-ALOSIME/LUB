@@ -16,7 +16,7 @@ const cachedPublicOrganization = unstable_cache(async (slug: string) => {
   // Do not store arbitrary slug misses in the shared cache.
   if (!organization) throw new PublicOrganizationNotFound();
   return organization;
-}, ["public-organization-v6"], { revalidate: 120, tags: ["public-organizations"] });
+}, ["public-organization-v7"], { revalidate: 120, tags: ["public-organizations"] });
 
 export async function readPublicOrganization(slug: string) {
   if (!slugSchema.safeParse(slug).success) return undefined;

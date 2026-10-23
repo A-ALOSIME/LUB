@@ -44,6 +44,31 @@ async function permission(code: string, scope: string | null = null, organizatio
   return (await db.query<{ allowed: boolean }>("select lub.has_org_permission($1,$2,$3) as allowed", [organization, code, scope])).rows[0].allowed;
 }
 
+it("publishes only the current public committee leader's name without exposing student records", async () => {
+  await db.exec("set local role anon");
+  const readName = async (organization = org, scope = committee) => (await db.query<{ name: string | null }>("select lub.public_committee_leader($1,$2) as name", [organization, scope])).rows[0].name;
+  expect(await readName()).toBe("طالب 3");
+  expect(await readName(otherOrg)).toBeNull();
+  expect(await readName(org, hiddenCommittee)).toBeNull();
+  await expect(db.query("select * from lub.student_profiles")).rejects.toThrow("permission denied");
+});
+
+it.each(["visibility", "private", "archived", "ended-role", "future-role", "ended-membership", "future-membership", "inactive-user", "inactive-organization"])("hides public committee leadership for %s", async condition => {
+  switch (condition) {
+    case "visibility": await db.query("update lub.organizations set show_leadership_publicly=false where id=$1", [org]); break;
+    case "private": await db.query("update lub.committees set is_public=false where id=$1", [committee]); break;
+    case "archived": await db.query("update lub.committees set status_code='Archived',archived_at=now() where id=$1", [committee]); break;
+    case "ended-role": await db.query("update lub.role_assignments set end_date=current_date where committee_id=$1", [committee]); break;
+    case "future-role": await db.query("update lub.role_assignments set start_date=current_date+1 where committee_id=$1", [committee]); break;
+    case "ended-membership": await db.query("update lub.organization_memberships set status_code='Ended',end_date=current_date where user_id=$1", [committeeLeader]); break;
+    case "future-membership": await db.query("update lub.organization_memberships set start_date=current_date+1 where user_id=$1", [committeeLeader]); break;
+    case "inactive-user": await db.query("update lub.users set status_code='Inactive' where id=$1", [committeeLeader]); break;
+    case "inactive-organization": await db.query("update lub.organizations set status_code='Archived',archived_at=now() where id=$1", [org]); break;
+  }
+  await db.exec("set local role anon");
+  expect((await db.query<{ name: string | null }>("select lub.public_committee_leader($1,$2) as name", [org, committee])).rows[0].name).toBeNull();
+});
+
 it("lets anonymous visitors read organizations and public committees without private student access", async () => {
   await db.exec("set local role anon");
   expect((await db.query("select slug from lub.organizations order by slug")).rows).toHaveLength(2);

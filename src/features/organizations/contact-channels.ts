@@ -5,7 +5,7 @@ export const organizationContactKinds = [
 ] as const;
 
 export type OrganizationContactKind = typeof organizationContactKinds[number];
-export const organizationContactAddableKinds = ["Email", "Phone", "Website", "LinkedIn", "X", "TikTok", "Instagram"] as const satisfies readonly OrganizationContactKind[];
+export const organizationContactAddableKinds = ["Email", "Phone", "Website", "LinkedIn", "X", "TikTok", "Instagram", "GitHub"] as const satisfies readonly OrganizationContactKind[];
 export type OrganizationContactChannel = { kind: OrganizationContactKind; value: string };
 export type NormalizedOrganizationContact = OrganizationContactChannel & { url: string };
 

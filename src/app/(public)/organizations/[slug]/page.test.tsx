@@ -29,7 +29,7 @@ vi.mock("@/features/organizations/public-data", () => ({
       tags: [],
       mission: null,
     },
-    committees: slug === "ieee-club" ? [{ id: "ieee-media", name: "الإعلام", description: "", parentCommitteeId: null }] : [],
+    committees: slug === "ieee-club" ? [{ id: "ieee-media", name: "الإعلام", description: "", parentCommitteeId: null, leaderName: null }] : [],
     contacts: [],
     leadership: [],
     rounds: [],
@@ -103,8 +103,8 @@ it("renders a read-only committee chart with leadership inside the organization 
   vi.mocked(readPublicOrganization).mockResolvedValueOnce({
     ...organizationData,
     committees: [
-      { id: "committee-tech", name: "لجنة التقنية", description: "تطوير المبادرات التقنية.", parentCommitteeId: null },
-      { id: "committee-tech-child", name: "الفريق التقني", description: "", parentCommitteeId: "committee-tech" },
+      { id: "committee-tech", name: "لجنة التقنية", description: "تطوير المبادرات التقنية.", parentCommitteeId: null, leaderName: "سارة أحمد" },
+      { id: "committee-tech-child", name: "الفريق التقني", description: "", parentCommitteeId: "committee-tech", leaderName: null },
     ],
     leadership: [{ roleCode: "OL", fullName: "أحمد العتيبي" }],
   });
@@ -124,6 +124,7 @@ it("renders a read-only committee chart with leadership inside the organization 
   expect(chart.querySelectorAll("[data-slot=badge]")).toHaveLength(0);
   expect(screen.queryByRole("button", { name: "إجراءات لجنة التقنية" })).toBeNull();
   expect(screen.queryByText("بدون قائد")).toBeNull();
+  expect(chart.querySelector('[data-node-id="committee-tech"]')?.textContent).toContain("سارة أحمد");
   expect(chart.closest(".committee-flow")).toBeTruthy();
   expect(chart.querySelector('[data-node-id="organization-cybersecurity-club-id"]')?.textContent).toContain("القائد: أحمد العتيبي");
   expect(screen.queryByRole("heading", { name: "قيادة الجهة" })).toBeNull();
@@ -240,7 +241,7 @@ it("uses the same populated tab names and order for clubs and councils, ending i
   const data = await readPublicOrganization("custom-logo-club");
   if (!data) throw new Error("Expected organization");
   for (const typeCode of ["Club", "Council"]) {
-    vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...data, organization: { ...data.organization, typeCode, mission: "", memberCount: 0, publicProfileContent: { goals: "هدف", fields: "مجال", programs: "برنامج", achievements: "إنجاز", partners: "شريك" } }, committees: [{ id: "committee", name: "لجنة", description: "", parentCommitteeId: null }] });
+    vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...data, organization: { ...data.organization, typeCode, mission: "", memberCount: 0, publicProfileContent: { goals: "هدف", fields: "مجال", programs: "برنامج", achievements: "إنجاز", partners: "شريك" } }, committees: [{ id: "committee", name: "لجنة", description: "", parentCommitteeId: null, leaderName: null }] });
     const ui = render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({}) }));
     expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["عن الجهة", "المجالات", "البرامج", "الإنجازات", "الشركاء", "اللجان"]);
     expect(screen.queryByRole("tab", { name: "الهيكلة" })).toBeNull();
@@ -256,7 +257,7 @@ it("removes empty tabs and recreates them when actual content or committees are 
   expect(screen.queryByRole("tablist")).toBeNull();
   expect(screen.queryByRole("group", { name: "الهيكل التنظيمي للجان" })).toBeNull();
   ui.unmount();
-  vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...empty, organization: { ...empty.organization, publicProfileContent: { partners: "شريك جديد" } }, committees: [{ id: "new", name: "لجنة جديدة", description: "", parentCommitteeId: null }] });
+  vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...empty, organization: { ...empty.organization, publicProfileContent: { partners: "شريك جديد" } }, committees: [{ id: "new", name: "لجنة جديدة", description: "", parentCommitteeId: null, leaderName: null }] });
   render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({}) }));
   expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["الشركاء", "اللجان"]);
   expect(screen.getByRole("heading", { name: "الشركاء" })).toBeTruthy();

@@ -139,7 +139,7 @@ describe("organization profile unsaved changes", () => {
       <OrganizationLeadershipVisibilityButton defaultChecked locale="ar" />
     </MutationForm>);
 
-    fireEvent.click(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
+    fireEvent.click(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
     expect(await screen.findByText("لديك تغييرات غير محفوظة")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
     await waitFor(() => expect(savedVisibility).toBe(false));
@@ -150,7 +150,7 @@ describe("organization profile unsaved changes", () => {
       <OrganizationLeadershipVisibilityButton defaultChecked={savedVisibility} locale="ar" />
     </MutationForm>);
 
-    expect(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-pressed")).toBe("false");
     expect(document.querySelector<HTMLInputElement>('input[name="showLeadershipPublicly"]')?.value).toBe("");
   });
 
@@ -160,21 +160,21 @@ describe("organization profile unsaved changes", () => {
       <OrganizationLeadershipVisibilityButton defaultChecked={savedState} locale="ar" />
     </MutationForm>);
 
-    expect(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-pressed")).toBe("true");
     const serialized = document.querySelector<HTMLInputElement>('input[name="showLeadershipPublicly"]')!;
     expect(serialized.value).toBe("on");
 
-    fireEvent.click(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
+    fireEvent.click(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
     const unsavedMessage = await screen.findByText("لديك تغييرات غير محفوظة");
     expect(unsavedMessage.classList.contains("workspace-sticky-save-message")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
     await waitFor(() => expect(mockMutation.mock.calls.at(-1)?.[1].get("showLeadershipPublicly")).toBe(""));
     await waitFor(() => expect(screen.queryByText("لديك تغييرات غير محفوظة")).toBeNull());
 
-    fireEvent.click(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
+    fireEvent.click(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
     fireEvent.click(screen.getByRole("button", { name: "تراجع" }));
     await waitFor(() => {
-      expect(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-checked")).toBe("false");
+      expect(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-pressed")).toBe("false");
       expect(serialized.value).toBe("");
     });
   });

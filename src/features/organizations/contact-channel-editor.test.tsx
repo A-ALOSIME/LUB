@@ -61,4 +61,15 @@ describe("organization contact channel editor", () => {
 
     expect((await within(dialog).findByRole("alert")).textContent).toContain("بريداً إلكترونياً صحيحاً");
   });
+
+  it("offers GitHub and serializes its link for the shared profile save", async () => {
+    render(<OrganizationContactChannelEditor initialChannels={[]} locale="ar" />);
+    fireEvent.click(screen.getByRole("button", { name: "إضافة قناة" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "GitHub" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "GitHub" }), { target: { value: "https://github.com/lub" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "إضافة القناة" }));
+    await waitFor(() => expect(document.querySelector<HTMLInputElement>('input[name="contacts"]')?.value).toBe(JSON.stringify([{ kind: "GitHub", value: "https://github.com/lub" }])));
+    expect(screen.getByRole("textbox", { name: "GitHub القيمة" }).getAttribute("dir")).toBe("ltr");
+  });
 });

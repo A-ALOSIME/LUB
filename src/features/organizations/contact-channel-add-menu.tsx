@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Locale } from "@/lib/preferences";
 import { organizationContactAddableKinds, organizationContactLabel, type OrganizationContactKind } from "./contact-channels";
 import { OrganizationSocialIcon } from "./social-links";
@@ -18,10 +18,10 @@ export function ContactChannelAddMenu({ locale, onSelect, disabled = false }: {
       <Plus aria-hidden="true" />{en ? "Add channel" : "إضافة قناة"}
     </DropdownMenuTrigger>
     <DropdownMenuContent align={en ? "end" : "start"} className="min-w-40">
-      {organizationContactAddableKinds.map(kind => <DropdownMenuItem key={kind} onClick={() => onSelect(kind)}>
+      <DropdownMenuGroup>{organizationContactAddableKinds.map(kind => <DropdownMenuItem key={kind} onClick={() => onSelect(kind)}>
         <OrganizationSocialIcon kind={kind} className="size-4" />
         {organizationContactLabel(kind, en)}
-      </DropdownMenuItem>)}
+      </DropdownMenuItem>)}</DropdownMenuGroup>
     </DropdownMenuContent>
   </DropdownMenu>;
 }

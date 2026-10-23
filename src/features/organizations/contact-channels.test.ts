@@ -22,6 +22,7 @@ it("accepts every channel offered by organization profiles", () => {
     X: "https://x.com/example",
     TikTok: "https://tiktok.com/@example",
     Instagram: "https://instagram.com/example",
+    GitHub: "https://github.com/example",
   };
 
   for (const kind of organizationContactAddableKinds) {

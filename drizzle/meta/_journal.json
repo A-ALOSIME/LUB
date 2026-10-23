@@ -281,6 +281,13 @@
       "when": 1792688442000,
       "tag": "0039_restore_reports_access",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792774118128,
+      "tag": "0040_public_committee_leader",
+      "breakpoints": true
     }
   ]
 }

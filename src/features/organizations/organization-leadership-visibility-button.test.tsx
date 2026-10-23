@@ -6,19 +6,22 @@ import { ProfileFormContext } from "./profile-form-state";
 
 afterEach(cleanup);
 
-it("shows the saved leadership visibility in a labeled switch and explanatory card", () => {
+it("shows the saved leadership visibility in a labeled eye button and explanatory card", () => {
   const { container, unmount } = render(<OrganizationLeadershipVisibilityButton defaultChecked locale="ar" />);
   expect(screen.getByText("الظهور للعامة")).toBeTruthy();
-  const shown = screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" });
-  expect(shown.getAttribute("aria-checked")).toBe("true");
+  const shown = screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" });
+  expect(shown.getAttribute("aria-pressed")).toBe("true");
   expect(shown.getAttribute("aria-describedby")).toBeTruthy();
+  expect(shown.querySelector(".lucide-eye")).toBeTruthy();
+  expect(shown.textContent).toBe("");
   expect(container.querySelector<HTMLInputElement>('input[name="showLeadershipPublicly"]')?.value).toBe("on");
   expect(container.querySelector("[data-slot='card']")?.textContent).toContain("عند التفعيل");
 
   unmount();
   const hiddenRender = render(<OrganizationLeadershipVisibilityButton defaultChecked={false} locale="ar" />);
-  const hidden = screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" });
-  expect(hidden.getAttribute("aria-checked")).toBe("false");
+  const hidden = screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" });
+  expect(hidden.getAttribute("aria-pressed")).toBe("false");
+  expect(hidden.querySelector(".lucide-eye-off")).toBeTruthy();
   expect(hiddenRender.container.querySelector<HTMLInputElement>('input[name="showLeadershipPublicly"]')?.value).toBe("");
   expect(hiddenRender.container.querySelector("[data-slot='card']")?.textContent).toContain("الظهور للعامة");
 });
@@ -29,8 +32,8 @@ it("marks the profile dirty when leadership visibility changes", () => {
     <OrganizationLeadershipVisibilityButton defaultChecked locale="ar" />
   </ProfileFormContext.Provider>);
 
-  fireEvent.click(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
+  fireEvent.click(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }));
 
   expect(markChanged).toHaveBeenCalledOnce();
-  expect(screen.getByRole("switch", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-checked")).toBe("false");
+  expect(screen.getByRole("button", { name: "إظهار قيادة الجهة في الصفحة العامة" }).getAttribute("aria-pressed")).toBe("false");
 });

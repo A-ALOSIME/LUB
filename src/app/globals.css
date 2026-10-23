@@ -117,7 +117,7 @@ input[aria-invalid="true"]:focus, textarea[aria-invalid="true"]:focus { border-c
 .site-header { background: var(--surface); border-bottom: 1px solid var(--color-line); }
 .site-header-inner { display: grid; grid-template-columns: minmax(max-content, auto) minmax(0, 1fr) max-content; grid-template-areas: "tools nav brand"; align-items: center; gap: 1.25rem; direction: ltr; }
 .site-header-brand { grid-area: brand; justify-self: end; }
-.site-header-nav { grid-area: nav; display: flex; min-width: 0; align-items: center; justify-content: center; gap: clamp(.75rem, 1.6vw, 1.65rem); overflow-x: auto; padding-block: .75rem; scrollbar-width: none; white-space: nowrap; }
+.site-header-nav { grid-area: nav; display: flex; min-width: 0; align-items: center; justify-content: center; gap: clamp(.75rem, 1.6vw, 1.65rem); overflow-x: auto; padding-block: .75rem; font-size: 1.125rem; scrollbar-width: none; white-space: nowrap; }
 .site-header-nav::-webkit-scrollbar { display: none; }
 .site-header-tools { grid-area: tools; justify-self: start; direction: ltr; }
 .site-header-tools form { display: contents; }
@@ -125,7 +125,7 @@ input[aria-invalid="true"]:focus, textarea[aria-invalid="true"]:focus { border-c
 .brand-dark { display: none; }
 [data-theme="dark"] .brand-light { display: none; }
 [data-theme="dark"] .brand-dark { display: block; }
-.site-nav a, .header-link { color: var(--color-muted); font-weight: 500; }
+.site-nav a, .header-link { color: var(--color-muted); font-weight: 600; }
 .site-nav a:hover, .header-link:hover { color: var(--color-action); }
 .home-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 1.5rem; background: #1d2d3d; color: white; }
 .auth-intro { background: #1d2d3d; color: white; }
@@ -160,9 +160,9 @@ input[aria-invalid="true"]:focus, textarea[aria-invalid="true"]:focus { border-c
 }
 @media (max-width: 520px) {
   .site-header-inner { padding-inline: 1rem; }
-  .site-header-tools { gap: .4rem .55rem; font-size: .8rem; }
+  .site-header-tools { gap: .4rem .55rem; font-size: .875rem; }
   .site-header-tools .button-compact { min-height: 36px; padding-inline: .7rem; }
-  .site-header-nav { gap: .45rem 1rem; font-size: .82rem; }
+  .site-header-nav { gap: .45rem 1rem; font-size: 1rem; }
 }
 /* Keep loading and error boundaries in the document language before hydration. */
 .only-en { display: none; }

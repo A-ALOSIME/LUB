@@ -1,8 +1,10 @@
 "use client";
 
 import { useId, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/lib/preferences";
 import { useProfileFormState } from "./profile-form-state";
 
@@ -18,15 +20,23 @@ function LeadershipVisibilityButtonState({ defaultChecked, locale, onChange }: {
   const [visible, setVisible] = useState(defaultChecked);
   const id = useId();
   const en = locale === "en";
+  const label = en ? "Show organization leadership on the public page" : "إظهار قيادة الجهة في الصفحة العامة";
+  const stateLabel = visible
+    ? en ? "Leadership is public — hide" : "القيادة ظاهرة للعامة — إخفاء"
+    : en ? "Leadership is hidden — show" : "القيادة مخفية عن العامة — إظهار";
   return <Card className="organization-settings-card organization-public-visibility">
-    <CardHeader><CardTitle>{en ? "Public visibility" : "الظهور للعامة"}</CardTitle></CardHeader>
+    <CardHeader className="flex flex-row items-center gap-3">
+      <CardTitle>{en ? "Public visibility" : "الظهور للعامة"}</CardTitle>
+      <TooltipProvider><Tooltip>
+        <TooltipTrigger render={<Button type="button" variant="outline" size="icon" aria-label={label} aria-pressed={visible} aria-describedby={`${id}-description`} onClick={() => { setVisible(!visible); onChange(); }} />}>
+          {visible ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
+        </TooltipTrigger>
+        <TooltipContent dir={en ? "ltr" : "rtl"}>{stateLabel}</TooltipContent>
+      </Tooltip></TooltipProvider>
+    </CardHeader>
     <CardContent>
-    <div className="flex items-center gap-3">
-    <label htmlFor={id}>{en ? "Show organization leadership on the public page" : "إظهار قيادة الجهة في الصفحة العامة"}</label>
     <input type="hidden" name="showLeadershipPublicly" value={visible ? "on" : ""} readOnly />
-    <Switch id={id} checked={visible} onCheckedChange={checked => { setVisible(checked); onChange(); }} aria-describedby={`${id}-description`} />
-    </div>
-    <p id={`${id}-description`} className="mt-2 text-sm text-muted-foreground">{en ? "Visitors can see the leadership team when this option is enabled." : "عند التفعيل، يتمكن الزوار من رؤية قيادة الجهة في صفحتها العامة."}</p>
+    <p id={`${id}-description`} className="text-sm text-muted-foreground">{en ? "When enabled, visitors can see organization and committee leaders on the public page." : "عند التفعيل، تظهر أسماء قيادة الجهة وقادة اللجان في الصفحة العامة."}</p>
     </CardContent>
   </Card>;
 }

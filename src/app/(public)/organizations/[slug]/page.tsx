@@ -109,7 +109,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     copiedFromCommitteeId: null,
     canEdit: false,
     memberCount: null,
-    leaderName: null,
+    leaderName: committee.leaderName,
   }));
   // The public diagram uses the same saved hierarchy as management, filtered by public access.
   const rootLeadershipDetails = [...new Set(namedLeadershipDetails)];
