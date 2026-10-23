@@ -18,6 +18,25 @@ vi.mock("@/components/ui/toast", () => ({ toast: { add: toastAdd } }));
 afterEach(cleanup);
 
 describe("organization profile unsaved changes", () => {
+  it("protects vinext Back navigation with gapped entry IDs and no browser Navigation API", async () => {
+    Object.defineProperty(window, "navigation", { value: undefined, configurable: true });
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    try {
+      window.history.replaceState({ __vinext_historyIndex: 8 }, "");
+      render(<MutationForm operation="org-profile" submitLabel="حفظ" stickySaveBar><Input name="nameAr" aria-label="اسم الجهة" defaultValue="الجهة" /></MutationForm>);
+      fireEvent.change(screen.getByRole("textbox", { name: "اسم الجهة" }), { target: { value: "تعديل مؤقت" } });
+      window.history.replaceState({ __vinext_historyIndex: 3 }, "");
+      fireEvent.popState(window);
+      expect(go).toHaveBeenLastCalledWith(1);
+      window.history.replaceState({ __vinext_historyIndex: 8 }, "");
+      fireEvent.popState(window);
+      fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "البقاء" }));
+      expect(screen.getByRole("textbox", { name: "اسم الجهة" })).toHaveProperty("value", "تعديل مؤقت");
+    } finally {
+      cleanup(); go.mockRestore(); Reflect.deleteProperty(window, "navigation");
+      window.history.replaceState(null, "");
+    }
+  });
   it.each([-1, 1])("protects browser traversal by %i without adding history entries", async direction => {
     const navigation = { currentEntry: { index: 4 } };
     Object.defineProperty(window, "navigation", { value: navigation, configurable: true });

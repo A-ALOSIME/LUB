@@ -1,27 +1,11 @@
 "use client";
 
-const indexKey = "__lubHistoryIndex";
-type TrackedHistory = History & { __lubTrackerInstalled?: boolean };
-
-function storedIndex() {
-  const state: unknown = window.history.state;
-  return state && typeof state === "object" && indexKey in state && typeof state[indexKey] === "number" ? state[indexKey] : undefined;
-}
-
 export function navigationHistoryIndex() {
-  return window.navigation?.currentEntry?.index ?? storedIndex();
-}
-
-export function installNavigationHistory() {
-  const history = window.history as TrackedHistory;
-  if (history.__lubTrackerInstalled) return;
-  const push = history.pushState;
-  const replace = history.replaceState;
-  const stamped = (state: unknown, index: number) => ({ ...(state && typeof state === "object" ? state : {}), [indexKey]: index });
-  replace.call(history, stamped(history.state, storedIndex() ?? 0), "");
-  // One document-lifetime wrapper. It preserves Next's state and adds no entries.
-  // The fallback also covers browsers without the Navigation API.
-  history.pushState = (state, title, url) => push.call(history, stamped(state, (storedIndex() ?? 0) + 1), title, url);
-  history.replaceState = (state, title, url) => replace.call(history, stamped(state, storedIndex() ?? 0), title, url);
-  Object.defineProperty(history, "__lubTrackerInstalled", { value: true, configurable: true });
+  const nativeIndex = window.navigation?.currentEntry?.index;
+  if (typeof nativeIndex === "number" && nativeIndex >= 0) return nativeIndex;
+  // vinext 1.1 writes history internally using saved native methods. Its own
+  // traversal index remains correct for those writes and hash/tab navigation.
+  const state: unknown = window.history.state;
+  if (state && typeof state === "object" && "__vinext_historyIndex" in state && typeof state.__vinext_historyIndex === "number" && Number.isSafeInteger(state.__vinext_historyIndex) && state.__vinext_historyIndex >= 0) return state.__vinext_historyIndex;
+  return undefined;
 }

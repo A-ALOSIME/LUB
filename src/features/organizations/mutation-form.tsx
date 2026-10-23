@@ -99,6 +99,7 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
     const historyIndex = navigationHistoryIndex();
     let restoringHistory = false;
     let allowTraversal = false;
+    let restoredSteps = 0;
     function beforeUnload(event: BeforeUnloadEvent) {
       event.preventDefault();
       event.returnValue = "";
@@ -124,18 +125,19 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
       if (allowTraversal) { allowTraversal = false; return; }
       const destinationIndex = navigationHistoryIndex();
       if (typeof historyIndex !== "number" || typeof destinationIndex !== "number") return;
-      const restoreBy = historyIndex - destinationIndex;
+      const restoreBy = Math.sign(historyIndex - destinationIndex);
       if (restoringHistory) {
         event.stopImmediatePropagation();
         if (!restoreBy) restoringHistory = false;
-        else window.history.go(restoreBy);
+        else { restoredSteps += 1; window.history.go(restoreBy); }
         return;
       }
       if (!restoreBy) return;
-      // Restore the current entry before Next handles the traversal. No extra
-      // entries are added, so both Back and Forward keep their original order.
+      // vinext indices can have gaps after a history fork. Walk entries back to
+      // the original entry, then resume by the actual number of steps restored.
       event.stopImmediatePropagation();
-      departure.current = () => { allowTraversal = true; window.history.go(-restoreBy); };
+      restoredSteps = 1;
+      departure.current = () => { allowTraversal = true; window.history.go(-restoreBy * restoredSteps); };
       restoringHistory = true;
       window.history.go(restoreBy);
       setLeaveOpen(true);
