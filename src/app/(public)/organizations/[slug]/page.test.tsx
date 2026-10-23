@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock("@xyflow/react", () => import("../../../../../tests/helpers/react-flow"));
 import { readPublicOrganization } from "@/features/organizations/public-data";
 
 const mocks = vi.hoisted(() => ({
@@ -28,7 +29,7 @@ vi.mock("@/features/organizations/public-data", () => ({
       tags: [],
       mission: null,
     },
-    committees: [],
+    committees: slug === "ieee-club" ? [{ id: "ieee-media", name: "الإعلام", description: "", parentCommitteeId: null }] : [],
     contacts: [],
     leadership: [],
     rounds: [],
@@ -113,17 +114,18 @@ it("renders a read-only committee chart with leadership inside the organization 
   });
   render(page);
 
-  const chart = screen.getByRole("list", { name: "الهيكل التنظيمي للجان" });
-  expect(chart.querySelector(".organization-org-chart-root-name")?.textContent).toBe("نادي الأمن السيبراني");
-  expect(screen.getByText("لجنة التقنية").closest(".organization-committee-node")).toBeTruthy();
-  expect(screen.getByText("الفريق التقني").closest(".organization-committee-node")).toBeTruthy();
-  expect(chart.querySelectorAll(".organization-committee-node")).toHaveLength(2);
-  expect(chart.closest(".organization-org-chart-viewport")?.querySelectorAll(".organization-org-chart-row")).toHaveLength(2);
-  expect(chart.querySelectorAll(".organization-status-badge")).toHaveLength(0);
-  expect(chart.querySelectorAll("button")).toHaveLength(2);
-  expect(chart.querySelectorAll(".organization-committee-meta")).toHaveLength(0);
-  expect(chart.closest(".organization-org-chart-viewport")?.classList.contains("organization-org-chart-viewport--public")).toBe(true);
-  expect(chart.querySelector(".organization-org-chart-root-details")?.textContent).toContain("القائد: أحمد العتيبي");
+  const chart = screen.getByRole("group", { name: "الهيكل التنظيمي للجان" });
+  expect(chart.querySelector('[data-node-id="organization-cybersecurity-club-id"]')?.textContent).toContain("نادي الأمن السيبراني");
+  expect(screen.getByText("لجنة التقنية").closest(".committee-flow-card")).toBeTruthy();
+  expect(screen.getByText("الفريق التقني").closest(".committee-flow-card")).toBeTruthy();
+  expect(chart.querySelectorAll(".committee-flow-card")).toHaveLength(3);
+  expect(chart.querySelectorAll("[data-edge]")).toHaveLength(2);
+  expect(chart.querySelector('[data-edge="committee-tech:committee-tech-child"]')).toBeTruthy();
+  expect(chart.querySelectorAll("[data-slot=badge]")).toHaveLength(0);
+  expect(screen.queryByRole("button", { name: "إجراءات لجنة التقنية" })).toBeNull();
+  expect(screen.queryByText("بدون قائد")).toBeNull();
+  expect(chart.closest(".committee-flow")).toBeTruthy();
+  expect(chart.querySelector('[data-node-id="organization-cybersecurity-club-id"]')?.textContent).toContain("القائد: أحمد العتيبي");
   expect(screen.queryByRole("heading", { name: "قيادة الجهة" })).toBeNull();
   expect(document.getElementById("organization-leadership-card")).toBeNull();
   expect(chart.querySelector(".organization-committee-description")).toBeNull();
@@ -131,41 +133,19 @@ it("renders a read-only committee chart with leadership inside the organization 
   expect(screen.getByRole("dialog").textContent).toContain("تطوير المبادرات التقنية.");
 });
 
-it("moves curated leadership positions above the public committee grid", async () => {
+it("does not restore deleted committees or leadership from curated profile descriptions", async () => {
   const organizationData = await readPublicOrganization("oss-club");
   if (!organizationData) throw new Error("Expected mocked organization data");
   vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...organizationData, committees: [], leadership: [] });
-  const page = await OrganizationPage({
-    params: Promise.resolve({ slug: "oss-club" }),
-    searchParams: Promise.resolve({ section: "structure" }),
-  });
+  const page = await OrganizationPage({ params: Promise.resolve({ slug: "oss-club" }), searchParams: Promise.resolve({ section: "structure" }) });
   render(page);
-
-  const chart = screen.getByRole("list", { name: "الهيكل التنظيمي للجان" });
-  const rootDetails = chart.querySelector(".organization-org-chart-root-details");
-  expect(rootDetails?.textContent).toContain("رئيسة المجتمع • مديرة العمليات");
-  const committeeNames = [...chart.querySelectorAll(".organization-committee-name")].map(node => node.textContent);
-  expect(committeeNames).not.toContain("رئيسة المجتمع ومديرة العمليات");
-  const rootChildren = chart.querySelector(".organization-org-chart-children--root");
-  const topLevelCommittees = [...(rootChildren?.querySelectorAll(":scope > .organization-org-chart-row--root > .organization-committee-row--root") ?? [])];
-  expect(topLevelCommittees.map(node => node.querySelector(".organization-committee-name")?.textContent)).toEqual([
-    "إدارة الابتكار التقني",
-    "مبادرة تقدم الأعضاء",
-    "إدارة العلاقات العامة",
-    "إدارة التخطيط والتنفيذ",
-    "إدارة الموارد البشرية",
-    "إدارة الإعلام والتصميم",
-  ]);
-  expect(chart.querySelectorAll(".organization-committee-node")).toHaveLength(14);
-  const innovation = topLevelCommittees.find(node => node.querySelector(".organization-committee-name")?.textContent === "إدارة الابتكار التقني");
-  expect([...innovation!.querySelectorAll(".organization-org-chart-children--branch .organization-committee-name")].map(node => node.textContent)).toEqual([
-    "لجنة الذكاء الاصطناعي",
-    "لجنة التطوير",
-  ]);
-  expect(innovation?.querySelector(".organization-committee-description")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "عرض تفاصيل إدارة الابتكار التقني" }));
-  expect(screen.getByRole("dialog").textContent).toContain("مستودعات GitHub");
-  expect(screen.getByRole("dialog").textContent).not.toContain("لجنة الذكاء الاصطناعي");
+  const chart = screen.getByRole("group", { name: "الهيكل التنظيمي للجان" });
+  expect(chart.querySelectorAll(".committee-flow-card")).toHaveLength(1);
+  expect(chart.querySelectorAll("[data-edge]")).toHaveLength(0);
+  expect(chart.querySelector(".committee-flow-meta")).toBeNull();
+  expect(screen.queryByText("رئيسة المجتمع • مديرة العمليات")).toBeNull();
+  expect(screen.queryByRole("button", { name: "عرض تفاصيل إدارة الابتكار التقني" })).toBeNull();
+  expect(screen.getByRole("status").textContent).toContain("لا توجد لجان عامة حالياً.");
 });
 
 it("keeps contact links above section pages and groups the club overview", async () => {
@@ -252,7 +232,7 @@ it("shows the IEEE committees only on the structure page", async () => {
   render(page);
 
   expect(screen.getByRole("heading", { name: "اللجان" })).toBeTruthy();
-  expect(screen.getByRole("list", { name: "الهيكل التنظيمي للجان" })).toBeTruthy();
+  expect(screen.getByRole("group", { name: "الهيكل التنظيمي للجان" })).toBeTruthy();
   expect(screen.getByText("الإعلام")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "هدفنا وأهداف النادي" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "البرامج" })).toBeNull();

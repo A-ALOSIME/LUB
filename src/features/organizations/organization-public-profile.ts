@@ -35,8 +35,9 @@ function entries(value?: string) {
 
 function withSection(sections: OrganizationProfileSection[], title: string, aliases: RegExp, value?: string, image?: OrganizationProfileSection["image"]) {
   const content = value?.trim();
-  if (!content && !image) return sections;
+  if (value === undefined && !image) return sections;
   const retained = sections.filter(section => !aliases.test(section.title));
+  if (!content && !image) return retained;
   return [...retained, {
     title,
     ...(content ? { items: entries(content) } : {}),
@@ -45,8 +46,9 @@ function withSection(sections: OrganizationProfileSection[], title: string, alia
 }
 
 function replaceStat(stats: Array<{ value: string; label: string }>, label: string, value?: string, pattern?: RegExp) {
-  if (!value) return stats;
+  if (value === undefined) return stats;
   const withoutPrevious = pattern ? stats.filter(stat => !pattern.test(stat.label)) : stats;
+  if (!value) return withoutPrevious;
   return [...withoutPrevious, { value, label }];
 }
 
@@ -77,12 +79,12 @@ export function buildOrganizationProfilePresentation({
   let stats = [...(curated?.stats ?? [])];
   stats = replaceStat(stats, "فعالية سنوية", content.annualEventCount, /فعالية|event/i);
   stats = replaceStat(stats, "طالب مشارك", content.participatingStudentCount, /طالب مشارك|participating students?/i);
-  stats = replaceStat(stats, "عضو", String(Math.max(0, Math.trunc(memberCount))), /^(عضو|أعضاء|members?)$/i);
+  stats = replaceStat(stats, "عضو", memberCount > 0 ? String(Math.trunc(memberCount)) : "", /^(عضو|أعضاء|members?)$/i);
 
   return {
     motto: curated?.motto,
-    vision: content.vision || curated?.vision,
-    mission: mission?.trim() || curated?.mission,
+    vision: content.vision === undefined ? curated?.vision : content.vision || undefined,
+    mission: mission == null ? curated?.mission : mission.trim() || undefined,
     stats,
     sections,
   };

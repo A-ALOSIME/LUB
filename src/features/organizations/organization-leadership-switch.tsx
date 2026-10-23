@@ -21,7 +21,7 @@ function LeadershipVisibilityButtonState({ defaultChecked, locale, onChange }: {
   return <Card className="organization-settings-card organization-public-visibility">
     <CardHeader><CardTitle>{en ? "Public visibility" : "الظهور للعامة"}</CardTitle></CardHeader>
     <CardContent>
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-center gap-3">
     <label htmlFor={id}>{en ? "Show organization leadership on the public page" : "إظهار قيادة الجهة في الصفحة العامة"}</label>
     <input type="hidden" name="showLeadershipPublicly" value={visible ? "on" : ""} readOnly />
     <Switch id={id} checked={visible} onCheckedChange={checked => { setVisible(checked); onChange(); }} aria-describedby={`${id}-description`} />

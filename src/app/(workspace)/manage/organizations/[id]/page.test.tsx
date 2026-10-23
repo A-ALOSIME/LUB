@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+vi.mock("@xyflow/react", () => import("../../../../../../tests/helpers/react-flow"));
 import { FilterTabs } from "@/components/ui/filter-tabs";
 
 vi.mock("server-only", () => ({}));
@@ -40,7 +41,7 @@ it("separates profile tasks into tabs while retaining every section in the share
   capture("about");
   fireEvent.click(screen.getByRole("tab", { name: "المحتوى والإنجازات" }));
   const departure = await screen.findByRole("alertdialog");
-  fireEvent.click(within(departure).getByRole("button", { name: /^حفظ$/ }));
+  await act(async () => { fireEvent.click(within(departure).getByRole("button", { name: /^حفظ$/ })); });
   await waitFor(() => expect(screen.getByRole("textbox", { name: "رؤيتنا" })).toBeTruthy());
   expect(screen.getByRole("textbox", { name: "رؤيتنا" })).toBeTruthy();
   expect(new FormData(form).get("nameAr")).toBe("تعديل غير محفوظ");

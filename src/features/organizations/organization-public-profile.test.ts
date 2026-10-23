@@ -31,4 +31,22 @@ describe("organization public profile presentation", () => {
     expect(result.stats).toContainEqual({ value: "12", label: "فعالية سنوية" });
     expect(result.stats).toContainEqual({ value: "7", label: "عضو" });
   });
+
+  it("hides explicitly cleared fields and statistics rather than restoring curated values", () => {
+    const curated = localOrganizationContent("المجلس الاستشاري لعلوم الحاسب", "Council")!;
+    const result = buildOrganizationProfilePresentation({
+      curated: { ...curated, vision: "رؤية سابقة", mission: "رسالة سابقة", stats: [{ value: "20", label: "فعالية سنوية" }, { value: "100", label: "طالب مشارك" }, { value: "10", label: "عضو" }] },
+      saved: { vision: "", offerings: "", annualEventCount: "", participatingStudentCount: "" },
+      mission: "", memberCount: 0,
+    });
+    expect(result.sections.some(section => section.title === "ماذا نقدم؟")).toBe(false);
+    expect(result.vision).toBeUndefined();
+    expect(result.mission).toBeUndefined();
+    expect(result.stats).toEqual([]);
+  });
+
+  it("keeps a deliberately entered zero and hides only absent automatic membership data", () => {
+    const result = buildOrganizationProfilePresentation({ saved: { annualEventCount: "0" }, mission: "", memberCount: 0 });
+    expect(result.stats).toEqual([{ value: "0", label: "فعالية سنوية" }]);
+  });
 });

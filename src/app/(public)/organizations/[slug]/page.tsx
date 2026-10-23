@@ -3,7 +3,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Settings2 } from "lucide-react";
 import { notFound } from "next/navigation";
-import { z } from "zod";
 import { eventDate } from "@/features/events/display";
 import { readPublicOrganization as getPublicOrganization } from "@/features/organizations/public-data";
 import { localOrganizationContent } from "@/features/organizations/local-content";
@@ -22,9 +21,7 @@ import { canManageOrganizationSettings } from "@/features/organizations/manageme
 import { JsonLd } from "@/lib/json-ld";
 import { toMetaDescription } from "@/lib/seo";
 import type { CSSProperties } from "react";
-import { buildCommitteeTree, separateLeadershipPositions } from "@/features/organizations/committee-tree";
-import { buildOssCommitteeHierarchy } from "@/features/organizations/oss-committee-structure";
-import { profileSectionsToCommitteeRoots } from "@/features/organizations/profile-structure";
+import { buildCommitteeTree } from "@/features/organizations/committee-tree";
 import { buildOrganizationProfilePresentation } from "@/features/organizations/organization-public-profile";
 import { OrganizationCommitteeChart } from "@/features/organizations/organization-committee-chart";
 
@@ -35,7 +32,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
     if(!detail)return localizedMetadata('الجهة غير موجودة','Organization not found');
     const {organization}=detail;
     const profile=localOrganizationContent(organization.nameAr,organization.typeCode);
-    const summary=organization.summary || profile?.about || "";
+    const summary=organization.summary ?? profile?.about ?? "";
     const description=toMetaDescription(summary,`جهة طلابية ${organization.nameAr} على منصة لُبّ.`);
     return localizedMetadata(organization.nameAr,organization.nameAr,{}, {
       index:organization.statusCode==="Active",
@@ -85,17 +82,14 @@ export default async function OrganizationPage({ params, searchParams }: {
   const en = preferences.locale === "en";
   const superAdmin = user ? await isSuperAdminUser(user.id) : false;
   const query = await searchParams;
-  const committeePageValue = Array.isArray(query.committeePage) ? query.committeePage[0] : query.committeePage;
-  const committeePage = z.coerce.number().int().min(0).max(10000).catch(0).parse(committeePageValue ?? 0);
   let detail: Awaited<ReturnType<typeof getPublicOrganization>>;
-  try { detail = await getPublicOrganization(slug, committeePage); }
+  try { detail = await getPublicOrganization(slug); }
   catch { return <><main id="main" className="mx-auto max-w-3xl px-5 py-14"><h1 className="text-3xl font-bold">{en?"Could not load this organization":"تعذّر تحميل الجهة"}</h1><p className="mt-5 leading-8 text-muted">{en?"Please refresh the page in a moment.":"حاول تحديث الصفحة بعد قليل."}</p><Link className="text-link mt-6 inline-block" href="/organizations">{en?"Back to clubs and councils":"العودة للأندية والمجالس"}</Link></main></>; }
   if (!detail) notFound();
 
   const { organization, committees, contacts, leadership, rounds, upcomingEvents, announcements } = detail;
   const canManageOrganization = superAdmin || Boolean(user && await canManageOrganizationSettings(user.id, organization.id).catch(() => false));
   const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
-  const isOssOrganization = profile?.imageTheme === "oss";
   const presentation = buildOrganizationProfilePresentation({ curated: profile, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
   const savedSocialLinks = contacts.map(contact => ({ label: organizationContactLabel(contact.kind, en), value: contact.value, href: contact.url }));
   const socialLinks = organization.linksCustomized ? savedSocialLinks : savedSocialLinks.length ? savedSocialLinks : (profile?.links ?? []);
@@ -109,33 +103,6 @@ export default async function OrganizationPage({ params, searchParams }: {
   const hasOrganizationStructure = Boolean(committees.length || leadership.length);
   const hasActivity = Boolean(pinnedAnnouncement || featuredEvent || otherAnnouncements.length || otherEventHighlights.length);
   const profileSectionGroups = groupOrganizationProfileSections(presentation.sections, { mergeFieldsWithPrograms: organization.slug === "ieee-club", separateGoals: organization.slug === "dhaheer-club" });
-  const curatedStructureEntries = profileSectionGroups
-    .filter(group => group.kind === "structure")
-    .flatMap(group => group.entries);
-  const ossOrganizationSection = isOssOrganization
-    ? curatedStructureEntries.find(({ section }) => section.title === "الإدارات واللجان")?.section
-    : undefined;
-  const ossResponsibilityItems = isOssOrganization
-    ? curatedStructureEntries.find(({ section }) => section.title === "مسؤوليات الإدارات")?.section.items ?? []
-    : [];
-  const ossResponsibilities = new Map(ossResponsibilityItems.map(item => [item.title.replace(/^إدارة\s+/, "").trim(), item.body ?? ""]));
-  const chartStructureEntries = isOssOrganization
-    ? curatedStructureEntries.filter(({ section }) => section === ossOrganizationSection)
-    : curatedStructureEntries;
-  const curatedCommittees = isOssOrganization
-    ? chartStructureEntries.flatMap(({ index, section }) => (section.items ?? []).map((item, itemIndex) => ({
-        id: `profile-committee-${index}-${itemIndex}`,
-        name: item.title,
-        description: ossResponsibilities.get(item.title.replace(/^إدارة\s+/, "").trim()) || item.body || "",
-        isPublic: true as const,
-        statusCode: "Active" as const,
-        copiedFromCommitteeId: null,
-        parentCommitteeId: null,
-        canEdit: false as const,
-        memberCount: null,
-        leaderName: null,
-      })))
-    : profileSectionsToCommitteeRoots(chartStructureEntries);
   const namedLeadershipDetails = leadership.map(person => `${en
     ? person.roleCode === "OL" ? "Leader" : "Deputy leader"
     : person.roleCode === "OL" ? "القائد" : "نائب القائد"}: ${person.fullName}`);
@@ -148,35 +115,9 @@ export default async function OrganizationPage({ params, searchParams }: {
     memberCount: null,
     leaderName: null,
   }));
-  const committeeRecords = isOssOrganization
-    ? [...databaseCommitteeRecords, ...curatedCommittees]
-    : databaseCommitteeRecords.length ? databaseCommitteeRecords : curatedCommittees;
-  const publicStructure = separateLeadershipPositions(committeeRecords);
-  const rootLeadershipDetails = [...new Set([
-    ...namedLeadershipDetails,
-    ...publicStructure.leadershipPositions.map(position => position.description?.trim()
-      ? isOssOrganization ? position.name.replace(/\s*و(?=\S)/g, " • ") : `${position.name}: ${position.description.trim()}`
-      : isOssOrganization ? position.name.replace(/\s*و(?=\S)/g, " • ") : position.name),
-  ])];
-  const ossCuratedDepartments = isOssOrganization
-    ? separateLeadershipPositions(curatedCommittees).committees
-    : [];
-  const visibleCommitteeRecords = isOssOrganization
-    ? buildOssCommitteeHierarchy(publicStructure.committees, ossCuratedDepartments, (parent, id, name) => ({
-        ...parent,
-        id,
-        name,
-        description: "",
-        parentCommitteeId: parent.id,
-        isPublic: true,
-        statusCode: "Active",
-        copiedFromCommitteeId: null,
-        canEdit: false,
-        memberCount: null,
-        leaderName: null,
-      }))
-    : publicStructure.committees;
-  const committeeTree = buildCommitteeTree(visibleCommitteeRecords, { sortSiblings: !isOssOrganization });
+  // The public diagram uses the same saved hierarchy as management, filtered by public access.
+  const rootLeadershipDetails = [...new Set(namedLeadershipDetails)];
+  const committeeTree = buildCommitteeTree(databaseCommitteeRecords);
   const aboutProfileGroup = profileSectionGroups.find(group => group.kind === "about");
   const aboutLabel = en ? "About" : `عن ${organization.nameAr.includes("مجتمع") ? "المجتمع" : organization.typeCode === "Council" ? "المجلس" : "النادي"}`;
   const sectionNavItems: { id: string; label: string; icon: ProfileIconName; profileSectionIndexes: number[] }[] = [
@@ -198,7 +139,7 @@ export default async function OrganizationPage({ params, searchParams }: {
   const requestedSection = Array.isArray(query.section) ? query.section[0] : query.section;
   const activeSection = sectionNavItems.find(item => item.id === requestedSection) ?? sectionNavItems[0];
 
-  const visibleSummary=organization.summary || profile?.about || "";
+  const visibleSummary=organization.summary ?? profile?.about ?? "";
   const canonicalUrl=`https://lub.community/organizations/${organization.slug}`;
   const logoUrl=organization.logoUrl || (profile?.logoSrc ? new URL(profile.logoSrc,"https://lub.community").toString() : undefined);
   const organizationLogo = organization.logoUrl || profile?.logoSrc;
@@ -270,7 +211,7 @@ export default async function OrganizationPage({ params, searchParams }: {
         </section>}
         {item.id === "applications" && rounds.length > 0 && <section className="panel mt-8 p-6 sm:p-8"><h2 className="text-xl font-bold">{en ? "Join this organization" : "طلبات الانضمام"}</h2><ul className="mt-5 space-y-5">{rounds.map(round => <li key={round.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4"><div><h3 dir="auto" className="font-semibold">{round.title}</h3>{!round.open && <p className="mt-1 text-sm text-muted">{en ? "Applications closed" : "التقديم مغلق"}</p>}</div>{!superAdmin && <Link className={round.open ? "button button-compact" : "button button-secondary button-compact"} href={`/organizations/${slug}/apply/${round.id}`}>{en ? round.open ? "Apply now" : "View round" : round.open ? "قدّم الآن" : "عرض الجولة"}</Link>}</li>)}</ul></section>}
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={en ? "Organization structure" : "هيكل الجهة"}>
-          <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{en ? "Committees" : "اللجان"}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={en ? "No public committees yet." : "لا توجد لجان عامة حالياً."} />{(committeePage > 0 || detail.moreCommittees) && <nav aria-label={en ? "Committee pages" : "صفحات اللجان"} className="mt-5 flex flex-wrap gap-4">{committeePage > 0 && <Link className="text-link" href={`?section=structure&committeePage=${committeePage - 1}`}>{en ? "Previous committees" : "اللجان السابقة"}</Link>}{detail.moreCommittees && <Link className="text-link" href={`?section=structure&committeePage=${committeePage + 1}`}>{en ? "Next committees" : "اللجان التالية"}</Link>}</nav>}</section>
+          <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{en ? "Committees" : "اللجان"}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={en ? "No public committees yet." : "لا توجد لجان عامة حالياً."} /></section>
         </section>}
         {item.id === "about" && !hasMainDetail && !leadership.length && !hasUpdates && !presentation && !socialLinks.some(link => link.href) && <div className="mt-8 border-t border-line pt-6"><p className="leading-8 text-muted">{en ? "More details and activities will appear here when published." : "تفاصيل الجهة وأنشطتها الإضافية تظهر هنا عند نشرها."}</p><Link href="/organizations" className="text-link mt-3 inline-block">{en ? "Explore other organizations" : "استكشف الجهات الأخرى"}</Link></div>}
       </OrganizationSectionTabPanel>)}

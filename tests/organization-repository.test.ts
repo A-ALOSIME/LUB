@@ -141,7 +141,7 @@ it("combines public organization sections in one select and filters only publish
  const template=(await engine.query<{id:string}>("select lub.create_form($1,'نموذج عام',null) as id",[org])).rows[0].id;const version=(await engine.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;
  await engine.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await engine.query("select lub.publish_form_version($1)",[version]);const round=(await engine.query<{id:string}>("select lub.create_registration_round($1,$2,'التسجيل المفتوح',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;await engine.query("select lub.change_round_status($1,'Open')",[round]);await engine.exec("reset role");
  await engine.query("insert into lub.committees(organization_id,name,is_public) select $1,'لجنة '||i,true from generate_series(1,26)i",[org]);
- visitorSelects=0;const detail=await getPublicOrganization('tech');expect(visitorSelects).toBe(1);expect(detail?.upcomingEvents.map(e=>e.id)).toEqual([event]);expect(detail?.rounds).toEqual([{id:round,title:'التسجيل المفتوح',open:true}]);expect(detail?.moreCommittees).toBe(true);expect((await getPublicOrganization('tech',1))?.committees).toHaveLength(2);
+ visitorSelects=0;const detail=await getPublicOrganization('tech');expect(visitorSelects).toBe(1);expect(detail?.upcomingEvents.map(e=>e.id)).toEqual([event]);expect(detail?.rounds).toEqual([{id:round,title:'التسجيل المفتوح',open:true}]);expect(detail?.moreCommittees).toBe(false);expect(detail?.committees).toHaveLength(27);
  expect((await getPublicDirectory(discoverySchema.parse({upcoming:'on',open:'on'}))).organizations.map(o=>o.id)).toEqual([org]);
 });
 

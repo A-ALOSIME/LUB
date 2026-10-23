@@ -1,134 +1,125 @@
-import { hierarchy, type HierarchyNode } from "d3-hierarchy";
-import { Building2 } from "lucide-react";
+"use client";
+
+import { useMemo, useState } from "react";
+import { Handle, Panel, Position, ReactFlow, useReactFlow, type Node, type NodeProps } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { Building2, ChevronDown, ChevronUp, Maximize, Minus, MoreHorizontal, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CommitteeListRow } from "@/features/organizations/committee-list-row";
-import { chunkCommitteeChartNodes } from "@/features/organizations/committee-chart-layout";
-import type { CommitteeTreeNode } from "@/features/organizations/committee-tree";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
+import { ManagementActionProvider } from "@/components/management-action-sheet";
+import { CommitteeDialog } from "./committee-dialog";
+import { MutationForm } from "./mutation-form";
+import { committeeNodeSize, layoutCommitteeChart } from "./committee-chart-layout";
+import type { CommitteeTreeNode } from "./committee-tree";
 import type { Locale } from "@/lib/preferences";
-import { ManagementCommitteeTree } from "./management-committee-tree";
 
-type ManagedCommittee = {
-  id: string;
-  name: string;
-  description: string;
-  isPublic: boolean;
-  statusCode: string;
-  copiedFromCommitteeId: string | null;
-  parentCommitteeId: string | null;
-  canEdit: boolean;
-  memberCount: number | null;
-  leaderName: string | null;
-};
+type Committee = { id: string; name: string; description: string; isPublic: boolean; statusCode: string; parentCommitteeId: string | null; canEdit: boolean; memberCount: number | null; leaderName: string | null };
+type Branch = { id: string; name: string; committee?: Committee; children: Branch[] };
+type Action = { kind: "edit" | "child" | "delete" | "details"; committee: Committee; descendants: string[] };
+type ChartNode = Node<{
+  name: string; committee?: Committee; rootDetails: readonly string[]; locale: Locale;
+  readOnly: boolean; canManage: boolean; hasChildren: boolean; expanded: boolean;
+  onToggle: () => void; onAction: (kind: Action["kind"]) => void;
+}, "committee">;
 
-type CommitteeChartItem = {
-  id: string;
-  name: string;
-  details: string;
-  description?: string;
-  committee?: ManagedCommittee;
-  children?: CommitteeChartItem[];
-};
-
-function toChartItems(nodes: CommitteeTreeNode<ManagedCommittee>[], en: boolean, readOnly: boolean): CommitteeChartItem[] {
-  return nodes.map(node => {
-    const count = node.memberCount === null
-      ? en ? "Member count unavailable" : "عدد الأعضاء غير متاح"
-      : en ? `${node.memberCount} ${node.memberCount === 1 ? "member" : "members"}` : `${node.memberCount} أعضاء`;
-    const leader = node.leaderName ?? (en ? "No leader" : "بدون قائد");
-    const details = readOnly ? "" : `${leader} · ${count}`;
-    return {
-      id: node.id,
-      name: node.name,
-      details,
-      committee: node,
-      ...(readOnly && node.description ? { description: node.description } : {}),
-      children: toChartItems(node.children, en, readOnly),
-    };
-  });
+function CommitteeNode({ data }: NodeProps<ChartNode>) {
+  const { committee, name, locale, readOnly, canManage, hasChildren, expanded, onToggle, onAction, rootDetails } = data;
+  const en = locale === "en";
+  const c = (ar: string, english: string) => en ? english : ar;
+  const meta = committee ? [committee.leaderName?.trim(), committee.memberCount !== null && committee.memberCount > 0 ? c(`${committee.memberCount} أعضاء`, `${committee.memberCount} members`) : undefined].filter(Boolean) : rootDetails;
+  return <>
+    {committee && <Handle type="target" position={Position.Top} isConnectable={false} />}
+    <Card className="committee-flow-card nodrag nopan" dir={en ? "ltr" : "rtl"}>
+      <CardContent className="committee-flow-card-content">
+        <div className="committee-flow-node-heading">
+          {!committee && <Building2 aria-hidden="true" />}
+          {committee ? <button type="button" className="committee-flow-name" onClick={() => onAction("details")} aria-haspopup="dialog" aria-label={c(`عرض تفاصيل ${name}`, `View details for ${name}`)}><bdi>{name}</bdi></button> : <strong className="committee-flow-name" dir="auto">{name}</strong>}
+          {committee && !readOnly && <Badge variant="secondary">{committee.isPublic ? c("عامة", "Public") : c("مخفية", "Hidden")}</Badge>}
+          {committee && !readOnly && (committee.canEdit || canManage) && <DropdownMenu>
+            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={c(`إجراءات ${name}`, `Actions for ${name}`)} />}><MoreHorizontal aria-hidden="true" /></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" dir={en ? "ltr" : "rtl"}>
+              <DropdownMenuGroup>
+                {committee.canEdit && <DropdownMenuItem onClick={() => onAction("edit")}><Pencil aria-hidden="true" />{c("تعديل", "Edit")}</DropdownMenuItem>}
+                {canManage && <DropdownMenuItem onClick={() => onAction("child")}><Plus aria-hidden="true" />{c("إضافة لجنة فرعية", "Add subcommittee")}</DropdownMenuItem>}
+              </DropdownMenuGroup>
+              {canManage && <><DropdownMenuSeparator /><DropdownMenuGroup><DropdownMenuItem variant="destructive" onClick={() => onAction("delete")}><Trash2 aria-hidden="true" />{c("حذف", "Delete")}</DropdownMenuItem></DropdownMenuGroup></>}
+            </DropdownMenuContent>
+          </DropdownMenu>}
+        </div>
+        {meta.length > 0 && <p className="committee-flow-meta">{meta.join(" · ")}</p>}
+        {hasChildren && <Button type="button" variant="ghost" size="icon-sm" className="committee-flow-collapse" aria-expanded={expanded} aria-label={c(`${expanded ? "طي" : "فتح"} ${name}`, `${expanded ? "Collapse" : "Expand"} ${name}`)} onClick={onToggle}>{expanded ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}</Button>}
+      </CardContent>
+    </Card>
+    {hasChildren && expanded && <Handle type="source" position={Position.Bottom} isConnectable={false} />}
+  </>;
 }
+const nodeTypes = { committee: CommitteeNode };
 
-function CommitteeRows({ nodes, organizationId, canManage, locale, parentOptions, readOnly }: {
-  nodes: HierarchyNode<CommitteeChartItem>[];
-  organizationId: string;
-  canManage: boolean;
-  locale: Locale;
-  parentOptions: Array<{ id: string; name: string }>;
-  readOnly: boolean;
-}) {
-  const rows = readOnly ? [nodes] : chunkCommitteeChartNodes(nodes);
-
-  const branch = nodes[0]?.depth > 1;
-  const directSiblings = readOnly && !branch && nodes.every(node => !node.children?.length);
-  return rows.map((row, rowIndex) => <ul className={`organization-org-chart-row ${branch ? "organization-org-chart-row--branch" : "organization-org-chart-row--root"}${directSiblings ? " organization-org-chart-row--direct" : ""}`} key={`${row[0]?.data.id ?? "empty"}-${rowIndex}`}>
-    {row.map(node => {
-      const committee = node.data.committee;
-      if (!committee) return null;
-      const descendantIds = node.descendants().slice(1).map(descendant => descendant.data.id);
-
-      return <CommitteeListRow
-        key={committee.id}
-        organizationId={organizationId}
-        committee={committee}
-        canManage={canManage}
-        locale={locale}
-        parentOptions={parentOptions}
-        descendantIds={descendantIds}
-        readOnly={readOnly}
-        className={`${branch ? "organization-committee-row--branch" : "organization-committee-row--root"}${readOnly && node.depth === 1 ? node.children?.length ? " organization-committee-row--department" : " organization-committee-row--leaf" : ""}`}
-      >
-        {node.children && node.children.length > 0 && <div className="organization-org-chart-children organization-org-chart-children--branch">
-          <CommitteeRows nodes={node.children} organizationId={organizationId} canManage={canManage} locale={locale} parentOptions={parentOptions} readOnly={readOnly} />
-        </div>}
-      </CommitteeListRow>;
-    })}
-  </ul>);
+function ChartControls({ en }: { en: boolean }) {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  return <Panel position="bottom-left" className="committee-flow-controls"><div role="group" aria-label={en ? "Chart controls" : "التحكم بالمخطط"}>
+    <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom in" : "تكبير المخطط"} onClick={() => void zoomIn()}><Plus aria-hidden="true" /></Button>
+    <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom out" : "تصغير المخطط"} onClick={() => void zoomOut()}><Minus aria-hidden="true" /></Button>
+    <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Fit chart" : "عرض المخطط كاملًا"} onClick={() => void fitView({ padding: .15, maxZoom: 1 })}><Maximize aria-hidden="true" /></Button>
+  </div></Panel>;
 }
 
 export function OrganizationCommitteeChart({ organizationId, organizationName, rootDetails = [], committees, canManage, locale, parentOptions, emptyMessage, readOnly = false }: {
-  organizationId: string;
-  organizationName: string;
-  rootDetails?: readonly string[];
-  committees: CommitteeTreeNode<ManagedCommittee>[];
-  canManage: boolean;
-  locale: Locale;
-  parentOptions: Array<{ id: string; name: string }>;
-  emptyMessage: string;
-  readOnly?: boolean;
+  organizationId: string; organizationName: string; rootDetails?: readonly string[]; committees: CommitteeTreeNode<Committee>[]; canManage: boolean; locale: Locale; parentOptions: Array<{ id: string; name: string }>; emptyMessage: string; readOnly?: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  const [action, setAction] = useState<Action | null>(null);
   const en = locale === "en";
   const c = (ar: string, english: string) => en ? english : ar;
-  const treeRoot = hierarchy<CommitteeChartItem>({
-    id: `organization-${organizationId}`,
-    name: organizationName,
-    details: rootDetails.join("\n"),
-    children: toChartItems(committees, en, readOnly),
-  }, node => node.children?.length ? node.children : undefined);
-  const hasCommittees = Boolean(treeRoot.children?.length);
-  if (!readOnly) return <ManagementCommitteeTree {...{ organizationId, organizationName, rootDetails, committees, canManage, locale, parentOptions, emptyMessage }} />;
+  const graph = useMemo(() => {
+    const toBranch = (items: CommitteeTreeNode<Committee>[]): Branch[] => items.map(committee => ({ id: committee.id, name: committee.name, committee, children: toBranch(committee.children) }));
+    const root: Branch = { id: `organization-${organizationId}`, name: organizationName, children: toBranch(committees) };
+    const layout = layoutCommitteeChart(root, !en, collapsed);
+    const nodes: ChartNode[] = [];
+    function visit(branch: Branch) {
+      const position = layout.positions.get(branch.id);
+      if (!position) return;
+      const descendantIds = (item: Branch): string[] => item.children.flatMap(child => [child.id, ...descendantIds(child)]);
+      nodes.push({ id: branch.id, type: "committee", position, ...committeeNodeSize, style: { pointerEvents: "all" }, data: {
+        name: branch.name, committee: branch.committee, locale, rootDetails: branch.committee ? [] : rootDetails,
+        readOnly, canManage, hasChildren: branch.children.length > 0, expanded: !collapsed.has(branch.id),
+        onToggle: () => setCollapsed(current => { const next = new Set(current); if (next.has(branch.id)) next.delete(branch.id); else next.add(branch.id); return next; }),
+        onAction: kind => { if (branch.committee && (kind === "details" || !readOnly)) setAction({ kind, committee: branch.committee, descendants: descendantIds(branch) }); },
+      } });
+      branch.children.forEach(visit);
+    }
+    visit(root);
+    return { nodes, edges: layout.connections.map(edge => ({ ...edge, id: `${edge.source}-${edge.target}`, type: "step" })), height: layout.height };
+  }, [organizationId, organizationName, committees, en, collapsed, locale, rootDetails, readOnly, canManage]);
 
-  return <div className={`organization-org-chart-viewport${readOnly ? " organization-org-chart-viewport--public" : ""}`}>
-    <ul className="organization-org-chart-tree" aria-label={c("الهيكل التنظيمي للجان", "Committee organization chart")}>
-      <li className="organization-org-chart-root-row">
-        <Card className="organization-org-chart-root">
-          <CardContent className="organization-org-chart-root-content">
-            <Building2 aria-hidden="true" />
-            <span className="organization-org-chart-root-copy">
-              <span className="organization-org-chart-root-label">{c("الجهة", "Organization")}</span>
-              <span className="organization-org-chart-root-name" dir="auto">{organizationName}</span>
-              {rootDetails.length > 0 && <span className="organization-org-chart-root-details">
-                {rootDetails.map((detail, index) => <span key={`${index}-${detail}`}>{detail}</span>)}
-              </span>}
-            </span>
-          </CardContent>
-        </Card>
-        {hasCommittees
-          ? <div className="organization-org-chart-children organization-org-chart-children--root">
-              <CommitteeRows nodes={treeRoot.children!} organizationId={organizationId} canManage={canManage} locale={locale} parentOptions={parentOptions} readOnly={readOnly} />
-            </div>
-          : <div role="status" className="organization-compact-empty organization-org-chart-empty">
-              <span>{emptyMessage}</span>
-            </div>}
-      </li>
-    </ul>
+  return <div className="committee-flow" dir={en ? "ltr" : "rtl"}>
+    <div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) }}>
+      <ReactFlow<ChartNode> key={graph.nodes.map(node => node.id).join("|")} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
+        fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5}
+        nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false} elementsSelectable={false}
+        deleteKeyCode={null} zoomOnDoubleClick={false} zoomOnScroll={false} preventScrolling={false}
+        role="group" aria-label={c("الهيكل التنظيمي للجان", "Committee organization chart")}>
+        <ChartControls en={en} />
+      </ReactFlow>
+    </div>
+    {!committees.length && <WorkspaceEmptyState icon={UsersRound} title={c("لا توجد لجان بعد", "No committees yet")} description={emptyMessage} />}
+    {action && (action.kind === "edit" || action.kind === "child") && !readOnly && <CommitteeDialog key={`${action.kind}-${action.committee.id}`} organizationId={organizationId} locale={locale} committee={action.kind === "edit" ? action.committee : undefined} parentCommitteeId={action.kind === "child" ? action.committee.id : undefined} parentOptions={parentOptions.filter(option => !action.descendants.includes(option.id))} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger />}
+    <Dialog open={action?.kind === "details"} onOpenChange={open => { if (!open) setAction(null); }}>
+      <DialogContent dir={en ? "ltr" : "rtl"}><DialogHeader><DialogTitle>{action?.committee.name}</DialogTitle><DialogDescription className="whitespace-pre-line">{action?.committee.description.trim() || c("لا توجد تفاصيل إضافية متاحة.", "No additional details are available.")}</DialogDescription></DialogHeader>
+        {action?.committee.leaderName?.trim() && <p>{c("القائد", "Leader")}: <bdi>{action.committee.leaderName}</bdi></p>}
+        {action?.committee.memberCount != null && action.committee.memberCount > 0 && <p>{c("الأعضاء", "Members")}: {action.committee.memberCount}</p>}
+      </DialogContent>
+    </Dialog>
+    <AlertDialog open={action?.kind === "delete" && !readOnly} onOpenChange={open => { if (!open) setAction(null); }}>
+      <AlertDialogContent dir={en ? "ltr" : "rtl"}>
+        <AlertDialogHeader><AlertDialogTitle>{c("حذف اللجنة؟", "Delete committee?")}</AlertDialogTitle><AlertDialogDescription>{c("ستُزال اللجنة من القائمة النشطة مع حفظ سجلها السابق. لا تُحذف لجانها الفرعية.", "The committee will leave the active list and its history will be retained. Its subcommittees are kept.")}</AlertDialogDescription></AlertDialogHeader>
+        {action?.kind === "delete" && !readOnly && <ManagementActionProvider locale={locale} close={() => setAction(null)}><MutationForm operation="committee-status" fields={{ organizationId, committeeId: action.committee.id, status: "Archived", confirmed: "on" }} submitLabel={c("حذف اللجنة", "Delete committee")} buttonClassName="button button-danger" locale={locale} inlineFooter onSuccess={() => setAction(null)} /></ManagementActionProvider>}
+      </AlertDialogContent>
+    </AlertDialog>
   </div>;
 }

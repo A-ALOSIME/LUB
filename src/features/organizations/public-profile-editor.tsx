@@ -128,7 +128,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-fields">
-          {textFields.slice(2).map(field => <div className="organization-settings-field" key={field.key}>
+          {textFields.slice(2).map(field => <div className={field.key === "offerings" ? "organization-settings-field full organization-offerings-field" : "organization-settings-field"} key={field.key}>
             <FieldLabel htmlFor={`${inputId}-${field.key}`}>{en ? ({ offerings: "What we offer", goals: "Goals", fields: "Fields", programs: "Programs", achievements: "Achievements", partners: "Partners" } as Record<string, string>)[field.key] : field.label}</FieldLabel>
             {field.key === "offerings" ? <Textarea id={`${inputId}-${field.key}`} dir={en ? "ltr" : "rtl"} rows={field.rows} maxLength={5000} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={event => update(field.key, event.target.value)} />
               : <ListEntryInput id={`${inputId}-${field.key}`} label={en ? field.key : field.label} locale={locale} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={value => update(field.key, value)} />}

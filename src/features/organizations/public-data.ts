@@ -12,14 +12,14 @@ export function readPublicDirectory(filters: DiscoveryFilters) {
 
 class PublicOrganizationNotFound extends Error {}
 const cachedPublicOrganization = unstable_cache(async (slug: string) => {
-  const organization = await getPublicOrganization(slug, 0);
+  const organization = await getPublicOrganization(slug);
   // Do not store arbitrary slug misses in the shared cache.
   if (!organization) throw new PublicOrganizationNotFound();
   return organization;
-}, ["public-organization-v5"], { revalidate: 120, tags: ["public-organizations"] });
+}, ["public-organization-v6"], { revalidate: 120, tags: ["public-organizations"] });
 
-export async function readPublicOrganization(slug: string, committeePage = 0) {
-  if (committeePage !== 0 || !slugSchema.safeParse(slug).success) return getPublicOrganization(slug, committeePage);
+export async function readPublicOrganization(slug: string) {
+  if (!slugSchema.safeParse(slug).success) return undefined;
   try { return await cachedPublicOrganization(slug); }
   catch (error) { if (error instanceof PublicOrganizationNotFound) return undefined; throw error; }
 }
