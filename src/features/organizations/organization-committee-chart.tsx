@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Handle, Panel, Position, ReactFlow, useReactFlow, type Node, type NodeProps } from "@xyflow/react";
+import { useEffect, useMemo, useState } from "react";
+import { Handle, Panel, Position, ReactFlow, useNodesInitialized, useReactFlow, useStore, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Building2, ChevronDown, ChevronUp, Maximize, Minus, MoreHorizontal, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,13 @@ const nodeTypes = { committee: CommitteeNode };
 
 function ChartControls({ en }: { en: boolean }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const width = useStore(state => state.width);
+  const height = useStore(state => state.height);
+  const initialized = useNodesInitialized();
+  // A chart mounted in a hidden tab must fit again when its real canvas size is known.
+  useEffect(() => {
+    if (initialized && width > 0 && height > 0) void fitView({ padding: .15, minZoom: .55, maxZoom: 1 });
+  }, [fitView, width, height, initialized]);
   return <Panel position="bottom-left" className="committee-flow-controls"><div role="group" aria-label={en ? "Chart controls" : "التحكم بالمخطط"}>
     <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom in" : "تكبير المخطط"} onClick={() => void zoomIn()}><Plus aria-hidden="true" /></Button>
     <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom out" : "تصغير المخطط"} onClick={() => void zoomOut()}><Minus aria-hidden="true" /></Button>

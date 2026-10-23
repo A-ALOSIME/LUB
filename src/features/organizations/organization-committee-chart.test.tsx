@@ -7,10 +7,20 @@ vi.mock('./committee-dialog', () => ({ CommitteeDialog: ({ open, parentCommittee
 vi.mock('./mutation-form', () => ({ MutationForm: () => null }));
 vi.mock('@/components/management-action-sheet', () => ({ ManagementActionProvider: ({ children }: { children: ReactNode }) => children }));
 import { OrganizationCommitteeChart } from './organization-committee-chart';
-afterEach(cleanup);
+import { fitChart, flowViewport } from '../../../tests/helpers/react-flow';
+afterEach(() => { cleanup(); fitChart.mockClear(); flowViewport.width = 800; });
 const committee = (id: string, children: ReturnTypeCommittee[] = []): ReturnTypeCommittee => ({ id, name: id, description: 'وصف اللجنة', isPublic: true, statusCode: 'Active', copiedFromCommitteeId: null, parentCommitteeId: null, canEdit: true, memberCount: 0, leaderName: null, children });
 type ReturnTypeCommittee = { id: string; name: string; description: string; isPublic: boolean; statusCode: string; copiedFromCommitteeId: null; parentCommitteeId: string | null; canEdit: boolean; memberCount: number | null; leaderName: string | null; children: ReturnTypeCommittee[] };
 const props = { organizationId: 'org', organizationName: 'الجهة', canManage: true, locale: 'ar' as const, parentOptions: [{ id: 'أ', name: 'أ' }], emptyMessage: 'لا توجد لجان' };
+it('fits the diagram when a hidden tab gains a visible canvas width', () => {
+  flowViewport.width = 0;
+  const committees = [committee('أ')];
+  const ui = render(<OrganizationCommitteeChart {...props} committees={committees} />);
+  expect(fitChart).not.toHaveBeenCalled();
+  flowViewport.width = 1200;
+  ui.rerender(<OrganizationCommitteeChart {...props} committees={committees} />);
+  expect(fitChart).toHaveBeenCalledWith({ padding: .15, minZoom: .55, maxZoom: 1 });
+});
 it('connects root, siblings, and deeper branches and supports collapsing and reopening', () => {
   render(<OrganizationCommitteeChart {...props} committees={[committee('أ', [committee('فرعية')]), committee('ب')]} />);
   expect(document.querySelectorAll('[data-node-id]')).toHaveLength(4);
