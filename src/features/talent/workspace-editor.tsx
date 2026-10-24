@@ -280,7 +280,7 @@ function ProfileSettingsForm({ data, user, pages, locale }: { data: TalentWorksp
                   const fields = `link_${link.id}_`;
                   const label = talentChannelLabel(link.link_type, en);
                   return <li key={link.id} className="flex w-fit max-w-full items-center gap-1.5 rounded-lg border border-border bg-background p-1.5">
-                    <span title={label} aria-label={label} className="grid size-9 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground"><TalentChannelIcon kind={link.link_type} /></span>
+                    <span title={label} aria-label={label} className="organization-contact-icon"><TalentChannelIcon kind={link.link_type} /></span>
                     <span className="sr-only">{label}</span>
                     <input type="hidden" name="linkId" value={link.id} />
                     <input type="hidden" name={`${fields}kind`} value={link.link_type} />

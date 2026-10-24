@@ -103,3 +103,25 @@ it('keeps every one of six parent departments linked to its two children', () =>
     expect(document.querySelector('[data-edge="إدارة ' + i + ':ب ' + i + '"]')).toBeTruthy();
   }
 });
+
+it('scales pixel node geometry with the central rem size and restores it on smaller screens', () => {
+  const original = document.documentElement.style.fontSize;
+  try {
+    render(<OrganizationCommitteeChart {...props} committees={[committee('أ')]} />);
+    document.documentElement.style.fontSize = '20px';
+    fireEvent.resize(window);
+    const node = document.querySelector('[data-node-id="أ"]')!;
+    expect(node.getAttribute('data-width')).toBe('320');
+    expect(node.getAttribute('data-height')).toBe('160');
+    expect(node.getAttribute('data-y')).toBe('250');
+    expect(document.querySelector<HTMLElement>('.committee-flow-canvas')!.style.height).toBe('510px');
+    document.documentElement.style.fontSize = '16px';
+    fireEvent.resize(window);
+    const restored = document.querySelector('[data-node-id="أ"]')!;
+    expect(restored.getAttribute('data-width')).toBe('256');
+    expect(restored.getAttribute('data-height')).toBe('128');
+    expect(restored.getAttribute('data-y')).toBe('200');
+  } finally {
+    document.documentElement.style.fontSize = original;
+  }
+});

@@ -30,6 +30,10 @@
 }
 
 :root { --surface: #fcfcf9; --focus-ring: #457eab; --field-surface: #fff; --field-border: #c9d2d5; --field-hover: #91a2a8; --button-ink: #fff; }
+/* One desktop scale for rem-based type, controls, layouts and portaled overlays. */
+@media (min-width: 1024px) {
+  :root { font-size: 125%; }
+}
 :root {
   --background: var(--color-mist); --foreground: var(--color-ink); --card: var(--surface); --card-foreground: var(--color-ink);
   --popover: var(--surface); --popover-foreground: var(--color-ink); --primary: var(--color-action); --primary-foreground: var(--button-ink);
@@ -1258,7 +1262,7 @@ a.organization-social-link:focus-visible { outline: 3px solid var(--focus-ring);
 .committee-flow-canvas { width: 100%; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); }
 .committee-flow .react-flow { --xy-edge-stroke: var(--muted-foreground); --xy-edge-stroke-width: 1; --xy-background-color: var(--background); font-family: inherit; }
 .committee-flow .react-flow__handle { width: 1px; min-width: 1px; height: 1px; min-height: 1px; border: 0; opacity: 0; }
-.committee-flow-card { width: 256px; height: 128px; padding: 0; gap: 0; box-shadow: none; }
+.committee-flow-card { width: 100%; height: 100%; padding: 0; gap: 0; box-shadow: none; }
 .committee-flow-card-content { display: flex; height: 100%; flex-direction: column; justify-content: center; gap: .5rem; padding: .75rem; }
 .committee-flow-node-heading { position: relative; display: flex; min-width: 0; align-items: center; justify-content: center; gap: .4rem; }
 .committee-flow-node-heading > svg { position: absolute; inset-inline-start: 0; width: 1.15rem; height: 1.15rem; color: var(--muted-foreground); }
@@ -1764,3 +1768,28 @@ body:has(.workspace-app[data-workspace-shell="true"]) { overflow: hidden; }
 @media (min-width: 768px) {
   .workspace-app[data-workspace-shell="true"] .workspace-mobile-menu-trigger { display: none; }
 }
+
+/* A shared channel frame keeps current and future channels padded consistently. */
+.organization-contact-icon, .organization-social-link {
+  display: inline-grid; flex: none; place-items: center;
+  width: 2.5rem; height: 2.5rem; padding: .6rem;
+  border: 1px solid var(--color-line); border-radius: .625rem;
+  background: var(--color-mist); color: var(--color-action);
+}
+.organization-contact-icon > svg, .organization-social-link > svg {
+  display: block; width: 1.25rem; height: 1.25rem; flex: none; overflow: visible;
+}
+@media (min-width: 1024px) {
+  .workspace-app[data-workspace-shell="true"] .workspace-sidebar-link,
+  .workspace-app[data-workspace-shell="true"] .workspace-sidebar-section-heading { gap: .75rem; min-height: 2.75rem; }
+  .workspace-sidebar-link > svg, .workspace-sidebar-section-heading > svg { width: 1.2rem; height: 1.2rem; flex: none; }
+  .workspace-sidebar-label { overflow-wrap: anywhere; }
+  .workspace-app[data-workspace-shell="true"] .workspace-sidebar-organization .workspace-sidebar-label { white-space: normal; }
+}
+
+@media (min-width: 1024px) {
+  [data-slot="badge"] { min-height: 1.3rem; padding-inline: .5rem; }
+  .workspace-filter-control [data-slot="tabs-trigger"] { min-height: 2rem; padding-inline: .7rem; font-size: .8rem; }
+}
+
+a.organization-contact-icon:hover { background: var(--accent); color: var(--accent-foreground); }

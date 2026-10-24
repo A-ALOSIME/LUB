@@ -77,6 +77,14 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [action, setAction] = useState<Action | null>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    // React Flow positions use pixels; follow the site's rem scale as well.
+    const measure = () => setScale((parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
   const en = locale === "en";
   const c = (ar: string, english: string) => en ? english : ar;
   const graph = useMemo(() => {
@@ -88,7 +96,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
       const position = layout.positions.get(branch.id);
       if (!position) return;
       const descendantIds = (item: Branch): string[] => item.children.flatMap(child => [child.id, ...descendantIds(child)]);
-      nodes.push({ id: branch.id, type: "committee", position, ...committeeNodeSize, style: { pointerEvents: "all" }, data: {
+      nodes.push({ id: branch.id, type: "committee", position: { x: position.x * scale, y: position.y * scale }, width: committeeNodeSize.width * scale, height: committeeNodeSize.height * scale, style: { pointerEvents: "all", width: committeeNodeSize.width * scale, height: committeeNodeSize.height * scale }, data: {
         name: branch.name, committee: branch.committee, locale, rootDetails: branch.committee ? [] : rootDetails,
         readOnly, canManage, hasChildren: branch.children.length > 0, expanded: !collapsed.has(branch.id),
         onToggle: () => setCollapsed(current => { const next = new Set(current); if (next.has(branch.id)) next.delete(branch.id); else next.add(branch.id); return next; }),
@@ -98,11 +106,11 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     }
     visit(root);
     return { nodes, edges: layout.connections.map(edge => ({ ...edge, id: `${edge.source}-${edge.target}`, type: "step" })), height: layout.height };
-  }, [organizationId, organizationName, committees, en, collapsed, locale, rootDetails, readOnly, canManage]);
+  }, [organizationId, organizationName, committees, en, collapsed, locale, rootDetails, readOnly, canManage, scale]);
 
   return <TooltipProvider><div className="committee-flow" dir={en ? "ltr" : "rtl"}>
-    <div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) }}>
-      <ReactFlow<ChartNode> key={graph.nodes.map(node => node.id).join("|")} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
+    <div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) * scale }}>
+      <ReactFlow<ChartNode> key={`${scale}|${graph.nodes.map(node => node.id).join("|")}`} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
         fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5} proOptions={{ hideAttribution: true }}
         nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false} elementsSelectable={false}
         deleteKeyCode={null} zoomOnDoubleClick={false} zoomOnScroll={false} preventScrolling={false}

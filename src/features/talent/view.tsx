@@ -85,7 +85,7 @@ export function PublicTalentView({ profile: p, pages, locale = "ar" }: { profile
             {p.links.map((link, index) => {
               const href = link.kind === "Email" ? `mailto:${link.value}` : link.kind === "Phone" ? `tel:${link.value}` : link.value;
               const label = talentChannelLabel(link.kind, en);
-              return <a key={`${link.kind}-${index}`} href={href} rel="noopener noreferrer" aria-label={label} title={label} className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+              return <a key={`${link.kind}-${index}`} href={href} rel="noopener noreferrer" aria-label={label} title={label} className="organization-contact-icon transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                 <TalentChannelIcon kind={link.kind} className="size-4 shrink-0" />
               </a>;
             })}
