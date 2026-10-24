@@ -1793,3 +1793,24 @@ body:has(.workspace-app[data-workspace-shell="true"]) { overflow: hidden; }
 }
 
 a.organization-contact-icon:hover { background: var(--accent); color: var(--accent-foreground); }
+
+/* Confirmation and input dialogs share their popup surface and RTL action edge. */
+[data-slot="dialog-footer"], [data-slot="alert-dialog-footer"] {
+  background: var(--popover); border-color: var(--border); justify-content: flex-start;
+}
+[data-slot="alert-dialog-action"] { order: 0; }
+[data-slot="alert-dialog-cancel"], [data-slot="dialog-footer"] > [data-slot="dialog-close"] { order: 1; }
+@media (max-width: 767px) {
+  [data-slot="dialog-content"], [data-slot="alert-dialog-content"] {
+    inset-inline: 0; top: auto; bottom: 0; left: 0; right: 0; translate: none;
+    width: 100%; max-width: none; max-height: 96dvh; overflow-y: auto;
+    border-radius: 1rem 1rem 0 0; padding-bottom: max(1rem,env(safe-area-inset-bottom));
+  }
+  [data-slot="dialog-footer"], [data-slot="alert-dialog-footer"] { display: flex; flex-direction: column; align-items: stretch; }
+  [data-slot="dialog-footer"] > *, [data-slot="alert-dialog-footer"] > * { width: 100%; min-height: 2.75rem; }
+}
+
+@media (max-width: 767px) {
+  .management-action-footer.is-modal-footer { flex-direction: column; align-items: stretch; }
+  .management-action-footer.is-modal-footer > [data-slot="button"] { width: 100%; min-height: 2.75rem; }
+}
