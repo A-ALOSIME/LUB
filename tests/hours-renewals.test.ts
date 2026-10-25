@@ -148,6 +148,7 @@ it("asks before duplicate manual hours and accepts only an explicit repeated-ent
  const args=[memberships[1],term];
  await db.query("select lub.add_hours($1,null,$2,2,current_date,'عمل مكرر',false)",args);
  await denied(()=>db.query("select lub.add_hours($1,null,$2,2,current_date,'عمل مكرر',false)",args));
+ await denied(()=>db.query("select lub.add_hours($1,null,$2,2,current_date,'وصف مختلف',false)",args));
  await db.query("select lub.add_hours($1,null,$2,2,current_date,'عمل مكرر',false,true)",args);
  expect((await db.query("select id from lub.hour_records")).rows).toHaveLength(2);
 });

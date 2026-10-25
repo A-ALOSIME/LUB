@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { CalendarDays, X } from "lucide-react";
 import { arSA, enGB } from "react-day-picker/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -220,6 +220,27 @@ function CalendarPopup({
 }) {
   const mobile = useIsMobile(),
     en = locale === "en";
+  const desktopField = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || mobile) return;
+    const field = desktopField.current;
+    const scroll = field?.closest<HTMLElement>("[data-management-action-scroll]");
+    if (!field || !scroll) return;
+    // Keep the reserved calendar area above the dialog's sticky actions.
+    const revealCalendar = () => {
+      const trigger = field.querySelector<HTMLElement>("[aria-haspopup]");
+      const footer = scroll.querySelector<HTMLElement>(".management-action-footer");
+      if (!trigger) return;
+      const bottom = footer?.getBoundingClientRect().top ?? scroll.getBoundingClientRect().bottom;
+      const calendarHeight = Math.min(34 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight * .45);
+      const overlap = trigger.getBoundingClientRect().bottom + calendarHeight + 16 - bottom;
+      if (overlap > 0) scroll.scrollBy({ top: overlap, behavior: "instant" });
+    };
+    const frame = requestAnimationFrame(revealCalendar);
+    const observer = new ResizeObserver(revealCalendar);
+    observer.observe(scroll);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
+  }, [open, mobile]);
   if (mobile)
     return (
       <>
@@ -266,7 +287,7 @@ function CalendarPopup({
       </>
     );
   return (
-    <>
+    <div ref={desktopField} className="min-w-0">
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger nativeButton={false} render={trigger} />
         <PopoverContent
@@ -284,7 +305,7 @@ function CalendarPopup({
         </PopoverContent>
       </Popover>
       {open && <div className="date-picker-reserve" aria-hidden="true" />}
-    </>
+    </div>
   );
 }
 
