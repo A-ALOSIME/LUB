@@ -67,7 +67,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   const allowedTemplate = (committee: string | null) => templateScopes.some(scope => scope.id === committee);
   const scopeField = (scopes: NonNullable<typeof workspace>["scopes"], value?: string | null) => <label>{c("نطاق العمل", "Work scope")}<NativeSelect name="committee" defaultValue={value ?? ""}>{scopes.map(scope => <option key={scope.id ?? "organization"} value={scope.id ?? ""} dir="auto">{scope.name}</option>)}</NativeSelect></label>;
 
-  const templatesAction = templateScopes.length > 0 && workspace && <ManagementActionSheet label={c("القوالب", "Templates")} title={c("إدارة قوالب المهام", "Manage task templates")} locale={locale} variant="outline" icon={<LayoutTemplate aria-hidden="true" />}>
+  const templatesAction = templateScopes.length > 0 && workspace && <ManagementActionSheet label={c("القوالب", "Templates")} title={c("إدارة قوالب المهام", "Manage task templates")} locale={locale} triggerSize="default" variant="outline" icon={<LayoutTemplate aria-hidden="true" />}>
     <section className="space-y-5" aria-label={c("قوالب المهام", "Task templates")}>
       <ManagementActionSheet label={c("قالب جديد", "New template")} title={c("إضافة قالب مهمة", "Add a task template")} locale={locale}>
         <TaskForm operation="template" fields={{ org: id }} label={c("إنشاء القالب", "Create template")} locale={locale}>{scopeField(templateScopes)}<TaskFields template locale={locale}/></TaskForm>
