@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { useRef, useId, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, X } from "lucide-react";
 import { arSA, enGB } from "react-day-picker/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -164,7 +164,7 @@ function CalendarPanel({
           year: "numeric",
           calendar: "gregory",
         }).format(d),
-      formatWeekdayName: (d: Date) => en ? d.toLocaleDateString("en-GB",{weekday:"short"}) : ["أحد","اثن","ثلا","أرب","خمي","جمع","سبت"][d.getDay()],
+      formatWeekdayName: (d: Date) => en ? d.toLocaleDateString("en-GB",{weekday:"short"}) : ["ح","ن","ث","ر","خ","ج","س"][d.getDay()],
     },
     labels: {
       labelPrevious: () => (en ? "Previous month" : "الشهر السابق"),
@@ -218,6 +218,9 @@ function CalendarPopup({
 }) {
   const mobile = useIsMobile(),
     en = locale === "en";
+  const desktopField = useRef<HTMLDivElement>(null);
+  const [boundary,setBoundary] = useState<Element | undefined>();
+  const [preferredSide,setPreferredSide] = useState<"top"|"bottom">("bottom");
   if (mobile)
     return (
       <>
@@ -265,20 +268,23 @@ function CalendarPopup({
       </>
     );
   return (
-    <>
-      <Popover open={open} onOpenChange={onOpenChange}>
+    <div ref={desktopField} className="min-w-0">
+      <Popover open={open} onOpenChange={next=>{if(next){const field=desktopField.current;const bounds=field?.closest(".workflow-form-body");setBoundary(bounds??undefined);if(field){const rect=field.getBoundingClientRect(),area=bounds?.getBoundingClientRect();setPreferredSide(rect.top-(area?.top??0)>(area?.bottom??window.innerHeight)-rect.bottom?"top":"bottom");}}onOpenChange(next);}}>
         <PopoverTrigger nativeButton={trigger.type === Button} render={trigger} />
         <PopoverContent
           align="start"
+          side={preferredSide}
           sideOffset={4}
-          collisionAvoidance={{side:"shift",align:"shift",fallbackAxisSide:"none"}}
+          collisionAvoidance={{side:"flip",align:"shift",fallbackAxisSide:"none"}}
+          collisionBoundary={boundary}
+          collisionPadding={10}
           className="date-picker-popover"
           dir={en ? "ltr" : "rtl"}
         >
           {children}
         </PopoverContent>
       </Popover>
-    </>
+    </div>
   );
 }
 

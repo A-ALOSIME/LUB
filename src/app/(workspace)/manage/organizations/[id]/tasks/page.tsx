@@ -1,6 +1,7 @@
+import { cloneElement } from "react";
 import { RowAction } from "@/components/row-action";
 import { formatHours } from "@/lib/display";
-import { Clock3, ClipboardCheck, Files, Pencil, Copy, Plus } from "lucide-react";
+import { Clock3, ClipboardCheck, LayoutTemplate, Pencil, Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -66,7 +67,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   const allowedTemplate = (committee: string | null) => templateScopes.some(scope => scope.id === committee);
   const scopeField = (scopes: NonNullable<typeof workspace>["scopes"], value?: string | null) => <label>{c("نطاق العمل", "Work scope")}<NativeSelect name="committee" defaultValue={value ?? ""}>{scopes.map(scope => <option key={scope.id ?? "organization"} value={scope.id ?? ""} dir="auto">{scope.name}</option>)}</NativeSelect></label>;
 
-  const templatesAction = templateScopes.length > 0 && workspace && <ManagementActionSheet label={c("القوالب", "Templates")} title={c("إدارة قوالب المهام", "Manage task templates")} locale={locale} variant="secondary" icon={<Files aria-hidden="true" />}>
+  const templatesAction = templateScopes.length > 0 && workspace && <ManagementActionSheet label={c("القوالب", "Templates")} title={c("إدارة قوالب المهام", "Manage task templates")} locale={locale} variant="outline" icon={<LayoutTemplate aria-hidden="true" />}>
     <section className="space-y-5" aria-label={c("قوالب المهام", "Task templates")}>
       <ManagementActionSheet label={c("قالب جديد", "New template")} title={c("إضافة قالب مهمة", "Add a task template")} locale={locale}>
         <TaskForm operation="template" fields={{ org: id }} label={c("إنشاء القالب", "Create template")} locale={locale}>{scopeField(templateScopes)}<TaskFields template locale={locale}/></TaskForm>
@@ -125,7 +126,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   const defaultSection = taskAccess ? "tasks" : "hours";
   const initialSection = query.section === "hours" ? "hours" : defaultSection;
   const hasTasks = Boolean(tasks?.items.length);
-  const taskToolbarAction = <div className="flex min-w-0 flex-wrap items-center gap-2">{templatesAction}{hasTasks && taskCreateAction}</div>;
+  const taskToolbarAction = <div className="flex min-w-0 flex-wrap items-center gap-2">{taskCreateAction}{templatesAction}</div>;
 
   return <div className="min-w-0 space-y-5">
     <OrganizationSectionTabs items={items} initialSection={initialSection} defaultSection={defaultSection} sticky={false} label={c("المهام والساعات", "Tasks and hours")} dir={en ? "ltr" : "rtl"} sectionActions={{ tasks: taskToolbarAction, hours: hoursToolbarAction }}>
@@ -134,7 +135,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
           {hasTasks && tasks ? <>
             <TaskList items={tasks.items} mode="all" locale={locale}/>
             <TaskPagination page={taskPage} more={tasks.more} base={base} query={{ section: "tasks" }} locale={locale}/>
-          </> : <WorkspaceEmptyState icon={ClipboardCheck} title={c("لا توجد مهام بعد", "No tasks yet")} description={c("أنشئ أول مهمة للجهة.", "Create the organization's first task.")} action={taskCreateAction ?? templatesAction} />}
+          </> : <WorkspaceEmptyState icon={ClipboardCheck} title={c("لا توجد مهام بعد", "No tasks yet")} description={c("أنشئ أول مهمة للجهة.", "Create the organization's first task.")} action={taskCreateAction ? cloneElement(taskCreateAction,{initiallyOpen:false,key:"empty-task"}) : templatesAction} />}
         </section>
       </OrganizationSectionTabPanel>}
       {hoursAccess && <OrganizationSectionTabPanel id="hours">

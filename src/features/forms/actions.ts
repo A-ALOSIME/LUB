@@ -7,15 +7,15 @@ import { requireUser } from "@/features/auth/session";
 import { studentOperationError } from "@/features/auth/authorization";
 import { definitionSchema, validateAnswers } from "./definition";
 import { getRound } from "./repository";
-export type WorkflowState = { error?: string; success?: string; bulk?: string };
+export type WorkflowState = { error?: string; success?: string; bulk?: string; templateId?:string };
 const uuid = (form: FormData, name: string) => z.uuid().parse(form.get(name));
 const optionalUuid = (form: FormData, name: string) => form.get(name) ? uuid(form,name) : null;
 const text = (form: FormData, name: string, max = 120) => z.string().trim().min(1).max(max).parse(form.get(name));
 function json(form: FormData, name: string, max: number) { const value=z.string().max(max).parse(form.get(name)); return JSON.parse(value) as unknown; }
 export async function mutateWorkflow(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
- const user = await requireUser(); let bulk: string | undefined;
+ const user = await requireUser(); let bulk: string | undefined; let templateId:string|undefined;
  try {
-  const operation = z.enum(["create-form","save-form","publish-form","draft-form","create-round","round-status","submit","withdraw","decide","note","bulk"]).parse(form.get("operation"));
+  const operation = z.enum(["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form","create-round","round-status","submit","withdraw","decide","note","bulk"]).parse(form.get("operation"));
   if (["submit","withdraw"].includes(operation)) {
    const adminError = await studentOperationError(user.id);
    if (adminError) return { error: adminError };
@@ -23,6 +23,8 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
   const query = await (async () => {
    if (form.get("undoBulk")) return sql`select lub.undo_application_bulk(${uuid(form,"undoBulk")})`;
    switch(operation) {
+    case "delete-form": return sql`select lub.delete_form(${uuid(form,"template")})`;
+    case "duplicate-form": return sql`select lub.duplicate_form(${uuid(form,"template")}) as id`;
     case "create-form": return sql`select lub.create_form(${uuid(form,"org")},${text(form,"title")},${optionalUuid(form,"source")})`;
     case "save-form": return sql`select lub.save_form_draft(${uuid(form,"version")},${JSON.stringify(definitionSchema.parse(json(form,"definition",128000)))}::jsonb,${z.coerce.number().int().positive().parse(form.get("revision"))})`;
     case "publish-form": return sql`select lub.publish_form_version(${uuid(form,"version")})`;
@@ -51,8 +53,9 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
    }
   })();
   const result=await withUser(user.id,tx=>tx.execute(query));
+  if(operation==="duplicate-form") templateId=z.uuid().parse(result[0]?.id);
   if (operation==="bulk" && !form.get("undoBulk")) bulk=z.uuid().parse(result[0]?.id);
- } catch { return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
- updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
- return { success: form.get("undoBulk") ? "تم التراجع عن الطلبات التي لم تتغير بعد العملية؛ التغييرات اللاحقة محفوظة." : "تم حفظ التغيير.", bulk };
+ } catch { if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
+ updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
+ return { success: form.get("undoBulk") ? "تم التراجع عن الطلبات التي لم تتغير بعد العملية؛ التغييرات اللاحقة محفوظة." : form.get("operation")==="duplicate-form" ? "تم إنشاء نسخة" : form.get("operation")==="delete-form" ? "تم حذف النموذج" : "تم حفظ التغيير.", bulk, templateId };
 }

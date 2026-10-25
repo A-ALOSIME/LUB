@@ -1,10 +1,14 @@
 "use client";
 import { formatHours } from "@/lib/display";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { DateRangeInput } from "@/features/forms/date-input";
 import { NativeSelect } from "@/components/ui/native-select";
+import {Switch} from "@/components/ui/switch";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea";
+import {Field,FieldGroup,FieldLabel,FieldDescription} from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import type { Task, TaskTemplate } from "./repository";
 import type { Locale } from "@/lib/preferences";
@@ -35,16 +39,23 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
   selectedTemplate?: string;
   canSaveTemplate?: boolean;
 }) {
+  const fieldId=useId();
   const [hoursMode, setHoursMode] = useState<"manual" | "rule">("manual");
   const [ruleId, setRuleId] = useState("");
   const [manualHours, setManualHours] = useState(value?.default_hours ?? "0");
   const selectedRule = rules.find(rule => rule.id === ruleId);
   const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  if(template)return <FieldGroup className="task-template-fields">
+    <Field><FieldLabel htmlFor={`${fieldId}-title`}>{c("العنوان","Title")}</FieldLabel><Input id={`${fieldId}-title`} name="title" required minLength={2} maxLength={120} defaultValue={value?.title??value?.name??""}/></Field>
+    <Field><FieldLabel htmlFor={`${fieldId}-description`}>{c("وصف العمل والمخرج المطلوب","Work description and expected deliverable")}</FieldLabel><Textarea id={`${fieldId}-description`} name="description" required maxLength={6000} rows={5} defaultValue={value?.description??value?.description_template??""}/></Field>
+    <Field><FieldLabel htmlFor={`${fieldId}-hours`}>{c("الساعات الافتراضية","Default hours")}</FieldLabel><Input id={`${fieldId}-hours`} name="hours" type="number" min={0} max={1000} step="0.01" required defaultValue={value?.default_hours??"0"}/></Field>
+    <Field><div className="flex items-center gap-3"><Switch id={`${fieldId}-active`} name="active" defaultChecked={value?.is_active??true}/><FieldLabel htmlFor={`${fieldId}-active`}>{c("قالب نشط","Active template")}</FieldLabel></div><FieldDescription>{c("يظهر القالب عند إنشاء مهمة جديدة.","Available when creating a new task.")}</FieldDescription></Field>
+  </FieldGroup>;
   return <>
     {!template && <TaskTemplatePicker templates={templates} selected={selectedTemplate} locale={locale} />}
     <label>{c("العنوان", "Title")}<input name="title" required minLength={2} maxLength={120} defaultValue={value?.title ?? value?.name ?? ""}/></label>
     <label>{c("وصف العمل والمخرج المطلوب", "Work description and expected deliverable")}<textarea name="description" required maxLength={6000} rows={5} defaultValue={value?.description ?? value?.description_template ?? ""}/></label>
-    {template ? <label>{c("الساعات الافتراضية", "Default hours")}<input name="hours" type="number" min={0} max={1000} step="0.01" required defaultValue={value?.default_hours ?? "0"}/></label> : <>
+    {<>
       <label>{c("ساعات المهمة", "Task hours")}
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -61,7 +72,7 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
         {hoursMode === "manual" && <input type="hidden" name="rule" value=""/>}
       </label>
     </>}
-    {template ? <label className="flex items-center gap-3"><input name="active" type="checkbox" defaultChecked={value?.is_active ?? true} className="size-4"/>{c("قالب نشط", "Active template")}</label> : <>
+    {<>
       {canSaveTemplate && <label className="flex items-center gap-2"><input name="saveTemplate" type="checkbox" className="size-4"/>{c("احفظها كقالب", "Save as a template")}</label>}
       <details className="rounded-lg border border-border/70 px-3 py-2">
         <summary className="cursor-pointer text-sm font-medium">{c("خيارات إضافية", "Additional options")}</summary>

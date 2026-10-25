@@ -4,16 +4,15 @@ import { useState } from "react";
 import { Check, Eye, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Field,
   FieldLabel,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
 } from "@/components/ui/field";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {HourAdjustment} from "./hour-adjustment";
+import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
+import {Button} from "@/components/ui/button";
+import {Separator} from "@/components/ui/separator";
 import {
   Table,
   TableHeader,
@@ -62,117 +61,6 @@ export function HourStatus({
     >
       {labels[status]?.[locale === "en" ? 1 : 0] ?? status}
     </OrganizationStatusBadge>
-  );
-}
-function HourAdjustment({
-  record,
-  locale,
-  onSuccess,
-}: {
-  record: HourRecord;
-  locale: Locale;
-  onSuccess: () => void;
-}) {
-  const [direction, setDirection] = useState("increase"),
-    [amount, setAmount] = useState(""),
-    [note, setNote] = useState("");
-  const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
-    delta = Number(amount) * (direction === "increase" ? 1 : -1),
-    next = Math.round((Number(record.hours) + delta) * 100) / 100;
-  const invalid =
-    Boolean(amount) &&
-    (next < 0 || next > 1000 || !Number.isFinite(next) || Number(amount) <= 0);
-  return (
-    <HoursForm
-      operation="adjust"
-      fields={{
-        record: record.id,
-        expected: record.hours,
-        delta: String(delta),
-        note,
-      }}
-      label={c("حفظ التعديل", "Save adjustment")}
-      locale={locale}
-      disabled={invalid || !amount}
-      onSuccess={onSuccess}
-    >
-      <FieldGroup>
-        <Field>
-          <FieldLabel>{c("نوع التعديل", "Adjustment")}</FieldLabel>
-          <ToggleGroup
-            multiple={false}
-            value={[direction]}
-            onValueChange={(values) => {
-              if (values[0]) setDirection(values[0]);
-            }}
-            variant="outline"
-            className="hours-adjust-direction"
-          >
-            <ToggleGroupItem value="increase">
-              {c("زيادة", "Increase")}
-            </ToggleGroupItem>
-            <ToggleGroupItem value="decrease">
-              {c("نقص", "Decrease")}
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </Field>
-        <Field data-invalid={invalid || undefined}>
-          <FieldLabel htmlFor={`hour-amount-${record.id}`}>
-            {c("عدد الساعات", "Hours")}
-          </FieldLabel>
-          <Input
-            id={`hour-amount-${record.id}`}
-            type="number"
-            min="0.01"
-            max={
-              direction === "decrease"
-                ? record.hours
-                : 1000 - Number(record.hours)
-            }
-            step="0.01"
-            required
-            value={amount}
-            aria-invalid={invalid}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          {invalid && (
-            <FieldError>
-              {next < 0
-                ? c(
-                    "لا يمكن نقص أكثر من ساعات السجل أو النزول عن صفر.",
-                    "Hours cannot be reduced below zero.",
-                  )
-                : c(
-                    "أدخل عددًا ضمن الحد المتاح.",
-                    "Enter an amount within the available range.",
-                  )}
-            </FieldError>
-          )}
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`hour-note-${record.id}`}>
-            {c("سبب التعديل (اختياري)", "Adjustment reason (optional)")}
-          </FieldLabel>
-          <Textarea
-            id={`hour-note-${record.id}`}
-            rows={3}
-            maxLength={1000}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-          <FieldDescription>
-            {note.length} {c("من 1000", "of 1000")}
-          </FieldDescription>
-        </Field>
-        <p className="text-sm" aria-live="polite">
-          {c(
-            `ستصبح ساعات هذا السجل من ${Number(record.hours)} إلى ${Number.isFinite(next) ? next : "—"}`,
-            `This record will change from ${Number(record.hours)} to ${Number.isFinite(next) ? next : "—"} hours.`,
-          )}
-        </p>
-      </FieldGroup>
-    </HoursForm>
   );
 }
 function RecordActions({
@@ -266,7 +154,8 @@ function RecordActions({
           hideTrigger
           presentation="sheet"
         >
-          <div className="flex flex-col gap-5">
+          <div className="hour-record-details">
+            <HourStatus status={record.status_code} locale={locale}/>
             <dl className="hour-detail-fields">
               <div>
                 <dt>{c("الجهة", "Organization")}</dt>
@@ -284,20 +173,15 @@ function RecordActions({
                 <dt>{c("التاريخ", "Date")}</dt>
                 <dd>{formatRiyadhDate(record.activity_date, locale, true)}</dd>
               </div>
-              <div>
-                <dt>{c("الحالة", "Status")}</dt>
-                <dd>
-                  <HourStatus status={record.status_code} locale={locale} />
-                </dd>
-              </div>
+
             </dl>
             {record.decisions.length > 0 && (
-              <details className="hour-decision-details">
-                <summary>
+              <><Separator/><Collapsible className="hour-decision-details">
+                <CollapsibleTrigger render={<Button type="button" variant="ghost" className="hour-detail-toggle"/>}>
                   <ChevronDown aria-hidden="true" />
                   {c("تفاصيل القرار", "Decision details")}
-                </summary>
-                <div className="flex flex-col gap-3 pt-3">
+                </CollapsibleTrigger>
+                <CollapsibleContent className="flex flex-col gap-3 pt-3">
                   {record.decisions.map((decision, index) => (
                     <div key={index}>
                       <HourStatus
@@ -316,13 +200,13 @@ function RecordActions({
                       )}
                     </div>
                   ))}
-                </div>
-              </details>
+                </CollapsibleContent>
+              </Collapsible></>
             )}
-            <section>
-              <h3 className="mb-3 font-semibold">
+            <Separator/><Collapsible>
+              <CollapsibleTrigger render={<Button type="button" variant="ghost" className="hour-detail-toggle"/>}><ChevronDown/>
                 {c("سجل التعديلات", "Adjustment history")}
-              </h3>
+              </CollapsibleTrigger><CollapsibleContent className="pt-3">
               {record.adjustments?.length ? (
                 <ol className="flex flex-col gap-4">
                   {record.adjustments.map((item, index) => {
@@ -363,7 +247,7 @@ function RecordActions({
                   {c("لم تُعدّل ساعات هذا السجل.", "No adjustments yet.")}
                 </p>
               )}
-            </section>
+            </CollapsibleContent></Collapsible>
           </div>
         </ManagementActionSheet>
       )}

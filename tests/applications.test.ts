@@ -205,3 +205,44 @@ it("enforces committee review scope even for a reviewer's own historical applica
 });
 
 async function denied(operation: () => Promise<unknown>) { await db.exec("savepoint rejection"); try { await expect(operation()).rejects.toThrow(); } finally { await db.exec("rollback to savepoint rejection; release savepoint rejection"); } }
+
+it("duplicates the latest version into an independent draft without rounds",async()=>{
+ const latest=(await db.query<{id:string}>("select lub.start_form_draft($1) as id",[template])).rows[0].id;
+ const changed=structuredClone(initialDefinition);changed.sections[0].title="آخر نسخة";
+ await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[latest,JSON.stringify(changed)]);
+ const copy=(await db.query<{id:string}>("select lub.duplicate_form($1) as id",[template])).rows[0].id;
+ expect(copy).not.toBe(template);
+ expect((await db.query<{name:string}>("select name from lub.form_templates where id=$1",[copy])).rows[0].name).toBe("نسخة من طلب انضمام");
+ const versions=(await db.query<{status_code:string;definition:unknown}>("select status_code,definition from lub.form_versions where form_template_id=$1",[copy])).rows;
+ expect(versions).toHaveLength(1);expect(versions[0]).toEqual({status_code:"Draft",definition:changed});
+ expect((await db.query("select id from lub.registration_rounds where form_template_id=$1",[copy])).rows).toHaveLength(0);
+ await asUser(student);await denied(()=>db.query("select lub.duplicate_form($1)",[template]));
+});
+it("deletes all versions only for an unused owned form, preserving copies and used forms",async()=>{
+ await denied(()=>db.query("select lub.delete_form($1)",[template]));
+ const unused=(await db.query<{id:string}>("select lub.create_form($1,'غير مستخدم',$2) as id",[org,template])).rows[0].id;
+ const published=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[unused])).rows[0].id;
+ await db.query("select lub.publish_form_version($1)",[published]);
+ await db.query("select lub.start_form_draft($1)",[unused]);
+ const copy=(await db.query<{id:string}>("select lub.create_form($1,'نسخة مستقلة',$2) as id",[org,unused])).rows[0].id;
+ await asUser(student);await denied(()=>db.query("select lub.delete_form($1)",[unused]));
+ await asUser(leader);await denied(()=>db.query("delete from lub.form_versions where id=$1",[published]));
+ await db.query("select lub.delete_form($1)",[unused]);
+ await owner();expect((await db.query("select id from lub.form_versions where form_template_id=$1",[unused])).rows).toHaveLength(0);
+ expect((await db.query("select id from lub.form_templates where id=$1",[unused])).rows).toHaveLength(0);
+ expect((await db.query<{source_template_id:string|null}>("select source_template_id from lub.form_templates where id=$1",[copy])).rows[0].source_template_id).toBeNull();
+ expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(1);
+});
+it("does not allow a delegated form editor to delete templates",async()=>{
+ const unused=(await db.query<{id:string}>("select lub.create_form($1,'للاختبار',null) as id",[org])).rows[0].id;
+ await owner();const membership=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,other])).rows[0].id;
+ await asUser(leader);await db.query("select lub.grant_application_permission($1,'FORMS_MANAGE',null,null)",[membership]);
+ await asUser(other);await denied(()=>db.query("select lub.delete_form($1)",[unused]));
+});
+
+it("preserves forms referenced by events even when they have no registration rounds",async()=>{
+ const unused=(await db.query<{id:string}>("select lub.create_form($1,'نموذج فعالية',null) as id",[org])).rows[0].id;
+ await owner();await db.query("insert into lub.events(organization_id,created_by_user_id,title,description,location_type_code,location_text,starts_at,ends_at,registration_opens_at,registration_closes_at,registration_form_template_id) values($1,$2,'فعالية','وصف','In_Person','قاعة',now()+interval '1 day',now()+interval '2 days',now(),now()+interval '1 hour',$3)",[org,leader,unused]);
+ await asUser(leader);expect((await db.query<{allowed:boolean}>("select lub.can_delete_form($1) as allowed",[unused])).rows[0].allowed).toBe(false);
+ await denied(()=>db.query("select lub.delete_form($1)",[unused]));
+});

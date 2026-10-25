@@ -194,12 +194,12 @@ export const permissionGrants = lub.table("permission_grants", {
 export const formTemplates = lub.table("form_templates", {
   id: uuid("id").primaryKey().defaultRandom(), organizationId: uuid("organization_id").references(() => organizations.id),
   name: varchar("name", { length: 120 }).notNull(), purposeCode: varchar("purpose_code", { length: 20 }).notNull().default("Membership"),
-  sourceTemplateId: uuid("source_template_id").references((): AnyPgColumn => formTemplates.id),
+  sourceTemplateId: uuid("source_template_id").references((): AnyPgColumn => formTemplates.id,{onDelete:"set null"}),
   isSystemTemplate: boolean("is_system_template").notNull().default(false), statusCode: varchar("status_code", { length: 20 }).notNull().default("Active"), createdAt: createdAt(),
 }, t => [check("template_owner_check", sql`${t.isSystemTemplate} = (${t.organizationId} is null)`), check("template_status_check", sql`${t.statusCode} in ('Active','Archived')`), check("template_purpose_check", sql`${t.purposeCode} = 'Membership'`), check("template_name_check", sql`length(trim(${t.name})) between 2 and 120`), index("template_org_idx").on(t.organizationId)]).enableRLS();
 
 export const formVersions = lub.table("form_versions", {
-  id: uuid("id").primaryKey().defaultRandom(), formTemplateId: uuid("form_template_id").notNull().references(() => formTemplates.id),
+  id: uuid("id").primaryKey().defaultRandom(), formTemplateId: uuid("form_template_id").notNull().references(() => formTemplates.id,{onDelete:"cascade"}),
   versionNumber: integer("version_number").notNull(), statusCode: varchar("status_code", { length: 20 }).notNull().default("Draft"),
   definition: jsonb("definition").$type<FormDefinition>().notNull(), revision: integer("revision").notNull().default(1), publishedAt: timestamp("published_at", { withTimezone: true }), createdAt: createdAt(),
 }, t => [unique("form_version_number_unique").on(t.formTemplateId, t.versionNumber), uniqueIndex("one_form_draft_idx").on(t.formTemplateId).where(sql`${t.statusCode}='Draft'`), check("form_version_status_check", sql`${t.statusCode} in ('Draft','Published','Retired')`), check("form_version_number_check", sql`${t.versionNumber}>0 and ${t.revision}>0`), check("form_definition_size_check", sql`jsonb_typeof(${t.definition})='object' and octet_length(${t.definition}::text)<=128000`)]).enableRLS();

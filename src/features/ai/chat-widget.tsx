@@ -3,7 +3,8 @@
 import {useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type ComponentProps} from "react";
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {ArrowDown, ArrowUp, Check, Copy, MessageCircle, Plus, Square, ThumbsDown, ThumbsUp, X} from "lucide-react";
+import {ArrowDown, ArrowUp, Check, Copy, MessageCircle, Plus, Square, ThumbsDown, ThumbsUp, X, RotateCcw} from "lucide-react";
+import {Alert,AlertDescription} from "@/components/ui/alert";
 import {Button} from "@/components/ui/button";
 import {Bubble, BubbleContent} from "@/components/ui/bubble";
 import {InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea} from "@/components/ui/input-group";
@@ -26,6 +27,7 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
   const [open, setOpen] = useState(inline || initiallyOpen), [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]), [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false), [error, setError] = useState("");
+  const [failedQuestion,setFailedQuestion]=useState<{text:string;userId:number}|null>(null);
   const [conversation, setConversation] = useState(0);
   const [feedback, setFeedback] = useState<Record<number, "up" | "down" | undefined>>({});
   const [copyStatus, setCopyStatus] = useState<{messageId: number; status: "copied" | "failed"} | null>(null);
@@ -43,16 +45,16 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
     setMessages(previous => previous.filter(message => message.role === "user" || message.text));
   }
   function newConversation() {
-    stop(); setMessages([]); setDraft(""); setError(""); setCopyStatus(null); setFeedback({});
+    stop(); setMessages([]); setDraft(""); setError(""); setCopyStatus(null); setFeedback({}); setFailedQuestion(null);
     setConversation(previous => previous + 1); input.current?.focus();
   }
-  async function send(event?: FormEvent) {
+  async function send(event?: FormEvent,retry?:{text:string;userId:number}) {
     event?.preventDefault();
-    const message = draft.trim();
+    const message = retry?.text ?? draft.trim();
     if (!message || busy || request.current) return;
-    const userId = ++sequence.current, answerId = ++sequence.current;
-    setMessages(previous => [...previous, {id: userId, role: "user", text: message, sources: []}, {id: answerId, role: "assistant", text: "", sources: []}]);
-    setDraft(""); setBusy(true); setSearching(false); setCopyStatus(null); setError("");
+    const userId = retry?.userId ?? ++sequence.current, answerId = ++sequence.current;
+    setMessages(previous => [...previous, ...(!retry ? [{id: userId, role: "user" as const, text: message, sources: []}] : []), {id: answerId, role: "assistant", text: "", sources: []}]);
+    if(!retry)setDraft(""); setFailedQuestion(null); setBusy(true); setSearching(false); setCopyStatus(null); setError("");
     const abort = new AbortController(); request.current = abort;
     let answer = "", sources: ChatSource[] = [];
     try {
@@ -68,7 +70,7 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
     } catch {
       if (request.current !== abort) return;
       setMessages(previous => previous.filter(item => item.id !== answerId));
-      setDraft(message);
+      setFailedQuestion({text:message,userId});
       setError(en ? "The assistant is unavailable. Your question is saved; try again." : "المساعد غير متاح حاليًا. سؤالك محفوظ؛ حاول مرة ثانية.");
     } finally {
       if (request.current === abort) {
@@ -118,7 +120,7 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
                 </Message>
               </MessageScrollerItem>)}
               {busy && <MessageScrollerItem messageId="thinking"><div className="lub-chat-thinking" role="status"><Spinner aria-hidden="true"/>{searching ? (en ? "Searching LUB…" : "أبحث في لُب…") : (en ? "Thinking…" : "لُب يفكّر…")}</div></MessageScrollerItem>}
-              {error && <MessageScrollerItem messageId="error"><p className="error-message" role="alert">{error}</p></MessageScrollerItem>}
+              {error && <MessageScrollerItem messageId="error"><Message align="start" className="lub-chat-message lub-chat-assistant"><MessageAvatar className="lub-chat-avatar"><span className="lub-chat-symbol" aria-hidden="true"/></MessageAvatar><MessageContent><Alert variant="destructive" className="lub-chat-error" dir={en?"ltr":"rtl"}><AlertDescription>{error}</AlertDescription><Button type="button" variant="outline" size="sm" disabled={busy||!failedQuestion} onClick={()=>void send(undefined,failedQuestion??undefined)}><RotateCcw data-icon="inline-start"/>{en?"Retry":"إعادة المحاولة"}</Button></Alert></MessageContent></Message></MessageScrollerItem>}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton aria-label={en ? "Scroll to latest message" : "نزّل لآخر المحادثة"}><ArrowDown/></MessageScrollerButton>

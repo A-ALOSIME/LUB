@@ -94,12 +94,17 @@ it("keeps the inline start screen free of introductory and footer copy", () => {
 });
 
 it("keeps the question available for retry when the service is unavailable", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ok: false}));
+  const fetcher=vi.fn().mockResolvedValueOnce({ok:false}).mockResolvedValueOnce(streamResponse([{type:"delta",text:"Try this"},{type:"done"}]));
+  vi.stubGlobal("fetch",fetcher);
   render(<ChatWidget locale="en" inline/>);
   submit("How do I join a club?");
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("question is saved"));
-  expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("How do I join a club?");
+  expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("");
   expect(document.activeElement).toBe(screen.getByRole("textbox"));
+  fireEvent.click(screen.getByRole("button",{name:"Retry"}));
+  await screen.findByText("Try this");
+  expect(fetcher).toHaveBeenLastCalledWith("/api/chat",expect.objectContaining({body:JSON.stringify({message:"How do I join a club?"})}));
+  expect(screen.getAllByRole("article",{name:"Your question"})).toHaveLength(1);
 });
 
 it("renders streamed text before the answer finishes", async () => {

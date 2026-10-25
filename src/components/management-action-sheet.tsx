@@ -1,5 +1,6 @@
 "use client";
 
+import {Spinner} from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Plus, X } from "lucide-react";
@@ -17,7 +18,7 @@ export function ManagementActionProvider({ locale, close, children }: { locale: 
   return <ManagementActionContext.Provider value={{ close, locale }}>{children}</ManagementActionContext.Provider>;
 }
 
-export function ManagementActionFooter({ label, pending = false, disabled = false, secondaryAction, buttonClassName, showCancel = true, sticky = true, cancelVariant = "outline" }: {
+export function ManagementActionFooter({ label, pending = false, disabled = false, secondaryAction, buttonClassName, showCancel = true, sticky = true, cancelVariant = "ghost" }: {
   label: string;
   pending?: boolean;
   disabled?: boolean;
@@ -30,7 +31,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   const action = useContext(ManagementActionContext);
   const en = action?.locale === "en";
   return <div className={`management-action-footer${action && sticky ? " is-modal-footer" : ""}`}>
-    <Button type="submit" className={buttonClassName} disabled={pending || disabled}>{label}</Button>
+    <Button type="submit" className={buttonClassName} disabled={pending || disabled}>{pending&&<Spinner/>}{label}</Button>
     {secondaryAction}
     {action && showCancel && <Button type="button" variant={cancelVariant} onClick={action.close}>{en ? "Cancel" : "إلغاء"}</Button>}
   </div>;
