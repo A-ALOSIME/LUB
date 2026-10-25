@@ -2086,8 +2086,13 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .lub-chat-error[data-slot=alert] {background:color-mix(in srgb,var(--destructive) 10%,var(--surface));border-color:color-mix(in srgb,var(--destructive) 40%,var(--border));color:var(--foreground);gap:.75rem;}
 .lub-chat-error [data-slot=alert-description] {color:var(--foreground);}
 .lub-chat-error>button {justify-self:start;}
-.site-header-nav a {font-family:var(--font-sans);font-size:inherit;font-weight:500;color:var(--muted-foreground);border-bottom:1px solid transparent;}
-.site-header-nav a[aria-current=page] {color:var(--foreground);border-bottom-color:currentColor;}
+.site-header-nav a {display:inline-grid;place-items:center;flex:none;padding:.3rem .75rem;border:0;border-radius:999px;font-family:var(--font-sans);font-size:inherit;line-height:1.4;font-weight:500;color:var(--muted-foreground);text-decoration:none;background:transparent;transition:background-color .16s ease,color .16s ease;}
+.site-header-nav a>.site-nav-label,.site-header-nav a>.site-nav-size-label {grid-area:1/1;}
+.site-header-nav .site-nav-size-label {visibility:hidden;font-weight:700;pointer-events:none;}
+.site-header-nav a:hover {background:var(--muted);color:var(--foreground);text-decoration:none;}
+.site-header-nav a[aria-current=page] {background:var(--accent);color:var(--foreground);font-weight:700;}
+.site-header-nav a:focus-visible {outline:2px solid var(--ring);outline-offset:-2px;}
+@media(max-width:1023px) {.site-header-nav {padding-block:.25rem;}}
 
 .app-calendar button:is([data-selected-single=true],[data-range-start=true],[data-range-end=true]):hover:not(:disabled) {background:var(--primary);color:var(--primary-foreground);}
 
@@ -2197,3 +2202,16 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .management-action-scroll :is(form,fieldset):has(>[data-form-field]) { display:flex; flex-direction:column; gap:1.25rem; }
 .management-action-scroll :is(form,fieldset):has(>[data-form-field])>* { margin-block:0; }
 @media(max-width:767px) { .form-editor .workspace-sticky-save-message { order:0; margin-inline-start:0; } }
+
+/* Dedicated chat branding uses the same complete, theme-aware artwork as the header. */
+.lub-chat-logo {position:relative;display:inline-block;flex:none;}
+.lub-chat-logo-text {position:absolute;inset:0;display:grid;place-items:center;color:transparent;user-select:text;}
+.lub-chat-logo img {position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.lub-chat-inline .lub-chat-welcome {display:flex;flex-direction:column;align-items:center;gap:.75rem;}
+.lub-chat-welcome-logo {width:8rem;height:4rem;}
+.lub-chat-inline .lub-chat-welcome h1 {font-size:clamp(1.75rem,4vw,2.5rem);}
+.lub-chat-name {position:relative;display:inline-block;width:1.65em;height:1.3em;vertical-align:-.25em;white-space:nowrap;}
+.lub-chat-name-text {position:absolute;inset:0;display:grid;place-items:center;color:transparent;}
+.lub-chat-name .lub-wordmark {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.lub-chat-inline .lub-chat-avatar {width:2.5rem;min-width:2.5rem;height:2.5rem;padding:.2rem;margin-top:.1rem;align-self:flex-start;overflow:visible;border-radius:50%;background:var(--muted);transform:none;translate:none;}
+.lub-chat-inline .lub-chat-avatar .lub-chat-logo {width:100%;height:100%;}

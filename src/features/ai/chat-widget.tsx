@@ -2,6 +2,8 @@
 
 import {useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type ComponentProps} from "react";
 import Link from "next/link";
+import Image from "next/image";
+import {LubWordmark} from "@/components/lub-wordmark";
 import {usePathname} from "next/navigation";
 import {ArrowDown, ArrowUp, Check, Copy, MessageCircle, Plus, Square, ThumbsDown, ThumbsUp, X, RotateCcw} from "lucide-react";
 import {Alert,AlertDescription} from "@/components/ui/alert";
@@ -19,6 +21,25 @@ type ChatMessage = {id: number; role: "user" | "assistant"; text: string; source
 
 function ChatAction({label, children, ...props}: {label: string; children: ReactNode} & ComponentProps<typeof Button>) {
   return <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label} {...props}/>}>{children}</TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>;
+}
+
+function ChatLogo({className}: {className?:string}) {
+  return <span className={cn("lub-chat-logo",className)} role="img" aria-label="لُبّ">
+    <span className="lub-chat-logo-text">لُبّ</span>
+    <Image src="/brand/logo.d904bc5ef68d.svg" alt="" width={315} height={150} className="brand-light"/>
+    <Image src="/brand/logo-reversed.4c09d1c07d25.svg" alt="" width={315} height={150} className="brand-dark"/>
+  </span>;
+}
+
+// The original text stays selectable/searchable; only its visual form uses the wordmark.
+function brandText(text:string) {
+  return text.split(/(لُبّ?|(?<![\p{L}\p{M}])لبّ?(?![\p{L}\p{M}]))/u).map((part,index)=>/^لُ?بّ?$/u.test(part)
+    ? <span key={index} className="lub-chat-name"><span className="lub-chat-name-text">{part}</span><LubWordmark/></span>
+    : part);
+}
+
+function AssistantAvatar({inline}:{inline:boolean}) {
+  return <MessageAvatar className="lub-chat-avatar" aria-hidden="true">{inline?<ChatLogo/>:<span className="lub-chat-symbol"/>}</MessageAvatar>;
 }
 
 export function ChatWidget({locale, inline = false, initiallyOpen = false}: {locale: "ar" | "en"; inline?: boolean; initiallyOpen?: boolean}) {
@@ -86,9 +107,9 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
 
   if (!inline && pathname === "/ai") return null;
   return <TooltipProvider><div className={cn("lub-chat", inline && "lub-chat-inline")} dir={en ? "ltr" : "rtl"}>
-    {open && <section id={panelId} className={cn("lub-chat-panel", started && "has-messages")} role={inline ? "region" : "dialog"} aria-labelledby={titleId} onKeyDown={event => {if (!inline && event.key === "Escape") close();}}>
+    {open && <section id={panelId} className={cn("lub-chat-panel", started && "has-messages")} role={inline ? "region" : "dialog"} aria-label={inline?(en?"Ask LUB":"اسأل لُبّ"):undefined} aria-labelledby={inline?undefined:titleId} onKeyDown={event => {if (!inline && event.key === "Escape") close();}}>
       {(started || !inline) && <header className="lub-chat-header">
-        {inline ? <h1 id={titleId}>{en ? "Ask LUB" : "اسأل لُب"}</h1> : <h2 id={titleId}>{en ? "Ask LUB" : "اسأل لُب"}</h2>}
+        {!inline && <h2 id={titleId}>{en ? "Ask LUB" : "اسأل لُب"}</h2>}
         <div className="lub-chat-header-actions">
           {started && <Button type="button" variant="ghost" size="sm" onClick={newConversation}><Plus data-icon="inline-start"/>{en ? "New chat" : "محادثة جديدة"}</Button>}
           {!inline && <ChatAction label={en ? "Close chat" : "إغلاق المحادثة"} onClick={close}><X/></ChatAction>}
@@ -99,15 +120,15 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
           <MessageScrollerViewport className="lub-chat-messages" aria-busy={busy}>
             <MessageScrollerContent className="lub-chat-thread-content">
               {!started && <MessageScrollerItem messageId="welcome" className="lub-chat-welcome">
-                {inline ? <h1 id={titleId}>{en ? "Ask LUB" : "اسأل لُب"}</h1> : null}
+                {inline && <><ChatLogo className="lub-chat-welcome-logo"/><h1>{en ? "How can I help you?" : "كيف أقدر أساعدك؟"}</h1></>}
               </MessageScrollerItem>}
               {messages.map(message => message.text && <MessageScrollerItem key={message.id} messageId={String(message.id)}>
                 <Message align={message.role === "user" ? "end" : "start"} role="article" aria-label={message.role === "user" ? (en ? "Your question" : "سؤالك") : (en ? "Answer" : "الإجابة")} className={cn("lub-chat-message", "lub-chat-" + message.role)}>
-                  {message.role === "assistant" && <MessageAvatar className="lub-chat-avatar"><span className="lub-chat-symbol" aria-hidden="true"/></MessageAvatar>}
+                  {message.role === "assistant" && <AssistantAvatar inline={inline}/>}
                   <MessageContent>
                     <Bubble variant={message.role === "user" ? "default" : "secondary"} align={message.role === "user" ? "end" : "start"}>
-                      <BubbleContent dir={en ? "ltr" : "rtl"}><p dir="auto">{message.text}</p>
-                        {message.sources.length > 0 && <div className="lub-chat-sources">{message.sources.map(source => <Link key={source.url} href={source.url} onClick={inline ? undefined : close}>{source.label}</Link>)}</div>}
+                      <BubbleContent dir={en ? "ltr" : "rtl"}><p dir="auto">{inline?brandText(message.text):message.text}</p>
+                        {message.sources.length > 0 && <div className="lub-chat-sources">{message.sources.map(source => <Link key={source.url} href={source.url} onClick={inline ? undefined : close}>{inline?brandText(source.label):source.label}</Link>)}</div>}
                       </BubbleContent>
                     </Bubble>
                     {message.role === "assistant" && <MessageFooter className="lub-chat-actions">
@@ -119,8 +140,8 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
                   </MessageContent>
                 </Message>
               </MessageScrollerItem>)}
-              {busy && <MessageScrollerItem messageId="thinking"><div className="lub-chat-thinking" role="status"><Spinner aria-hidden="true"/>{searching ? (en ? "Searching LUB…" : "أبحث في لُب…") : (en ? "Thinking…" : "لُب يفكّر…")}</div></MessageScrollerItem>}
-              {error && <MessageScrollerItem messageId="error"><Message align="start" className="lub-chat-message lub-chat-assistant"><MessageAvatar className="lub-chat-avatar"><span className="lub-chat-symbol" aria-hidden="true"/></MessageAvatar><MessageContent><Alert variant="destructive" className="lub-chat-error" dir={en?"ltr":"rtl"}><AlertDescription>{error}</AlertDescription><Button type="button" variant="outline" size="sm" disabled={busy||!failedQuestion} onClick={()=>void send(undefined,failedQuestion??undefined)}><RotateCcw data-icon="inline-start"/>{en?"Retry":"إعادة المحاولة"}</Button></Alert></MessageContent></Message></MessageScrollerItem>}
+              {busy && <MessageScrollerItem messageId="thinking"><div className="lub-chat-thinking" role="status"><Spinner aria-hidden="true"/>{inline?brandText(searching ? (en ? "Searching LUB…" : "أبحث في لُبّ…") : (en ? "Thinking…" : "لُبّ يفكّر…")):searching ? (en ? "Searching LUB…" : "أبحث في لُب…") : (en ? "Thinking…" : "لُب يفكّر…")}</div></MessageScrollerItem>}
+              {error && <MessageScrollerItem messageId="error"><Message align="start" className="lub-chat-message lub-chat-assistant"><AssistantAvatar inline={inline}/><MessageContent><Alert variant="destructive" className="lub-chat-error" dir={en?"ltr":"rtl"}><AlertDescription>{error}</AlertDescription><Button type="button" variant="outline" size="sm" disabled={busy||!failedQuestion} onClick={()=>void send(undefined,failedQuestion??undefined)}><RotateCcw data-icon="inline-start"/>{en?"Retry":"إعادة المحاولة"}</Button></Alert></MessageContent></Message></MessageScrollerItem>}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton aria-label={en ? "Scroll to latest message" : "نزّل لآخر المحادثة"}><ArrowDown/></MessageScrollerButton>
@@ -128,13 +149,13 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
       </MessageScrollerProvider>
       <footer className="lub-chat-composer">
         <form onSubmit={event => void send(event)}>
-          <label className="sr-only" htmlFor={inputId}>{en ? "Your question about LUB" : "سؤالك عن لُبّ"}</label>
+          <label className="sr-only" htmlFor={inputId}>{inline?(en?"Your question":"سؤالك"):en ? "Your question about LUB" : "سؤالك عن لُبّ"}</label>
           <InputGroup className="lub-chat-form">
-            <InputGroupTextarea ref={input} id={inputId} rows={1} maxLength={2000} value={draft} onChange={event => setDraft(event.target.value)} placeholder={en ? "Ask about LUB…" : "اكتب سؤالك عن لُبّ…"} onKeyDown={event => {if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send();}}}/>
+            <InputGroupTextarea ref={input} id={inputId} rows={1} maxLength={2000} value={draft} onChange={event => setDraft(event.target.value)} placeholder={inline?(en?"Type your question here...":"اكتب سؤالك هنا..."):en ? "Ask about LUB…" : "اكتب سؤالك عن لُبّ…"} onKeyDown={event => {if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send();}}}/>
             <InputGroupAddon align="inline-end"><InputGroupButton type={busy ? "button" : "submit"} size="icon-sm" variant={busy || draft.trim() ? "default" : "secondary"} aria-label={busy ? (en ? "Stop response" : "إيقاف الرد") : (en ? "Send question" : "إرسال السؤال")} disabled={!busy && !draft.trim()} onClick={busy ? stop : undefined}>{busy ? <Square/> : <ArrowUp/>}</InputGroupButton></InputGroupAddon>
           </InputGroup>
         </form>
-        <p className="lub-chat-disclaimer">{en ? "LUB can make mistakes. Check important information." : "لُب قد يخطئ، تأكد من المعلومات المهمة"}</p>
+        <p className="lub-chat-disclaimer">{inline?(en?"The assistant can make mistakes. Check important information.":"قد يخطئ المساعد، تأكد من المعلومات المهمة"):en ? "LUB can make mistakes. Check important information." : "لُب قد يخطئ، تأكد من المعلومات المهمة"}</p>
       </footer>
     </section>}
     {!inline && <Button ref={launcher} className="lub-chat-launcher" type="button" aria-expanded={open} aria-controls={panelId} aria-label={en ? "Open LUB assistant" : "فتح مساعد لُبّ"} onClick={() => open ? close() : setOpen(true)}><MessageCircle/>{en ? "Ask LUB" : "اسأل لُبّ"}</Button>}

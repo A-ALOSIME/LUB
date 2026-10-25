@@ -90,7 +90,7 @@ it("keeps the inline start screen free of introductory and footer copy", () => {
   render(<ChatWidget locale="ar" inline/>);
   expect(screen.queryByText("اسأل عن أندية لُبّ وفعالياته وخدماته.")).toBeNull();
   expect(screen.queryByText("اسأل عن محتوى لُبّ العام فقط، ولا تكتب معلوماتك الشخصية.")).toBeNull();
-  expect(screen.getByPlaceholderText("اكتب سؤالك عن لُبّ…")).toBeTruthy();
+  expect(screen.getByPlaceholderText("اكتب سؤالك هنا...")).toBeTruthy();
 });
 
 it("keeps the question available for retry when the service is unavailable", async () => {
@@ -121,16 +121,16 @@ it("renders streamed text before the answer finishes", async () => {
 });
 
 
-it("starts with only a centered title and composer, then resets a conversation", async () => {
+it("starts with the brand and greeting, removes the duplicate chat heading and resets the conversation", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(streamResponse([{type: "delta", text: "أهلًا بك"}, {type: "done"}])));
   render(<ChatWidget locale="ar" inline/>);
-  expect(screen.getByRole("heading", {level:1,name:"اسأل لُب"})).toBeTruthy();
+  expect(screen.getByRole("heading", {level:1,name:"كيف أقدر أساعدك؟"})).toBeTruthy();
   expect(screen.queryByRole("button",{name:"محادثة جديدة"})).toBeNull();
   expect(screen.queryByText("كيف أنضم لنادي؟")).toBeNull();
-  expect(screen.getByText("لُب قد يخطئ، تأكد من المعلومات المهمة")).toBeTruthy();
+  expect(screen.getByText("قد يخطئ المساعد، تأكد من المعلومات المهمة")).toBeTruthy();
   expect(screen.getByRole("button",{name:"إرسال السؤال"}).hasAttribute("disabled")).toBe(true);
   submit("مرحبا"); await screen.findByText("أهلًا بك");
-  expect(document.querySelector(".lub-chat-header h1")?.textContent).toBe("اسأل لُب");
+  expect(document.querySelector(".lub-chat-header h1,.lub-chat-header h2")).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:"محادثة جديدة"}));
   expect(screen.queryByRole("article")).toBeNull();
   expect(document.querySelector(".lub-chat-welcome h1")).toBeTruthy();
@@ -161,4 +161,15 @@ it("stops a stream, keeps its partial answer and ignores late tokens",async()=>{
   expect(screen.queryByRole("alert")).toBeNull();submit("السؤال الثاني");await screen.findByText("إجابة جديدة");
   await act(async()=>{controller.enqueue(encoder.encode('data: {"type":"delta","text":"متأخر"}\n\ndata: {"type":"done"}\n\n'));controller.close();});
   expect(screen.queryByText(/متأخر/)).toBeNull();expect(screen.getByText("إجابة جديدة")).toBeTruthy();
+});
+
+it("uses the original theme logos and preserves ordinary brand text when copying an answer",async()=>{
+ const copy=vi.fn().mockResolvedValue(undefined);Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:copy}});
+ const text="اسأل لُبّ عن النادي، لُب يساعدك. لب في قلب المجتمع.";vi.stubGlobal("fetch",vi.fn().mockResolvedValue(streamResponse([{type:"delta",text},{type:"done"}])));
+ render(<ChatWidget locale="ar" inline/>);expect(screen.getByRole("img",{name:"لُبّ"})).toBeTruthy();
+ submit("مرحبا");await waitFor(()=>expect(screen.getByRole("article",{name:"الإجابة"}).textContent).toContain(text));
+ const answer=screen.getByRole("article",{name:"الإجابة"});expect(answer.querySelectorAll('.lub-chat-name')).toHaveLength(3);
+ expect(answer.querySelector('.lub-chat-avatar img.brand-light')?.getAttribute('src')).toContain('/brand/logo.d904bc5ef68d.svg');expect(answer.querySelector('.lub-chat-avatar img.brand-dark')?.getAttribute('src')).toContain('/brand/logo-reversed.4c09d1c07d25.svg');
+ expect(answer.querySelector('[data-slot=bubble-content]')?.textContent).toBe(text);expect(answer.textContent).not.toContain("ـ");
+ fireEvent.click(screen.getByRole("button",{name:"نسخ الإجابة"}));await waitFor(()=>expect(copy).toHaveBeenCalledWith(text));
 });
