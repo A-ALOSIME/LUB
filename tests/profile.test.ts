@@ -80,3 +80,17 @@ describe("actual profile persistence", () => {
     expect((await engine.query("select id from lub.audit_log")).rows).toHaveLength(1);
   });
 });
+
+it("keeps account avatars private, fixed to one own path and unavailable to inactive accounts",async()=>{
+ await saveStudentProfile(alice,profile());await saveStudentProfile(bob,{...profile(),universityId:"202699999"});
+ const own=async(user:string,query:string)=>database.transaction(async tx=>{await tx.execute(sql`select set_config('request.jwt.claim.sub',${user},true)`);await tx.execute(sql`set local role authenticated`);return (await tx.execute(sql.raw(query.replaceAll("USER_ID",user)))).rows;});
+ await own(alice.id,"insert into storage.objects(bucket_id,name) values('lub-avatars','USER_ID/avatar.webp')");
+ expect(await own(bob.id,"select name from storage.objects where bucket_id='lub-avatars'")).toHaveLength(0);
+ await expect(own(bob.id,`insert into storage.objects(bucket_id,name) values('lub-avatars','${alice.id}/other.webp')`)).rejects.toThrow();
+ await expect(own(alice.id,"insert into storage.objects(bucket_id,name) values('lub-avatars','USER_ID/extra.webp')")).rejects.toThrow();
+ await own(alice.id,"update storage.objects set owner_id='USER_ID' where bucket_id='lub-avatars'");
+ expect(await own(alice.id,"select name from storage.objects where bucket_id='lub-avatars'")).toHaveLength(1);
+ await engine.query("update lub.users set status_code='Inactive' where id=$1",[alice.id]);
+ expect(await own(alice.id,"select name from storage.objects where bucket_id='lub-avatars'")).toHaveLength(0);
+ const bucket=(await engine.query("select public,file_size_limit,allowed_mime_types from storage.buckets where id='lub-avatars'")).rows[0];expect(bucket).toEqual({public:false,file_size_limit:65536,allowed_mime_types:['image/webp']});
+});

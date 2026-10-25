@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import {Upload, Pencil, Trash2} from "lucide-react";
+import {Button} from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 
 function posterUploadMessage(code: string | undefined, status: number, locale: Locale) {
@@ -38,7 +40,9 @@ export function EventPosterField({ organization, locale }: { organization: strin
 
   async function upload(file?: File) {
     if (!file) return;
+    if(!["image/jpeg","image/png"].includes(file.type)||file.size>5*1024*1024){setError(c("استخدم صورة PNG أو JPEG بحجم لا يتجاوز 5MB.","Choose PNG or JPEG up to 5 MB."));return;}
     setPending(true);
+    input.current?.setCustomValidity(c("انتظر اكتمال رفع الصورة.","Wait for the image upload."));
     setError("");
     setAsset("");
     setPreview("");
@@ -58,23 +62,16 @@ export function EventPosterField({ organization, locale }: { organization: strin
       setError(posterUploadMessage(undefined, 0, locale));
     } finally {
       setPending(false);
+      input.current?.setCustomValidity("");
     }
   }
 
-  function drop(event: DragEvent<HTMLLabelElement>) {
-    event.preventDefault();
-    void upload(event.dataTransfer.files?.[0]);
-  }
-
-  return <section className="event-poster-upload" aria-label={c("بوستر الفعالية", "Event poster")}>
-    <input type="hidden" name="poster" value={asset} />
-    <label onDragOver={event => event.preventDefault()} onDrop={drop} className="mt-4 grid min-h-24 cursor-pointer place-content-center gap-1 rounded-lg border border-dashed border-line px-4 py-5 text-center hover:bg-surface/60">
-      <span className="font-medium">{pending ? c("جارٍ الرفع…", "Uploading…") : c("اسحب البوستر هنا أو اضغط للاختيار", "Drop a poster here or click to choose")}</span>
-      <span className="text-xs text-muted">JPEG أو PNG · 5 MB</span>
-      <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png" disabled={pending} aria-label={c("صورة بوستر الفعالية", "Event poster image")} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; void upload(file); }} />
-    </label>
-    {pending && <p role="status" className="mt-2 text-sm text-muted">{c("جارٍ رفع الصورة…", "Uploading image…")}</p>}
-    {error && <p role="alert" className="error-message mt-3">{error}</p>}
-    {preview && <div className="event-poster-preview"><Image src={preview} alt={c("معاينة بوستر الفعالية", "Event poster preview")} fill unoptimized sizes="(max-width: 767px) 100vw, 32rem" className="object-cover" /><span>{c("تم رفع البوستر وسيرتبط بالفعالية عند الحفظ.", "Poster uploaded. It will be attached when you save the event.")}</span></div>}
+  function remove() {setAsset("");setPreview("");setError("");if(input.current){input.current.value="";input.current.setCustomValidity("");}}
+  return <section className="event-poster-upload" aria-label={c("بوستر الفعالية","Event poster")} data-preview-url={preview}>
+    <input type="hidden" name="poster" value={asset}/>
+    <span className="event-poster-label">{c("بوستر الفعالية","Event poster")}</span>
+    <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png" disabled={pending} aria-label={c("صورة بوستر الفعالية","Event poster image")} onInvalid={event=>event.preventDefault()} onChange={event=>void upload(event.target.files?.[0])}/>
+    {preview?<><div className="event-poster-preview"><Image src={preview} alt={c("معاينة بوستر الفعالية","Event poster preview")} fill unoptimized sizes="(max-width:767px) 100vw, 32rem" className="object-cover"/></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>input.current?.click()}><Pencil/>{c("تغيير","Change")}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={remove}><Trash2/>{c("حذف","Remove")}</Button></div></>:<div className="event-poster-dropzone" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();void upload(event.dataTransfer.files?.[0]);}}><Button type="button" variant="ghost" disabled={pending} onClick={()=>input.current?.click()}><Upload/><span>{pending?c("جارٍ الرفع…","Uploading…"):c("اسحب الصورة هنا أو اضغط للاختيار","Drop an image here or click to choose")}</span></Button><p><bdi>PNG</bdi> {c("أو","or")} <bdi>JPEG</bdi> · {c("حد أقصى","Maximum")} <bdi>5MB</bdi></p></div>}
+    {pending&&<p role="status">{c("جارٍ رفع الصورة…","Uploading image…")}</p>}{error&&<p role="alert" className="error-message">{error}</p>}
   </section>;
 }

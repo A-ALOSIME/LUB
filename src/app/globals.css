@@ -1921,3 +1921,116 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 
 /* The composer has one shared focus border, rather than a nested native field. */
 .lub-chat .lub-chat-form textarea,.lub-chat .lub-chat-form textarea:hover,.lub-chat .lub-chat-form textarea:focus,.lub-chat .lub-chat-form textarea:focus-visible { border:0; background:transparent; outline:none; box-shadow:none; }
+
+/* Explicit physical message alignment keeps Arabic and English conversations consistent. */
+.lub-chat-user [data-slot=message-content] { direction:ltr; align-items:flex-end; }
+.lub-chat-user [data-slot=bubble] { align-self:flex-end; }
+.lub-chat-assistant { direction:ltr; flex-direction:row; }
+.lub-chat-assistant [data-slot=message-content] { direction:ltr; align-items:flex-start; }
+.lub-chat-assistant [data-slot=bubble] { align-self:flex-start; }
+.lub-chat-inline .lub-chat-header { justify-content:flex-start; }
+.lub-chat-inline .lub-chat-panel:not(.has-messages) { justify-content:center; }
+.lub-chat-inline .lub-chat-panel:not(.has-messages) .lub-chat-thread { flex:0 0 auto; height:auto; }
+.lub-chat-inline .lub-chat-panel:not(.has-messages) .lub-chat-messages { height:auto; }
+.lub-chat-inline .lub-chat-panel:not(.has-messages) .lub-chat-thread-content { min-height:0; padding-bottom:0; }
+.lub-chat-inline .lub-chat-panel:not(.has-messages) .lub-chat-welcome { padding-block:0 1rem; }
+
+/* Account photo: the original account fields and footer keep their layout. */
+.account-avatar-picker { display:flex; align-items:center; flex-direction:column; gap:.8rem; padding-block:.25rem 1.5rem; }
+.account-avatar-large[data-slot=avatar] { width:6rem; height:6rem; }
+.account-avatar-large [data-slot=avatar-fallback] { font-size:2rem; }
+.account-avatar-large [data-slot=avatar-image] { width:100%; height:100%; object-fit:cover; }
+
+/* Shared period popup stays in the portal; it never reserves space in a dialog. */
+.date-picker-popover { width:22rem; max-width:calc(100vw - 1rem); max-height:calc(100dvh - 1.5rem); overflow-y:auto; padding:1rem; }
+.period-picker-content { display:flex; min-width:0; flex-direction:column; gap:1rem; }
+.period-times { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+.period-times [data-slot=field] { min-width:0; gap:.35rem; }
+.compact-time-input { height:2.5rem; min-width:0; }
+.compact-time-input input { min-width:0; padding-inline:.5rem; font-variant-numeric:tabular-nums; }
+.compact-time-input [data-slot=input-group-addon] { padding:0; }
+.compact-time-input [data-slot=native-select-wrapper] { width:4rem; flex:none; }
+.compact-time-input select { height:2.4rem; border:0; border-radius:0; font-size:14px; }
+.period-trigger { width:100%; min-height:2.5rem; height:auto; justify-content:flex-start; padding-block:.5rem; text-align:start; font-weight:400; color:var(--foreground); }
+.period-trigger[value=''] { color:var(--muted-foreground); }
+.period-trigger>span { display:flex; min-width:0; align-items:center; flex-wrap:wrap; gap:.35rem; }
+.period-trigger>span>svg { width:.85rem; height:.85rem; flex:none; }
+.app-calendar { --cell-size:2rem; }
+.app-calendar th { min-width:0; font-size:12px; text-align:center; padding:0; }
+.app-calendar [data-week-start] { min-width:0; }
+
+/* Split modal forms keep their header and actions stationary. */
+.management-action-dialog { left:50%; right:auto; top:50%; translate:-50% -50%; }
+.management-action-dialog-wide { width:min(42rem,calc(100vw - 2rem)); max-width:42rem; }
+.management-action-scroll:has(>.workflow-split-form) { display:flex; overflow:hidden; padding:0; }
+.management-action-scroll>.workflow-split-form { display:flex; width:100%; min-height:0; flex-direction:column; gap:0; overflow:hidden; }
+.workflow-split-form>* { margin-block:0; }
+.workflow-form-body { min-width:0; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--border) transparent; padding:1.25rem; }
+.workflow-split-form .management-action-footer { position:static; flex:none; margin:0; border-top:1px solid var(--border); padding:1rem 1.25rem; background:var(--surface); }
+.workflow-split-form .management-action-footer [data-slot=button] { height:2.5rem; min-height:2.5rem; }
+.management-action-bottom-sheet { inset-inline:0; top:auto; bottom:0; width:100%; max-width:none; max-height:95dvh; border-radius:1rem 1rem 0 0; }
+.management-action-bottom-sheet:has(.workflow-split-form) { height:95dvh; }
+
+.event-fields { display:flex; flex-direction:column; gap:1.5rem; }
+.event-fields section { display:flex; flex-direction:column; gap:1rem; }
+.event-fields section>h3 { margin:0; font-size:1rem; font-weight:700; }
+.event-fields [data-slot=field-label],.registration-round-fields [data-slot=field-label],.form-editor [data-slot=field-label] { font-size:14px; font-weight:500; }
+.event-fields [data-slot=field-description],.registration-round-fields [data-slot=field-description],.period-times [data-slot=field-label] { font-size:12px; color:var(--muted-foreground); }
+.event-fields [data-slot=field],.registration-round-fields [data-slot=field] { gap:.4rem; }
+.event-fields :is(input,select),.registration-round-fields :is(input,select),.form-editor :is(input:not([type=hidden]),select) { min-height:2.5rem; height:2.5rem; border-radius:var(--radius); color:var(--foreground); font-weight:400; }
+.event-fields .event-template-select select { color:var(--foreground); }
+.event-field-grid { display:grid; min-width:0; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.event-field-full { grid-column:1/-1; }
+.event-poster-upload { display:flex; flex-direction:column; gap:.75rem; padding:0; border:0; background:transparent; }
+.event-poster-label { font-size:14px; font-weight:500; }
+.event-poster-dropzone { padding:1.5rem 1rem; border:1px dashed var(--border); border-radius:var(--radius); text-align:center; }
+.event-poster-dropzone [data-slot=button] { display:flex; width:100%; height:auto; min-height:2.5rem; flex-direction:column; gap:.5rem; white-space:normal; }
+.event-poster-dropzone>p { margin-top:.5rem; font-size:12px; color:var(--muted-foreground); }
+.event-poster-preview { width:100%; max-width:100%; aspect-ratio:16/9; border-radius:var(--radius); }
+
+.form-editor { padding-bottom:9rem; }
+.form-editor .editor-panel { min-width:0; }
+.form-editor .editor-section-header { display:flex; align-items:center; gap:.75rem; padding:1rem; }
+.form-editor .editor-collapse-heading { display:flex; width:100%; height:auto; min-height:2.5rem; justify-content:flex-start; padding:.25rem; text-align:start; white-space:normal; }
+.editor-heading-summary { display:flex; min-width:0; flex-wrap:wrap; align-items:center; gap:.5rem; }
+.editor-heading-summary>span:first-child { overflow-wrap:anywhere; }
+.editor-question-type { font-size:12px; font-weight:400; color:var(--muted-foreground); }
+.editor-panel-tools { display:flex; flex:none; align-items:center; gap:.15rem; }
+.form-editor .editor-question { padding:0; border:0; }
+.form-editor .editor-question [data-slot=card] { box-shadow:none; }
+.form-editor :is(.editor-add-question,.editor-add-section) { width:100%; height:2.5rem; border-style:dashed; }
+.form-editor .editor-add-question { color:var(--muted-foreground); }
+.form-editor .editor-add-section { border-color:var(--primary); background:var(--secondary); color:var(--primary); font-weight:600; }
+.form-editor .workspace-sticky-save-bar { bottom:0; border-top:1px solid var(--border); border-radius:.75rem .75rem 0 0; background:var(--surface); pointer-events:auto; }
+.form-editor .workspace-sticky-save-bar-inner { border:0; box-shadow:none; background:var(--surface); }
+.editor-unsaved { display:inline-flex; align-items:center; gap:.4rem; }
+.editor-unsaved>span { width:.35rem; height:.35rem; border-radius:50%; background:var(--primary); }
+@media(max-width:767px) {
+ .event-field-grid { grid-template-columns:minmax(0,1fr); }
+ .management-action-bottom-sheet .management-action-footer { flex-direction:column; align-items:stretch; }
+ .management-action-bottom-sheet .management-action-footer [data-slot=button] { width:100%; }
+ .form-editor .editor-section-header { flex-wrap:wrap; }
+ .form-editor .editor-section-header [data-slot=card-title] { flex-basis:100%; }
+ .editor-panel-tools { margin-inline-start:auto; }
+ .form-editor .workspace-sticky-save-actions { display:flex; flex-wrap:nowrap; }
+ .form-editor .workspace-sticky-save-actions>button { flex:1; }
+}
+
+.date-picker-popover .app-calendar { padding:0; }
+.date-picker-popover .rdp-week { margin-top:.15rem; }
+.date-picker-popover .rdp-month { gap:.5rem; }
+.management-action-scroll>.workflow-split-form>.workflow-form-body { margin:0; }
+.compact-time-input input,.compact-time-input input:hover,.compact-time-input input:focus { border:0; background:transparent; outline:none; box-shadow:none; }
+.period-picker-content>button { min-height:2.5rem; }
+/* Clip the modal shell so browser focus scrolls its body, never its header/footer. */
+.management-action-dialog:has(.workflow-split-form),.management-action-bottom-sheet:has(.workflow-split-form) { overflow:clip; }
+
+.management-action-scroll>form.workflow-split-form {display:flex;gap:0;}
+
+.form-editor .workspace-sticky-save-actions>button,.form-editor [data-slot=toggle-group-item],.editor-confirmation [data-slot=button] {height:2.5rem;min-height:2.5rem;}
+
+.event-fields .event-template-select [data-slot=native-select]:has(option[value=""]:checked) {color:var(--foreground);}
+
+.form-editor .editor-collapse-heading {background:transparent;color:var(--foreground);}
+.form-editor .editor-collapse-heading:hover {background:var(--secondary);}
+.form-editor [data-slot=toggle-group-item][aria-pressed=true] {background:var(--primary);color:var(--primary-foreground);border-color:var(--primary);}

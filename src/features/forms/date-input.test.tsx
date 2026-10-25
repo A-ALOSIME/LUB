@@ -21,12 +21,17 @@ describe("date range picker", () => {
 
     expect(document.querySelector('[data-week-start="sunday"]')).toBeTruthy();
     expect(document.querySelector('[data-slot="popover-content"]')?.className).toContain("date-picker-popover");
-    expect(screen.getByRole("group",{name:"وقت البداية"})).toBeTruthy();
-    expect(screen.getByRole("group",{name:"وقت النهاية"})).toBeTruthy();
+    expect(screen.getByRole("textbox",{name:"البداية"})).toBeTruthy();
+    expect(screen.getByRole("textbox",{name:"النهاية"})).toBeTruthy();
     expect(screen.queryByLabelText("الوقت")).toBeNull();
-    expect(screen.getByText("كل الأوقات بتوقيت الرياض")).toBeTruthy();
+    expect(screen.getByText("بتوقيت الرياض")).toBeTruthy();
     expect(container.querySelector('input[type="time"]')).toBeNull();
     expect((container.querySelector('input[name="opens"]') as HTMLInputElement).value).toBe("2026-09-01T09:00:00+03:00");
     expect((container.querySelector('input[name="closes"]') as HTMLInputElement).value).toBe("2026-09-05T14:00:00+03:00");
   });
+});
+
+it("rejects an inverted period and shows a field error without submitting it",()=>{
+ const {container}=render(<DateRangeInput startName="opens" endName="closes" label="الفترة" startValue="2026-10-26T12:00:00+03:00" endValue="2026-10-25T12:00:00+03:00" required includeTime/>);
+ expect(screen.getByRole("alert").textContent).toContain("بعد البداية");expect((container.querySelector('input[name="closes"]') as HTMLInputElement).value).toBe("");
 });

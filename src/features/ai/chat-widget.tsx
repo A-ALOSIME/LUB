@@ -104,7 +104,7 @@ export function ChatWidget({locale, inline = false, initiallyOpen = false}: {loc
                   {message.role === "assistant" && <MessageAvatar className="lub-chat-avatar"><span className="lub-chat-symbol" aria-hidden="true"/></MessageAvatar>}
                   <MessageContent>
                     <Bubble variant={message.role === "user" ? "default" : "secondary"} align={message.role === "user" ? "end" : "start"}>
-                      <BubbleContent><p dir="auto">{message.text}</p>
+                      <BubbleContent dir={en ? "ltr" : "rtl"}><p dir="auto">{message.text}</p>
                         {message.sources.length > 0 && <div className="lub-chat-sources">{message.sources.map(source => <Link key={source.url} href={source.url} onClick={inline ? undefined : close}>{source.label}</Link>)}</div>}
                       </BubbleContent>
                     </Bubble>

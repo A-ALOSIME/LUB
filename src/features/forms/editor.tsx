@@ -10,7 +10,12 @@ import {
   Trash2,
   Upload,
   Save,
+  Copy,
+  Ellipsis,
 } from "lucide-react";
+import {Badge} from "@/components/ui/badge";
+import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group";
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuGroup,DropdownMenuItem,DropdownMenuSeparator} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,7 +83,9 @@ export function FormEditor({
     expected = useRef(revision);
   const [definition, setDefinition] = useState(initial),
     [saved, setSaved] = useState(JSON.stringify(initial)),
-    [drag, setDrag] = useState<{ section: number; field: number } | null>(null),
+    [drag, setDrag] = useState<{ section: number; field?: number } | null>(null),
+    [openedSections,setOpenedSections]=useState<string[]>([]),
+    [openedQuestions,setOpenedQuestions]=useState<string[]>([]),
     [removal, setRemoval] = useState<Removal | null>(null),
     [publishOpen, setPublishOpen] = useState(false),
     [published, setPublished] = useState(false),
@@ -233,6 +240,25 @@ export function FormEditor({
     options: [],
     maxLength: 300,
   });
+  function addQuestion(si:number) {
+    const field=newField();setOpenedQuestions(previous=>[...previous,field.id]);
+    setDefinition(d=>({...d,sections:d.sections.map((section,i)=>i===si?{...section,fields:[...section.fields,field]}:section)}));
+  }
+  function addSection() {
+    const section={id:crypto.randomUUID(),title:c("قسم جديد","New section"),description:"",fields:[newField()]};
+    setOpenedSections(previous=>[...previous,section.id]);setOpenedQuestions(previous=>[...previous,section.fields[0].id]);
+    setDefinition(d=>({...d,sections:[...d.sections,section]}));
+  }
+  function copyQuestion(si:number,fi:number) {
+    const next=structuredClone(definition),field={...next.sections[si].fields[fi],id:crypto.randomUUID()};
+    next.sections[si].fields.splice(fi+1,0,field);setOpenedQuestions(previous=>[...previous,field.id]);setDefinition(next);
+  }
+  function copySection(si:number) {
+    const next=structuredClone(definition),section=structuredClone(next.sections[si]);section.id=crypto.randomUUID();
+    const ids=new Map(section.fields.map(field=>[field.id,crypto.randomUUID()]));
+    section.fields=section.fields.map(field=>({...field,id:ids.get(field.id)!,...(field.condition?{condition:{...field.condition,fieldId:ids.get(field.condition.fieldId)??field.condition.fieldId}}:{})}));
+    next.sections.splice(si+1,0,section);setOpenedSections(previous=>[...previous,section.id]);setDefinition(next);
+  }
   if (published)
     return (
       <div className="flex flex-col gap-4">
@@ -279,54 +305,15 @@ export function FormEditor({
           <FieldLabel htmlFor={`${id}-layout`}>
             {c("طريقة العرض", "Layout")}
           </FieldLabel>
-          <NativeSelect
-            id={`${id}-layout`}
-            value={definition.layout}
-            onChange={(e) =>
-              setDefinition({
-                ...definition,
-                layout: e.target.value as FormDefinition["layout"],
-              })
-            }
-          >
-            <option value="SinglePage">{c("صفحة واحدة", "Single page")}</option>
-            <option value="Progressive">
-              {c("قسم في كل خطوة", "One section per step")}
-            </option>
-          </NativeSelect>
+          <ToggleGroup id={`${id}-layout`} aria-label={c("طريقة العرض","Layout")} variant="outline" value={[definition.layout]} onValueChange={values=>{if(values[0])setDefinition({...definition,layout:values[0] as FormDefinition["layout"]});}}><ToggleGroupItem value="SinglePage">{c("صفحة واحدة","Single page")}</ToggleGroupItem><ToggleGroupItem value="Progressive">{c("قسم في كل خطوة","One section per step")}</ToggleGroupItem></ToggleGroup>
         </Field>
         {definition.sections.map((section, si) => (
           <EditorSection
             key={section.id}
             title={`${c("القسم", "Section")} ${si + 1}: ${section.title}`}
-            tools={
-              <>
-                <RowAction
-                  label={`${c("رفع القسم", "Move section up")} ${si + 1}`}
-                  disabled={!si}
-                  onClick={() => moveSection(si, si - 1)}
-                >
-                  <ArrowUp />
-                </RowAction>
-                <RowAction
-                  label={`${c("خفض القسم", "Move section down")} ${si + 1}`}
-                  disabled={si === definition.sections.length - 1}
-                  onClick={() => moveSection(si, si + 1)}
-                >
-                  <ArrowDown />
-                </RowAction>
-                <RowAction
-                  danger
-                  label={c("حذف القسم", "Delete section")}
-                  disabled={definition.sections.length === 1}
-                  onClick={() =>
-                    setRemoval({ title: section.title, section: si })
-                  }
-                >
-                  <Trash2 />
-                </RowAction>
-              </>
-            }
+            defaultOpen={openedSections.includes(section.id)}
+            onDrop={event=>{event.preventDefault();if(drag&&drag.field===undefined)moveSection(drag.section,si);setDrag(null);}}
+            tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب القسم","Drag to reorder section")} onDragStart={event=>{setDrag({section:si});event.dataTransfer.setData("text/plain",section.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات القسم","Section actions")} ${si+1}`} locale={locale} upDisabled={!si} downDisabled={si===definition.sections.length-1} copyDisabled={definition.sections.length>=12} deleteDisabled={definition.sections.length===1} onUp={()=>moveSection(si,si-1)} onDown={()=>moveSection(si,si+1)} onCopy={()=>copySection(si)} onDelete={()=>setRemoval({title:section.title,section:si})}/></>}
           >
             <FieldGroup>
               <Field>
@@ -376,68 +363,10 @@ export function FormEditor({
                   )
                   .filter((f) => f.type !== "File");
                 return (
-                  <div
-                    className="editor-question"
-                    key={field.id}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      if (drag?.section === si) move(si, drag.field, fi);
-                      setDrag(null);
-                    }}
+                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span>{c("السؤال","Question")} {fi+1} · {field.label}</span><span className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</span>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
+                    onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
+                    tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات السؤال","Question actions")} ${fi+1}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
-                    <div className="editor-question-heading">
-                      <h4 className="font-medium">
-                        {c("السؤال", "Question")} {fi + 1}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          draggable
-                          aria-label={c(
-                            "اسحب لإعادة ترتيب السؤال",
-                            "Drag to reorder question",
-                          )}
-                          onDragStart={(event) => {
-                            setDrag({ section: si, field: fi });
-                            event.dataTransfer.setData("text/plain", field.id);
-                          }}
-                          onDragEnd={() => setDrag(null)}
-                        >
-                          <GripVertical />
-                        </Button>
-                        <RowAction
-                          label={`${c("رفع السؤال", "Move question up")} ${fi + 1}`}
-                          disabled={!fi}
-                          onClick={() => move(si, fi, fi - 1)}
-                        >
-                          <ArrowUp />
-                        </RowAction>
-                        <RowAction
-                          label={`${c("خفض السؤال", "Move question down")} ${fi + 1}`}
-                          disabled={fi === section.fields.length - 1}
-                          onClick={() => move(si, fi, fi + 1)}
-                        >
-                          <ArrowDown />
-                        </RowAction>
-                        <RowAction
-                          danger
-                          label={c("حذف السؤال", "Delete question")}
-                          disabled={section.fields.length === 1}
-                          onClick={() =>
-                            setRemoval({
-                              title: field.label,
-                              section: si,
-                              field: fi,
-                            })
-                          }
-                        >
-                          <Trash2 />
-                        </RowAction>
-                      </div>
-                    </div>
                     <FieldGroup>
                       <Field>
                         <FieldLabel htmlFor={`${field.id}-label`}>
@@ -783,22 +712,16 @@ export function FormEditor({
                         </CollapsibleContent>
                       </Collapsible>
                     </FieldGroup>
-                  </div>
+                  </EditorSection>
                 );
               })}
             </div>
             <Button
               type="button"
               variant="outline"
+              className="editor-add-question"
               disabled={section.fields.length >= 30}
-              onClick={() =>
-                setDefinition({
-                  ...definition,
-                  sections: definition.sections.map((s, i) =>
-                    i === si ? { ...s, fields: [...s.fields, newField()] } : s,
-                  ),
-                })
-              }
+              onClick={() => addQuestion(si)}
             >
               <Plus />
               {c("إضافة سؤال", "Add question")}
@@ -808,21 +731,9 @@ export function FormEditor({
         <Button
           type="button"
           variant="outline"
+          className="editor-add-section"
           disabled={definition.sections.length >= 12}
-          onClick={() =>
-            setDefinition({
-              ...definition,
-              sections: [
-                ...definition.sections,
-                {
-                  id: crypto.randomUUID(),
-                  title: c("قسم جديد", "New section"),
-                  description: "",
-                  fields: [newField()],
-                },
-              ],
-            })
-          }
+          onClick={addSection}
         >
           <Plus />
           {c("إضافة قسم", "Add section")}
@@ -840,7 +751,7 @@ export function FormEditor({
           onUndo={() => setDefinition(JSON.parse(saved))}
           message={
             dirty
-              ? c("لديك تغييرات غير محفوظة", "You have unsaved changes")
+              ? <span className="editor-unsaved"><span aria-hidden="true"/>{c("غير محفوظ","Unsaved")}</span>
               : c("المسودة محفوظة", "Draft saved")
           }
           actions={
@@ -870,7 +781,7 @@ export function FormEditor({
         />
       </form>
       <AlertDialog open={publishOpen} onOpenChange={setPublishOpen}>
-        <AlertDialogContent dir={en ? "ltr" : "rtl"}>
+        <AlertDialogContent className="editor-confirmation" dir={en ? "ltr" : "rtl"}>
           <AlertDialogHeader>
             <AlertDialogTitle>
               {c("نشر هذه النسخة؟", "Publish this version?")}
@@ -898,7 +809,7 @@ export function FormEditor({
           if (!open) setRemoval(null);
         }}
       >
-        <AlertDialogContent dir={en ? "ltr" : "rtl"}>
+        <AlertDialogContent className="editor-confirmation" dir={en ? "ltr" : "rtl"}>
           <AlertDialogHeader>
             <AlertDialogTitle>
               {c(
@@ -924,43 +835,13 @@ export function FormEditor({
     </>
   );
 }
-function EditorSection({
-  title,
-  tools,
-  children,
-}: {
-  title: string;
-  tools: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(true);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <Card className="gap-0">
-        <CardHeader className="editor-section-header">
-          <CardTitle className="min-w-0 break-words">{title}</CardTitle>
-          <div className="flex flex-wrap gap-1">
-            <CollapsibleTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={open ? "طي القسم" : "فتح القسم"}
-                />
-              }
-            >
-              <ChevronDown className={open ? "rotate-180" : ""} />
-            </CollapsibleTrigger>
-            {tools}
-          </div>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent className="flex flex-col gap-5 pt-4">
-            {children}
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
-  );
+function EditorSection({title,tools,children,defaultOpen=false,kind="section",onDrop}:{title:React.ReactNode;tools:React.ReactNode;children:React.ReactNode;defaultOpen?:boolean;kind?:"section"|"question";onDrop?:React.DragEventHandler<HTMLDivElement>}) {
+ const [open,setOpen]=useState(defaultOpen);
+ return <Collapsible open={open} onOpenChange={setOpen} className={`editor-panel editor-${kind}`} onDragOver={event=>event.preventDefault()} onDrop={onDrop}>
+  <Card className="gap-0"><CardHeader className="editor-section-header"><CardTitle className="min-w-0 flex-1"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="editor-collapse-heading"/>}><ChevronDown className={open?"rotate-180":""}/><span className="editor-heading-summary">{title}</span></CollapsibleTrigger></CardTitle><div className="editor-panel-tools">{tools}</div></CardHeader><CollapsibleContent><CardContent className="flex flex-col gap-5 pt-4">{children}</CardContent></CollapsibleContent></Card>
+ </Collapsible>;
+}
+function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {
+ const en=locale==="en";
+ return <DropdownMenu><DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label}/>}><Ellipsis/></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem disabled={upDisabled} onClick={onUp}><ArrowUp/>{en?"Move up":"تحريك لأعلى"}</DropdownMenuItem><DropdownMenuItem disabled={downDisabled} onClick={onDown}><ArrowDown/>{en?"Move down":"تحريك لأسفل"}</DropdownMenuItem><DropdownMenuItem disabled={copyDisabled} onClick={onCopy}><Copy/>{en?"Duplicate":"نسخ"}</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator/><DropdownMenuGroup><DropdownMenuItem variant="destructive" disabled={deleteDisabled} onClick={onDelete}><Trash2/>{en?"Delete":"حذف"}</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>;
 }

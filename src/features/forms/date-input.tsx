@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from "react";
-import { CalendarDays, X } from "lucide-react";
+import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, CalendarDays, X } from "lucide-react";
 import { arSA, enGB } from "react-day-picker/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
+import { CompactTimeInput } from "./compact-time-input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatRiyadhDate, formatRiyadhDateTime } from "@/lib/datetime";
 import type { Locale } from "@/lib/preferences";
@@ -163,10 +164,7 @@ function CalendarPanel({
           year: "numeric",
           calendar: "gregory",
         }).format(d),
-      formatWeekdayName: (d: Date) =>
-        new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA", {
-          weekday: "short",
-        }).format(d),
+      formatWeekdayName: (d: Date) => en ? d.toLocaleDateString("en-GB",{weekday:"short"}) : ["أحد","اثن","ثلا","أرب","خمي","جمع","سبت"][d.getDay()],
     },
     labels: {
       labelPrevious: () => (en ? "Previous month" : "الشهر السابق"),
@@ -220,33 +218,13 @@ function CalendarPopup({
 }) {
   const mobile = useIsMobile(),
     en = locale === "en";
-  const desktopField = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open || mobile) return;
-    const field = desktopField.current;
-    const scroll = field?.closest<HTMLElement>("[data-management-action-scroll]");
-    if (!field || !scroll) return;
-    // Keep the reserved calendar area above the dialog's sticky actions.
-    const revealCalendar = () => {
-      const trigger = field.querySelector<HTMLElement>("[aria-haspopup]");
-      const footer = scroll.querySelector<HTMLElement>(".management-action-footer");
-      if (!trigger) return;
-      const bottom = footer?.getBoundingClientRect().top ?? scroll.getBoundingClientRect().bottom;
-      const calendarHeight = Math.min(34 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight * .45);
-      const overlap = trigger.getBoundingClientRect().bottom + calendarHeight + 16 - bottom;
-      if (overlap > 0) scroll.scrollBy({ top: overlap, behavior: "instant" });
-    };
-    const frame = requestAnimationFrame(revealCalendar);
-    const observer = new ResizeObserver(revealCalendar);
-    observer.observe(scroll);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
-  }, [open, mobile]);
   if (mobile)
     return (
       <>
         <Button
           type="button"
           variant="outline"
+          id={(trigger.props as {id?:string}).id}
           className="date-picker-mobile-trigger w-full justify-start font-normal"
           data-empty={!(trigger.props as { value?: string }).value}
           onClick={() => onOpenChange(true)}
@@ -256,7 +234,7 @@ function CalendarPopup({
         >
           <CalendarDays aria-hidden="true" />
           {(trigger.props as { value?: string; placeholder?: string }).value ||
-            (trigger.props as { placeholder?: string }).placeholder}
+            (trigger.props as { placeholder?: string }).placeholder || (en ? "Choose period" : "اختر الفترة")}
         </Button>
         <Sheet open={open} onOpenChange={onOpenChange}>
           <SheetContent
@@ -287,25 +265,20 @@ function CalendarPopup({
       </>
     );
   return (
-    <div ref={desktopField} className="min-w-0">
+    <>
       <Popover open={open} onOpenChange={onOpenChange}>
-        <PopoverTrigger nativeButton={false} render={trigger} />
+        <PopoverTrigger nativeButton={trigger.type === Button} render={trigger} />
         <PopoverContent
           align="start"
           sideOffset={4}
-          collisionAvoidance={{
-            side: "none",
-            align: "none",
-            fallbackAxisSide: "none",
-          }}
+          collisionAvoidance={{side:"shift",align:"shift",fallbackAxisSide:"none"}}
           className="date-picker-popover"
           dir={en ? "ltr" : "rtl"}
         >
           {children}
         </PopoverContent>
       </Popover>
-      {open && <div className="date-picker-reserve" aria-hidden="true" />}
-    </div>
+    </>
   );
 }
 
@@ -424,142 +397,29 @@ export function DateInput({
   );
 }
 
-export function DateRangeInput({
-  startName,
-  endName,
-  label,
-  startValue = "",
-  endValue = "",
-  required = false,
-  includeTime = false,
-  locale = "ar",
-}: {
-  startName: string;
-  endName: string;
-  label: string;
-  startValue?: string;
-  endValue?: string;
-  required?: boolean;
-  includeTime?: boolean;
-  locale?: Locale;
-}) {
-  const start = includeTime
-      ? currentRiyadhDateTime(startValue)
-      : { date: startValue, time: "12:00" },
-    end = includeTime
-      ? currentRiyadhDateTime(endValue)
-      : { date: endValue, time: "12:00" };
-  const [startDate, setStartDate] = useState(start.date),
-    [endDate, setEndDate] = useState(end.date),
-    [startTime, setStartTime] = useState(start.time),
-    [endTime, setEndTime] = useState(end.time),
-    [open, setOpen] = useState(false),
-    id = useId(),
-    en = locale === "en";
-  const startOutput = startDate
-      ? includeTime
-        ? `${startDate}T${startTime}:00+03:00`
-        : startDate
-      : "",
-    endOutput = endDate
-      ? includeTime
-        ? `${endDate}T${endTime}:00+03:00`
-        : endDate
-      : "";
-  const invalid = Boolean(
-    startOutput && endOutput && (includeTime ? new Date(endOutput) <= new Date(startOutput) : endDate < startDate),
-  );
-  const summary = startOutput
-    ? `${en ? "From" : "من"} ${includeTime ? formatRiyadhDateTime(startOutput, locale, true) : formatRiyadhDate(startOutput, locale, true)}${endOutput ? ` ${en ? "to" : "إلى"} ${includeTime ? formatRiyadhDateTime(endOutput, locale, true) : formatRiyadhDate(endOutput, locale, true)}` : ""}`
-    : "";
-  return (
-    <Field data-invalid={invalid || undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <CalendarPopup
-        open={open}
-        onOpenChange={setOpen}
-        label={label}
-        locale={locale}
-        trigger={
-          <Input
-            id={id}
-            readOnly
-            required={required}
-            aria-invalid={invalid}
-            aria-describedby={`${id}-summary`}
-            value={
-              startDate
-                ? [
-                    formatRiyadhDate(startDate, locale),
-                    endDate ? formatRiyadhDate(endDate, locale) : "",
-                  ]
-                    .filter(Boolean)
-                    .join(en ? " to " : " إلى ")
-                : ""
-            }
-            placeholder={en ? "Choose a date range" : "اختر الفترة"}
-            className="cursor-pointer font-normal"
-          />
-        }
-      >
-        <FieldGroup>
-          <CalendarPanel
-            value={startDate}
-            end={endDate}
-            locale={locale}
-            future={includeTime}
-            onSelect={(date) => {
-              if (!startDate || endDate) {
-                setStartDate(date);
-                setEndDate("");
-              } else setEndDate(date);
-            }}
-          />
-          {includeTime && (
-            <>
-              <TimeSelect
-                label={en ? "Start time" : "وقت البداية"}
-                value={startTime}
-                onChange={setStartTime}
-                locale={locale}
-              />
-              <TimeSelect
-                label={en ? "End time" : "وقت النهاية"}
-                value={endTime}
-                onChange={setEndTime}
-                locale={locale}
-              />
-              <FieldDescription>
-                {en
-                  ? "All times are in Riyadh time"
-                  : "كل الأوقات بتوقيت الرياض"}
-              </FieldDescription>
-            </>
-          )}
-          {invalid && (
-            <FieldError>
-              {en
-                ? "End must be after start."
-                : "يجب أن تكون النهاية بعد البداية."}
-            </FieldError>
-          )}
-          <Button
-            type="button"
-            disabled={invalid || !endDate}
-            onClick={() => setOpen(false)}
-          >
-            {en ? "Done" : "تم"}
-          </Button>
-        </FieldGroup>
-      </CalendarPopup>
-      <FieldDescription id={`${id}-summary`}>{summary}</FieldDescription>
-      {invalid && (
-        <FieldError>
-          {en ? "End must be after start." : "يجب أن تكون النهاية بعد البداية."}
-        </FieldError>
-      )}
-      <input type="hidden" name={startName} value={startOutput} />
-      <input type="hidden" name={endName} value={invalid ? "" : endOutput} />
-    </Field>
-  );
+export function DateRangeInput({startName,endName,label,startValue="",endValue="",required=false,includeTime=false,locale="ar"}:{startName:string;endName:string;label:string;startValue?:string;endValue?:string;required?:boolean;includeTime?:boolean;locale?:Locale}) {
+  const start=includeTime?currentRiyadhDateTime(startValue):{date:startValue,time:"12:00"};
+  const end=includeTime?currentRiyadhDateTime(endValue):{date:endValue,time:"23:59"};
+  const [startDate,setStartDate]=useState(start.date),[endDate,setEndDate]=useState(end.date),[startTime,setStartTime]=useState(start.time),[endTime,setEndTime]=useState(endValue?end.time:"23:59"),[open,setOpen]=useState(false),[touched,setTouched]=useState(false),[validStart,setValidStart]=useState(true),[validEnd,setValidEnd]=useState(true);
+  const id=useId(),en=locale==="en";
+  const startOutput=startDate?(includeTime?`${startDate}T${startTime}:00+03:00`:startDate):"",endOutput=endDate?(includeTime?`${endDate}T${endTime}:00+03:00`:endDate):"";
+  const invalid=!!(startOutput&&endOutput&&(includeTime?new Date(endOutput)<=new Date(startOutput):endDate<startDate))||!validStart||!validEnd;
+  const complete=!!(startOutput&&endOutput&&!invalid);
+  const endpoint=(value:string)=>new Intl.DateTimeFormat(en?"en-GB":"ar-SA-u-ca-gregory-nu-latn",{timeZone:"Asia/Riyadh",day:"numeric",month:"long",...(includeTime?{hour:"numeric",minute:"2-digit",hour12:true}:{})}).format(new Date(includeTime?value:`${value}T12:00:00+03:00`));
+  const summary=startOutput?`${endpoint(startOutput)}${endOutput?` ${en?"→":"←"} ${endpoint(endOutput)}`:""}`:"";
+  const message=invalid?(en?"Enter a valid time; end must be after start.":"أدخل وقتًا صالحًا، ويجب أن تكون النهاية بعد البداية."):touched&&!complete?(en?"Choose the start and end of the period.":"اختر بداية الفترة ونهايتها."):"";
+  return <Field className="shared-period-field" data-invalid={!!message||undefined}>
+    <FieldLabel htmlFor={id}>{label}{required&&<span className="text-destructive" aria-hidden="true">*</span>}</FieldLabel>
+    <CalendarPopup open={open} onOpenChange={setOpen} label={label} locale={locale} trigger={<Button id={id} aria-label={label} type="button" variant="outline" className="period-trigger" value={summary} aria-invalid={!!message} aria-required={required} aria-describedby={`${id}-hint`}><CalendarDays/><span>{startOutput?<><bdi>{endpoint(startOutput)}</bdi>{endOutput&&<>{en?<ArrowRight/>:<ArrowLeft/>}<bdi>{endpoint(endOutput)}</bdi></>}</>:en?"Choose a period":"اختر الفترة"}</span></Button>}>
+      <div className="period-picker-content">
+        <CalendarPanel value={startDate} end={endDate} locale={locale} future={includeTime} onSelect={date=>{if(!startDate||endDate){setStartDate(date);setEndDate("");}else setEndDate(date);}}/>
+        {includeTime&&<div className="period-times"><CompactTimeInput label={en?"Start":"البداية"} value={startTime} onChange={setStartTime} onValidity={setValidStart} locale={locale}/><CompactTimeInput label={en?"End":"النهاية"} value={endTime} onChange={setEndTime} onValidity={setValidEnd} locale={locale}/></div>}
+        <Button type="button" disabled={!complete} onClick={()=>setOpen(false)}>{en?"Done":"تم"}</Button>
+      </div>
+    </CalendarPopup>
+    <FieldDescription id={`${id}-hint`}>{includeTime?(en?"Riyadh time":"بتوقيت الرياض"):summary}</FieldDescription>
+    {message&&<FieldError role="alert">{message}</FieldError>}
+    {required&&<input className="sr-only" tabIndex={-1} aria-hidden="true" required value={complete?"valid":""} onChange={()=>{}} onInvalid={event=>{event.preventDefault();setTouched(true);if(event.currentTarget.form?.querySelector(":invalid")===event.currentTarget)document.getElementById(id)?.focus();}}/>}
+    <input type="hidden" name={startName} value={startOutput}/><input type="hidden" name={endName} value={complete?endOutput:""}/>
+  </Field>;
 }

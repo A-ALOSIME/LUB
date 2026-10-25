@@ -8,23 +8,31 @@ import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
 import { saveProfile } from "./actions";
+import { AvatarPicker } from "./avatar-picker";
 import { ProfileDetailsSection } from "./profile-form-sections";
 import { useActionToast } from "@/components/action-toast";
 import type { StudentProfile } from "./repository";
 
 export function ProfileForm({
   profile,
+  avatarUrl,
   email,
   returnTo,
   locale = "ar",
 }: {
   profile?: StudentProfile;
+  avatarUrl?: string;
   email: string;
   returnTo?: string;
   locale?: Locale;
 }) {
   const en = locale === "en";
-  const [state, save, pending] = useActionState<FormState, FormData>(saveProfile, {});
+  const [avatar, setAvatar] = useState<File | null>();
+  const [processing, setProcessing] = useState(false);
+  const [state, save, pending] = useActionState<FormState, FormData>(async (previous, form) => {
+    if (avatar !== undefined) { form.set("avatarAction", avatar ? "replace" : "remove"); if (avatar) form.set("avatar", avatar); }
+    return saveProfile(previous, form);
+  }, {});
   useActionToast(state, locale);
   const [dirty, setDirty] = useState(false);
   const saveLabel = profile
@@ -47,6 +55,7 @@ export function ProfileForm({
           {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
           <CardContent className="account-settings-content">
+            {profile && <AvatarPicker name={profile.fullName} src={avatarUrl} locale={locale} onProcessing={setProcessing} onChange={file=>{setAvatar(file);setDirty(true);}} error={state.fieldErrors?.avatar?.[0]}/>}
             <ProfileDetailsSection
               profile={profile}
               email={email}
@@ -69,7 +78,7 @@ export function ProfileForm({
               <Button
                 type="submit"
                 className="account-settings-save"
-                disabled={pending}
+                disabled={pending || processing}
               >
                 {pending ? (
                   <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" />
@@ -82,7 +91,7 @@ export function ProfileForm({
                 type="button"
                 variant="outline"
                 className="account-settings-undo"
-                disabled={!dirty || pending}
+                disabled={!dirty || pending || processing}
                 onClick={() => window.location.reload()}
               >
                 <RotateCcw data-icon="inline-start" aria-hidden="true" />

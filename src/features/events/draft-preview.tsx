@@ -9,14 +9,14 @@ import { X } from "lucide-react";
 import { formatRiyadhDateTime } from "@/lib/datetime";
 import type { Locale } from "@/lib/preferences";
 
-type Preview = { title: string; description: string; starts: string; ends: string; location: string; poster: string };
+type Preview = { title: string; description: string; starts: string; ends: string; location: string; poster: string; ownsPoster:boolean };
 
 export function EventDraftPreview({ locale }: { locale: Locale }) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const en = locale === "en";
 
-  useEffect(() => () => { if (preview?.poster) URL.revokeObjectURL(preview.poster); }, [preview?.poster]);
+  useEffect(() => () => { if (preview?.poster && preview.ownsPoster) URL.revokeObjectURL(preview.poster); }, [preview?.poster, preview?.ownsPoster]);
 
   function showPreview(button: HTMLButtonElement) {
     const form = button.form;
@@ -29,7 +29,7 @@ export function EventDraftPreview({ locale }: { locale: Locale }) {
       starts: String(data.get("starts") || ""),
       ends: String(data.get("ends") || ""),
       location: String(data.get("location") || ""),
-      poster: file ? URL.createObjectURL(file) : "",
+      poster: file ? URL.createObjectURL(file) : form.querySelector<HTMLElement>("[data-preview-url]")?.dataset.previewUrl ?? "", ownsPoster:!!file,
     });
     setOpen(true);
   }

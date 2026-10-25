@@ -1,9 +1,9 @@
+import { RegistrationRoundFields } from "@/features/forms/registration-round-fields";
 import { FilePlus2, CalendarRange, ClipboardList } from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -53,34 +53,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const canCreateRound = !!registration?.allowed.includes("REGISTRATION_ROUNDS_MANAGE");
   const canCreateCampaign = !!renewals?.allowed;
   const canManageForms = !!registration?.allowed.includes("FORMS_MANAGE");
-  const createRoundForm = <WorkflowForm operation="create-round" fields={{ org: id }} label={c("حفظ كمسودة", "Save as draft")} locale={locale} disabled={!publishedTemplates.length}>
-    <FieldGroup className="gap-4">
-      <Field>
-        <FieldLabel htmlFor="registration-round-title">{c("عنوان الجولة", "Round title")}</FieldLabel>
-        <Input id="registration-round-title" name="title" dir={en ? "ltr" : "rtl"} required minLength={2} maxLength={120}/>
-      </Field>
-      {publishedTemplates.length ? <Field>
-        <FieldLabel htmlFor="registration-round-template">{c("النموذج المنشور", "Published form")}</FieldLabel>
-        <NativeSelect id="registration-round-template" name="template" dir={en ? "ltr" : "rtl"} required className="text-sm text-foreground">
-          <option value="">{c("اختر نموذجًا", "Select a form")}</option>
-          {publishedTemplates.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </NativeSelect>
-      </Field> : <Field>
-        <FieldLabel>{c("النموذج المنشور", "Published form")}</FieldLabel>
-        <FieldDescription>
-          {c("لا توجد نماذج منشورة لهذه الجهة.", "There are no published forms for this organization.")} {canManageForms && <Link href={`/manage/organizations/${id}/renewals?section=forms`} className="font-medium text-primary underline-offset-4 hover:underline">{c("انتقل إلى النماذج لإنشاء نموذج.", "Go to forms to create one.")}</Link>}{!canManageForms && c(" اطلب من مسؤول النماذج نشر نموذج أولاً.", " Ask a forms manager to publish one first.")}
-        </FieldDescription>
-      </Field>}
-      <DateRangeInput startName="opens" endName="closes" label={c("فترة التسجيل", "Registration period")} required includeTime locale={locale}/>
-      <Field orientation="horizontal" className="items-start">
-        <Checkbox id="registration-round-withdrawal" name="withdrawal" value="on" defaultChecked />
-        <FieldContent>
-          <FieldLabel htmlFor="registration-round-withdrawal">{c("السماح بسحب الطلب قبل القرار النهائي", "Allow withdrawal before a final decision")}</FieldLabel>
-          <FieldDescription>{c("يمكن للطالب سحب طلبه ما دامت الجهة لم تتخذ قراراً نهائياً.", "Students can withdraw while the organization has not made a final decision.")}</FieldDescription>
-        </FieldContent>
-      </Field>
-    </FieldGroup>
-  </WorkflowForm>;
+  const createRoundForm = <WorkflowForm operation="create-round" fields={{org:id}} label={c("حفظ كمسودة","Save as draft")} locale={locale} disabled={!publishedTemplates.length} splitBody><RegistrationRoundFields formHref={canManageForms?`/manage/organizations/${id}/renewals?section=forms`:undefined} templates={publishedTemplates} locale={locale}/></WorkflowForm>;
   const createCampaignForm = renewals?.allowed && <HoursForm operation="campaign" fields={{ org: id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}>
     <Field><FieldLabel htmlFor="renewal-term">{c("الفصل الدراسي","Academic term")}</FieldLabel><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}>{term.name_ar} · {term.academic_year}</option>)}</NativeSelect></Field>
     <DateRangeInput startName="opens" endName="closes" label={c("فترة استقبال الردود", "Response period")} required includeTime locale={locale}/>

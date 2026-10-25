@@ -1,6 +1,7 @@
 import { StorageUnavailable } from "@/components/storage-unavailable";
 import { requireStudentUser as requireUser } from "@/features/auth/authorization";
 import { getAccountStatus, getStudentProfile } from "@/features/profile/repository";
+import { accountAvatarUrl } from "@/features/profile/avatar-storage";
 import { ProfileForm } from "@/features/profile/profile-form";
 import { isProfileStorageConfigured } from "@/lib/env";
 import { localizedMetadata } from "@/lib/localized-metadata";
@@ -19,7 +20,7 @@ export default async function Account() {
   if (!isProfileStorageConfigured()) return <StorageUnavailable />;
   if ((await getAccountStatus(user.id)) === "Inactive") redirect("/account-unavailable");
 
-  const profile = await getStudentProfile(user.id);
+  const [profile, avatarUrl] = await Promise.all([getStudentProfile(user.id),accountAvatarUrl(user.id)]);
   if (!profile) redirect("/onboarding");
 
   return (
@@ -28,7 +29,7 @@ export default async function Account() {
         <h1>{en ? "Account details" : "بيانات الحساب"}</h1>
       </header>
 
-      <ProfileForm profile={profile} email={user.email} locale={locale} />
+      <ProfileForm avatarUrl={avatarUrl} profile={profile} email={user.email} locale={locale} />
     </main>
   );
 }

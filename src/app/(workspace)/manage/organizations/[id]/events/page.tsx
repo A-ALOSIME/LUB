@@ -44,7 +44,7 @@ export default async function ManageEvents({
   if (!data) notFound();
   const initialSection = search.section === "announcements" ? "announcements" : "events";
   const actions = <EventsAnnouncementsActions organizationId={id} locale={locale} canCreateEvent={data.canManage} canCreateAnnouncement={data.canManageAnnouncements}>
-    {data.canManage && <EventForm operation="save" fields={{ org: id }} label={c("حفظ المسودة", "Save draft")} secondaryAction={<EventDraftPreview locale={locale} />} locale={locale}>
+    {data.canManage && <EventForm splitBody cancelVariant="ghost" operation="save" fields={{ org: id }} label={c("حفظ المسودة", "Save draft")} secondaryAction={<EventDraftPreview locale={locale} />} locale={locale}>
       <EventFields organization={id} templates={data.templates} locale={locale} />
     </EventForm>}
   </EventsAnnouncementsActions>;

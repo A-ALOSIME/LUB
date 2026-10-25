@@ -19,7 +19,11 @@ it("uploads a selected JPEG/PNG poster with its organization and shows the previ
   const file = new File([new Uint8Array([137, 80, 78, 71])], "poster.png", { type: "image/png" });
   fireEvent.change(screen.getByLabelText("صورة بوستر الفعالية"), { target: { files: [file] } });
 
-  await waitFor(() => expect(screen.getByText(/تم رفع البوستر/)).toBeTruthy());
+  await waitFor(() => expect(screen.getByAltText("معاينة بوستر الفعالية").getAttribute("src")).toBe("blob:poster"));
+  expect(screen.getByRole("button",{name:"تغيير"})).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"حذف"}));
+  expect(document.querySelector<HTMLInputElement>('input[name="poster"]')?.value).toBe("");
+  expect(screen.queryByAltText("معاينة بوستر الفعالية")).toBeNull();
   expect(fetchMock).toHaveBeenCalledWith("/files/upload?purpose=event-poster", expect.objectContaining({ method: "POST" }));
   const body = fetchMock.mock.calls[0][1].body as FormData;
   expect(body.get("file")).toBe(file);
