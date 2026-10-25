@@ -23,7 +23,7 @@ const committee = { id: "committee-1", name: "لجنة الأمن", description:
 it("opens committee editing from the row and shows management actions directly", () => {
   render(<ul><CommitteeListRow organizationId="org-1" committee={committee} canManage locale="ar" /></ul>);
 
-  expect(screen.getByText("0 أعضاء")).toBeTruthy();
+  expect(screen.getByText("لا أعضاء")).toBeTruthy();
   expect(screen.getByText("بدون قائد")).toBeTruthy();
   expect(screen.getByText("عامة")).toBeTruthy();
 
@@ -58,5 +58,5 @@ it("keeps public chart cards name-only and opens full committee details on click
   expect(dialog.textContent).toContain("لجنة الأمن");
   expect(dialog.textContent).toContain("تنسيق المبادرات والأنشطة التقنية بالكامل.");
   expect(dialog.textContent).toContain("أحمد العتيبي");
-  expect(dialog.textContent).toContain("12 أعضاء");
+  expect(dialog.textContent).toContain("12 عضوًا");
 });

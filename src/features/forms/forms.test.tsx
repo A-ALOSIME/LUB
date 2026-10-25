@@ -39,7 +39,7 @@ it("confirms publication, saves the latest draft first and then makes it read-on
  render(<FormEditor version="version" revision={1} initial={initialDefinition}/>);
  fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
  fireEvent.click(screen.getByRole("button",{name:/^السؤال 1/}));
- fireEvent.change(screen.getAllByLabelText("السؤال")[0],{target:{value:"سؤال معدّل"}});
+ fireEvent.change(screen.getAllByRole("textbox",{name:"السؤال"})[0],{target:{value:"سؤال معدّل"}});
  fireEvent.click(screen.getByRole("button",{name:"نشر النسخة"}));
  const dialog=screen.getByRole("alertdialog");expect(dialog.textContent).toContain("طلبات الطلاب السابقة");expect(action).not.toHaveBeenCalled();
  fireEvent.click(within(dialog).getByRole("button",{name:"نشر النسخة"}));
@@ -58,11 +58,11 @@ it("reorders questions with their drag handle while retaining stable identifiers
 
 it("collapses existing questions, opens new ones and duplicates with fresh identifiers",async()=>{
  render(<FormEditor version="version" revision={1} initial={initialDefinition}/>);
- expect(screen.queryByLabelText("السؤال")).toBeNull();
+ expect(screen.queryByRole("textbox",{name:"السؤال"})).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
- expect(screen.queryByLabelText("السؤال")).toBeNull();
+ expect(screen.queryByRole("textbox",{name:"السؤال"})).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:"إضافة سؤال"}));
- expect((screen.getByLabelText("السؤال") as HTMLInputElement).value).toBe("سؤال جديد");
+ expect((screen.getByRole("textbox",{name:"السؤال"}) as HTMLInputElement).value).toBe("سؤال جديد");
  fireEvent.click(screen.getByRole("button",{name:"أدوات السؤال 1"}));
  fireEvent.click(await screen.findByRole("menuitem",{name:"نسخ"}));
  const definition=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as typeof initialDefinition;

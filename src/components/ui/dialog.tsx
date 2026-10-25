@@ -49,6 +49,7 @@ function DialogContent({
   showCloseButton?: boolean
   width?: "default" | "wide"
 }) {
+  const popupRef = React.useRef<HTMLDivElement>(null);
   const widthClass = width === "wide"
     ? "w-[min(42rem,calc(100vw-2rem))] max-w-2xl"
     : "w-full max-w-[calc(100%-2rem)] sm:max-w-sm"
@@ -56,6 +57,8 @@ function DialogContent({
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Popup
+        ref={popupRef}
+        initialFocus={() => popupRef.current?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]):not([aria-hidden="true"]),textarea:not([disabled]),select:not([disabled]),[role="combobox"]:not([aria-disabled="true"])') ?? true}
         data-slot="dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-popover shadow-xl p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",

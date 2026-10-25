@@ -13,6 +13,7 @@ import {localOrganizationContent} from "@/features/organizations/local-content";
 import {eventDate,eventDateEn,eventDay,eventDayEn,eventTime,eventTimeEn,eventLabels,eventLabelsEn} from "./display";
 import type {Locale} from "@/lib/preferences";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
+import { FormField } from "@/components/form-field";
 export {eventDate,eventLabels} from "./display";
 export {EventIcon} from "./icon";
 export function EventCards({items,locale="ar"}:{items:EventCard[];locale?:Locale}) {
@@ -142,7 +143,7 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
           </ManagementActionSheet>
           <ManagementActionSheet rowAction icon={<SlidersHorizontal/>} label={c("تغيير الحالة", "Change status")} title={c("تغيير حالة الفعالية", "Change event status")} locale={locale}>
           <EventForm operation="status" fields={base} label={c("حفظ الحالة", "Save status")} locale={locale}>
-            <label>{c("الإجراء", "Action")}<NativeSelect name="status">{e.status_code === "Draft" ? <option value="Published">{c("نشر الفعالية", "Publish event")}</option> : <option value="Completed">{c("إكمال يدوي واعتماد ساعات الحضور", "Complete manually and approve attendance hours")}</option>}<option value="Cancelled">{c("إلغاء الفعالية", "Cancel event")}</option></NativeSelect></label>
+            <FormField  label={<>{c("الإجراء", "Action")}</>}><NativeSelect name="status">{e.status_code === "Draft" ? <option value="Published">{c("نشر الفعالية", "Publish event")}</option> : <option value="Completed">{c("إكمال يدوي واعتماد ساعات الحضور", "Complete manually and approve attendance hours")}</option>}<option value="Cancelled">{c("إلغاء الفعالية", "Cancel event")}</option></NativeSelect></FormField>
             <label className="flex items-center gap-3"><input type="checkbox" name="confirm" required className="size-5" />{c("راجعت البيانات والحضور والموافقة الخارجية اللازمة", "I reviewed the details, attendance and required external approval")}</label>
           </EventForm>
           </ManagementActionSheet>
@@ -152,8 +153,8 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
           <label className="flex items-center gap-3"><input type="checkbox" name="featured" defaultChecked={e.is_featured} className="size-5" />{c("تمييز الفعالية في صفحة الجهة", "Feature this event on the organization page")}</label>
         </EventForm></ManagementActionSheet>}
         {["Published", "Completed"].includes(e.status_code) && <ManagementActionSheet rowAction icon={<Megaphone/>} label={c("تحديثات عامة", "Public updates")} title={c("تحديثات الفعالية العامة", "Public event updates")} locale={locale}><EventForm operation="public-content" fields={{ event: e.id }} label={c("حفظ المنشورات العامة", "Save public updates")} locale={locale}>
-          <label>{c("ملخص أو تقرير عام", "Public summary or report")}<textarea name="report" rows={5} maxLength={5000} defaultValue={e.public_report} /></label>
-          <label>{c("روابط الصور العامة (رابط HTTPS في كل سطر، حتى 4 صور)", "Public photo URLs (one HTTPS URL per line, up to 4)")}<textarea name="photos" dir="ltr" rows={4} maxLength={8200} defaultValue={e.public_photos?.join("\n") ?? ""} /></label>
+          <FormField  label={<>{c("ملخص أو تقرير عام", "Public summary or report")}</>}><textarea name="report" rows={5} maxLength={5000} defaultValue={e.public_report} /></FormField>
+          <FormField  label={<>{c("روابط الصور العامة (رابط HTTPS في كل سطر، حتى 4 صور)", "Public photo URLs (one HTTPS URL per line, up to 4)")}</>}><textarea name="photos" dir="ltr" rows={4} maxLength={8200} defaultValue={e.public_photos?.join("\n") ?? ""} /></FormField>
           <p className="text-sm text-muted">{c("هذه الروابط والملخص تظهر للزوار. المرفقات التشغيلية أدناه تبقى خاصة.", "These URLs and the summary are public. Operational attachments below remain private.")}</p>
         </EventForm></ManagementActionSheet>}
         <ManagementActionSheet rowAction icon={<Copy/>} label={c("نسخ الفعالية", "Duplicate event")} title={c("نسخ الفعالية إلى مسودة", "Copy event to a draft")} locale={locale}><EventForm operation="duplicate" fields={{ event: e.id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}><p className="text-sm text-muted">{c("سيتم إنشاء نسخة مستقلة كمسودة. لن تتغير الفعالية الأصلية.", "An independent draft copy will be created. The original event will not change.")}</p></EventForm></ManagementActionSheet>
@@ -177,12 +178,12 @@ export function EventContent({data,user,superAdmin=false,locale="ar"}:{data:Even
           </ManagementActionSheet>}
           {e.status_code === "Published" && registration.status_code === "Registered" && <>
             {data.canAttend && <ManagementActionSheet rowAction icon={<UserCheck/>} label={c("تسجيل الحضور", "Record attendance")} title={c("حالة حضور العضو", "Member attendance")} locale={locale}><EventForm operation="attendance" fields={{ registration: registration.id }} label={c("حفظ الحضور", "Save attendance")} locale={locale}>
-              <label>{c("الحضور", "Attendance")}<NativeSelect name="status" defaultValue={registration.attendance}>{["Pending", "Present", "Absent", "Excused"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</NativeSelect></label>
+              <FormField  label={<>{c("الحضور", "Attendance")}</>}><NativeSelect name="status" defaultValue={registration.attendance}>{["Pending", "Present", "Absent", "Excused"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</NativeSelect></FormField>
             </EventForm></ManagementActionSheet>}
             {data.canContribute && <ManagementActionSheet rowAction icon={<Award/>} label={c("إثبات مساهمة", "Record contribution")} title={c("مساهمة بارزة", "Significant contribution")} locale={locale}>
               <EventForm operation="contribution" fields={{ event: e.id, student: registration.user_id }} label={c("إثبات المساهمة", "Record contribution")} locale={locale}>
-                <label>{c("النوع", "Type")}<NativeSelect name="kind">{["Presenter", "Trainer", "Core_Contributor"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</NativeSelect></label>
-                <label>{c("وصف موجز للمساهمة", "Brief contribution description")}<input name="title" required minLength={2} maxLength={120} /></label>
+                <FormField  label={<>{c("النوع", "Type")}</>}><NativeSelect name="kind">{["Presenter", "Trainer", "Core_Contributor"].map(status => <option key={status} value={status}>{labels[status]}</option>)}</NativeSelect></FormField>
+                <FormField  label={<>{c("وصف موجز للمساهمة", "Brief contribution description")}</>}><input name="title" required minLength={2} maxLength={120} /></FormField>
               </EventForm>
             </ManagementActionSheet>}
           </>}

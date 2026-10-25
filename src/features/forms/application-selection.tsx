@@ -14,6 +14,7 @@ import type { Application, Detail } from "./repository";
 import type { Locale } from "@/lib/preferences";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
 import { formatRiyadhDateTime } from "@/lib/datetime";
+import { FormField } from "@/components/form-field";
 
 const statusLabels = {
   Submitted: { ar: "قيد المراجعة", en: "Under review" },
@@ -95,8 +96,8 @@ export function ApplicationSelection({ rows, locale = "ar", canBulk, selectedApp
       {canBulk && selected.length > 0 && <div className="application-bulk-bar fixed inset-x-0 bottom-0 z-40 border-t border-border bg-popover/95 p-3 shadow-lg backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-end gap-3" dir={en ? "ltr" : "rtl"}>
           <p className="me-auto self-center text-sm font-medium">{c(`${selected.length} طلبات محددة`, `${selected.length} applications selected`)}</p>
-          <label className="min-w-36">{c("القرار","Decision")}<NativeSelect name="bulk-status" value={status} onChange={event => setStatus(event.target.value)}><option value="Accepted">{c("قبول","Accept")}</option><option value="Rejected">{c("رفض","Reject")}</option><option value="Interview">{c("مقابلة","Interview")}</option></NativeSelect></label>
-          {status === "Interview" && <label className="min-w-48 flex-1">{c("رسالة المقابلة","Interview message")}<input name="bulk-message" required maxLength={3000} value={message} onChange={event => setMessage(event.target.value)}/></label>}
+          <FormField className="min-w-36" label={<>{c("القرار","Decision")}</>}><NativeSelect name="bulk-status" value={status} onChange={event => setStatus(event.target.value)}><option value="Accepted">{c("قبول","Accept")}</option><option value="Rejected">{c("رفض","Reject")}</option><option value="Interview">{c("مقابلة","Interview")}</option></NativeSelect></FormField>
+          {status === "Interview" && <FormField className="min-w-48 flex-1" label={<>{c("رسالة المقابلة","Interview message")}</>}><input name="bulk-message" required maxLength={3000} value={message} onChange={event => setMessage(event.target.value)}/></FormField>}
           <input type="hidden" name="status" value={status}/><input type="hidden" name="message" value={message}/>
           <ManagementActionFooter label={pending ? c("جارٍ التنفيذ…","Applying…") : c("تنفيذ","Apply decision")} pending={pending} disabled={!selectable.length || (status === "Interview" && !message.trim())}/>
           <Button type="button" variant="ghost" onClick={() => setSelected([])}>{c("إلغاء التحديد","Clear selection")}</Button>
@@ -109,7 +110,7 @@ export function ApplicationSelection({ rows, locale = "ar", canBulk, selectedApp
         <ManagementActionProvider locale={locale} close={() => closeDetail(false)}>
         <div className="management-action-scroll space-y-5" dir={en ? "ltr" : "rtl"}>
           <ApplicationDetail detail={selectedApplication.detail} locale={locale}/>
-          {selectedApplication.detail.canReview && ["Submitted","Interview"].includes(selectedApplication.detail.status_code) && <section className="space-y-3 border-t border-line pt-4"><h2 className="font-semibold">{c("قرار الطلب","Application decision")}</h2><form action={action} className="space-y-3"><input type="hidden" name="operation" value="decide"/><input type="hidden" name="application" value={selectedApplication.detail.id}/><label>{c("القرار","Decision")}<NativeSelect name="status" value={detailDecision} onChange={event=>setDetailDecision(event.target.value)}><option value="Accepted">{c("قبول","Accept")}</option><option value="Rejected">{c("رفض","Reject")}</option><option value="Interview">{c("مقابلة","Interview")}</option></NativeSelect></label><label>{c("رسالة المقابلة","Interview message")}<textarea name="message" maxLength={3000} rows={3} required={detailDecision==="Interview"}/></label><ManagementActionFooter label={pending?c("جارٍ الحفظ…","Saving…"):c("حفظ القرار","Save decision")} pending={pending}/></form></section>}
+          {selectedApplication.detail.canReview && ["Submitted","Interview"].includes(selectedApplication.detail.status_code) && <section className="space-y-3 border-t border-line pt-4"><h2 className="font-semibold">{c("قرار الطلب","Application decision")}</h2><form action={action} className="space-y-3"><input type="hidden" name="operation" value="decide"/><input type="hidden" name="application" value={selectedApplication.detail.id}/><FormField  label={<>{c("القرار","Decision")}</>}><NativeSelect name="status" value={detailDecision} onChange={event=>setDetailDecision(event.target.value)}><option value="Accepted">{c("قبول","Accept")}</option><option value="Rejected">{c("رفض","Reject")}</option><option value="Interview">{c("مقابلة","Interview")}</option></NativeSelect></FormField><FormField  label={<>{c("رسالة المقابلة","Interview message")}</>}><textarea name="message" maxLength={3000} rows={3} required={detailDecision==="Interview"}/></FormField><ManagementActionFooter label={pending?c("جارٍ الحفظ…","Saving…"):c("حفظ القرار","Save decision")} pending={pending}/></form></section>}
         </div>
         </ManagementActionProvider>
       </SheetContent>

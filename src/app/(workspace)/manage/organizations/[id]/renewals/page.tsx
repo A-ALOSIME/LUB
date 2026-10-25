@@ -21,6 +21,7 @@ import { WorkflowForm } from "@/features/forms/mutation-form";
 import { CombinedManagementList } from "@/features/renewals/combined-management-list";
 import { RenewalCreationActions } from "@/features/renewals/creation-actions";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
+import { FormField } from "@/components/form-field";
 
 export async function generateMetadata() { return localizedMetadata("التسجيل والتجديد", "Registration and renewal"); }
 
@@ -55,7 +56,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const canManageForms = !!registration?.allowed.includes("FORMS_MANAGE");
   const createRoundForm = <WorkflowForm operation="create-round" fields={{org:id}} label={c("حفظ كمسودة","Save as draft")} locale={locale} disabled={!publishedTemplates.length} splitBody><RegistrationRoundFields formHref={canManageForms?`/manage/organizations/${id}/renewals?section=forms`:undefined} templates={publishedTemplates} locale={locale}/></WorkflowForm>;
   const createCampaignForm = renewals?.allowed && <HoursForm operation="campaign" fields={{ org: id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}>
-    <Field><FieldLabel htmlFor="renewal-term">{c("الفصل الدراسي","Academic term")}</FieldLabel><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}>{term.name_ar} · {term.academic_year}</option>)}</NativeSelect></Field>
+    <FormField  id="renewal-term" label={<>{c("الفصل الدراسي","Academic term")}</>}><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}>{term.name_ar} · {term.academic_year}</option>)}</NativeSelect></FormField>
     <DateRangeInput startName="opens" endName="closes" label={c("فترة استقبال الردود", "Response period")} required includeTime locale={locale}/>
     <Field orientation="horizontal" className="items-center">
       <Checkbox id="renewal-campaign-leaders" name="leaders" value="on" />
@@ -66,8 +67,8 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const newFormAction = canManageForms && registration && <ManagementActionSheet label={c("نموذج جديد", "New form")} title={c("إنشاء نموذج", "Create a form")} locale={locale} variant="default" icon={<FilePlus2 aria-hidden="true" />} triggerSize="default" mobileBottomSheet>
     <WorkflowForm operation="create-form" fields={{ org: id }} label={c("إنشاء مسودة", "Create draft")} locale={locale}>
       <FieldGroup className="gap-4">
-        <Field><FieldLabel htmlFor="registration-form-title">{c("اسم النموذج", "Form name")}</FieldLabel><Input id="registration-form-title" name="title" dir={en ? "ltr" : "rtl"} required minLength={2} maxLength={120}/></Field>
-        <Field><FieldLabel htmlFor="registration-form-source">{c("نسخ من نموذج", "Copy from form")}</FieldLabel><NativeSelect id="registration-form-source" name="source" dir={en ? "ltr" : "rtl"}><option value="">{c("نموذج من الصفر", "Start from scratch")}</option>{registration?.templates.map(item => <option key={item.id} value={item.id}>{item.name}{!item.organization_id ? c(" · نموذج لُبّ", " · LUB template") : ""}</option>)}</NativeSelect></Field>
+        <FormField  id="registration-form-title" label={<>{c("اسم النموذج", "Form name")}</>}><Input id="registration-form-title" name="title" dir={en ? "ltr" : "rtl"} required minLength={2} maxLength={120}/></FormField>
+        <FormField  id="registration-form-source" label={<>{c("نسخ من نموذج", "Copy from form")}</>}><NativeSelect id="registration-form-source" name="source" dir={en ? "ltr" : "rtl"}><option value="">{c("نموذج من الصفر", "Start from scratch")}</option>{registration?.templates.map(item => <option key={item.id} value={item.id}>{item.name}{!item.organization_id ? c(" · نموذج لُبّ", " · LUB template") : ""}</option>)}</NativeSelect></FormField>
       </FieldGroup>
     </WorkflowForm>
   </ManagementActionSheet>;

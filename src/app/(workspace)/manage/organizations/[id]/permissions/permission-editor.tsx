@@ -8,6 +8,7 @@ import { mutateOrganizationMembers } from "@/features/organizations/members-acti
 import type { OrganizationPermissionWorkspace } from "@/features/organizations/management-repository";
 import type { Locale } from "@/lib/preferences";
 import { formatRiyadhDate } from "@/lib/datetime";
+import { FormField } from "@/components/form-field";
 
 export const permissionLabels: Record<string, [string, string]> = {
   ORG_PROFILE_MANAGE: ["تعديل بيانات الجهة", "Edit organization profile"],
@@ -47,9 +48,9 @@ export function PermissionEditor({ organization, workspace, committees, locale }
     <section className="panel p-5 sm:p-7">
       <div className="mb-6"><h2 className="text-xl font-bold">{c("منح صلاحية لعضو","Grant a member access")}</h2></div>
       <WorkflowForm operation="grant" fields={{ org: organization }} label={c("حفظ التفويض","Save permission")} mutation={mutateOrganizationMembers} locale={locale}>
-        <label>{c("العضو","Member")}<NativeSelect name="member" required defaultValue="" disabled={!workspace.members.length}><option value="" disabled>{c("اختر عضوًا نشطًا","Choose an active member")}</option>{workspace.members.map(member => <option key={member.id} value={member.id} dir="auto">{member.name}</option>)}</NativeSelect></label>
-        <label>{c("الصلاحية","Capability")}<NativeSelect name="capability" value={capability} onChange={event => setCapability(event.target.value)}>{Object.entries(permissionLabels).map(([code, value]) => <option key={code} value={code}>{value[en ? 1 : 0]}</option>)}</NativeSelect></label>
-        {scopedPermissions.has(capability) ? <label>{c("النطاق","Scope")}<NativeSelect name="committee" defaultValue=""><option value="">{c("الجهة بالكامل","Whole organization")}</option>{committees.map(committee => <option key={committee.id} value={committee.id} dir="auto">{committee.name}</option>)}</NativeSelect></label> : <input type="hidden" name="committee" value=""/>}
+        <FormField  label={<>{c("العضو","Member")}</>}><NativeSelect name="member" required defaultValue="" disabled={!workspace.members.length}><option value="" disabled>{c("اختر عضوًا نشطًا","Choose an active member")}</option>{workspace.members.map(member => <option key={member.id} value={member.id} dir="auto">{member.name}</option>)}</NativeSelect></FormField>
+        <FormField  label={<>{c("الصلاحية","Capability")}</>}><NativeSelect name="capability" value={capability} onChange={event => setCapability(event.target.value)}>{Object.entries(permissionLabels).map(([code, value]) => <option key={code} value={code}>{value[en ? 1 : 0]}</option>)}</NativeSelect></FormField>
+        {scopedPermissions.has(capability) ? <FormField  label={<>{c("النطاق","Scope")}</>}><NativeSelect name="committee" defaultValue=""><option value="">{c("الجهة بالكامل","Whole organization")}</option>{committees.map(committee => <option key={committee.id} value={committee.id} dir="auto">{committee.name}</option>)}</NativeSelect></FormField> : <input type="hidden" name="committee" value=""/>}
         <DateInput name="ends" label={c("انتهاء التفويض (اختياري)","Permission expires (optional)")} locale={locale}/>
       </WorkflowForm>
     </section>

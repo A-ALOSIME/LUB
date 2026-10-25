@@ -12,6 +12,7 @@ import { useProfileFormState } from "./profile-form-state";
 import { ContactChannelAddMenu } from "./contact-channel-add-menu";
 import { OrganizationSocialIcon } from "./social-links";
 import type { Locale } from "@/lib/preferences";
+import {FormField} from "@/components/form-field";
 
 const channelPlaceholder: Record<OrganizationContactKind, string> = {
   Website: "https://example.com", Email: "name@example.com", Phone: "+966 5X XXX XXXX",
@@ -140,9 +141,9 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
     >
       <p className="text-sm leading-6 text-muted">{en ? "Enter the public contact value." : "أدخل وسيلة التواصل التي ستظهر للزوار."}</p>
       <form noValidate onSubmit={event => { event.stopPropagation(); addChannel(event); }} className="grid gap-3">
-        <label htmlFor={valueId} className="text-sm font-semibold">{organizationContactLabel(kind, en)}</label>
+        <FormField id={valueId} label={organizationContactLabel(kind, en)} required error={error}>
         {kind === "Phone" ? <PhoneInput id={valueId} autoFocus value={value} locale={locale} onChange={value => { setValue(value); setError(""); }} required /> : <Input id={valueId} autoFocus value={value} onChange={event => { setValue(event.target.value); setError(""); }} type={kind === "Email" ? "email" : "url"} inputMode={kind === "Email" ? "email" : "url"} dir="ltr" className="text-right" placeholder={channelPlaceholder[kind]} maxLength={2048} required />}
-        {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+        </FormField>
         <ManagementActionFooter label={en ? "Add channel" : "إضافة القناة"} />
       </form>
     </ManagementActionSheet>

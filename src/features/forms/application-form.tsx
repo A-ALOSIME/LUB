@@ -6,6 +6,7 @@ import { WorkflowForm } from "./mutation-form";
 import { FilePickerInput } from "@/components/file-picker-input";
 import { PhoneInput } from "@/components/phone-input";
 import type {Locale} from "@/lib/preferences";
+import { FormField } from "@/components/form-field";
 export function ApplicationForm({ round,version,definition,initial={},application,revision,committee,committees,event,mutation,locale="ar" }: { round:string;version:string;definition:FormDefinition;initial?:Answers;application?:string;revision?:number;committee?:string|null;committees:Array<{id:string;name:string}>;event?:string;mutation?:Parameters<typeof WorkflowForm>[0]["mutation"];locale?:Locale }) {
  const en=locale==="en";
  const [answers,setAnswers]=useState(()=>({...Object.fromEntries(definition.sections.flatMap(s=>s.fields).filter(f=>f.type==="Checkbox").map(f=>[f.id,false])),...initial}));const [step,setStep]=useState(0);const [uploading,setUploading]=useState<string|null>(null);const [error,setError]=useState("");
@@ -23,7 +24,7 @@ export function ApplicationForm({ round,version,definition,initial={},applicatio
  :<input id={f.id} dir={f.type==="Email"?"ltr":en?"ltr":"rtl"} type={f.type==="Number"?"number":f.type==="Email"?"email":f.type==="Date"?"date":"text"} min={f.min} max={f.max} step={f.type==="Number"?"any":undefined} maxLength={f.maxLength} value={String(answers[f.id]??"")} onChange={e=>set(f.id,e.target.value)}/>}</div>)}
  </fieldset>)}
  {definition.layout==="Progressive"&&<div className="flex flex-wrap items-center gap-3"><button type="button" className="button button-secondary" disabled={!step} onClick={()=>setStep(step-1)}>{en?"Previous":"السابق"}</button><p>{en?`Section ${step+1} of ${definition.sections.length}`:`القسم ${step+1} من ${definition.sections.length}`}</p><button type="button" className="button button-secondary" disabled={step===definition.sections.length-1} onClick={()=>setStep(step+1)}>{en?"Next":"التالي"}</button></div>}
- {!event&&committees.length>0&&<label>{en?"Preferred committee (optional)":"اللجنة المطلوبة (اختياري)"}<NativeSelect name="committee" defaultValue={committee??""}><option value="">{en?"Organization in general":"الجهة بشكل عام"}</option>{committees.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect></label>}
+ {!event&&committees.length>0&&<FormField  label={<>{en?"Preferred committee (optional)":"اللجنة المطلوبة (اختياري)"}</>}><NativeSelect name="committee" defaultValue={committee??""}><option value="">{en?"Organization in general":"الجهة بشكل عام"}</option>{committees.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect></FormField>}
  {error&&<p className="error-message" role="alert">{error}</p>}{definition.sections.some(s=>s.fields.length>0)&&<p className="text-sm leading-7 text-muted">{en?"Questions marked * are required. ":"الأسئلة ذات العلامة * مطلوبة. "}{en?event?"You can edit your answers until registration closes.":"You can edit your application while it is under review or in interview, if the round is open.":event?"تقدر تعدّل إجاباتك قبل إغلاق التسجيل.":"تقدر تعدّل طلبك وهو قيد المراجعة أو المقابلة إذا الجولة مفتوحة."} {en?"Wait for uploads to finish before submitting.":"انتظر اكتمال رفع الملفات قبل الإرسال."}</p>}
  </WorkflowForm>;
 }

@@ -5,10 +5,6 @@ import { Check, Eye, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Field,
-  FieldLabel,
-} from "@/components/ui/field";
 import {HourAdjustment} from "./hour-adjustment";
 import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
 import {Button} from "@/components/ui/button";
@@ -29,6 +25,7 @@ import type { HourRecord } from "./repository";
 import type { Locale } from "@/lib/preferences";
 import { formatRiyadhDate, formatRiyadhDateTime } from "@/lib/datetime";
 import { academicLevel, academicTerm, formatHours } from "@/lib/display";
+import { FormField } from "@/components/form-field";
 
 const labels: Record<string, [string, string]> = {
   Pending: ["بانتظار الاعتماد", "Pending approval"],
@@ -299,7 +296,7 @@ function RecordActions({
             buttonClassName={action === "reject" ? "button-danger" : undefined}
             onSuccess={() => setAction(null)}
           >
-            {action === "reject" && <Field><FieldLabel htmlFor={`hour-rejection-${record.id}`}>{c("سبب الرفض", "Rejection reason")}</FieldLabel><Textarea id={`hour-rejection-${record.id}`} name="note" required maxLength={3000} rows={3}/></Field>}
+            {action === "reject" && <FormField  id={`hour-rejection-${record.id}`} label={<>{c("سبب الرفض", "Rejection reason")}</>}><Textarea id={`hour-rejection-${record.id}`} name="note" required maxLength={3000} rows={3}/></FormField>}
           </HoursForm>
         </ManagementActionSheet>
       )}
@@ -352,7 +349,7 @@ export function HoursRecordTable({
       aria-label={c("سجلات الساعات", "Hours records")}
     >
       <div className="hours-ledger-table rounded-lg border border-border">
-        <Table className="hours-table">
+        <Table className="hours-table"><colgroup><col/>{!personal&&<><col className="hours-column-committee"/><col className="hours-column-reason"/></>}<col className="hours-column-value"/><col className="hours-column-date"/>{personal&&<col className="hours-column-source"/>}<col className="hours-column-status"/><col className="hours-column-actions"/></colgroup>
           <TableHeader>
             <TableRow>
               <TableHead>

@@ -1,14 +1,25 @@
 import type { Locale } from "./preferences";
 
+const countForms = {
+  hours: { one:"ساعة واحدة", two:"ساعتان", oblique:"ساعتين", plural:"ساعات", singular:"ساعة", zero:"لا ساعات", en:"hour" },
+  rounds: { one:"جولة واحدة", two:"جولتان", oblique:"جولتين", plural:"جولات", singular:"جولة", zero:"لا جولات", en:"round" },
+  versions: { one:"نسخة واحدة", two:"نسختان", oblique:"نسختين", plural:"نسخ", singular:"نسخة", zero:"لا نسخ", en:"version" },
+  records: { one:"سجل واحد", two:"سجلان", oblique:"سجلين", plural:"سجلات", singular:"سجلًا", zero:"لا سجلات", en:"record" },
+  members: { one:"عضو واحد", two:"عضوان", oblique:"عضوين", plural:"أعضاء", singular:"عضوًا", zero:"لا أعضاء", en:"member" },
+} as const;
+
+export function formatCount(value: number | string, unit: keyof typeof countForms, locale: Locale = "ar", grammaticalCase: "nominative" | "oblique" = "nominative") {
+  const count = Number(value), forms = countForms[unit];
+  const number = new Intl.NumberFormat("en-US", { maximumFractionDigits:2 }).format(count);
+  if (locale === "en") return `${number} ${forms.en}${count === 1 ? "" : "s"}`;
+  if (count === 0) return forms.zero;
+  if (count === 1) return forms.one;
+  if (count === 2) return grammaticalCase === "oblique" ? forms.oblique : forms.two;
+  return `${number} ${Number.isInteger(count) && count >= 3 && count <= 10 ? forms.plural : forms.singular}`;
+}
+
 export function formatHours(value: string | number, locale: Locale = "ar") {
-  const n = Number(value),
-    number = new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 2,
-    }).format(n);
-  if (locale === "en") return `${number} ${n === 1 ? "hour" : "hours"}`;
-  if (n === 1) return "ساعة واحدة";
-  if (n === 2) return "ساعتان";
-  return `${number} ${Number.isInteger(n) && n >= 3 && n <= 10 ? "ساعات" : "ساعة"}`;
+  return formatCount(value, "hours", locale);
 }
 
 export function academicLevel(
@@ -59,11 +70,5 @@ export function academicTerm(value: string, locale: Locale = "ar") {
 }
 
 export function recordCount(count: number, locale: Locale = "ar") {
-  return locale === "en"
-    ? `${count} ${count === 1 ? "record" : "records"}`
-    : count === 1
-      ? "سجل واحد"
-      : count === 2
-        ? "سجلان"
-        : `${count} ${count >= 3 && count <= 10 ? "سجلات" : "سجلًا"}`;
+  return formatCount(count, "records", locale);
 }

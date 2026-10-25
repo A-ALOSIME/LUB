@@ -1,5 +1,6 @@
 "use client";
 
+import {formatCount} from "@/lib/display";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {useRouter} from "next/navigation";
@@ -13,14 +14,6 @@ import { OrganizationStatusBadge } from "@/features/organizations/organization-s
 import type { Locale } from "@/lib/preferences";
 import type { Template } from "./repository";
 
-function formatVersionCount(value: number, locale: Locale) {
-  if (locale === "en") return `${value} ${value === 1 ? "version" : "versions"}`;
-  if (value === 1) return "نسخة واحدة";
-  if (value === 2) return "نسختان";
-  if (value >= 3 && value <= 10) return `${value} نسخ`;
-  return `${value} نسخة`;
-}
-
 export function RegistrationTemplateRow({ template, organization, locale }: { template: Template; organization: string; locale: Locale }) {
   const [deleteOpen,setDeleteOpen]=useState(false),[pending,startTransition]=useTransition();
   const router=useRouter();
@@ -33,7 +26,7 @@ export function RegistrationTemplateRow({ template, organization, locale }: { te
   const state = latest?.status_code === "Draft" ? "Draft" : hasPublishedVersion ? "Published" : "Draft";
 
   const canDelete=!!template.can_delete && (template.round_count??0)===0;
-  const deleteHint=(template.round_count??0)>0?c(`مستخدم في ${template.round_count} جولات`,`Used by ${template.round_count} rounds`):(template.event_count??0)>0?c("مستخدم في فعالية","Used by an event"):!canDelete?c("الحذف متاح لقائد الجهة أو نائبه فقط","Only organization leaders and deputies can delete forms"):c("حذف النموذج","Delete form");
+  const deleteHint=(template.round_count??0)>0?c(`مستخدم في ${formatCount(template.round_count??0,"rounds",locale,"oblique")}`,`Used by ${template.round_count} rounds`):(template.event_count??0)>0?c("مستخدم في فعالية","Used by an event"):!canDelete?c("الحذف متاح لقائد الجهة أو نائبه فقط","Only organization leaders and deputies can delete forms"):c("حذف النموذج","Delete form");
   function perform(operation:"delete-form"|"duplicate-form") {
     startTransition(async()=>{
       try {
@@ -50,7 +43,7 @@ export function RegistrationTemplateRow({ template, organization, locale }: { te
       <Link dir="auto" href={editHref} className="break-words font-medium text-foreground hover:text-primary hover:underline">{template.name}</Link>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <OrganizationStatusBadge status={state === "Published" ? "published" : "draft"}>{en ? state : state === "Published" ? "منشور" : "مسودة"}</OrganizationStatusBadge>
-        <span aria-hidden="true">·</span><span>{formatVersionCount(template.version_count ?? template.versions.length, locale)}</span><span aria-hidden="true">·</span><span>{c("آخر تحديث","Updated")}: {template.updated_at?relativeDate(template.updated_at,locale):c("غير متاح","Unavailable")}</span><span aria-hidden="true">·</span><span>{template.round_count??0} {c("جولات تستخدمه","rounds using this form")}</span>
+        <span aria-hidden="true">·</span><span>{formatCount(template.version_count ?? template.versions.length,"versions",locale)}</span><span aria-hidden="true">·</span><span>{c("آخر تحديث","Updated")}: {template.updated_at?relativeDate(template.updated_at,locale):c("غير متاح","Unavailable")}</span><span aria-hidden="true">·</span><span>{(template.round_count??0)===0?c("غير مستخدم في أي جولة","Not used in any round"):c(`مستخدم في ${formatCount(template.round_count!,"rounds",locale,"oblique")}`,`${formatCount(template.round_count!,"rounds",locale)} using this form`)}</span>
       </div>
     </div>
     <div className="registration-template-actions flex shrink-0 flex-wrap items-center gap-1">

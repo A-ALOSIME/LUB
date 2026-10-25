@@ -15,7 +15,7 @@ export function HoursStatusFilters({ value, locale = "ar" }: { value: HoursStatu
       value={value}
       ariaLabel={c("تصفية سجلات الساعات حسب الحالة", "Filter hour records by status")}
       dir={en ? "ltr" : "rtl"}
-      size="sm"
+      size="default"
       activeTone="primary"
       options={[
         { value: "all", label: c("الكل", "All") },

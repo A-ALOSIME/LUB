@@ -28,6 +28,7 @@ function SheetContent({
   side?: "right" | "left" | "top" | "bottom"
   showCloseButton?: boolean
 }) {
+  const popupRef = React.useRef<HTMLDivElement>(null);
   const sideClasses = {
     right: "inset-y-0 right-0 h-full w-[min(90vw,30rem)] border-s",
     left: "inset-y-0 left-0 h-full w-[min(90vw,30rem)] border-e",
@@ -42,6 +43,8 @@ function SheetContent({
         className="fixed inset-0 isolate z-50 bg-black/30 backdrop-blur-[1px] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
       />
       <DialogPrimitive.Popup
+        ref={popupRef}
+        initialFocus={() => popupRef.current?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]):not([aria-hidden="true"]),textarea:not([disabled]),select:not([disabled]),[role="combobox"]:not([aria-disabled="true"])') ?? true}
         data-slot="sheet-content"
         data-side={side}
         className={cn(

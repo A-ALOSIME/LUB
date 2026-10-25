@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MutationForm } from "@/features/organizations/mutation-form";
 import type { Locale } from "@/lib/preferences";
+import { FormField } from "@/components/form-field";
 
 type Announcement = { id: string; title: string; body: string; published: boolean; pinned: boolean };
 
@@ -56,14 +57,12 @@ export function AnnouncementDialog({ organizationId, announcement, locale, open:
         locale={locale}
         onSuccess={closeAfterSave}
       >
-        <div className="grid gap-2">
-          <label htmlFor={`announcement-title-${announcement?.id ?? "new"}`} className="text-sm font-medium">{c("العنوان", "Title")}</label>
+        <FormField className="grid gap-2" id={`announcement-title-${announcement?.id ?? "new"}`} label={<>{c("العنوان", "Title")}</>}>
           <Input id={`announcement-title-${announcement?.id ?? "new"}`} name="title" dir={locale === "en" ? "ltr" : "rtl"} minLength={2} maxLength={120} defaultValue={announcement?.title} required />
-        </div>
-        <div className="grid gap-2">
-          <label htmlFor={`announcement-body-${announcement?.id ?? "new"}`} className="text-sm font-medium">{c("النص", "Text")}</label>
+        </FormField>
+        <FormField className="grid gap-2" id={`announcement-body-${announcement?.id ?? "new"}`} label={<>{c("النص", "Text")}</>}>
           <Textarea id={`announcement-body-${announcement?.id ?? "new"}`} name="body" dir={locale === "en" ? "ltr" : "rtl"} rows={7} maxLength={5000} defaultValue={announcement?.body} required />
-        </div>
+        </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="published" checked={published} onChange={event => { setPublished(event.target.checked); if (!event.target.checked) setPinned(false); }} />{c("نشر للعامة", "Publish publicly")}</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="pinned" checked={pinned} disabled={!published} onChange={event => setPinned(event.target.checked)} />{c("تثبيت الإعلان", "Pin announcement")}</label>

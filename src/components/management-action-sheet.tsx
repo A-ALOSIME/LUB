@@ -37,7 +37,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   </div>;
 }
 
-export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false }: {
+export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction }: {
   label: string;
   title: string;
   children: ReactNode;
@@ -54,6 +54,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   triggerSize?: "sm" | "default" | "lg" | "icon-sm";
   triggerAriaLabel?: string;
   rowAction?: boolean;
+  headerAction?: ReactNode;
 }) {
   const mobile = useIsMobile();
   const [localOpen, setLocalOpen] = useState(initiallyOpen);
@@ -72,7 +73,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
     {directTrigger ?? (!hideTrigger && <SheetTrigger render={trigger} />)}
     <SheetContent dir={dir} side={mobile ? "bottom" : "left"} showCloseButton={false} className={`management-action-sheet${mobile ? " management-action-bottom-sheet" : ""} gap-0 overflow-hidden p-0${width === "wide" ? " management-action-sheet-wide" : ""}`}>
       <SheetHeader className="management-action-header">
-        <SheetTitle className="min-w-0 w-full break-words text-start">{title}</SheetTitle>
+        <SheetTitle className="min-w-0 flex-1 break-words text-start">{title}</SheetTitle>{headerAction}
         <SheetClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-3 top-3" aria-label={cancelLabel} title={cancelLabel}><X aria-hidden="true" /></Button>} />
       </SheetHeader>
       {body}
@@ -83,7 +84,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
     {directTrigger ?? (!hideTrigger && (triggerAriaLabel ? <Tooltip><TooltipTrigger render={<span className="inline-flex"/>}><DialogTrigger render={trigger}/></TooltipTrigger><TooltipContent>{triggerAriaLabel}</TooltipContent></Tooltip> : <DialogTrigger render={trigger} />))}
     <DialogContent dir={dir} width={width === "wide" ? "wide" : "default"} showCloseButton={false} className={`management-action-dialog${width === "wide" ? " management-action-dialog-wide" : ""}${mobileBottomSheet ? " management-action-dialog--mobile-bottom" : ""} flex max-h-[90dvh] ${width === "wide" ? "w-[min(42rem,calc(100vw-2rem))] max-w-2xl" : "w-[min(38rem,calc(100vw-2rem))] max-w-none"} flex-col gap-0 overflow-hidden p-0`}>
       <DialogHeader className="management-action-header">
-        <DialogTitle className="w-full text-start">{title}</DialogTitle>
+        <DialogTitle className="min-w-0 flex-1 text-start">{title}</DialogTitle>{headerAction}
         <DialogClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-3 top-3" aria-label={cancelLabel} title={cancelLabel}><X aria-hidden="true" /></Button>} />
       </DialogHeader>
       {body}

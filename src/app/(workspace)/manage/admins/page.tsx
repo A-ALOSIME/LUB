@@ -4,6 +4,7 @@ import { requireVerifiedProxyIdentity } from "@/features/auth/session";
 import { getSuperAdmins } from "@/features/organizations/management-repository";
 import { MutationForm } from "@/features/organizations/mutation-form";
 import { getPreferences } from "@/lib/preferences";
+import { FormField } from "@/components/form-field";
 
 export async function generateMetadata() { return localizedMetadata("المشرفون العامون", "System administrators"); }
 
@@ -42,7 +43,7 @@ export default async function AdminsPage() {
       <section className="panel min-w-0 p-5 sm:p-6" aria-labelledby="grant-admin-title">
         <h2 id="grant-admin-title" className="text-xl font-semibold">{en ? "Add system administrator" : "إضافة مشرف عام"}</h2>
         <MutationForm operation="grant-admin" submitLabel={en ? "Grant system administrator access" : "منح صلاحية المشرف العام"} confirmLabel={en ? "I confirm granting this account system management access" : "أؤكد منح هذا الحساب صلاحية إدارة النظام"} locale={locale}>
-          <div><label htmlFor="admin-email">{en ? "Verified, onboarded account email" : "بريد الحساب المتحقق والمكتمل"}</label><input id="admin-email" name="email" type="email" dir="ltr" required maxLength={254} autoComplete="off" /></div>
+          <FormField  id="admin-email" label={<>{en ? "Verified, onboarded account email" : "بريد الحساب المتحقق والمكتمل"}</>}><input id="admin-email" name="email" type="email" dir="ltr" required maxLength={254} autoComplete="off" /></FormField>
         </MutationForm>
       </section>
     </div>

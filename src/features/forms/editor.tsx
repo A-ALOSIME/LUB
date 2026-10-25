@@ -51,11 +51,12 @@ import {
   fieldTypesEn,
   definitionSchema,
   type FormDefinition,
-  type FormField,
+  type FormField as QuestionField,
 } from "./definition";
 import { WorkflowForm } from "./mutation-form";
 import { mutateWorkflow } from "./actions";
 import type { Locale } from "@/lib/preferences";
+import { FormField } from "@/components/form-field";
 
 type Removal = {
   title: string;
@@ -98,7 +99,7 @@ export function FormEditor({
     window.addEventListener("beforeunload", leave);
     return () => window.removeEventListener("beforeunload", leave);
   }, [dirty]);
-  const update = (si: number, fi: number, patch: Partial<FormField>) =>
+  const update = (si: number, fi: number, patch: Partial<QuestionField>) =>
     setDefinition((d) => ({
       ...d,
       sections: d.sections.map((s, i) =>
@@ -231,7 +232,7 @@ export function FormEditor({
       }
     });
   }
-  const newField = (): FormField => ({
+  const newField = (): QuestionField => ({
     id: crypto.randomUUID(),
     type: "ShortText",
     label: c("سؤال جديد", "New question"),
@@ -316,10 +317,9 @@ export function FormEditor({
             tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب القسم","Drag to reorder section")} onDragStart={event=>{setDrag({section:si});event.dataTransfer.setData("text/plain",section.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات القسم","Section actions")} ${si+1}`} locale={locale} upDisabled={!si} downDisabled={si===definition.sections.length-1} copyDisabled={definition.sections.length>=12} deleteDisabled={definition.sections.length===1} onUp={()=>moveSection(si,si-1)} onDown={()=>moveSection(si,si+1)} onCopy={()=>copySection(si)} onDelete={()=>setRemoval({title:section.title,section:si})}/></>}
           >
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor={`${section.id}-title`}>
+              <FormField  id={`${section.id}-title`} label={<>
                   {c("عنوان القسم", "Section title")}
-                </FieldLabel>
+                </>}>
                 <Input
                   id={`${section.id}-title`}
                   required
@@ -334,11 +334,10 @@ export function FormEditor({
                     })
                   }
                 />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${section.id}-description`}>
+              </FormField>
+              <FormField  id={`${section.id}-description`} label={<>
                   {c("وصف القسم", "Section description")}
-                </FieldLabel>
+                </>}>
                 <Textarea
                   id={`${section.id}-description`}
                   maxLength={1000}
@@ -353,7 +352,7 @@ export function FormEditor({
                     })
                   }
                 />
-              </Field>
+              </FormField>
             </FieldGroup>
             <div className="flex flex-col gap-4">
               {section.fields.map((field, fi) => {
@@ -368,10 +367,9 @@ export function FormEditor({
                     tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات السؤال","Question actions")} ${fi+1}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
                     <FieldGroup>
-                      <Field>
-                        <FieldLabel htmlFor={`${field.id}-label`}>
+                      <FormField  id={`${field.id}-label`} label={<>
                           {c("السؤال", "Question")}
-                        </FieldLabel>
+                        </>}>
                         <Input
                           id={`${field.id}-label`}
                           required
@@ -381,17 +379,16 @@ export function FormEditor({
                             update(si, fi, { label: e.target.value })
                           }
                         />
-                      </Field>
+                      </FormField>
                       <div className="grid gap-4 sm:grid-cols-2">
-                        <Field>
-                          <FieldLabel htmlFor={`${field.id}-type`}>
+                        <FormField  id={`${field.id}-type`} label={<>
                             {c("نوع الإجابة", "Answer type")}
-                          </FieldLabel>
+                          </>}>
                           <NativeSelect
                             id={`${field.id}-type`}
                             value={field.type}
                             onChange={(e) => {
-                              const type = e.target.value as FormField["type"];
+                              const type = e.target.value as QuestionField["type"];
                               update(si, fi, {
                                 type,
                                 options: [
@@ -429,12 +426,11 @@ export function FormEditor({
                               </option>
                             ))}
                           </NativeSelect>
-                        </Field>
+                        </FormField>
                         {["ShortText", "LongText"].includes(field.type) && (
-                          <Field>
-                            <FieldLabel htmlFor={`${field.id}-max`}>
+                          <FormField  id={`${field.id}-max`} label={<>
                               {c("الحد الأقصى للأحرف", "Maximum characters")}
-                            </FieldLabel>
+                            </>}>
                             <Input
                               id={`${field.id}-max`}
                               type="number"
@@ -447,7 +443,7 @@ export function FormEditor({
                                 })
                               }
                             />
-                          </Field>
+                          </FormField>
                         )}
                       </div>
                       <Field orientation="horizontal">
@@ -532,12 +528,11 @@ export function FormEditor({
                       {field.type === "Number" && (
                         <div className="grid gap-4 sm:grid-cols-2">
                           {(["min", "max"] as const).map((key) => (
-                            <Field key={key}>
-                              <FieldLabel htmlFor={`${field.id}-${key}`}>
+                            <FormField key={key} id={`${field.id}-${key}`} label={<>
                                 {key === "min"
                                   ? c("أقل قيمة", "Minimum")
                                   : c("أعلى قيمة", "Maximum")}
-                              </FieldLabel>
+                              </>}>
                               <Input
                                 id={`${field.id}-${key}`}
                                 type="number"
@@ -552,7 +547,7 @@ export function FormEditor({
                                   })
                                 }
                               />
-                            </Field>
+                            </FormField>
                           ))}
                         </div>
                       )}
@@ -565,10 +560,9 @@ export function FormEditor({
                         </CollapsibleTrigger>
                         <CollapsibleContent className="pt-4">
                           <FieldGroup>
-                            <Field>
-                              <FieldLabel htmlFor={`${field.id}-help`}>
+                            <FormField  id={`${field.id}-help`} label={<>
                                 {c("توضيح اختياري", "Optional help text")}
-                              </FieldLabel>
+                              </>}>
                               <Input
                                 id={`${field.id}-help`}
                                 maxLength={1000}
@@ -577,14 +571,13 @@ export function FormEditor({
                                   update(si, fi, { help: e.target.value })
                                 }
                               />
-                            </Field>
-                            <Field>
-                              <FieldLabel htmlFor={`${field.id}-condition`}>
+                            </FormField>
+                            <FormField  id={`${field.id}-condition`} label={<>
                                 {c(
                                   "شرط ظهور السؤال",
                                   "Question visibility condition",
                                 )}
-                              </FieldLabel>
+                              </>}>
                               <NativeSelect
                                 id={`${field.id}-condition`}
                                 value={field.condition?.fieldId ?? ""}
@@ -614,15 +607,12 @@ export function FormEditor({
                                   </option>
                                 ))}
                               </NativeSelect>
-                            </Field>
+                            </FormField>
                             {field.condition && (
                               <div className="grid gap-4 sm:grid-cols-2">
-                                <Field>
-                                  <FieldLabel
-                                    htmlFor={`${field.id}-comparison`}
-                                  >
+                                <FormField  id={`${field.id}-comparison`} label={<>
                                     {c("المقارنة", "Comparison")}
-                                  </FieldLabel>
+                                  </>}>
                                   <NativeSelect
                                     id={`${field.id}-comparison`}
                                     value={field.condition.operator}
@@ -643,7 +633,7 @@ export function FormEditor({
                                       {c("لا يساوي", "Does not equal")}
                                     </option>
                                   </NativeSelect>
-                                </Field>
+                                </FormField>
                                 <Field>
                                   <FieldLabel htmlFor={`${field.id}-value`}>
                                     {c("قيمة الإجابة", "Answer value")}
@@ -756,14 +746,7 @@ export function FormEditor({
           }
           actions={
             <>
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={pending || !dirty}
-              >
-                <Save />
-                {c("حفظ المسودة", "Save draft")}
-              </Button>
+
               <Button
                 type="button"
                 disabled={pending}
@@ -775,6 +758,14 @@ export function FormEditor({
                 {pending
                   ? c("جاري الحفظ", "Saving…")
                   : c("نشر النسخة", "Publish version")}
+              </Button>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={pending || !dirty}
+              >
+                <Save />
+                {c("حفظ المسودة", "Save draft")}
               </Button>
             </>
           }
@@ -838,7 +829,7 @@ export function FormEditor({
 function EditorSection({title,tools,children,defaultOpen=false,kind="section",onDrop}:{title:React.ReactNode;tools:React.ReactNode;children:React.ReactNode;defaultOpen?:boolean;kind?:"section"|"question";onDrop?:React.DragEventHandler<HTMLDivElement>}) {
  const [open,setOpen]=useState(defaultOpen);
  return <Collapsible open={open} onOpenChange={setOpen} className={`editor-panel editor-${kind}`} onDragOver={event=>event.preventDefault()} onDrop={onDrop}>
-  <Card className="gap-0"><CardHeader className="editor-section-header"><CardTitle className="min-w-0 flex-1"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="editor-collapse-heading"/>}><ChevronDown className={open?"rotate-180":""}/><span className="editor-heading-summary">{title}</span></CollapsibleTrigger></CardTitle><div className="editor-panel-tools">{tools}</div></CardHeader><CollapsibleContent><CardContent className="flex flex-col gap-5 pt-4">{children}</CardContent></CollapsibleContent></Card>
+  <Card className="gap-0 py-0"><CardHeader className="editor-section-header"><CardTitle className="min-w-0 flex-1"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="editor-collapse-heading"/>}><ChevronDown className={open?"rotate-180":""}/><span className="editor-heading-summary">{title}</span></CollapsibleTrigger></CardTitle><div className="editor-panel-tools">{tools}</div></CardHeader><CollapsibleContent className="editor-section-content"><CardContent className="flex flex-col gap-5 py-4">{children}</CardContent></CollapsibleContent></Card>
  </Collapsible>;
 }
 function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {

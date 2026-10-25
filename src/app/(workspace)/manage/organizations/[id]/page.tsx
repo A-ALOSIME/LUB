@@ -22,6 +22,7 @@ import { MutationForm } from "@/features/organizations/mutation-form";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { getPreferences } from "@/lib/preferences";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/form-field";
 
 export async function generateMetadata() {
   return localizedMetadata("بيانات الجهة", "Organization details");
@@ -82,25 +83,21 @@ export default async function ManageOrganizationPage({
                 <div className="organization-settings-fields">
                   <div className="organization-settings-identity-field full">
                     <OrganizationLogoEditor organizationId={id} organizationName={organization.nameAr} logoUrl={organization.logoUrl} fallbackLogoUrl={curatedProfile?.logoSrc} locale={locale} />
-                    <div className="organization-settings-field min-w-0">
-                      <label htmlFor="edit-name">{c("اسم الجهة", "Organization name")}</label>
+                    <FormField className="organization-settings-field min-w-0" id="edit-name" label={<>{c("اسم الجهة", "Organization name")}</>}>
                       <Input id="edit-name" name="nameAr" dir={en ? "ltr" : "rtl"} placeholder={c("مثال: نادي علوم الحاسب", "e.g. Computer Science Club")} required minLength={2} maxLength={120} defaultValue={organization.nameAr} />
-                    </div>
+                    </FormField>
                   </div>
                   <div className="organization-about-text-fields full">
-                    <div className="organization-settings-field">
-                      <label htmlFor="edit-summary">{c("النبذة", "Short description")}</label>
+                    <FormField className="organization-settings-field" id="edit-summary" label={c("النبذة", "Short description")}>
                       <OrganizationCharacterCountTextarea id="edit-summary" name="summary" defaultValue={organization.summary} maxLength={1000} locale={locale} rows={2} placeholder={c("مثال: مجتمع طلابي يجمع المهتمين بالتقنية", "Example: A student community for technology enthusiasts")} />
-                    </div>
-                    <div className="organization-settings-field">
-                      <label htmlFor="edit-mission">{c("رسالة الجهة", "Mission")}</label>
+                    </FormField>
+                    <FormField className="organization-settings-field" id="edit-mission" label={c("رسالة الجهة", "Mission")}>
                       <OrganizationCharacterCountTextarea id="edit-mission" name="mission" defaultValue={organization.mission} maxLength={3000} locale={locale} rows={2} placeholder={c("مثال: تمكين الطلاب وتطوير مهاراتهم", "Example: Empowering students and growing their skills")} />
-                    </div>
+                    </FormField>
                   </div>
-                  <div className="organization-settings-field full organization-settings-interests">
-                    <label>{c("مجالات الاهتمام", "Interests")}</label>
+                  <FormField className="organization-settings-field full organization-settings-interests" label={c("مجالات الاهتمام", "Interests")}>
                     <OrganizationInterestEditor initialInterests={managed.tagNames} locale={locale} />
-                  </div>
+                  </FormField>
                 </div>
               </CardContent>
             </Card>

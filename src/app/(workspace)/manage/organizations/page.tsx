@@ -7,6 +7,7 @@ import { MutationForm } from "@/features/organizations/mutation-form";
 import { organizationStatuses, organizationTypes } from "@/features/organizations/validation";
 import { requireVerifiedProxyIdentity } from "@/features/auth/session";
 import { getPreferences } from "@/lib/preferences";
+import { FormField } from "@/components/form-field";
 
 export async function generateMetadata() { return localizedMetadata("إدارة الجهات", "Organizations"); }
 
@@ -42,7 +43,7 @@ export default async function AdminOrganizationsPage() {
         <summary className="cursor-pointer font-medium">{en ? "Appoint or replace the primary leader" : "تعيين أو استبدال القائد الأساسي"}</summary>
         <div className="mt-5">
           <MutationForm operation="appoint-leader" fields={{ organizationId: organization.id }} submitLabel={en ? "Appoint leader" : "تعيين القائد"} confirmLabel={en ? "I confirm appointing this account as primary leader" : "أؤكد تعيين هذا الحساب قائدًا أساسيًا"} locale={locale}>
-            <div><label htmlFor={`leader-${organization.id}`}>{en ? "Leader email" : "بريد القائد"}</label><input id={`leader-${organization.id}`} name="email" type="email" dir="ltr" required maxLength={254} autoComplete="off" /></div>
+            <FormField  id={`leader-${organization.id}`} label={<>{en ? "Leader email" : "بريد القائد"}</>}><input id={`leader-${organization.id}`} name="email" type="email" dir="ltr" required maxLength={254} autoComplete="off" /></FormField>
           </MutationForm>
         </div>
       </details>}
@@ -51,7 +52,7 @@ export default async function AdminOrganizationsPage() {
         <summary className="cursor-pointer font-medium">{en ? "Change organization status" : "تغيير حالة الجهة"}</summary>
         <div className="mt-5">
           <MutationForm operation="org-status" fields={{ organizationId: organization.id }} submitLabel={en ? "Update status" : "تحديث الحالة"} confirmLabel={en ? "I confirm changing this organization's status" : "أؤكد تغيير حالة الجهة"} locale={locale}>
-            <div><label htmlFor={`status-${organization.id}`}>{en ? "Status" : "الحالة"}</label><NativeSelect id={`status-${organization.id}`} name="status" defaultValue={organization.statusCode}>{Object.entries(organizationStatuses).map(([code, label]) => <option key={code} value={code}>{en ? code : label}</option>)}</NativeSelect></div>
+            <FormField  id={`status-${organization.id}`} label={<>{en ? "Status" : "الحالة"}</>}><NativeSelect id={`status-${organization.id}`} name="status" defaultValue={organization.statusCode}>{Object.entries(organizationStatuses).map(([code, label]) => <option key={code} value={code}>{en ? code : label}</option>)}</NativeSelect></FormField>
           </MutationForm>
         </div>
       </details>

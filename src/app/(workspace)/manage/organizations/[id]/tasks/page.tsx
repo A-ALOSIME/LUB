@@ -20,6 +20,7 @@ import { HoursSettingsAction } from "@/features/hours/hours-settings-action";
 import { HoursToolbarActions } from "@/features/hours/hours-toolbar-actions";
 import { getPreferences } from "@/lib/preferences";
 import { localizedMetadata } from "@/lib/localized-metadata";
+import { FormField } from "@/components/form-field";
 
 export async function generateMetadata() {
   return localizedMetadata("المهام والساعات", "Tasks and hours");
@@ -65,13 +66,13 @@ export default async function ManageTasksPage({ params, searchParams }: {
   const source = workspace?.templates.find(template => template.id === query.template && template.is_active);
   const base = `/manage/organizations/${id}/tasks`;
   const allowedTemplate = (committee: string | null) => templateScopes.some(scope => scope.id === committee);
-  const scopeField = (scopes: NonNullable<typeof workspace>["scopes"], value?: string | null) => <label>{c("نطاق العمل", "Work scope")}<NativeSelect name="committee" defaultValue={value ?? ""}>{scopes.map(scope => <option key={scope.id ?? "organization"} value={scope.id ?? ""} dir="auto">{scope.name}</option>)}</NativeSelect></label>;
+  const scopeField = (scopes: NonNullable<typeof workspace>["scopes"], value?: string | null) => <FormField  label={<>{c("نطاق العمل", "Work scope")}</>}><NativeSelect name="committee" defaultValue={value ?? ""}>{scopes.map(scope => <option key={scope.id ?? "organization"} value={scope.id ?? ""} dir="auto">{scope.name}</option>)}</NativeSelect></FormField>;
 
-  const templatesAction = templateScopes.length > 0 && workspace && <ManagementActionSheet label={c("القوالب", "Templates")} title={c("إدارة قوالب المهام", "Manage task templates")} locale={locale} triggerSize="default" variant="outline" icon={<LayoutTemplate aria-hidden="true" />}>
-    <section className="space-y-5" aria-label={c("قوالب المهام", "Task templates")}>
-      <ManagementActionSheet label={c("قالب جديد", "New template")} title={c("إضافة قالب مهمة", "Add a task template")} locale={locale}>
+  const templatesAction = templateScopes.length > 0 && workspace && <ManagementActionSheet label={c("القوالب", "Templates")} title={c("إدارة قوالب المهام", "Manage task templates")} locale={locale} triggerSize="default" variant="outline" icon={<LayoutTemplate aria-hidden="true" />} headerAction={<ManagementActionSheet label={c("قالب جديد", "New template")} title={c("إضافة قالب مهمة", "Add a task template")} locale={locale} variant="default" triggerSize="default">
         <TaskForm operation="template" fields={{ org: id }} label={c("إنشاء القالب", "Create template")} locale={locale}>{scopeField(templateScopes)}<TaskFields template locale={locale}/></TaskForm>
-      </ManagementActionSheet>
+      </ManagementActionSheet>}>
+    <section className="space-y-5" aria-label={c("قوالب المهام", "Task templates")}>
+
       {workspace.templates.map(template => <article key={template.id} className="border-t border-line py-4 first:border-0">
         <div className="flex flex-wrap items-start justify-between gap-3"><h3 className="min-w-0 break-words font-semibold"><bdi>{template.name}</bdi></h3><span className="text-sm text-muted">{template.is_active ? c("نشط", "Active") : c("مؤرشف", "Archived")}</span></div>
         <p dir="auto" className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{template.description_template}</p>
@@ -82,11 +83,11 @@ export default async function ManageTasksPage({ params, searchParams }: {
             <TaskForm operation="template" fields={{ org: id, template: template.id, committee: template.committee_id ?? "", revision: String(template.revision) }} label={c("حفظ القالب", "Save template")} locale={locale}><TaskFields value={template} template locale={locale}/></TaskForm>
           </ManagementActionSheet>}
           {allowedTemplate(template.committee_id) && templateScopes.length > 0 && <ManagementActionSheet rowAction icon={<Copy/>} label={c("نسخ", "Copy")} title={c("نسخة مستقلة من القالب", "Create an independent template copy")} locale={locale}>
-            <TaskForm operation="template" fields={{ org: id, source: template.id, description: "", hours: "0", active: "on" }} label={c("نسخ القالب", "Copy template")} locale={locale}>{scopeField(templateScopes, template.committee_id)}<label>{c("اسم النسخة", "Copy name")}<input name="title" required minLength={2} maxLength={120} defaultValue={`${template.name.slice(0, 110)} (${c("نسخة", "copy")})`}/></label></TaskForm>
+            <TaskForm operation="template" fields={{ org: id, source: template.id, description: "", hours: "0", active: "on" }} label={c("نسخ القالب", "Copy template")} locale={locale}>{scopeField(templateScopes, template.committee_id)}<FormField  label={<>{c("اسم النسخة", "Copy name")}</>}><input name="title" required minLength={2} maxLength={120} defaultValue={`${template.name.slice(0, 110)} (${c("نسخة", "copy")})`}/></FormField></TaskForm>
           </ManagementActionSheet>}
         </div>
       </article>)}
-      {!workspace.templates.length && <p className="workspace-empty">{c("لا توجد قوالب متاحة ضمن صلاحياتك.", "No templates are available under your permissions.")}</p>}
+      {!workspace.templates.length && <WorkspaceEmptyState icon={LayoutTemplate} title={c("لا توجد قوالب بعد", "No templates yet")} description={c("أنشئ قالبًا لحفظ تفاصيل المهام المتكررة.", "Create a template for recurring tasks.")}/>}
     </section>
   </ManagementActionSheet>;
 

@@ -17,6 +17,7 @@ import { eventDate, eventLabels } from "@/features/events/view"
 import { eventDateEn, eventLabelsEn } from "@/features/events/display"
 import { TaskPagination } from "@/features/tasks/task-list"
 import type { Locale } from "@/lib/preferences"
+import { FormField } from "@/components/form-field";
 
 type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; attendance: string }
 
@@ -93,7 +94,7 @@ export function ActivityHours({ data, page, term, status, locale }: {
     {data.memberships.filter(membership => membership.self).map(membership => <details key={membership.id} className="rounded-lg border border-border/70 p-3">
       <summary className="cursor-pointer text-sm font-medium">{c("طلب ساعات ذاتي", "Self-reported hours request")} · <bdi>{membership.name}</bdi></summary>
       <div className="pt-3"><HoursForm operation="self" fields={{ member: membership.id }} label={c("إرسال للمراجعة", "Submit for review")} locale={locale}>
-        <label>{c("نطاق العمل", "Work scope")}<select name="committee"><option value="">{c("الجهة بالكامل", "Whole organization")}</option>{membership.committees.map(item => <option key={item.id} value={item.id} dir="auto">{item.name}</option>)}</select></label>
+        <FormField  label={<>{c("نطاق العمل", "Work scope")}</>}><select name="committee"><option value="">{c("الجهة بالكامل", "Whole organization")}</option>{membership.committees.map(item => <option key={item.id} value={item.id} dir="auto">{item.name}</option>)}</select></FormField>
         <HoursFields locale={locale} />
       </HoursForm></div>
     </details>)}

@@ -1,5 +1,6 @@
 "use client";
 
+import {formatCount} from "@/lib/display";
 import { useState, type ReactNode } from "react";
 import { Archive, Copy, Pencil, RotateCcw } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -32,7 +33,7 @@ export function CommitteeListRow({ organizationId, committee, canManage, locale,
   const archived = committee.statusCode === "Archived";
   const count = committee.memberCount === null
     ? c("عدد الأعضاء غير متاح", "Member count unavailable")
-    : en ? `${committee.memberCount} ${committee.memberCount === 1 ? "member" : "members"}` : `${committee.memberCount} أعضاء`;
+    : formatCount(committee.memberCount,"members",locale);
   const summary = committee.leaderName
     ? <span className="organization-committee-leader"><Avatar size="sm"><AvatarFallback>{committee.leaderName.trim().slice(0, 1) || "؟"}</AvatarFallback></Avatar><bdi>{committee.leaderName}</bdi></span>
     : <span>{c("بدون قائد", "No leader")}</span>;

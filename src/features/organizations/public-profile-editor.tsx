@@ -13,6 +13,7 @@ import { useActionToast } from "@/components/action-toast";
 import type { Locale } from "@/lib/preferences";
 import { useProfileFormState } from "./profile-form-state";
 import { normalizeOrganizationPublicProfileContent, type OrganizationPublicProfileContent } from "./organization-public-profile";
+import { FormField } from "@/components/form-field";
 
 type FieldKey = Exclude<keyof OrganizationPublicProfileContent, "partnersImageUrl" | "annualEventCount" | "participatingStudentCount">;
 
@@ -93,10 +94,9 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-fields">
-          {textFields.slice(0, 2).map(field => <div className="organization-settings-field" key={field.key}>
-            <FieldLabel htmlFor={`${inputId}-${field.key}`}>{en ? (field.key === "vision" ? "Our vision" : "Our values") : field.label}</FieldLabel>
+          {textFields.slice(0, 2).map(field => <FormField className="organization-settings-field" key={field.key} id={`${inputId}-${field.key}`} label={<>{en ? (field.key === "vision" ? "Our vision" : "Our values") : field.label}</>}>
             <Textarea id={`${inputId}-${field.key}`} dir={en ? "ltr" : "rtl"} rows={field.rows} maxLength={field.key === "values" ? 4000 : 3000} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={event => update(field.key, event.target.value)} />
-          </div>)}
+          </FormField>)}
         </div>
       </CardContent>
     </Card>
@@ -107,18 +107,16 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-stats">
-          <div className="organization-public-profile-stat">
-            <FieldLabel htmlFor={`${inputId}-annual-events`} className="organization-public-profile-stat-label">
+          <FormField className="organization-public-profile-stat" id={`${inputId}-annual-events`} label={<>
               <CalendarDays aria-hidden="true" />{en ? "Events per year" : "فعالية سنوية"}
-            </FieldLabel>
+            </>}>
             <Input id={`${inputId}-annual-events`} dir={en ? "ltr" : "rtl"} inputMode="numeric" maxLength={5} placeholder="0" value={content.annualEventCount ?? ""} onChange={event => update("annualEventCount", normalizeDigits(event.target.value).slice(0, 5))} />
-          </div>
-          <div className="organization-public-profile-stat">
-            <FieldLabel htmlFor={`${inputId}-participants`} className="organization-public-profile-stat-label">
+          </FormField>
+          <FormField className="organization-public-profile-stat" id={`${inputId}-participants`} label={<>
               <UsersRound aria-hidden="true" />{en ? "Participating students" : "طالب مشارك"}
-            </FieldLabel>
+            </>}>
             <Input id={`${inputId}-participants`} dir={en ? "ltr" : "rtl"} inputMode="numeric" maxLength={6} placeholder="0" value={content.participatingStudentCount ?? ""} onChange={event => update("participatingStudentCount", normalizeDigits(event.target.value).slice(0, 6))} />
-          </div>
+          </FormField>
         </div>
       </CardContent>
     </Card>
@@ -133,8 +131,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
             {field.key === "offerings" ? <Textarea id={`${inputId}-${field.key}`} dir={en ? "ltr" : "rtl"} rows={field.rows} maxLength={5000} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={event => update(field.key, event.target.value)} />
               : <ListEntryInput id={`${inputId}-${field.key}`} label={en ? field.key : field.label} locale={locale} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={value => update(field.key, value)} />}
           </div>)}
-          <div className="organization-settings-field full organization-partner-image-field">
-            <FieldLabel htmlFor={`${inputId}-partner-image`}>{en ? "Partners image" : "صورة الشركاء"}</FieldLabel>
+          <FormField className="organization-settings-field full organization-partner-image-field" id={`${inputId}-partner-image`} label={<>{en ? "Partners image" : "صورة الشركاء"}</>}>
             <input ref={fileRef} id={`${inputId}-partner-image`} type="file" accept="image/png,image/svg+xml,.png,.svg" className="sr-only" aria-label={en ? "Upload partners image" : "إرفاق صورة الشركاء"} onChange={uploadPartnerImage} />
             {content.partnersImageUrl ? <div className="organization-partner-image-preview">
               <Image src={content.partnersImageUrl} alt={en ? "Partners" : "الشركاء"} width={520} height={300} unoptimized className="h-full w-full rounded-lg object-cover" />
@@ -145,7 +142,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
             </Button>}
             <p className="text-xs text-muted-foreground">{en ? "PNG or SVG · up to 2 MB" : "PNG أو SVG · بحد أقصى 2 ميجابايت"}</p>
             {error && <p role="alert" className="organization-contact-error">{error}</p>}
-          </div>
+          </FormField>
         </div>
       </CardContent>
     </Card>

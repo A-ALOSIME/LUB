@@ -15,6 +15,7 @@ import { decryptIdentifier } from "@/lib/identifiers";
 import { searchApplications } from "@/features/forms/search-action";
 import type { Locale } from "@/lib/preferences";
 import { Filter } from "lucide-react";
+import { FormField } from "@/components/form-field";
 
 export async function ApplicationsTab({ organization, userId, workspace, locale, search }: {
   organization: string;
@@ -93,12 +94,12 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
           <div className="mb-2 font-medium">{c("فلاتر إضافية", "Additional filters")}</div>
           <LiveFilterForm action={searchApplications} className="grid gap-3">
             <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="q" value={filters.q}/><input type="hidden" name="page" value="1"/>
-            <label>{c("اللجنة", "Committee")}<NativeSelect name="committee" defaultValue={filters.committee}><option value="">{c("كل اللجان", "All committees")}</option>{workspace.committees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
-            <label>{c("المستوى", "Level")}<input name="level" maxLength={20} defaultValue={filters.level}/></label>
-            <label>{c("التخصص", "Major")}<input name="major" dir={en ? "ltr" : "rtl"} maxLength={120} defaultValue={filters.major}/></label>
+            <FormField  label={<>{c("اللجنة", "Committee")}</>}><NativeSelect name="committee" defaultValue={filters.committee}><option value="">{c("كل اللجان", "All committees")}</option>{workspace.committees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></FormField>
+            <FormField  label={<>{c("المستوى", "Level")}</>}><input name="level" maxLength={20} defaultValue={filters.level}/></FormField>
+            <FormField  label={<>{c("التخصص", "Major")}</>}><input name="major" dir={en ? "ltr" : "rtl"} maxLength={120} defaultValue={filters.major}/></FormField>
             <DateRangeInput startName="from" endName="to" label={c("فترة التقديم", "Application period")} startValue={filters.from} endValue={filters.to} locale={locale}/>
-            <label>{c("المشاركة السابقة", "Prior participation")}<NativeSelect name="activity" defaultValue={filters.activity}><option value="">{c("الكل", "All")}</option><option value="prior">{c("له عضوية سابقة", "Previously a member")}</option><option value="first">{c("أول عضوية", "First membership")}</option></NativeSelect></label>
-            <label>{c("البحث بالرقم الجامعي", "University number search")}<input name="university" inputMode="numeric" maxLength={15} autoComplete="off"/></label>
+            <FormField  label={<>{c("المشاركة السابقة", "Prior participation")}</>}><NativeSelect name="activity" defaultValue={filters.activity}><option value="">{c("الكل", "All")}</option><option value="prior">{c("له عضوية سابقة", "Previously a member")}</option><option value="first">{c("أول عضوية", "First membership")}</option></NativeSelect></FormField>
+            <FormField  label={<>{c("البحث بالرقم الجامعي", "University number search")}</>}><input name="university" inputMode="numeric" maxLength={15} autoComplete="off"/></FormField>
           </LiveFilterForm>
         </PopoverContent>
       </Popover>
