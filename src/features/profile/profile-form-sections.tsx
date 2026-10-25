@@ -1,3 +1,4 @@
+import { academicLevel } from "@/lib/display";
 import type { ReactNode } from "react";
 import { Mail } from "lucide-react";
 import {
@@ -109,7 +110,7 @@ export function ProfileDetailsSection({
         </NativeSelectOption>
         {Array.from({ length: 12 }, (_, index) => (
           <NativeSelectOption key={index + 1} value={String(index + 1)}>
-            {en ? `Level ${index + 1}` : `المستوى ${index + 1}`}
+            {academicLevel(String(index+1),locale)}
           </NativeSelectOption>
         ))}
         <NativeSelectOption value="graduate">

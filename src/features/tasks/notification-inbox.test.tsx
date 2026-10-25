@@ -120,5 +120,5 @@ it("normalizes legacy renewal notification links and keeps only safe internal de
 it("uses relative dates for recent notifications and full dates after a week", () => {
   const now = Date.parse("2026-10-14T12:00:00+03:00");
   expect(notificationDate("2026-10-14T10:00:00+03:00", "en", now)).toBe("2 hours ago");
-  expect(notificationDate("2026-10-01T10:00:00+03:00", "en", now)).toContain("Thursday, 1 October 2026, 10:00 am");
+  expect(notificationDate("2026-10-01T10:00:00+03:00", "en", now)).toContain("1 October 2026, 10:00 am");
 });

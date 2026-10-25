@@ -32,7 +32,7 @@ it("formats membership dates in Arabic and hides zero-hour totals", () => {
   render(<PublicTalentView profile={profile} pages={pages} />);
   expect(screen.getByRole("heading", { name: "أحمد فهد العصيّمي" })).toBeTruthy();
   expect(screen.getByText("أ")).toBeTruthy();
-  expect(screen.getByText("عضو منذ الاثنين، 12 أكتوبر 2026")).toBeTruthy();
+  expect(screen.getByText("عضو منذ 12 أكتوبر 2026")).toBeTruthy();
   expect(screen.queryByText(/ساعة معتمدة/)).toBeNull();
 });
 

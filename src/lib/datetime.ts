@@ -15,11 +15,11 @@ function parseRiyadhValue(value: string | Date | null | undefined) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function formatRiyadhDate(value: string | Date | null | undefined, locale: Locale = "ar") {
+export function formatRiyadhDate(value: string | Date | null | undefined, locale: Locale = "ar", includeWeekday = false) {
   const date = parseRiyadhValue(value);
   if (!date) return locale === "en" ? "Not set" : "غير محدد";
   return new Intl.DateTimeFormat(locale === "en" ? EN_LOCALE : AR_LOCALE, {
-    weekday: "long",
+    weekday: includeWeekday ? "long" : undefined,
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -39,12 +39,12 @@ export function formatRiyadhTime(value: string | Date | null | undefined, locale
   }).format(date);
 }
 
-export function formatRiyadhDateTime(value: string | Date | null | undefined, locale: Locale = "ar") {
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return formatRiyadhDate(value, locale);
+export function formatRiyadhDateTime(value: string | Date | null | undefined, locale: Locale = "ar", includeWeekday = false) {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return formatRiyadhDate(value, locale, includeWeekday);
   const date = parseRiyadhValue(value);
   if (!date) return locale === "en" ? "Not set" : "غير محدد";
   const formattedDate = new Intl.DateTimeFormat(locale === "en" ? EN_LOCALE : AR_LOCALE, {
-    weekday: "long",
+    weekday: includeWeekday ? "long" : undefined,
     day: "numeric",
     month: "long",
     year: "numeric",

@@ -128,3 +128,36 @@ it("allows organization leadership to correct archived committee hours without r
  expect((await db.query("select id from lub.hour_records where id=$1",[h])).rows).toHaveLength(1);await db.query("select lub.review_hours($1,'Voided','تصحيح بعد أرشفة اللجنة')",[h]);
  await asUser(member);expect((await db.query<{status_code:string}>("select status_code from lub.hour_records where id=$1",[h])).rows[0].status_code).toBe("Voided");
 });
+
+it("records signed hour adjustments, preserves history and checks scope, balance and stale values",async()=>{
+ const record=(await db.query<{id:string}>("select lub.add_hours($1,null,$2,10,current_date,'تنظيم فعالية',false) as id",[memberships[1],term])).rows[0].id;
+ await db.query("select lub.adjust_hours($1,2,10,'عمل إضافي')",[record]);
+ expect(Number((await db.query<{hours:string}>("select hours from lub.hour_records where id=$1",[record])).rows[0].hours)).toBe(12);
+ const history=(await db.query<{before_hours:string;after_hours:string;note:string}>("select before_hours,after_hours,note from lub.hour_adjustments where hour_record_id=$1",[record])).rows;
+ expect(history.map(item=>[Number(item.before_hours),Number(item.after_hours),item.note])).toEqual([[10,12,'عمل إضافي']]);
+ expect((await db.query("select id from lub.hour_decisions where hour_record_id=$1",[record])).rows).toHaveLength(1);
+ await denied(()=>db.query("select lub.adjust_hours($1,-13,12,'')",[record]));
+ await denied(()=>db.query("select lub.adjust_hours($1,1,10,'تعديل قديم')",[record]));
+ await db.query("select lub.adjust_hours($1,-2,12,'')",[record]);
+ await asUser(member);expect((await db.query("select id from lub.hour_adjustments where hour_record_id=$1",[record])).rows).toHaveLength(2);
+ await denied(()=>db.query("select lub.adjust_hours($1,99,10,'')",[record]));
+ await denied(()=>db.query("insert into lub.hour_adjustments(hour_record_id,before_hours,after_hours,actor_user_id,actor_name,note,transaction_id) values($1,10,99,$2,'طالب','','')",[record,member]));
+ await asUser(leader);await denied(()=>db.query("update lub.hour_adjustments set note='تمويه' where hour_record_id=$1",[record]));
+});
+it("asks before duplicate manual hours and accepts only an explicit repeated-entry confirmation",async()=>{
+ const args=[memberships[1],term];
+ await db.query("select lub.add_hours($1,null,$2,2,current_date,'عمل مكرر',false)",args);
+ await denied(()=>db.query("select lub.add_hours($1,null,$2,2,current_date,'عمل مكرر',false)",args));
+ await db.query("select lub.add_hours($1,null,$2,2,current_date,'عمل مكرر',false,true)",args);
+ expect((await db.query("select id from lub.hour_records")).rows).toHaveLength(2);
+});
+
+it("exports exactly the selected hours status and member search",async()=>{
+ await db.query("select lub.add_hours($1,null,$2,5,current_date,'نشاط معتمد',false)",[memberships[1],term]);
+ await db.query("select lub.set_self_report_hours($1,true)",[org]);await asUser(member);
+ await db.query("select lub.add_hours($1,null,$2,2,current_date,'نشاط معلق',true)",[memberships[1],term]);await asUser(leader);
+ const filtered=(await db.query<{csv:string}>("select lub.export_hours_csv($1,null,$2,'Pending','طالب 1') as csv",[org,term])).rows[0].csv;
+ expect(filtered).toContain('"2.00"');expect(filtered).not.toContain('"5.00"');
+ const empty=(await db.query<{csv:string}>("select lub.export_hours_csv($1,null,$2,'Pending','لا يوجد') as csv",[org,term])).rows[0].csv;
+ expect(empty).not.toContain('"2.00"');
+});

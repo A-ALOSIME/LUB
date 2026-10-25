@@ -20,7 +20,7 @@ afterEach(cleanup);
 
 const committee = { id: "committee-1", name: "لجنة الأمن", description: "", isPublic: true, statusCode: "Active", canEdit: true, memberCount: 0, leaderName: null };
 
-it("opens committee editing from the row and groups management actions in its menu", () => {
+it("opens committee editing from the row and shows management actions directly", () => {
   render(<ul><CommitteeListRow organizationId="org-1" committee={committee} canManage locale="ar" /></ul>);
 
   expect(screen.getByText("0 أعضاء")).toBeTruthy();
@@ -29,16 +29,14 @@ it("opens committee editing from the row and groups management actions in its me
 
   fireEvent.click(screen.getByRole("button", { name: "تعديل لجنة الأمن" }));
   expect(screen.getByRole("dialog").textContent).toContain("تعديل اللجنة");
-  fireEvent.click(screen.getByRole("button", { name: "إجراءات لجنة الأمن" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "تعديل" }));
+  fireEvent.click(screen.getByRole("button", { name: "تعديل اللجنة" }));
   expect(screen.getByRole("dialog").textContent).toContain("تعديل اللجنة");
-  fireEvent.click(screen.getByRole("button", { name: "إجراءات لجنة الأمن" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "نسخ" }));
+  fireEvent.click(screen.getByRole("button", { name: "نسخ اللجنة" }));
   expect(screen.getByRole("dialog").textContent).toContain("سيُنشأ سجل لجنة جديد");
-  fireEvent.click(screen.getByRole("button", { name: "إجراءات لجنة الأمن" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "أرشفة" }));
+  fireEvent.click(screen.getByRole("button", { name: "أرشفة اللجنة" }));
   expect(screen.getByRole("alertdialog").textContent).toContain("تأكيد أرشفة اللجنة");
-  expect(screen.queryByRole("button", { name: "نسخ لجنة الأمن" })).toBeNull();
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(screen.getByRole("button", { name: "نسخ اللجنة" })).toBeTruthy();
 });
 
 it("keeps public chart cards name-only and opens full committee details on click", () => {

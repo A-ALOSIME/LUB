@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Locale } from "@/lib/preferences";
+import { RowAction } from "@/components/row-action";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Presentation = "dialog" | "sheet";
 const ManagementActionContext = createContext<{ close: () => void; locale: Locale } | null>(null);
@@ -32,7 +34,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   </div>;
 }
 
-export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel }: {
+export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false }: {
   label: string;
   title: string;
   children: ReactNode;
@@ -48,6 +50,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   mobileBottomSheet?: boolean;
   triggerSize?: "sm" | "default" | "lg" | "icon-sm";
   triggerAriaLabel?: string;
+  rowAction?: boolean;
 }) {
   const [localOpen, setLocalOpen] = useState(initiallyOpen);
   const open = controlledOpen ?? localOpen;
@@ -58,10 +61,11 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   const body = <ManagementActionProvider locale={locale} close={() => setOpen(false)}>
     <div className="management-action-scroll" data-management-action-scroll>{children}</div>
   </ManagementActionProvider>;
-  const trigger = <Button type="button" variant={variant} size={triggerSize} aria-label={triggerAriaLabel}>{icon ?? <Plus aria-hidden="true" />}{label}</Button>;
+  const trigger = <Button type="button" variant={variant === "destructive" ? "danger-outline" : variant} size={triggerSize} aria-label={triggerAriaLabel} title={triggerAriaLabel}>{icon ?? <Plus aria-hidden="true" />}{label}</Button>;
+  const directTrigger = !hideTrigger && rowAction ? <RowAction label={label || triggerAriaLabel || title} danger={variant === "destructive"} onClick={() => setOpen(true)}>{icon ?? <Plus aria-hidden="true" />}</RowAction> : null;
 
   if (presentation === "sheet") return <Sheet open={open} onOpenChange={setOpen}>
-    {!hideTrigger && <SheetTrigger render={trigger} />}
+    {directTrigger ?? (!hideTrigger && <SheetTrigger render={trigger} />)}
     <SheetContent dir={dir} side="left" showCloseButton={false} className={`management-action-sheet gap-0 overflow-hidden p-0${width === "wide" ? " management-action-sheet-wide" : ""}`}>
       <SheetHeader className="management-action-header">
         <SheetTitle className="min-w-0 w-full break-words text-start">{title}</SheetTitle>
@@ -72,7 +76,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   </Sheet>;
 
   return <Dialog open={open} onOpenChange={setOpen}>
-    {!hideTrigger && <DialogTrigger render={trigger} />}
+    {directTrigger ?? (!hideTrigger && (triggerAriaLabel ? <Tooltip><TooltipTrigger render={<span className="inline-flex"/>}><DialogTrigger render={trigger}/></TooltipTrigger><TooltipContent>{triggerAriaLabel}</TooltipContent></Tooltip> : <DialogTrigger render={trigger} />))}
     <DialogContent dir={dir} width={width === "wide" ? "wide" : "default"} showCloseButton={false} className={`management-action-dialog${mobileBottomSheet ? " management-action-dialog--mobile-bottom" : ""} flex max-h-[90dvh] ${width === "wide" ? "w-[min(42rem,calc(100vw-2rem))] max-w-2xl" : "w-[min(38rem,calc(100vw-2rem))] max-w-none"} flex-col gap-0 overflow-hidden p-0`}>
       <DialogHeader className="management-action-header">
         <DialogTitle className="w-full text-start">{title}</DialogTitle>

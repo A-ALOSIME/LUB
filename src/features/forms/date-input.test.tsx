@@ -6,7 +6,7 @@ import { DateRangeInput } from "./date-input";
 afterEach(cleanup);
 
 describe("date range picker", () => {
-  it("opens one Arabic Saturday-first calendar with both times inside it", () => {
+  it("opens one Arabic Sunday-first calendar with both times inside it", () => {
     const { container } = render(<DateRangeInput
       startName="opens"
       endName="closes"
@@ -19,10 +19,10 @@ describe("date range picker", () => {
 
     fireEvent.click(screen.getByLabelText("فترة التسجيل"));
 
-    expect(document.querySelector('[data-week-start="saturday"]')).toBeTruthy();
+    expect(document.querySelector('[data-week-start="sunday"]')).toBeTruthy();
     expect(document.querySelector('[data-slot="popover-content"]')?.className).toContain("date-picker-popover");
-    expect(screen.getByLabelText("وقت البداية")).toBeTruthy();
-    expect(screen.getByLabelText("وقت النهاية")).toBeTruthy();
+    expect(screen.getByRole("group",{name:"وقت البداية"})).toBeTruthy();
+    expect(screen.getByRole("group",{name:"وقت النهاية"})).toBeTruthy();
     expect(screen.queryByLabelText("الوقت")).toBeNull();
     expect(screen.getByText("كل الأوقات بتوقيت الرياض")).toBeTruthy();
     expect(container.querySelector('input[type="time"]')).toBeNull();

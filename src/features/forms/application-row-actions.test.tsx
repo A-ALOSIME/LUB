@@ -25,21 +25,21 @@ const baseProps = {
 it("offers details and asks for confirmation before withdrawal", async () => {
   render(<ApplicationRowActions {...baseProps} />);
 
-  fireEvent.click(screen.getByRole("button", { name: "إجراءات نادي الأمن السيبراني" }));
-  const details = await screen.findByRole("menuitem", { name: /عرض التفاصيل/ });
+
+  const details = await screen.findByRole("link", { name: /عرض التفاصيل/ });
   expect(details.getAttribute("href")).toBe(baseProps.detailsHref);
 
-  fireEvent.click(await screen.findByRole("menuitem", { name: /سحب الطلب/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /سحب الطلب/ }));
   expect(await screen.findByRole("alertdialog")).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "تأكيد سحب الطلب" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "سحب طلب الانضمام لـنادي الأمن السيبراني؟" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "اسحب الطلب" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "إبقاء الطلب" })).toBeTruthy();
 });
 
 it("does not show withdrawal when the request is not eligible", async () => {
   render(<ApplicationRowActions {...baseProps} canWithdraw={false} />);
-  fireEvent.click(screen.getByRole("button", { name: "إجراءات نادي الأمن السيبراني" }));
 
-  expect(await screen.findByRole("menuitem", { name: /عرض التفاصيل/ })).toBeTruthy();
-  expect(screen.queryByRole("menuitem", { name: /سحب الطلب/ })).toBeNull();
+
+  expect(await screen.findByRole("link", { name: /عرض التفاصيل/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /سحب الطلب/ })).toBeNull();
 });

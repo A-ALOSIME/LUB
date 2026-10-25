@@ -128,7 +128,12 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
+function FieldError({ className, ...props }: React.ComponentProps<"p">) {
+  return <p role="alert" data-slot="field-error" className={cn("text-sm font-normal text-destructive", className)} {...props} />
+}
+
 export {
+  FieldError,
   Field,
   FieldLabel,
   FieldDescription,

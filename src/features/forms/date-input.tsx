@@ -1,146 +1,418 @@
 "use client";
-
 import { useId, useState, type ReactElement, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, X } from "lucide-react";
+import { arSA, enGB } from "react-day-picker/locale";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldLabel } from "@/components/ui/field";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+} from "@/components/ui/field";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { formatRiyadhDate, formatRiyadhDateTime } from "@/lib/datetime";
 import type { Locale } from "@/lib/preferences";
 
+function dayValue(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function dateFromValue(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day, 12);
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d, 12);
+}
+
+export function riyadhToday() {
+  return dateFromValue(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Riyadh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date()),
+  );
 }
 
 function currentRiyadhDateTime(value?: string) {
-  if (!value) return { date: "", time: "" };
-  const instant = new Date(value);
-  if (Number.isNaN(instant.getTime())) return { date: "", time: "" };
+  if (!value || Number.isNaN(new Date(value).getTime()))
+    return { date: "", time: "12:00" };
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Riyadh", year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(instant);
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value ?? "";
-  return { date: `${part("year")}-${part("month")}-${part("day")}`, time: `${part("hour")}:${part("minute")}` };
+    timeZone: "Asia/Riyadh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return {
+    date: `${part("year")}-${part("month")}-${part("day")}`,
+    time: `${part("hour")}:${part("minute")}`,
+  };
 }
 
-function formatDate(value: string, locale: Locale) {
-  if (!value) return "";
-  const date = dateFromValue(value);
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar-SA-u-nu-latn", {
-    dateStyle: "medium", timeZone: "UTC", calendar: "gregory",
-  }).format(new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12)));
-}
-
-function CalendarGrid({ value, locale, onSelect }: { value: string; locale: Locale; onSelect: (date: string) => void }) {
-  const selected = value ? dateFromValue(value) : new Date();
-  const [month, setMonth] = useState(() => new Date(selected.getFullYear(), selected.getMonth(), 1, 12));
-  const year = month.getFullYear();
-  const monthIndex = month.getMonth();
-  const weekStart = locale === "ar" ? 6 : 0;
-  const firstWeekday = new Date(year, monthIndex, 1).getDay();
-  const offset = (firstWeekday - weekStart + 7) % 7;
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const monthLabel = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar-SA-u-nu-latn", {
-    month: "long", year: "numeric", calendar: "gregory", timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, monthIndex, 15, 12)));
-  const weekdays = Array.from({ length: 7 }, (_, index) => {
-    const day = (weekStart + index) % 7;
-    return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar-SA-u-nu-latn", {
-      weekday: "short", timeZone: "UTC",
-    }).format(new Date(Date.UTC(2026, 0, 4 + day, 12)));
-  });
-  const previousMonth = () => setMonth(new Date(year, monthIndex - 1, 1, 12));
-  const nextMonth = () => setMonth(new Date(year, monthIndex + 1, 1, 12));
-  const PreviousIcon = locale === "ar" ? ChevronRight : ChevronLeft;
-  const NextIcon = locale === "ar" ? ChevronLeft : ChevronRight;
-  const c = (ar: string, english: string) => locale === "en" ? english : ar;
-
-  return <div className="w-[19rem] max-w-[calc(100vw-2rem)]" dir={locale === "en" ? "ltr" : "rtl"}>
-    <div className="mb-2 flex items-center justify-between gap-2">
-      <Button type="button" variant="ghost" size="icon-sm" aria-label={c("الشهر السابق", "Previous month")} onClick={previousMonth}><PreviousIcon aria-hidden="true" /></Button>
-      <span className="text-sm font-semibold" aria-live="polite">{monthLabel}</span>
-      <Button type="button" variant="ghost" size="icon-sm" aria-label={c("الشهر التالي", "Next month")} onClick={nextMonth}><NextIcon aria-hidden="true" /></Button>
-    </div>
-    <div className="grid grid-cols-7 gap-0.5 text-center" data-week-start={locale === "ar" ? "saturday" : "sunday"}>
-      {weekdays.map((weekday, index) => <span key={`${weekday}-${index}`} className="flex min-h-7 items-center justify-center whitespace-nowrap text-[0.7rem] font-medium text-muted" aria-hidden="true">{weekday}</span>)}
-      {Array.from({ length: 42 }, (_, index) => {
-        const day = index - offset + 1;
-        if (day < 1 || day > daysInMonth) return <span key={`blank-${index}`} aria-hidden="true" />;
-        const date = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-        const chosen = value === date;
-        return <Button key={date} type="button" size="icon-sm" variant={chosen ? "secondary" : "ghost"} aria-pressed={chosen} aria-label={formatDate(date, locale)} onClick={() => onSelect(date)}>
-          {new Intl.NumberFormat(locale === "en" ? "en" : "ar-SA-u-nu-latn", { useGrouping: false }).format(day)}
-        </Button>;
-      })}
-    </div>
-  </div>;
-}
-
-function CalendarPopover({ value, locale, children, onSelect, onTimeChange, time, required, extra }: {
+export function TimeSelect({
+  label,
+  value,
+  onChange,
+  locale = "ar",
+}: {
+  label: string;
   value: string;
+  onChange: (value: string) => void;
+  locale?: Locale;
+}) {
+  const en = locale === "en",
+    [hour, minute] = (value || "12:00").split(":").map(Number),
+    period = hour >= 12 ? "pm" : "am";
+  const change = (h: number, m: number, p: string) =>
+    onChange(
+      `${String((h % 12) + (p === "pm" ? 12 : 0)).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+    );
+  return (
+    <Field>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label={label}>
+        <NativeSelect
+          aria-label={`${label}: ${en ? "hour" : "الساعة"}`}
+          value={hour % 12 || 12}
+          onChange={(e) => change(Number(e.target.value), minute, period)}
+        >
+          {Array.from({ length: 12 }, (_, i) => (
+            <option key={i + 1} value={i + 1}>
+              {i + 1}
+            </option>
+          ))}
+        </NativeSelect>
+        <NativeSelect
+          aria-label={`${label}: ${en ? "minutes" : "الدقائق"}`}
+          value={minute}
+          onChange={(e) => change(hour, Number(e.target.value), period)}
+        >
+          {[0, 15, 30, 45, ...(minute % 15 ? [minute] : [])]
+            .sort((a, b) => a - b)
+            .map((m) => (
+              <option key={m} value={m}>
+                {String(m).padStart(2, "0")}
+              </option>
+            ))}
+        </NativeSelect>
+        <NativeSelect
+          aria-label={`${label}: ${en ? "period" : "الفترة"}`}
+          value={period}
+          onChange={(e) => change(hour, minute, e.target.value)}
+        >
+          <option value="am">{en ? "AM" : "ص"}</option>
+          <option value="pm">{en ? "PM" : "م"}</option>
+        </NativeSelect>
+      </div>
+    </Field>
+  );
+}
+
+function CalendarPanel({
+  value,
+  end,
+  locale,
+  onSelect,
+  future = false,
+}: {
+  value: string;
+  end?: string;
   locale: Locale;
-  children: ReactElement;
-  onSelect: (date: string) => void | false;
-  onTimeChange?: (time: string) => void;
-  time?: string;
+  onSelect: (date: string) => void;
+  future?: boolean;
+}) {
+  const en = locale === "en",
+    today = riyadhToday();
+  const shared = {
+    locale: en ? enGB : arSA,
+    numerals: "latn" as const,
+    weekStartsOn: 0 as const,
+    dir: en ? "ltr" : "rtl",
+    today,
+    disabled: future ? { before: today } : undefined,
+    startMonth: future
+      ? new Date(today.getFullYear(), today.getMonth(), 1)
+      : undefined,
+    defaultMonth: value ? dateFromValue(value) : today,
+    className: "app-calendar",
+    showOutsideDays: false,
+    formatters: {
+      formatCaption: (d: Date) =>
+        new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA-u-nu-latn", {
+          month: "long",
+          year: "numeric",
+          calendar: "gregory",
+        }).format(d),
+      formatWeekdayName: (d: Date) =>
+        new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA", {
+          weekday: "short",
+        }).format(d),
+    },
+    labels: {
+      labelPrevious: () => (en ? "Previous month" : "الشهر السابق"),
+      labelNext: () => (en ? "Next month" : "الشهر التالي"),
+    },
+  };
+  return (
+    <div data-week-start="sunday">
+      {end !== undefined ? (
+        <Calendar
+          {...shared}
+          mode="range"
+          selected={
+            value
+              ? {
+                  from: dateFromValue(value),
+                  to: end ? dateFromValue(end) : undefined,
+                }
+              : undefined
+          }
+          onDayClick={(date) => onSelect(dayValue(date))}
+        />
+      ) : (
+        <Calendar
+          {...shared}
+          mode="single"
+          selected={value ? dateFromValue(value) : undefined}
+          onSelect={(date) => {
+            if (date) onSelect(dayValue(date));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CalendarPopup({
+  open,
+  onOpenChange,
+  label,
+  trigger,
+  children,
+  locale,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  label: string;
+  trigger: ReactElement;
+  children: ReactNode;
+  locale: Locale;
+}) {
+  const mobile = useIsMobile(),
+    en = locale === "en";
+  if (mobile)
+    return (
+      <>
+        <Button
+          type="button"
+          variant="outline"
+          className="date-picker-mobile-trigger w-full justify-start font-normal"
+          data-empty={!(trigger.props as { value?: string }).value}
+          onClick={() => onOpenChange(true)}
+          aria-label={label}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          <CalendarDays aria-hidden="true" />
+          {(trigger.props as { value?: string; placeholder?: string }).value ||
+            (trigger.props as { placeholder?: string }).placeholder}
+        </Button>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent
+            side="bottom"
+            showCloseButton={false}
+            className="date-picker-mobile-sheet max-h-[95dvh] overflow-y-auto"
+            dir={en ? "ltr" : "rtl"}
+          >
+            <SheetHeader>
+              <SheetTitle>{label}</SheetTitle>
+              <SheetClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute end-3 top-3"
+                    aria-label={en ? "Close calendar" : "إغلاق التقويم"}
+                  />
+                }
+              >
+                <X />
+              </SheetClose>
+            </SheetHeader>
+            <div className="p-4">{children}</div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  return (
+    <>
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger nativeButton={false} render={trigger} />
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          collisionAvoidance={{
+            side: "none",
+            align: "none",
+            fallbackAxisSide: "none",
+          }}
+          className="date-picker-popover"
+          dir={en ? "ltr" : "rtl"}
+        >
+          {children}
+        </PopoverContent>
+      </Popover>
+      {open && <div className="date-picker-reserve" aria-hidden="true" />}
+    </>
+  );
+}
+
+export function DatePickerField({
+  name,
+  label,
+  required = false,
+  value: initial = "",
+  locale = "ar",
+}: {
+  name: string;
+  label: string;
   required?: boolean;
-  extra?: ReactNode;
+  value?: string;
+  locale?: Locale;
 }) {
-  const [open, setOpen] = useState(false);
-  const c = (ar: string, english: string) => locale === "en" ? english : ar;
-  return <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger nativeButton={false} render={children} />
-    <PopoverContent
-      align="start"
-      side="bottom"
-      collisionAvoidance={{ side: "none", align: "shift", fallbackAxisSide: "none" }}
-      className="date-picker-popover w-auto max-w-[calc(100vw-1rem)] p-3"
-    >
-      <CalendarGrid key={value} value={value} locale={locale} onSelect={date => { const keepOpen = onSelect(date) === false; if (!keepOpen) setOpen(false); }} />
-      {onTimeChange && <label className="mt-3 grid gap-1.5 text-sm font-medium">{c("الوقت","Time")}<Input type="text" inputMode="numeric" autoComplete="off" placeholder="12:00" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" aria-label={c("الوقت","Time")} value={time ?? ""} required={required && Boolean(value)} onChange={event => onTimeChange(event.target.value)} /></label>}
-      {extra}
-      <p className="mt-2 text-xs text-muted">{c("كل الأوقات بتوقيت الرياض","All times are in Riyadh time")}</p>
-    </PopoverContent>
-  </Popover>;
+  const [value, setValue] = useState(initial),
+    [open, setOpen] = useState(false),
+    id = useId();
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <CalendarPopup
+        open={open}
+        onOpenChange={setOpen}
+        label={label}
+        locale={locale}
+        trigger={
+          <Input
+            id={id}
+            type="text"
+            readOnly
+            required={required}
+            value={value ? formatRiyadhDate(value, locale) : ""}
+            placeholder={locale === "en" ? "Choose a date" : "اختر التاريخ"}
+            className="cursor-pointer font-normal"
+          />
+        }
+      >
+        <CalendarPanel
+          value={value}
+          locale={locale}
+          onSelect={(date) => {
+            setValue(date);
+            setOpen(false);
+          }}
+        />
+      </CalendarPopup>
+      <input type="hidden" name={name} value={value} />
+    </Field>
+  );
 }
 
-export function DatePickerField({ name, label, required = false, value: initial = "", locale = "ar" }: {
-  name: string; label: string; required?: boolean; value?: string; locale?: Locale;
+export function DateInput({
+  name,
+  label,
+  required = false,
+  value: initial,
+  locale = "ar",
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+  value?: string;
+  locale?: Locale;
 }) {
-  const [value, setValue] = useState(initial);
-  const id = useId();
-  const c = (ar: string, english: string) => locale === "en" ? english : ar;
-  return <div className="grid min-w-0 gap-1.5">
-    <label htmlFor={id} className="text-sm font-medium">{label}</label>
-    <CalendarPopover value={value} locale={locale} onSelect={setValue}>
-      <Input id={id} type="text" readOnly required={required} value={formatDate(value, locale)} placeholder={c("اختر التاريخ", "Choose a date")} aria-expanded={undefined} className="cursor-pointer" />
-    </CalendarPopover>
-    <input type="hidden" name={name} value={value} />
-  </div>;
+  const initialValue = currentRiyadhDateTime(initial),
+    [date, setDate] = useState(initialValue.date),
+    [time, setTime] = useState(initialValue.time),
+    [open, setOpen] = useState(false),
+    id = useId(),
+    en = locale === "en";
+  const output = date ? `${date}T${time}:00+03:00` : "";
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <CalendarPopup
+        open={open}
+        onOpenChange={setOpen}
+        label={label}
+        locale={locale}
+        trigger={
+          <Input
+            id={id}
+            readOnly
+            required={required}
+            value={output ? formatRiyadhDateTime(output, locale) : ""}
+            placeholder={en ? "Choose date and time" : "اختر التاريخ والوقت"}
+            className="cursor-pointer font-normal"
+          />
+        }
+      >
+        <FieldGroup>
+          <CalendarPanel
+            future
+            value={date}
+            locale={locale}
+            onSelect={setDate}
+          />
+          <TimeSelect
+            label={en ? "Time" : "الوقت"}
+            value={time}
+            onChange={setTime}
+            locale={locale}
+          />
+          <FieldDescription>
+            {en ? "All times are in Riyadh time" : "كل الأوقات بتوقيت الرياض"}
+          </FieldDescription>
+          <Button type="button" onClick={() => setOpen(false)}>
+            {en ? "Done" : "تم"}
+          </Button>
+        </FieldGroup>
+      </CalendarPopup>
+      <input type="hidden" name={name} value={output} />
+    </Field>
+  );
 }
 
-export function DateInput({ name, label, required = false, value: initial, locale = "ar" }: {
-  name: string; label: string; required?: boolean; value?: string; locale?: Locale;
-}) {
-  const initialValue = currentRiyadhDateTime(initial);
-  const [date, setDate] = useState(initialValue.date);
-  const [time, setTime] = useState(initialValue.time);
-  const id = useId();
-  const c = (ar: string, english: string) => locale === "en" ? english : ar;
-  const dateTimeLabel = date ? `${formatDate(date, locale)}${time ? ` · ${time}` : ""}` : "";
-  const value = date && time ? `${date}T${time}:00+03:00` : "";
-  return <div className="grid min-w-0 gap-1.5">
-    <label htmlFor={id} className="text-sm font-medium">{label}</label>
-    <CalendarPopover value={date} locale={locale} onSelect={selected => { setDate(selected); setTime(current => current || "12:00"); return false; }} onTimeChange={setTime} time={time} required={required}>
-      <Input id={id} type="text" readOnly required={required} value={dateTimeLabel} placeholder={c("اختر التاريخ والوقت", "Choose a date and time")} className="cursor-pointer" />
-    </CalendarPopover>
-    <input type="hidden" name={name} value={value} />
-  </div>;
-}
-
-export function DateRangeInput({ startName, endName, label, startValue = "", endValue = "", required = false, includeTime = false, locale = "ar" }: {
+export function DateRangeInput({
+  startName,
+  endName,
+  label,
+  startValue = "",
+  endValue = "",
+  required = false,
+  includeTime = false,
+  locale = "ar",
+}: {
   startName: string;
   endName: string;
   label: string;
@@ -150,54 +422,123 @@ export function DateRangeInput({ startName, endName, label, startValue = "", end
   includeTime?: boolean;
   locale?: Locale;
 }) {
-  const start = includeTime ? currentRiyadhDateTime(startValue) : { date: startValue, time: "" };
-  const end = includeTime ? currentRiyadhDateTime(endValue) : { date: endValue, time: "" };
-  const [startDate, setStartDate] = useState(start.date);
-  const [endDate, setEndDate] = useState(end.date);
-  const [startTime, setStartTime] = useState(start.time);
-  const [endTime, setEndTime] = useState(end.time);
-  const [selectingEnd, setSelectingEnd] = useState(Boolean(start.date && !end.date));
-  const id = useId();
-  const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
-  const startLabel = `${formatDate(startDate, locale)}${includeTime && startTime ? ` · ${startTime}` : ""}`;
-  const endLabel = `${formatDate(endDate, locale)}${includeTime && endTime ? ` · ${endTime}` : ""}`;
-  const value = [startLabel, endLabel].filter(Boolean).join(` ${c("إلى", "to")} `);
-  const handleSelect = (date: string) => {
-    if (!selectingEnd || !startDate || endDate) {
-      setStartDate(date);
-      setEndDate("");
-      setSelectingEnd(true);
-      if (includeTime) setStartTime(current => current || "12:00");
-      return false;
-    }
-    if (date < startDate) {
-      setStartDate(date);
-      setEndDate("");
-      if (includeTime) setStartTime(current => current || "12:00");
-      return false;
-    }
-    setEndDate(date);
-    setSelectingEnd(false);
-    if (includeTime) setEndTime(current => current || "12:00");
-  };
-  const timeFields = includeTime && <div className="mt-3 grid grid-cols-2 gap-2">
-    <label className="grid min-w-0 gap-1 text-xs font-medium">{c("وقت البداية", "Start time")}<Input type="text" inputMode="numeric" autoComplete="off" placeholder="12:00" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" aria-label={c("وقت البداية", "Start time")} value={startTime} required={required && Boolean(startDate)} onChange={event => setStartTime(event.target.value)} /></label>
-    <label className="grid min-w-0 gap-1 text-xs font-medium">{c("وقت النهاية", "End time")}<Input type="text" inputMode="numeric" autoComplete="off" placeholder="13:00" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" aria-label={c("وقت النهاية", "End time")} value={endTime} required={required && Boolean(endDate)} onChange={event => setEndTime(event.target.value)} /></label>
-  </div>;
-  const startOutput = includeTime
-    ? startDate && startTime ? `${startDate}T${startTime}:00+03:00` : ""
-    : startDate;
-  const endOutput = includeTime
-    ? endDate && endTime ? `${endDate}T${endTime}:00+03:00` : ""
-    : endDate;
-
-  return <Field className="gap-1.5">
-    <FieldLabel htmlFor={id}>{label}</FieldLabel>
-    <CalendarPopover value={selectingEnd && startDate ? startDate : endDate || startDate} locale={locale} onSelect={handleSelect} extra={timeFields}>
-      <Input id={id} type="text" readOnly required={required} value={value} placeholder={c("اختر الفترة", "Choose a date range")} className="cursor-pointer text-sm text-foreground" />
-    </CalendarPopover>
-    <input type="hidden" name={startName} value={startOutput} />
-    <input type="hidden" name={endName} value={endOutput} />
-  </Field>;
+  const start = includeTime
+      ? currentRiyadhDateTime(startValue)
+      : { date: startValue, time: "12:00" },
+    end = includeTime
+      ? currentRiyadhDateTime(endValue)
+      : { date: endValue, time: "12:00" };
+  const [startDate, setStartDate] = useState(start.date),
+    [endDate, setEndDate] = useState(end.date),
+    [startTime, setStartTime] = useState(start.time),
+    [endTime, setEndTime] = useState(end.time),
+    [open, setOpen] = useState(false),
+    id = useId(),
+    en = locale === "en";
+  const startOutput = startDate
+      ? includeTime
+        ? `${startDate}T${startTime}:00+03:00`
+        : startDate
+      : "",
+    endOutput = endDate
+      ? includeTime
+        ? `${endDate}T${endTime}:00+03:00`
+        : endDate
+      : "";
+  const invalid = Boolean(
+    startOutput && endOutput && (includeTime ? new Date(endOutput) <= new Date(startOutput) : endDate < startDate),
+  );
+  const summary = startOutput
+    ? `${en ? "From" : "من"} ${includeTime ? formatRiyadhDateTime(startOutput, locale, true) : formatRiyadhDate(startOutput, locale, true)}${endOutput ? ` ${en ? "to" : "إلى"} ${includeTime ? formatRiyadhDateTime(endOutput, locale, true) : formatRiyadhDate(endOutput, locale, true)}` : ""}`
+    : "";
+  return (
+    <Field data-invalid={invalid || undefined}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <CalendarPopup
+        open={open}
+        onOpenChange={setOpen}
+        label={label}
+        locale={locale}
+        trigger={
+          <Input
+            id={id}
+            readOnly
+            required={required}
+            aria-invalid={invalid}
+            aria-describedby={`${id}-summary`}
+            value={
+              startDate
+                ? [
+                    formatRiyadhDate(startDate, locale),
+                    endDate ? formatRiyadhDate(endDate, locale) : "",
+                  ]
+                    .filter(Boolean)
+                    .join(en ? " to " : " إلى ")
+                : ""
+            }
+            placeholder={en ? "Choose a date range" : "اختر الفترة"}
+            className="cursor-pointer font-normal"
+          />
+        }
+      >
+        <FieldGroup>
+          <CalendarPanel
+            value={startDate}
+            end={endDate}
+            locale={locale}
+            future={includeTime}
+            onSelect={(date) => {
+              if (!startDate || endDate) {
+                setStartDate(date);
+                setEndDate("");
+              } else setEndDate(date);
+            }}
+          />
+          {includeTime && (
+            <>
+              <TimeSelect
+                label={en ? "Start time" : "وقت البداية"}
+                value={startTime}
+                onChange={setStartTime}
+                locale={locale}
+              />
+              <TimeSelect
+                label={en ? "End time" : "وقت النهاية"}
+                value={endTime}
+                onChange={setEndTime}
+                locale={locale}
+              />
+              <FieldDescription>
+                {en
+                  ? "All times are in Riyadh time"
+                  : "كل الأوقات بتوقيت الرياض"}
+              </FieldDescription>
+            </>
+          )}
+          {invalid && (
+            <FieldError>
+              {en
+                ? "End must be after start."
+                : "يجب أن تكون النهاية بعد البداية."}
+            </FieldError>
+          )}
+          <Button
+            type="button"
+            disabled={invalid || !endDate}
+            onClick={() => setOpen(false)}
+          >
+            {en ? "Done" : "تم"}
+          </Button>
+        </FieldGroup>
+      </CalendarPopup>
+      <FieldDescription id={`${id}-summary`}>{summary}</FieldDescription>
+      {invalid && (
+        <FieldError>
+          {en ? "End must be after start." : "يجب أن تكون النهاية بعد البداية."}
+        </FieldError>
+      )}
+      <input type="hidden" name={startName} value={startOutput} />
+      <input type="hidden" name={endName} value={invalid ? "" : endOutput} />
+    </Field>
+  );
 }

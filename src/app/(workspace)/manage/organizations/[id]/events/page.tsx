@@ -1,3 +1,5 @@
+import { RowAction } from "@/components/row-action";
+import { Eye } from "lucide-react";
 import { CalendarDays, Megaphone, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -74,7 +76,7 @@ export default async function ManageEvents({
                 <h3 dir="auto" className="truncate font-semibold"><Link href={`/events/${event.id}`} className="text-link">{event.title}</Link></h3>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted"><time dateTime={event.starts_at}>{date(event.starts_at)}</time><span aria-hidden="true">·</span><span>{c("المسجلون", "Registrants")}: {event.registrant_count}</span></p>
               </div>
-              <OrganizationStatusBadge status={event.status_code === "Published" ? "published" : event.status_code === "Draft" ? "draft" : "closed"}>{labels[event.status_code]}</OrganizationStatusBadge>
+              <OrganizationStatusBadge status={event.status_code === "Published" ? "published" : event.status_code === "Draft" ? "draft" : "closed"}>{labels[event.status_code]}</OrganizationStatusBadge><RowAction label={c("عرض الفعالية","View event")} href={`/events/${event.id}`}><Eye/></RowAction>
             </li>)}</ul> : <WorkspaceEmptyState icon={CalendarDays} title={c("لا توجد فعاليات بعد", "No events yet")} description={c("أنشئ أول فعالية للجهة.", "Create the organization's first event.")} action={data.canManage ? <a href="#new-event" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("فعالية جديدة", "New event")}</a> : undefined} />}
           {data.canViewEvents && <nav aria-label={c("صفحات الفعاليات", "Event pages")} className="mt-5 flex gap-5">{page > 0 && <Link className="text-link" href={`?section=events&page=${page - 1}`}>{c("السابق", "Previous")}</Link>}{data.events.length > 25 && <Link className="text-link" href={`?section=events&page=${page + 1}`}>{c("التالي", "Next")}</Link>}</nav>}
         </section>

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Handle, Panel, Position, ReactFlow, useReactFlow, useStore, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Building2, ChevronDown, ChevronUp, Maximize, Minus, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { RowAction } from "@/components/row-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -45,7 +47,7 @@ function CommitteeNode({ data }: NodeProps<ChartNode>) {
             ...(committee.canEdit ? [{ kind: "edit" as const, icon: Pencil, label: c("تعديل اللجنة", "Edit committee") }] : []),
             ...(canManage ? [{ kind: "child" as const, icon: Plus, label: c("إضافة لجنة فرعية", "Add subcommittee") }, { kind: "delete" as const, icon: Trash2, label: c("حذف اللجنة", "Delete committee") }] : []),
           ]).map(({ kind, icon: Icon, label }) => <Tooltip key={kind}>
-            <TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={`${label}: ${name}`} onClick={() => onAction(kind)} />}><Icon aria-hidden="true" /></TooltipTrigger>
+            <TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" className={kind==="delete"?"row-action--danger":undefined} aria-label={`${label}: ${name}`} onClick={() => onAction(kind)} />}><Icon aria-hidden="true" /></TooltipTrigger>
             <TooltipContent dir={en ? "ltr" : "rtl"}>{label}</TooltipContent>
           </Tooltip>)}
         </div>}
@@ -75,6 +77,7 @@ function ChartControls({ en }: { en: boolean }) {
 export function OrganizationCommitteeChart({ organizationId, organizationName, rootDetails = [], committees, canManage, locale, parentOptions, emptyMessage, readOnly = false }: {
   organizationId: string; organizationName: string; rootDetails?: readonly string[]; committees: CommitteeTreeNode<Committee>[]; canManage: boolean; locale: Locale; parentOptions: Array<{ id: string; name: string }>; emptyMessage: string; readOnly?: boolean;
 }) {
+  const mobile=useIsMobile();
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [action, setAction] = useState<Action | null>(null);
   const [scale, setScale] = useState(1);
@@ -108,8 +111,10 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     return { nodes, edges: layout.connections.map(edge => ({ ...edge, id: `${edge.source}-${edge.target}`, type: "step" })), height: layout.height };
   }, [organizationId, organizationName, committees, en, collapsed, locale, rootDetails, readOnly, canManage, scale]);
 
+  const childIds=(node:CommitteeTreeNode<Committee>):string[]=>node.children.flatMap(child=>[child.id,...childIds(child)]);
+  const mobileTree=(nodes:CommitteeTreeNode<Committee>[],depth=0):React.ReactNode=><ul className="flex flex-col gap-3" style={{marginInlineStart:depth?".75rem":0,borderInlineStart:depth?"1px solid var(--border)":undefined,paddingInlineStart:depth?".5rem":0}}>{nodes.map(node=><li key={node.id}><Card><CardContent className="flex flex-col gap-3"><div className="flex items-center justify-between gap-2"><button type="button" className="min-w-0 font-semibold text-start" onClick={()=>setAction({kind:"details",committee:node,descendants:childIds(node)})}>{node.name}</button>{node.children.length>0&&<Button type="button" variant="ghost" size="icon" aria-label={c(`فتح أو طي ${node.name}`,`Expand or collapse ${node.name}`)} aria-expanded={!collapsed.has(node.id)} onClick={()=>setCollapsed(current=>{const next=new Set(current);if(next.has(node.id))next.delete(node.id);else next.add(node.id);return next;})}>{collapsed.has(node.id)?<ChevronDown/>:<ChevronUp/>}</Button>}</div>{node.leaderName&&<p className="text-sm text-muted-foreground">{node.leaderName}</p>}{node.memberCount!==null&&node.memberCount>0&&<p className="text-sm text-muted-foreground">{node.memberCount} {c("أعضاء","members")}</p>}{!readOnly&&<div className="flex flex-wrap gap-1 border-t border-border pt-2"><RowAction label={c("تعديل اللجنة","Edit committee")} disabled={!node.canEdit} onClick={()=>setAction({kind:"edit",committee:node,descendants:childIds(node)})}><Pencil/></RowAction><RowAction label={c("إضافة لجنة فرعية","Add subcommittee")} disabled={!canManage} onClick={()=>setAction({kind:"child",committee:node,descendants:childIds(node)})}><Plus/></RowAction><RowAction danger label={c("حذف اللجنة","Delete committee")} disabled={!canManage} onClick={()=>setAction({kind:"delete",committee:node,descendants:childIds(node)})}><Trash2/></RowAction></div>}</CardContent></Card>{node.children.length>0&&!collapsed.has(node.id)&&<div className="pt-3">{mobileTree(node.children,depth+1)}</div>}</li>)}</ul>;
   return <TooltipProvider><div className="committee-flow" dir={en ? "ltr" : "rtl"}>
-    <div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) * scale }}>
+    {mobile?<div className="committee-flow-mobile"><Card><CardContent><p className="font-semibold text-center">{organizationName}</p>{rootDetails.length>0&&<p className="mt-2 text-sm text-center text-muted-foreground">{rootDetails.join(" · ")}</p>}</CardContent></Card><div className="pt-3">{mobileTree(committees)}</div></div>:<div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) * scale }}>
       <ReactFlow<ChartNode> key={`${scale}|${graph.nodes.map(node => node.id).join("|")}`} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
         fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5} proOptions={{ hideAttribution: true }}
         nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false} elementsSelectable={false}
@@ -117,7 +122,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
         role="group" aria-label={c("الهيكل التنظيمي للجان", "Committee organization chart")}>
         <ChartControls en={en} />
       </ReactFlow>
-    </div>
+    </div>}
     {!committees.length && <WorkspaceEmptyState icon={UsersRound} title={c("لا توجد لجان بعد", "No committees yet")} description={emptyMessage} />}
     {action && (action.kind === "edit" || action.kind === "child") && !readOnly && <CommitteeDialog key={`${action.kind}-${action.committee.id}`} organizationId={organizationId} locale={locale} committee={action.kind === "edit" ? action.committee : undefined} parentCommitteeId={action.kind === "child" ? action.committee.id : undefined} parentOptions={parentOptions.filter(option => !action.descendants.includes(option.id))} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger />}
     <Dialog open={action?.kind === "details"} onOpenChange={open => { if (!open) setAction(null); }}>
@@ -128,7 +133,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     </Dialog>
     <AlertDialog open={action?.kind === "delete" && !readOnly} onOpenChange={open => { if (!open) setAction(null); }}>
       <AlertDialogContent dir={en ? "ltr" : "rtl"}>
-        <AlertDialogHeader><AlertDialogTitle>{c("حذف اللجنة؟", "Delete committee?")}</AlertDialogTitle><AlertDialogDescription>{c("ستُزال اللجنة من القائمة النشطة مع حفظ سجلها السابق. لا تُحذف لجانها الفرعية.", "The committee will leave the active list and its history will be retained. Its subcommittees are kept.")}</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogHeader><AlertDialogTitle>{c(`حذف لجنة ${action?.committee.name??""}؟`, `Delete committee ${action?.committee.name??""}?`)}</AlertDialogTitle><AlertDialogDescription>{c("ستُزال اللجنة من القائمة النشطة مع حفظ سجلها السابق. لا تُحذف لجانها الفرعية.", "The committee will leave the active list and its history will be retained. Its subcommittees are kept.")}</AlertDialogDescription></AlertDialogHeader>
         {action?.kind === "delete" && !readOnly && <ManagementActionProvider locale={locale} close={() => setAction(null)}><MutationForm operation="committee-status" fields={{ organizationId, committeeId: action.committee.id, status: "Archived", confirmed: "on" }} submitLabel={c("حذف اللجنة", "Delete committee")} buttonClassName="button button-danger" locale={locale} inlineFooter onSuccess={() => setAction(null)} /></ManagementActionProvider>}
       </AlertDialogContent>
     </AlertDialog>

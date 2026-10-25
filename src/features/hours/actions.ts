@@ -5,7 +5,7 @@ import {revalidatePath,updateTag} from "next/cache";
 import {withUser} from "@/db/client";
 import {requireUser} from "@/features/auth/session";
 import {studentOperationError} from "@/features/auth/authorization";
-export type HoursState={error?:string;success?:string};
+export type HoursState={error?:string;success?:string;duplicate?:boolean};
 const id=(f:FormData,k:string)=>z.uuid().parse(f.get(k));
 const optionalId=(f:FormData,k:string)=>f.get(k)?id(f,k):null;
 const text=(f:FormData,k:string,max:number,min=1)=>z.string().trim().min(min).max(max).parse(f.get(k)??"");
@@ -15,12 +15,13 @@ const amount=(f:FormData)=>z.coerce.number().finite().min(0).max(1000).multipleO
 export async function mutateHours(_previous:HoursState,f:FormData):Promise<HoursState>{
  const user=await requireUser();
  try{
- const op=z.enum(["term","add","self","review","rule","self-policy","import","campaign","exclude","campaign-status","respond"]).parse(f.get("operation"));
+ const op=z.enum(["term","add","self","review","adjust","rule","self-policy","import","campaign","exclude","campaign-status","respond"]).parse(f.get("operation"));
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${day(f,"starts")}::date,${day(f,"ends")}::date)`;
- case "add":case "self":{const activityDay=day(f,"day");return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},(select id from lub.academic_terms where ${activityDay}::date between start_date and end_date),${amount(f)}::numeric,${activityDay}::date,${text(f,"reason",3000)},${op==="self"})`;}
+ case "add":case "self":{const activityDay=day(f,"day");return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},(select id from lub.academic_terms where ${activityDay}::date between start_date and end_date),${amount(f)}::numeric,${activityDay}::date,${text(f,"reason",3000)},${op==="self"},${f.get("confirmDuplicate")==="on"})`;}
  case "review":{const status=z.enum(["Approved","Rejected","Voided"]).parse(f.get("status"));if(status==="Voided"&&f.get("confirm")!=="on")throw new Error();return sql`select lub.review_hours(${id(f,"record")},${status},${text(f,"note",3000,status==="Approved"?0:1)})`;}
+ case "adjust":return sql`select lub.adjust_hours(${id(f,"record")},${z.coerce.number().finite().min(-1000).max(1000).multipleOf(0.01).refine(n=>n!==0).parse(f.get("delta"))}::numeric,${z.coerce.number().finite().min(0).max(1000).parse(f.get("expected"))}::numeric,${text(f,"note",1000,0)})`;
  case "rule":return sql`select lub.save_hour_rule(${optionalId(f,"rule")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"name",120,2)},${amount(f)}::numeric,${day(f,"starts")}::date,${f.get("ends")?day(f,"ends"):null}::date,${f.get("active")==="on"},${f.get("rule")?z.coerce.number().int().positive().parse(f.get("revision")):null}::int)`;
  case "self-policy":return sql`select lub.set_self_report_hours(${id(f,"org")},${f.get("enabled")==="on"})`;
  case "import":return sql`select lub.import_task_hours(${id(f,"participant")})`;
@@ -29,7 +30,7 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  case "campaign-status":{const status=z.enum(["Open","Closed","Archived"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_renewal_status(${id(f,"campaign")},${status})`;}
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
  }})();await withUser(user.id,tx=>tx.execute(query));
- }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. الرفض والإبطال يحتاجان سببًا."};}
+ }catch(error){if([error,typeof error==="object"&&error!==null&&"cause" in error?error.cause:null].some(value=>typeof value==="object"&&value!==null&&"code" in value&&value.code==="P0003"))return {duplicate:true};return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. لا يمكن أن تقل الساعات عن صفر. الرفض يحتاج سببًا."};}
  updateTag("public-talent");
  revalidatePath("/hours");revalidatePath("/activity");revalidatePath("/applications");revalidatePath("/renewals");revalidatePath("/manage","layout");revalidatePath("/tasks","layout");revalidatePath("/me");revalidatePath("/notifications");
  return {success:"تم حفظ التغيير."};

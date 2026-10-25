@@ -166,7 +166,7 @@ it("reads hours and renewals with scoped totals, bounded lists and the genuine r
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");
  const term=(await engine.query<{id:string}>("select lub.create_academic_term('2026','T1','الفصل الأول',current_date-30,current_date+90) as id")).rows[0].id;
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
- for(let i=0;i<27;i++)await engine.query("select lub.add_hours($1,null,$2,1.5,current_date,'عمل تطوعي',false)",[member,term]);
+ for(let i=0;i<27;i++)await engine.query("select lub.add_hours($1,null,$2,1.5,current_date,'عمل تطوعي',false,true)",[member,term]);
  const c=(await engine.query<{id:string}>("select lub.create_renewal($1,$2,now()-interval '1 hour',now()+interval '1 day',false) as id",[org,term])).rows[0].id;
  await engine.query("select lub.change_renewal_status($1,'Open')",[c]);await engine.exec("reset role");
  scopedReads=0;const own=await myHours(admin,term,0);expect(scopedReads).toBe(1);expect(own?.account.onboarded).toBe(true);expect(own?.total).toBe("40.50");expect(own?.records).toHaveLength(26);expect(own?.records[0].decisions).toHaveLength(1);expect((await myHours(admin,term,1))?.records).toHaveLength(2);

@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle, RotateCcw, Save } from "lucide-react";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 
@@ -11,12 +11,16 @@ export function WorkspaceStickySaveBar({
   visible,
   pending,
   onUndo,
+  actions,
+  message,
 }: {
   formId: string;
   locale: Locale;
   visible: boolean;
   pending: boolean;
   onUndo: () => void;
+  actions?: ReactNode;
+  message?: ReactNode;
 }) {
   const [bounds, setBounds] = useState<{ left: number; width: number }>();
   useLayoutEffect(() => {
@@ -36,15 +40,15 @@ export function WorkspaceStickySaveBar({
   const en = locale === "en";
   return <div className="workspace-sticky-save-bar" style={bounds ? { left: bounds.left, width: bounds.width, right: "auto" } : undefined} data-ignore-dirty role="status" aria-live="polite">
     <div className="workspace-sticky-save-bar-inner" dir={en ? "ltr" : "rtl"}>
-      <span className="workspace-sticky-save-message">{en ? "You have unsaved changes" : "لديك تغييرات غير محفوظة"}</span>
+      <span className="workspace-sticky-save-message">{message !== undefined ? message : en ? "You have unsaved changes" : "لديك تغييرات غير محفوظة"}</span>
       <div className="workspace-sticky-save-actions">
-        <Button type="submit" form={formId} disabled={pending}>
+        {actions ?? <><Button type="submit" form={formId} disabled={pending}>
           {pending ? <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" /> : <Save data-icon="inline-start" aria-hidden="true" />}
           {pending ? en ? "Saving…" : "جاري الحفظ" : en ? "Save" : "حفظ"}
         </Button>
         <Button type="button" variant="outline" disabled={pending} onClick={onUndo}>
           <RotateCcw data-icon="inline-start" aria-hidden="true" />{en ? "Undo" : "تراجع"}
-        </Button>
+        </Button></>}
       </div>
     </div>
   </div>;

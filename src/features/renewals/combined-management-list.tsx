@@ -1,3 +1,5 @@
+import { Archive,LockKeyhole,Play,Eye } from "lucide-react";
+import { RowAction } from "@/components/row-action";
 import { Badge } from "@/components/ui/badge";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import type { ReactNode } from "react";
@@ -44,9 +46,9 @@ export function CombinedManagementList({ rounds, campaigns, organization, locale
     {emptyAction}
   </section>;
 
-  return <div className="overflow-x-auto rounded-lg border border-border">
-    <table className="w-full min-w-[35rem] text-start text-sm">
-      <thead className="bg-muted/40"><tr>
+  return <div className="rounded-lg border border-border min-w-0"><div className="hidden md:block">
+    <table className="w-full text-start text-sm">
+      <thead><tr>
         <th className="px-3 py-2 font-medium">{c("النوع", "Type")}</th>
         <th className="px-3 py-2 font-medium">{c("الاسم", "Name")}</th>
         <th className="px-3 py-2 font-medium">{c("التواريخ", "Dates")}</th>
@@ -58,17 +60,25 @@ export function CombinedManagementList({ rounds, campaigns, organization, locale
         <td className="max-w-64 px-3 py-3 font-medium" dir="auto">{item.kind === "campaign"
           ? <a className="text-link break-words" href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`}>{item.title}</a>
           : <span className="break-words">{item.title}</span>}</td>
-        <td className="px-3 py-3 whitespace-nowrap text-muted">{dateRange(item.opens, item.closes, locale)}</td>
+        <td className="px-3 py-3 text-muted">{dateRange(item.opens, item.closes, locale)}</td>
         <td className="px-3 py-3 whitespace-nowrap"><Badge variant={item.status === "Open" ? "secondary" : "outline"}>{statusLabel(item.status, locale)}</Badge></td>
-        <td className="px-3 py-3">{item.kind === "round" && canManageRounds && (item.status === "Draft" ? ["Open", "Archived"] : item.status === "Open" ? ["Closed"] : item.status === "Closed" ? ["Archived"] : []).map(status => {
+        <td className="px-3 py-3"><div className="flex items-center gap-1">{item.kind==="campaign"&&<RowAction href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`} label={c("عرض الحملة","View campaign")}><Eye/></RowAction>}{item.kind === "round" && canManageRounds && ["Open", "Closed", "Archived"].map(status => {
+          if(!(item.status === "Draft" ? ["Open", "Archived"] : item.status === "Open" ? ["Closed"] : item.status === "Closed" ? ["Archived"] : []).includes(status))return <span key={status} className="row-action-space" aria-hidden="true"/>;
           const label = en ? status === "Open" ? "Open" : status === "Closed" ? "Close" : "Archive" : status === "Open" ? "فتح" : status === "Closed" ? "إغلاق" : "أرشفة";
-          return <ManagementActionSheet key={status} label={label} title={en ? `${label} registration round` : `${label} جولة التسجيل`} locale={locale}>
+          return <ManagementActionSheet key={status} rowAction icon={status==="Open"?<Play/>:status==="Closed"?<LockKeyhole/>:<Archive/>} label={label} title={en ? `${label} registration round ${item.title}?` : `${label} جولة ${item.title}؟`} locale={locale}>
             <WorkflowForm operation="round-status" fields={{ round: item.round.id, status }} label={en ? `Confirm ${label.toLocaleLowerCase()}` : `تأكيد ${label} الجولة`} locale={locale}>
               <label className="flex items-start gap-2"><input type="checkbox" name="confirm" required className="mt-1 size-4"/>{en ? "I confirm this status change." : "أؤكد تغيير حالة الجولة."}</label>
             </WorkflowForm>
           </ManagementActionSheet>;
-        })}</td>
+        })}</div></td>
       </tr>)}</tbody>
-    </table>
-  </div>;
+    </table></div><ul className="grid gap-3 p-3 md:hidden">{items.map(item=><li key={item.id} className="rounded-lg border border-border p-3"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-medium">{item.title}</h3><Badge variant="outline">{statusLabel(item.status,locale)}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{dateRange(item.opens,item.closes,locale)}</p><div className="mt-3 border-t border-border pt-2"><div className="flex items-center gap-1">{item.kind==="campaign"&&<RowAction href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`} label={c("عرض الحملة","View campaign")}><Eye/></RowAction>}{item.kind === "round" && canManageRounds && ["Open", "Closed", "Archived"].map(status => {
+          if(!(item.status === "Draft" ? ["Open", "Archived"] : item.status === "Open" ? ["Closed"] : item.status === "Closed" ? ["Archived"] : []).includes(status))return <span key={status} className="row-action-space" aria-hidden="true"/>;
+          const label = en ? status === "Open" ? "Open" : status === "Closed" ? "Close" : "Archive" : status === "Open" ? "فتح" : status === "Closed" ? "إغلاق" : "أرشفة";
+          return <ManagementActionSheet key={status} rowAction icon={status==="Open"?<Play/>:status==="Closed"?<LockKeyhole/>:<Archive/>} label={label} title={en ? `${label} registration round ${item.title}?` : `${label} جولة ${item.title}؟`} locale={locale}>
+            <WorkflowForm operation="round-status" fields={{ round: item.round.id, status }} label={en ? `Confirm ${label.toLocaleLowerCase()}` : `تأكيد ${label} الجولة`} locale={locale}>
+              <label className="flex items-start gap-2"><input type="checkbox" name="confirm" required className="mt-1 size-4"/>{en ? "I confirm this status change." : "أؤكد تغيير حالة الجولة."}</label>
+            </WorkflowForm>
+          </ManagementActionSheet>;
+        })}</div></div></li>)}</ul></div>;
 }

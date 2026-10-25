@@ -214,7 +214,7 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
         </AlertDialogHeader>
         <AlertDialogFooter>
           <Button type="button" disabled={pending} onClick={() => formRef.current?.requestSubmit()}>{pending ? locale === "en" ? "Saving…" : "جاري الحفظ" : locale === "en" ? "Save" : "حفظ"}</Button>
-          <Button type="button" variant="destructive" disabled={pending} onClick={() => { const next = departure.current; departure.current = null; undoChanges(); setLeaveOpen(false); next?.(); }}>{locale === "en" ? "Discard changes" : "تجاهل التغييرات"}</Button>
+          <Button type="button" variant="danger-outline" disabled={pending} onClick={() => { const next = departure.current; departure.current = null; undoChanges(); setLeaveOpen(false); next?.(); }}>{locale === "en" ? "Discard changes" : "تجاهل التغييرات"}</Button>
           <Button type="button" variant="outline" disabled={pending} onClick={() => { departure.current = null; setLeaveOpen(false); }}>{locale === "en" ? "Stay" : "البقاء"}</Button>
         </AlertDialogFooter>
       </AlertDialogContent>

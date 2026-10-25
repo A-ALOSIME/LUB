@@ -1,4 +1,6 @@
-import { Clock3, ClipboardCheck, Files } from "lucide-react";
+import { RowAction } from "@/components/row-action";
+import { formatHours } from "@/lib/display";
+import { Clock3, ClipboardCheck, Files, Pencil, Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -26,7 +28,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     page?: string; taskPage?: string; hoursPage?: string; template?: string; section?: string;
-    memberPage?: string; rulePage?: string; term?: string; committee?: string; hourStatus?: string;
+    memberPage?: string; rulePage?: string; term?: string; committee?: string; hourStatus?: string; q?:string;
   }>;
 }) {
   const [{ locale }, { id }, query] = await Promise.all([getPreferences(), params, searchParams]);
@@ -45,6 +47,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
     term: uuid(query.term),
     committee: uuid(query.committee),
     status: hourStatus,
+    q:typeof query.q==="string"?query.q.trim().slice(0,120):"",
   };
   const { data: [workspace, tasks, hoursResult] } = await loadManagementPageData(userId => Promise.all([
     taskWorkspace(userId, id),
@@ -71,13 +74,13 @@ export default async function ManageTasksPage({ params, searchParams }: {
       {workspace.templates.map(template => <article key={template.id} className="border-t border-line py-4 first:border-0">
         <div className="flex flex-wrap items-start justify-between gap-3"><h3 className="min-w-0 break-words font-semibold"><bdi>{template.name}</bdi></h3><span className="text-sm text-muted">{template.is_active ? c("نشط", "Active") : c("مؤرشف", "Archived")}</span></div>
         <p dir="auto" className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{template.description_template}</p>
-        <p className="mt-1 text-xs text-muted">{c("الساعات المقترحة", "Suggested hours")}: {template.default_hours}</p>
+        <p className="mt-1 text-xs text-muted">{c("الساعات المقترحة", "Suggested hours")}: {formatHours(template.default_hours,locale)}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {template.is_active && taskScopes.some(scope => template.committee_id === null || scope.id === template.committee_id) && <Link className="button button-secondary button-compact" href={`${base}?template=${template.id}`}>{c("إنشاء مهمة من القالب", "Create task from template")}</Link>}
-          {allowedTemplate(template.committee_id) && <ManagementActionSheet label={c("تعديل", "Edit")} title={c("تعديل قالب المهمة", "Edit task template")} locale={locale}>
+          {template.is_active && taskScopes.some(scope => template.committee_id === null || scope.id === template.committee_id) && <RowAction href={`${base}?template=${template.id}`} label={c("إنشاء مهمة من القالب","Create task from template")}><Plus/></RowAction>}
+          {allowedTemplate(template.committee_id) && <ManagementActionSheet rowAction icon={<Pencil/>} label={c("تعديل", "Edit")} title={c("تعديل قالب المهمة", "Edit task template")} locale={locale}>
             <TaskForm operation="template" fields={{ org: id, template: template.id, committee: template.committee_id ?? "", revision: String(template.revision) }} label={c("حفظ القالب", "Save template")} locale={locale}><TaskFields value={template} template locale={locale}/></TaskForm>
           </ManagementActionSheet>}
-          {allowedTemplate(template.committee_id) && templateScopes.length > 0 && <ManagementActionSheet label={c("نسخ", "Copy")} title={c("نسخة مستقلة من القالب", "Create an independent template copy")} locale={locale}>
+          {allowedTemplate(template.committee_id) && templateScopes.length > 0 && <ManagementActionSheet rowAction icon={<Copy/>} label={c("نسخ", "Copy")} title={c("نسخة مستقلة من القالب", "Create an independent template copy")} locale={locale}>
             <TaskForm operation="template" fields={{ org: id, source: template.id, description: "", hours: "0", active: "on" }} label={c("نسخ القالب", "Copy template")} locale={locale}>{scopeField(templateScopes, template.committee_id)}<label>{c("اسم النسخة", "Copy name")}<input name="title" required minLength={2} maxLength={120} defaultValue={`${template.name.slice(0, 110)} (${c("نسخة", "copy")})`}/></label></TaskForm>
           </ManagementActionSheet>}
         </div>
@@ -106,6 +109,8 @@ export default async function ManageTasksPage({ params, searchParams }: {
     org={id}
     committee={filters.committee}
     term={filters.term}
+    status={filters.status}
+    search={filters.q}
     exportScopes={hours.exportScopes}
     locale={locale}
     settingsAction={settingsAction}

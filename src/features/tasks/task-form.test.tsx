@@ -18,5 +18,5 @@ it("initializes editing dates in Riyadh and submits the explicit timezone",()=>{
  expect(screen.queryByRole("button",{name:/اختيار التاريخ/})).toBeNull();
  fireEvent.click(screen.getByLabelText("الموعد"));
  expect(screen.getByText("كل الأوقات بتوقيت الرياض")).toBeTruthy();
- expect(document.querySelector('[data-week-start="saturday"]')).toBeTruthy();
+ expect(document.querySelector('[data-week-start="sunday"]')).toBeTruthy();
 });

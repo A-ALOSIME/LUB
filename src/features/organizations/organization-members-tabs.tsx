@@ -43,7 +43,7 @@ export function OrganizationMembersTabs({
   >
     <TabsList aria-label={en ? "Organization members" : "الأعضاء وطلبات الانضمام"} className="workspace-segmented-control group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-2 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
       {showMembers && <TabsTrigger value="members" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">{en ? "Current members" : "الأعضاء الحاليون"}</TabsTrigger>}
-      {showApplications && <TabsTrigger value="applications" aria-label={pendingCount > 0 ? en ? `Join requests, ${pendingCount} pending` : `طلبات الانضمام، ${pendingCount} طلبات معلقة` : undefined} className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
+      {showApplications && <TabsTrigger value="applications" aria-label={pendingCount > 0 ? en ? `Join requests, ${pendingCount} new` : `طلبات الانضمام، ${pendingCount} طلبات جديدة` : undefined} className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
         {en ? "Join requests" : "طلبات الانضمام"}
         {pendingCount > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{pendingCount}</Badge>}
       </TabsTrigger>}

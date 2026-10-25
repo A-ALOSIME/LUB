@@ -1,4 +1,5 @@
 "use client";
+import { formatHours } from "@/lib/display";
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -48,7 +49,7 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
             {hoursMode === "rule" ? <NativeSelect name="rule" required value={ruleId} onChange={event => setRuleId(event.target.value)}>
-              {rules.map(rule => <option key={rule.id} value={rule.id}>{rule.name} · {rule.default_hours} {c("ساعة", "hours")}</option>)}
+              {rules.map(rule => <option key={rule.id} value={rule.id}>{rule.name} · {formatHours(rule.default_hours,locale)}</option>)}
             </NativeSelect> : <input name="hours" type="number" min={0} max={1000} step="0.01" required value={manualHours} onChange={event => setManualHours(event.target.value)}/>}
           </div>
           {rules.length > 0 && <Button type="button" variant="outline" size="sm" onClick={() => {

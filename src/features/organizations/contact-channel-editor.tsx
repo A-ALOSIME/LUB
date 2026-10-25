@@ -150,12 +150,12 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
     <AlertDialog open={deleteId !== null} onOpenChange={next => { if (!next) setDeleteId(null); }}>
       <AlertDialogContent dir={en ? "ltr" : "rtl"}>
         <AlertDialogHeader>
-          <AlertDialogTitle>{en ? "Delete contact channel?" : "حذف قناة التواصل؟"}</AlertDialogTitle>
+          <AlertDialogTitle>{en ? `Delete ${organizationContactLabel(channels.find(channel=>channel.id===deleteId)?.kind??"Website",true)}?` : `حذف قناة ${organizationContactLabel(channels.find(channel=>channel.id===deleteId)?.kind??"Website",false)}؟`}</AlertDialogTitle>
           <AlertDialogDescription>{en ? "This channel will be removed when you save the profile." : "ستُحذف القناة عند حفظ بيانات الجهة."}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{en ? "Cancel" : "إلغاء"}</AlertDialogCancel>
-          <AlertDialogAction type="button" variant="destructive" onClick={removeChannel}>{en ? "Delete channel" : "حذف القناة"}</AlertDialogAction>
+          <AlertDialogAction type="button" variant="danger-outline" onClick={removeChannel}>{en ? "Delete channel" : "حذف القناة"}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

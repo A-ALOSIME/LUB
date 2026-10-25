@@ -1,3 +1,4 @@
+import { formatHours } from "@/lib/display";
 import Link from "next/link";
 import { Award, CalendarDays, Clock3, GraduationCap, MapPin, UsersRound } from "lucide-react";
 import type { PublicTalent, TalentCard, TalentPages } from "./repository";
@@ -41,9 +42,7 @@ function formatDate(value: string, en: boolean) {
 }
 
 function hoursLabel(value: string, en: boolean) {
-  const number = Number(value);
-  const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(number);
-  return en ? `${formatted} approved hours` : `${formatted} ساعة معتمدة`;
+  return en?`${formatHours(value,"en")} approved`:`${formatHours(value)} ${Number(value)===2?"معتمدتان":"معتمدة"}`;
 }
 
 function PublicSection({ title, children, icon }: { title: string; children: React.ReactNode; icon: React.ReactNode }) {

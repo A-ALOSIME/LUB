@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Megaphone } from "lucide-react";
+import { Megaphone,Pencil } from "lucide-react";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +42,8 @@ export function AnnouncementDialog({ organizationId, announcement, locale, open:
       label={triggerLabel ?? (announcement ? c("تعديل", "Edit") : c("إضافة إعلان", "Add announcement"))}
       title={title}
       locale={locale}
-      icon={<Megaphone aria-hidden="true" />}
+      rowAction={Boolean(announcement)}
+      icon={announcement?<Pencil/>:<Megaphone aria-hidden="true"/>}
       variant={announcement ? "outline" : "default"}
       open={open}
       onOpenChange={setOpen}

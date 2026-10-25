@@ -49,7 +49,7 @@ it('shows icon actions directly, preselects a child parent, and confirms deletio
   ui.unmount();
   render(<OrganizationCommitteeChart {...props} committees={[committee('أ')]} />);
   fireEvent.click(screen.getByRole('button', { name: 'حذف اللجنة: أ' }));
-  expect((await screen.findByRole('alertdialog')).textContent).toContain('حذف اللجنة؟');
+  expect((await screen.findByRole('alertdialog')).textContent).toContain('حذف لجنة أ؟');
 });
 it('opens the edit dialog directly from its icon', async () => {
   render(<OrganizationCommitteeChart {...props} committees={[committee('أ')]} />);

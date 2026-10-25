@@ -38,7 +38,7 @@ it("uses a compact unlabeled search and filters members by status", () => {
   expect(document.querySelector(".member-directory-search-wrap > svg")?.getAttribute("class")).not.toContain("end-3");
   expect(screen.getAllByText("أحمد محمد").length).toBeGreaterThan(0);
   expect(screen.getAllByText("سارة علي").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("منذ الاثنين، 12 أكتوبر 2026")).toHaveLength(2);
+  expect(screen.getAllByText("منذ 12 أكتوبر 2026")).toHaveLength(2);
 
   fireEvent.click(screen.getByRole("tab", { name: "منتهية" }));
 
@@ -69,7 +69,7 @@ it("shows named member actions in place and keeps membership ending last", () =>
   expect(document.querySelectorAll(".member-directory-actions--mobile .member-directory-action--end")).toHaveLength(1);
 
   fireEvent.click(screen.getAllByRole("button", { name: "إنهاء العضوية" })[0]);
-  expect(screen.getByRole("heading", { name: "إنهاء عضوية" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "إنهاء عضوية أحمد محمد؟" })).toBeTruthy();
 });
 
 it("keeps all action positions visible for every member and disables unavailable actions", () => {

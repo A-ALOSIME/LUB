@@ -31,7 +31,7 @@ describe("organization contact channel editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "حذف البريد" }));
 
     const dialog = await screen.findByRole("alertdialog");
-    expect(dialog.textContent).toContain("حذف قناة التواصل");
+    expect(dialog.textContent).toContain("حذف قناة البريد");
     expect(container.querySelector(".organization-contact-field-wrap .organization-contact-delete")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "حذف القناة" }));
 

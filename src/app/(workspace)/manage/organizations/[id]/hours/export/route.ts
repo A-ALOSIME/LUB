@@ -21,17 +21,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     organization: z.uuid(),
     committee: optionalUuid,
     term: optionalUuid,
+    status:z.enum(["Approved","Pending","Rejected"]).nullable(),
+    q:z.string().trim().max(120),
   }).safeParse({
     organization: id,
     committee: url.searchParams.get("committee") || null,
     term: url.searchParams.get("term") || null,
+    status:url.searchParams.get("status")||null,
+    q:url.searchParams.get("q")||"",
   });
   if (!parsed.success) return new Response(null, { status: 400, headers: privateHeaders });
 
   try {
-    const { organization, committee, term } = parsed.data;
+    const { organization, committee, term,status,q } = parsed.data;
     const rows = await withUser(user.id, tx => tx.execute(sql`
-      select lub.export_hours_csv(${organization}, ${committee}::uuid, ${term}::uuid) as csv
+      select lub.export_hours_csv(${organization}, ${committee}::uuid, ${term}::uuid,${status}::text,${q}) as csv
     `));
     const csv = rows[0]?.csv;
     if (typeof csv !== "string") return new Response(null, { status: 404, headers: privateHeaders });

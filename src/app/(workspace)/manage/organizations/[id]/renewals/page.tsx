@@ -1,4 +1,4 @@
-import { FilePlus2, Files } from "lucide-react";
+import { FilePlus2, CalendarRange, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { requireVerifiedProxyIdentity } from "@/features/auth/session";
 import { renewalWorkspace } from "@/features/renewals/repository";
-import { checkReadiness, TermSelect } from "@/features/hours/view";
+import { checkReadiness } from "@/features/hours/view";
 import { HoursForm } from "@/features/hours/form";
 import { DateRangeInput } from "@/features/forms/date-input";
 import { RenewalWorkspaceView } from "@/features/renewals/view";
@@ -82,7 +82,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
     </FieldGroup>
   </WorkflowForm>;
   const createCampaignForm = renewals?.allowed && <HoursForm operation="campaign" fields={{ org: id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}>
-    <TermSelect terms={renewals.terms} locale={locale}/>
+    <Field><FieldLabel htmlFor="renewal-term">{c("الفصل الدراسي","Academic term")}</FieldLabel><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}>{term.name_ar} · {term.academic_year}</option>)}</NativeSelect></Field>
     <DateRangeInput startName="opens" endName="closes" label={c("فترة استقبال الردود", "Response period")} required includeTime locale={locale}/>
     <Field orientation="horizontal" className="items-center">
       <Checkbox id="renewal-campaign-leaders" name="leaders" value="on" />
@@ -99,15 +99,15 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
     </WorkflowForm>
   </ManagementActionSheet>;
   const sectionItems = [
-    ...((registrationAllowed || renewals?.allowed) ? [{ id: "rounds", label: c("الجولات والحملات", "Rounds and campaigns"), icon: <Files aria-hidden="true" /> }] : []),
-    ...(canManageForms ? [{ id: "forms", label: c("النماذج", "Forms"), icon: <FilePlus2 aria-hidden="true" /> }] : []),
+    ...((registrationAllowed || renewals?.allowed) ? [{ id: "rounds", label: c("الجولات والحملات", "Rounds and campaigns"), icon: <CalendarRange aria-hidden="true" /> }] : []),
+    ...(canManageForms ? [{ id: "forms", label: c("النماذج", "Forms"), icon: <ClipboardList aria-hidden="true" /> }] : []),
   ];
   const requestedSection = query.section === "forms" || query.section === "registration" ? "forms" : "rounds";
   const initialSection = sectionItems.some(item => item.id === requestedSection) ? requestedSection : sectionItems[0]?.id ?? "rounds";
   const roundActions = hasItems && (canCreateRound || canCreateCampaign) ? createActions("menu") : undefined;
 
   return <>
-    <OrganizationSectionTabs items={sectionItems} initialSection={initialSection} defaultSection={sectionItems[0]?.id ?? "rounds"} sticky={false} label={c("التسجيل والتجديد", "Registration and renewal")} dir={en ? "ltr" : "rtl"} sectionActions={{ rounds: roundActions, forms: newFormAction }}>
+    <OrganizationSectionTabs items={sectionItems} initialSection={initialSection} defaultSection={sectionItems[0]?.id ?? "rounds"} sticky={false} label={c("التسجيل والتجديد", "Registration and renewal")} dir={en ? "ltr" : "rtl"} sectionActions={{ rounds: roundActions, forms: template?undefined:newFormAction }}>
       {sectionItems.some(item => item.id === "rounds") && <OrganizationSectionTabPanel id="rounds">
         <div className="min-w-0 space-y-6">
           <section aria-label={c("قائمة الجولات والحملات", "Rounds and campaigns list")} className="space-y-3">

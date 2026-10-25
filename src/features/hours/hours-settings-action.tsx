@@ -1,3 +1,4 @@
+import { formatHours } from "@/lib/display";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { NativeSelect } from "@/components/ui/native-select";
 import { DateRangeInput } from "@/features/forms/date-input";
@@ -42,8 +43,8 @@ export function HoursSettingsAction({ data, org, filters, locale }: { data: Hour
           </ManagementActionSheet>
         </div>
         {data.rules.length ? <ul className="divide-y divide-line">{data.rules.slice(0, 25).map(rule => <li key={rule.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0">
-          <div className="min-w-0"><p className="truncate font-medium"><bdi>{rule.name}</bdi> · {rule.default_hours} {c("ساعة", "hours")}</p><p className="mt-1 text-xs text-muted">{rule.is_active ? c("نشطة", "Active") : c("موقوفة", "Paused")} · {rule.effective_from}{rule.effective_to && ` ${c("إلى", "to")} ${rule.effective_to}`}</p></div>
-          {rule.canEdit && <ManagementActionSheet label={c("تعديل", "Edit")} title={c("تعديل قاعدة الساعات", "Edit hours rule")} locale={locale} icon={<Pencil aria-hidden="true" />}><HoursForm operation="rule" fields={{ org, rule: rule.id, committee: rule.committee_id ?? "", template: rule.task_template_id ?? "", revision: String(rule.revision) }} label={c("حفظ القاعدة", "Save rule")} locale={locale}>{ruleFields(rule)}</HoursForm></ManagementActionSheet>}
+          <div className="min-w-0"><p className="truncate font-medium"><bdi>{rule.name}</bdi> · {formatHours(rule.default_hours,locale)}</p><p className="mt-1 text-xs text-muted">{rule.is_active ? c("نشطة", "Active") : c("موقوفة", "Paused")} · {rule.effective_from}{rule.effective_to && ` ${c("إلى", "to")} ${rule.effective_to}`}</p></div>
+          {rule.canEdit && <ManagementActionSheet rowAction label={c("تعديل", "Edit")} title={c("تعديل قاعدة الساعات", "Edit hours rule")} locale={locale} icon={<Pencil aria-hidden="true" />}><HoursForm operation="rule" fields={{ org, rule: rule.id, committee: rule.committee_id ?? "", template: rule.task_template_id ?? "", revision: String(rule.revision) }} label={c("حفظ القاعدة", "Save rule")} locale={locale}>{ruleFields(rule)}</HoursForm></ManagementActionSheet>}
         </li>)}</ul> : <p className="text-sm text-muted">{c("لا توجد قواعد في هذا النطاق.", "No rules in this scope.")}</p>}
         <TaskPagination page={rulePage} more={data.rules.length > 25} base={base} query={query} pageParam="rulePage" locale={locale}/>
       </section>}

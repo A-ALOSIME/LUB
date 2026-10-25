@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Archive, Copy, MoreHorizontal, Pencil, RotateCcw } from "lucide-react";
+import { Archive, Copy, Pencil, RotateCcw } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { RowAction } from "@/components/row-action";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MutationForm } from "@/features/organizations/mutation-form";
@@ -65,18 +64,7 @@ export function CommitteeListRow({ organizationId, committee, canManage, locale,
           ? <button type="button" className="organization-committee-row-main" onClick={() => setAction("edit")} aria-label={c(`تعديل ${committee.name}`, `Edit ${committee.name}`)}>{rowContent}</button>
           : <div className="organization-committee-row-main">{rowContent}</div>}
         {hasActions && <div className="organization-committee-actions">
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" className="organization-committee-menu-trigger" aria-label={c(`إجراءات ${committee.name}`, `Actions for ${committee.name}`)} />}>
-              <MoreHorizontal aria-hidden="true" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" dir={en ? "ltr" : "rtl"} className="min-w-36">
-              {canEdit && <DropdownMenuItem onClick={() => setAction("edit")}><Pencil aria-hidden="true" />{c("تعديل", "Edit")}</DropdownMenuItem>}
-              {canManage && <DropdownMenuItem onClick={() => setAction("copy")}><Copy aria-hidden="true" />{c("نسخ", "Copy")}</DropdownMenuItem>}
-              {canManage && <DropdownMenuItem variant="destructive" onClick={() => setAction("archive")}>
-                {archived ? <RotateCcw aria-hidden="true" /> : <Archive aria-hidden="true" />}{archived ? c("استعادة", "Restore") : c("أرشفة", "Archive")}
-              </DropdownMenuItem>}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <RowAction label={c("تعديل اللجنة","Edit committee")} disabled={!canEdit} onClick={()=>setAction("edit")}><Pencil/></RowAction><RowAction label={c("نسخ اللجنة","Copy committee")} disabled={!canManage} onClick={()=>setAction("copy")}><Copy/></RowAction><RowAction danger={!archived} label={archived?c("استعادة اللجنة","Restore committee"):c("أرشفة اللجنة","Archive committee")} disabled={!canManage} onClick={()=>setAction("archive")}>{archived?<RotateCcw/>:<Archive/>}</RowAction>
         </div>}
       </div>
     </div>
@@ -100,6 +88,6 @@ export function CommitteeListRow({ organizationId, committee, canManage, locale,
       <p className="mb-3 text-sm leading-6 text-muted">{c("سيُنشأ سجل لجنة جديد ببيانات هذه اللجنة.", "A new committee will be created from this committee's details.")}</p>
       <MutationForm operation="copy-committee" fields={{ organizationId, committeeId: committee.id }} submitLabel={c("نسخ اللجنة", "Copy committee")} locale={locale} onSuccess={() => setAction(null)} />
     </ManagementActionSheet>}
-    {canManage && <CommitteeStatusDialog organizationId={organizationId} committeeId={committee.id} archived={archived} locale={locale} open={action === "archive"} onOpenChange={open => { if (!open) setAction(null); }} hideTrigger />}
+    {canManage && <CommitteeStatusDialog organizationId={organizationId} committeeId={committee.id} archived={archived} committeeName={committee.name} locale={locale} open={action === "archive"} onOpenChange={open => { if (!open) setAction(null); }} hideTrigger />}
   </li>;
 }

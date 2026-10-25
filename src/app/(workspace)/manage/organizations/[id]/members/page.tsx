@@ -30,7 +30,7 @@ export default async function OrganizationMembersPage({ params, searchParams }: 
   if (!showMembers && !showApplications) notFound();
   const applicationFilters: Filters = { q: "", status: "", committee: "", major: "", level: "", from: "", to: "", page: 1, lookup: "", activity: "" };
   const pendingStatuses = showApplications ? await countOrganizationApplicationStatuses(user.id, id, applicationFilters) : undefined;
-  const pendingCount = (pendingStatuses?.submitted ?? 0) + (pendingStatuses?.interview ?? 0);
+  const pendingCount = pendingStatuses?.submitted ?? 0;
   const requestedSection = typeof search.section === "string" ? search.section : "";
   const initialTab = requestedSection === "applications" && showApplications ? "applications" : showMembers ? "members" : "applications";
   const memberPanel = workspace

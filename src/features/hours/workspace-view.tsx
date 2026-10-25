@@ -1,3 +1,5 @@
+import { Input } from "@/components/ui/input";
+import { formatHours,recordCount } from "@/lib/display";
 import { LiveFilterForm } from "@/components/live-filter-form";
 import { NativeSelect } from "@/components/ui/native-select";
 import Link from "next/link";
@@ -7,38 +9,35 @@ import { HoursRecordTable } from "./hours-record-table";
 import type { HoursWorkspace } from "./repository";
 import { TaskPagination } from "@/features/tasks/task-list";
 import type { Locale } from "@/lib/preferences";
-import { Clock3, Plus } from "lucide-react";
+import { Clock3, Plus, Search } from "lucide-react";
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
 import { buttonVariants } from "@/components/ui/button";
 import { HoursStatusFilters, type HoursStatusFilter } from "./hours-status-filters";
 import { HoursStatusSummary } from "./hours-status-summary";
 
-export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; rulePage: number };
+export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; rulePage: number; q?:string };
 
 export function HoursWorkspaceView({ data, org, filters, locale = "ar" }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale?: Locale }) {
   const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
   const base = `/manage/organizations/${org}/tasks`;
   const membersHref = `/manage/organizations/${org}/members`;
   const { term, committee, page, memberPage, rulePage } = filters;
-  const query = { section: "hours", ...(term ? { term } : {}), ...(committee ? { committee } : {}), ...(filters.status ? { hourStatus: filters.status } : {}), memberPage: String(memberPage), rulePage: String(rulePage) };
+  const query = { ...(filters.q?{q:filters.q}:{}), section: "hours", ...(term ? { term } : {}), ...(committee ? { committee } : {}), ...(filters.status ? { hourStatus: filters.status } : {}), memberPage: String(memberPage), rulePage: String(rulePage) };
   const selected = data.scopes.find(scope => scope.id === committee);
   const canAddHours = data.scopes.some(scope => scope.manual);
   return <div className="min-w-0 space-y-4">
-    <div className="grid min-w-0 grid-cols-1 items-end gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-      <LiveFilterForm className="grid min-w-0 grid-cols-1 gap-3 md:max-w-[34rem] md:grid-cols-[minmax(10rem,14rem)_minmax(10rem,13rem)] md:items-end">
-        <input type="hidden" name="hoursPage" value="0"/><input type="hidden" name="memberPage" value={memberPage}/><input type="hidden" name="rulePage" value={rulePage}/><input type="hidden" name="section" value="hours"/>
-        {filters.status && <input type="hidden" name="hourStatus" value={filters.status}/>}
-        <TermSelect terms={data.terms} all value={term ?? ""} locale={locale} className="w-full min-w-0"/>
-        <label className="min-w-0">{c("اللجنة", "Committee")}<NativeSelect name="committee" defaultValue={committee ?? ""}><option value="">{c("كل اللجان", "All committees")}</option>{data.scopes.filter(scope => scope.id).map(scope => <option key={scope.id} value={scope.id!}>{scope.name}</option>)}</NativeSelect></label>
-      </LiveFilterForm>
-      <div className="min-w-0 max-w-full overflow-x-auto"><HoursStatusFilters value={filters.status ?? "all"} locale={locale}/></div>
-    </div>
+    <LiveFilterForm className="hours-filters">
+      <input type="hidden" name="section" value="hours"/><input type="hidden" name="hoursPage" value="0"/>{filters.status&&<input type="hidden" name="hourStatus" value={filters.status}/>}
+      <div className="hours-search"><Search aria-hidden="true"/><Input type="search" name="q" defaultValue={filters.q??""} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>
+      <div className="hours-filter-scroll"><div className="w-52 shrink-0"><TermSelect compact terms={data.terms} all value={term??""} locale={locale}/></div><div className="w-40 shrink-0"><NativeSelect name="committee" aria-label={c("اللجنة","Committee")} defaultValue={committee??""}><option value="">{c("كل اللجان","All committees")}</option>{data.scopes.filter(scope=>scope.id).map(scope=><option key={scope.id} value={scope.id!}>{scope.name}</option>)}</NativeSelect></div><HoursStatusFilters value={filters.status??"all"} locale={locale}/></div>
+    </LiveFilterForm>
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale}/>
 
     {data.records.length
       ? <HoursRecordTable items={data.records} locale={locale}/>
       : <WorkspaceEmptyState icon={Clock3} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("تُسجّل الساعات من صفحة الأعضاء.", "Hours are entered from the members page.")} action={canAddHours ? <Link href={membersHref} className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link> : undefined} />}
+    <p className="text-sm text-muted-foreground">{c("الإجمالي","Total")} {formatHours(data.filteredTotal??data.records.slice(0,25).reduce((sum,record)=>sum+Number(record.hours),0),locale)} · {recordCount(data.filteredCount??Math.min(25,data.records.length),locale)}</p>
     <TaskPagination page={page} more={data.records.length > 25} base={base} query={query} locale={locale} pageParam="hoursPage"/>
 
     {selected?.manual && <nav aria-label={c("صفحات اختيار العضو", "Member selection pages")} className="flex flex-wrap gap-3 text-sm">

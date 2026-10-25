@@ -71,7 +71,7 @@ describe("organization profile unsaved changes", () => {
     await screen.findByRole("alert");
     expect(screen.getByRole("textbox", { name: "اسم الجهة" })).toHaveProperty("value", "تعديل لا يضيع");
     expect(screen.getByText("لديك تغييرات غير محفوظة")).toBeTruthy();
-    expect(toastAdd).toHaveBeenCalledWith({ title: "تعذّر الحفظ. حاول مرة ثانية.", type: "error", timeout: 0 });
+    await waitFor(()=>expect(toastAdd).toHaveBeenCalledWith({ title: "تعذّر الحفظ. حاول مرة ثانية.", type: "error", timeout: 0 }));
   });
 
   it("offers stay and discard before changing tabs, and discard restores the saved form", async () => {
