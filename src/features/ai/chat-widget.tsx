@@ -39,7 +39,7 @@ function brandText(text:string) {
 }
 
 function AssistantAvatar({inline}:{inline:boolean}) {
-  return <MessageAvatar className="lub-chat-avatar" aria-hidden="true">{inline?<ChatLogo/>:<span className="lub-chat-symbol"/>}</MessageAvatar>;
+  return <MessageAvatar align={inline?"start":"end"} className="lub-chat-avatar" aria-hidden="true">{inline?<ChatLogo/>:<span className="lub-chat-symbol"/>}</MessageAvatar>;
 }
 
 export function ChatWidget({locale, inline = false, initiallyOpen = false}: {locale: "ar" | "en"; inline?: boolean; initiallyOpen?: boolean}) {

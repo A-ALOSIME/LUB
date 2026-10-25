@@ -29,12 +29,13 @@ function Message({
   )
 }
 
-function MessageAvatar({ className, ...props }: React.ComponentProps<"div">) {
+function MessageAvatar({ className, align = "end", ...props }: React.ComponentProps<"div"> & { align?: "start" | "end" }) {
   return (
     <div
       data-slot="message-avatar"
       className={cn(
-        "flex w-fit min-w-8 shrink-0 items-center justify-center self-end overflow-hidden rounded-full bg-muted group-has-data-[slot=message-footer]/message:-translate-y-8",
+        "flex w-fit min-w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted",
+        align === "end" ? "self-end group-has-data-[slot=message-footer]/message:-translate-y-8" : "self-start",
         className
       )}
       {...props}
