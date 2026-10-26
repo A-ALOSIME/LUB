@@ -4,7 +4,7 @@ import {formatCount} from "@/lib/display";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {useRouter} from "next/navigation";
-import { Copy, Trash2 } from "lucide-react";
+import { Pencil, Copy, Trash2 } from "lucide-react";
 import { RowAction } from "@/components/row-action";
 import { relativeDate } from "@/lib/relative-date";
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogAction,AlertDialogCancel} from "@/components/ui/alert-dialog";
@@ -38,7 +38,7 @@ export function RegistrationTemplateRow({ template, organization, locale }: { te
       }catch{toast.add({title:c("تعذّر تنفيذ الإجراء. أعد المحاولة.","Action failed. Try again."),type:"error",timeout:0});}
     });
   }
-  return <li className="registration-template-row relative flex min-w-0 flex-col items-stretch gap-3 p-4 transition-colors hover:bg-accent/50 sm:flex-row sm:items-center sm:justify-between">
+  return <li className="registration-template-row relative flex min-w-0 flex-col items-stretch gap-3 p-4 transition-colors hover:bg-accent/50 sm:col-span-full sm:grid sm:grid-cols-subgrid sm:items-center">
     <Link href={editHref} className="absolute inset-0 rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`${c("فتح النموذج","Open form")} ${template.name}`}/>
     <div className="pointer-events-none min-w-0">
       <span dir="auto" className="break-words font-medium text-foreground">{template.name}</span>
@@ -47,7 +47,8 @@ export function RegistrationTemplateRow({ template, organization, locale }: { te
         <span aria-hidden="true">·</span><span>{formatCount(template.version_count ?? template.versions.length,"versions",locale)}</span><span aria-hidden="true">·</span><span>{c("آخر تحديث","Updated")}: {template.updated_at?relativeDate(template.updated_at,locale):c("غير متاح","Unavailable")}</span><span aria-hidden="true">·</span><span>{(template.round_count??0)===0?c("غير مستخدم في أي جولة","Not used in any round"):c(`مستخدم في ${formatCount(template.round_count!,"rounds",locale,"oblique")}`,`${formatCount(template.round_count!,"rounds",locale)} using this form`)}</span>
       </div>
     </div>
-    <div className="registration-template-actions relative flex shrink-0 flex-wrap items-center gap-1">
+    <div className="registration-template-actions relative flex shrink-0 flex-wrap items-center gap-2" onClick={event=>event.stopPropagation()}>
+      <RowAction href={editHref} label={c("تعديل النموذج","Edit form")}><Pencil/></RowAction>
       <RowAction label={c("تكرار النموذج","Duplicate form")} disabled={pending} onClick={()=>perform("duplicate-form")}><Copy/></RowAction>
       <RowAction label={c("حذف النموذج","Delete form")} hint={deleteHint} className="template-delete-action" disabled={!canDelete||pending} onClick={()=>setDeleteOpen(true)}><Trash2/></RowAction>
     </div>

@@ -1,3 +1,4 @@
+import { DirectionProvider } from "@base-ui/react/direction-provider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { getPreferences } from "@/lib/preferences";
@@ -44,7 +45,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const { locale, theme } = await getPreferences();
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={thmanyahDisplay.variable}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
-    <Toaster timeout={3000}>{children}</Toaster>
-    <DeferredChatWidget locale={locale} />
+    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><Toaster timeout={3000}>{children}</Toaster>
+    <DeferredChatWidget locale={locale} /></DirectionProvider>
   </body></html>;
 }

@@ -31,6 +31,7 @@ it("uses a compact unlabeled search and filters members by status", () => {
   expect(screen.queryByText("بحث في الأعضاء")).toBeNull();
   expect(screen.queryByText("2 / 2")).toBeNull();
   expect(screen.getByPlaceholderText("الاسم أو التخصص أو اللجنة")).toBeTruthy();
+  expect(document.querySelector("[data-slot=avatar],img")).toBeNull();
   const search = screen.getByRole("searchbox", { name: "بحث الأعضاء" });
   expect(search.getAttribute("dir")).toBe("rtl");
   expect(search.className).toContain("ps-9");
@@ -70,6 +71,7 @@ it("shows named member actions in place and keeps membership ending last", () =>
 
   fireEvent.click(screen.getAllByRole("button", { name: "إنهاء العضوية" })[0]);
   expect(screen.getByRole("heading", { name: "إنهاء عضوية أحمد محمد؟" })).toBeTruthy();
+  expect(screen.getByRole("alertdialog")).toBeTruthy();
 });
 
 it("keeps all action positions visible for every member and disables unavailable actions", () => {

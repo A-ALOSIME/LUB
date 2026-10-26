@@ -3,7 +3,6 @@
 import {formatCount} from "@/lib/display";
 import { useState, type ReactNode } from "react";
 import { Archive, Copy, Pencil, RotateCcw } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { RowAction } from "@/components/row-action";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -35,7 +34,7 @@ export function CommitteeListRow({ organizationId, committee, canManage, locale,
     ? c("عدد الأعضاء غير متاح", "Member count unavailable")
     : formatCount(committee.memberCount,"members",locale);
   const summary = committee.leaderName
-    ? <span className="organization-committee-leader"><Avatar size="sm"><AvatarFallback>{committee.leaderName.trim().slice(0, 1) || "؟"}</AvatarFallback></Avatar><bdi>{committee.leaderName}</bdi></span>
+    ? <span className="organization-committee-leader"><bdi>{committee.leaderName}</bdi></span>
     : <span>{c("بدون قائد", "No leader")}</span>;
   const status = archived ? c("مؤرشفة", "Archived") : committee.isPublic ? c("عامة", "Public") : c("مخفية", "Hidden");
   const rowContent = <>

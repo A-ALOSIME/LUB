@@ -1,4 +1,5 @@
 "use client";
+import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogCancel} from "@/components/ui/alert-dialog";
 
 import { academicLevel,formatHours } from "@/lib/display";
 import { Tooltip,TooltipTrigger,TooltipContent } from "@/components/ui/tooltip";
@@ -14,7 +15,6 @@ import { RowAction } from "@/components/row-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FilterTabs } from "@/components/ui/filter-tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateInput } from "@/features/forms/date-input";
 import { Clock, Search, ShieldCheck, ShieldPlus, UserRoundMinus } from "lucide-react";
@@ -59,7 +59,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
     {members.length ? <>
       <div className="hidden overflow-hidden rounded-2xl border border-line bg-[var(--surface)] lg:block">
         <div className="overflow-x-auto"><table className="member-directory-table w-full min-w-[1200px] text-start"><thead><tr><th>{c("الطالب","Student")}</th><th>{c("العضوية","Membership")}</th><th>{c("الدور واللجان","Role and committees")}</th><th>{c("الساعات المعتمدة","Approved hours")}</th><th>{c("الإجراءات","Actions")}</th></tr></thead><tbody>{members.map(member => <tr key={member.id}>
-          <td><div className="member-directory-identity"><Avatar><AvatarFallback>{member.name.trim().slice(0, 1) || "؟"}</AvatarFallback></Avatar><div className="min-w-0"><p className="font-semibold"><bdi>{member.name}</bdi></p><p className="mt-1 text-sm text-muted"><bdi>{member.major}</bdi> · {academicLevel(member.level,locale)}</p></div></div></td>
+          <td><div className="member-directory-identity"><div className="min-w-0"><p className="font-semibold"><bdi>{member.name}</bdi></p><p className="mt-1 text-sm text-muted"><bdi>{member.major}</bdi> · {academicLevel(member.level,locale)}</p></div></div></td>
           <td><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge><p className="mt-1 text-sm text-muted">{c("منذ", "Since")} {date(member.startDate, locale)}</p></td>
           <td><div className="member-directory-tags">{member.roles.length ? member.roles.map((role, i) => <Badge key={i} variant="secondary">{roleNames[role.code]?.[en ? 1 : 0] ?? role.code}{role.committee && <> · <bdi>{role.committee}</bdi></>}</Badge>) : <span className="text-sm text-muted">{c("عضو","Member")}</span>}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(committee => <Badge key={committee.id} variant="outline"><bdi>{committee.name}</bdi></Badge>)}{permissions?.grants.filter(grant => grant.membership === member.id).map(grant => <Badge key={grant.id} variant="secondary">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code}</Badge>)}</div></td>
           <td className="whitespace-nowrap">{formatHours(member.hours,locale)}</td>
@@ -67,7 +67,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
         </tr>)}</tbody></table></div>
       </div>
       <ul className="grid gap-3 lg:hidden">{members.map(member => <li key={member.id} className="member-directory-card panel min-w-0 p-4">
-        <div className="flex items-start justify-between gap-3"><div className="member-directory-identity min-w-0"><Avatar><AvatarFallback>{member.name.trim().slice(0, 1) || "؟"}</AvatarFallback></Avatar><div className="min-w-0"><h3 className="break-words font-bold"><bdi>{member.name}</bdi></h3><p className="mt-1 text-sm text-muted"><bdi>{member.major}</bdi> · {academicLevel(member.level,locale)}</p></div></div><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge></div>
+        <div className="flex items-start justify-between gap-3"><div className="member-directory-identity min-w-0"><div className="min-w-0"><h3 className="break-words font-bold"><bdi>{member.name}</bdi></h3><p className="mt-1 text-sm text-muted"><bdi>{member.major}</bdi> · {academicLevel(member.level,locale)}</p></div></div><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge></div>
         <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm"><div><dt className="text-muted">{c("تاريخ الانضمام","Joined")}</dt><dd className="mt-1 font-medium">{c("منذ", "Since")} {date(member.startDate, locale)}</dd></div><div><dt className="text-muted">{c("الساعات","Hours")}</dt><dd className="mt-1">{formatHours(member.hours,locale)}</dd></div></dl>
         <div className="mt-3 flex flex-wrap gap-2">{member.roles.map((role,i)=><Badge key={i} variant="secondary">{roleNames[role.code]?.[en?1:0]??role.code}{role.committee?` · ${role.committee}`:""}</Badge>)}{permissions?.grants.filter(grant => grant.membership === member.id).map(grant => <Badge key={grant.id} variant="secondary">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code}</Badge>)}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(committee=><Badge key={committee.id} variant="outline"><bdi>{committee.name}</bdi></Badge>)}</div>
         <div className="mt-4 lg:hidden"><MemberActions organization={organization} member={member} workspace={workspace} committees={permissions?.committees ?? []} locale={locale} mobile /></div>
@@ -93,7 +93,12 @@ function MemberActions({ organization, member, workspace, committees, locale, mo
       {(workspace.canAddHours || member.hourScopes.length > 0) && <FormField  label={<>{c("اللجنة (اختياري)","Committee (optional)")}</>}><NativeSelect name="committee" required={!workspace.canAddHours} defaultValue=""><option value="">{workspace.canAddHours ? c("الجهة بالكامل","Whole organization") : c("اختر لجنة","Choose a committee")}</option>{member.hourScopes.map(scope => <option key={scope.id} value={scope.id} dir="auto">{scope.name}</option>)}</NativeSelect></FormField>}
       <HoursFields locale={locale}/>
     </HoursForm></ManagementActionSheet>}
-    {action === "end" && <ManagementActionSheet label="" title={c(`إنهاء عضوية ${member.name}؟`,`End membership for ${member.name}?`)} locale={locale} icon={<UserRoundMinus aria-hidden="true" />} variant="destructive" open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger><p className="mb-3 text-sm leading-6 text-muted">{c("ستنتهي أدوار العضو وصلاحياته النشطة، مع الاحتفاظ بسجله وساعاته.","Active roles and grants will end while the membership and hours history remain.")}</p><WorkflowForm operation="end-member" buttonClassName="button-danger" fields={{ org: organization, member: member.id }} label={c("إنهاء العضوية","End membership")} mutation={mutateOrganizationMembers} locale={locale}><FormField  label={<>{c("سبب الإنهاء","Reason")}</>}><textarea name="reason" minLength={3} maxLength={500} rows={3} required/></FormField><label className="text-sm"><input type="checkbox" name="confirm" required/> {c("أؤكد إنهاء العضوية","Confirm ending this membership")}</label></WorkflowForm></ManagementActionSheet>}
+    <AlertDialog open={action==="end"} onOpenChange={open=>{if(!open)setAction(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}>
+      <AlertDialogHeader><AlertDialogTitle>{c(`إنهاء عضوية ${member.name}؟`,`End membership for ${member.name}?`)}</AlertDialogTitle><AlertDialogDescription>{c("ستنتهي أدوار العضو وصلاحياته النشطة، مع الاحتفاظ بسجله وساعاته.","Active roles and grants will end while membership and hours history remain.")}</AlertDialogDescription></AlertDialogHeader>
+      <WorkflowForm operation="end-member" buttonClassName="button-danger" fields={{org:organization,member:member.id,confirm:"on"}} label={c("إنهاء العضوية","End membership")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>setAction(null)} secondaryAction={<AlertDialogCancel>{c("إلغاء","Cancel")}</AlertDialogCancel>}>
+        <FormField label={c("سبب الإنهاء","Reason")} required><textarea name="reason" minLength={3} maxLength={500} rows={3} required/></FormField>
+      </WorkflowForm>
+    </AlertDialogContent></AlertDialog>
   </>;
 }
 
@@ -114,7 +119,7 @@ function ActiveDelegations({ organization, data, locale }: { organization: strin
   const date = (value: string) => formatRiyadhDate(value, locale);
   return <Popover>
     <Tooltip><TooltipTrigger render={<span className="inline-flex" tabIndex={0}/>}>
-    <PopoverTrigger render={<Button type="button" variant="outline" size="sm" disabled={!data.grants.length}><ShieldCheck aria-hidden="true" />{c("عرض التفويضات النشطة", "View active permissions")} {data.grants.length>0&&<Badge variant="secondary">{data.grants.length}</Badge>}</Button>} /></TooltipTrigger><TooltipContent>{c("التفويض يمنح عضوًا صلاحية محددة لفترة أو نطاق معين.","Delegation grants a member a specific permission for a scope or period.")}</TooltipContent></Tooltip>
+    <PopoverTrigger render={<Button type="button" variant="outline" size="default"><ShieldCheck aria-hidden="true" />{c("عرض التفويضات النشطة", "View active permissions")} {data.grants.length>0&&<Badge variant="secondary">{data.grants.length}</Badge>}</Button>} /></TooltipTrigger><TooltipContent>{c("التفويض يمنح عضوًا صلاحية محددة لفترة أو نطاق معين.","Delegation grants a member a specific permission for a scope or period.")}</TooltipContent></Tooltip>
     <PopoverContent align={en ? "end" : "start"} className="max-h-[min(70vh,32rem)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto">
       {data.grants.length ? <ul className="divide-y divide-border">{data.grants.map(grant => <li key={grant.id} className="grid gap-1 py-3 first:pt-0">
         <p className="font-medium"><bdi>{grant.member}</bdi></p>

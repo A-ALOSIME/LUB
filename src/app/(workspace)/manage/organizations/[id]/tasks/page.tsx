@@ -116,8 +116,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
     search={filters.q}
     exportScopes={hours.exportScopes}
     locale={locale}
-    settingsAction={settingsAction}
-    filtersAction={<HoursAdvancedFilters data={{terms:hours.terms,scopes:hours.scopes}} filters={filters} locale={locale}/>}
+    filtersAction={<HoursAdvancedFilters data={{terms:hours.terms,scopes:hours.scopes}} filters={filters} locale={locale} settingsAction={settingsAction}/>}
     hasRecords={Boolean(hours.records.length)}
     canAddHours={Boolean(hours.scopes.some(scope => scope.manual))}
   />;

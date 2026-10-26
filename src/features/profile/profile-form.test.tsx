@@ -13,7 +13,8 @@ describe("profile form interactions", () => {
     fireEvent.change(screen.getByLabelText("الاسم الكامل بالعربية"), { target: { value: "أحمد محمد" } });
     fireEvent.change(screen.getByLabelText("الرقم الجامعي"), { target: { value: "invalid-number" } });
     fireEvent.change(screen.getByLabelText("التخصص"), { target: { value: "نظم المعلومات" } });
-    fireEvent.change(screen.getByLabelText("المستوى الدراسي"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("combobox",{name:"المستوى الدراسي"}));
+    const option=await screen.findByRole("option",{name:"المستوى الخامس"});fireEvent.pointerDown(option);fireEvent.click(option);
     fireEvent.click(screen.getByRole("button", { name: "حفظ البيانات" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("راجع الرقم"));
     expect((screen.getByLabelText("الاسم الكامل بالعربية") as HTMLInputElement).value).toBe("أحمد محمد");
@@ -31,7 +32,7 @@ describe("profile form interactions", () => {
     expect((screen.getByRole("button", { name: "حفظ التعديلات" }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByLabelText("التخصص") as HTMLInputElement).value).toBe("نظم المعلومات الإدارية");
     expect(screen.getByLabelText(/رقم الهاتف/).getAttribute("dir")).toBe("ltr");
-    expect(screen.getByRole("combobox", { name: "رمز الدولة" })).toHaveProperty("value", "966");
+    expect(screen.getByRole("combobox", { name: "رمز الدولة" }).textContent).toContain("+966");
     const fieldRows = Array.from(document.querySelectorAll(".account-settings-field-row"));
     expect(
       Array.from(fieldRows[0]?.querySelectorAll("[data-slot='field']") ?? []).map(

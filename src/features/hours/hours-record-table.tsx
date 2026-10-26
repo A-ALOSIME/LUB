@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Check, Eye, SlidersHorizontal, X, ChevronDown } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {HourAdjustment} from "./hour-adjustment";
@@ -319,13 +318,7 @@ export function HoursRecordTable({
     `${labels[record.source_code]?.[en ? 1 : 0] ?? record.source_code}${!personal && record.context?.added_by ? ` ${c("بواسطة", "by")} ${record.context.added_by}` : ""}`;
   const identity = (record: HourRecord) => (
     <div className="flex min-w-0 items-center gap-2.5">
-      {!personal && (
-        <Avatar>
-          <AvatarFallback>
-            {record.owner?.trim().slice(0, 1) || "؟"}
-          </AvatarFallback>
-        </Avatar>
-      )}
+
       <div className="min-w-0">
         <p className="font-medium break-words">
           {personal ? record.org_name : (record.owner ?? c("عضو", "Member"))}

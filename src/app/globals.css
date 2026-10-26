@@ -2221,3 +2221,17 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 
 .site-header-nav a:has(.site-nav-brand-label) {position:relative;}
 .site-header-nav a:has(.site-nav-brand-label)>.site-nav-label {position:absolute;inset:0;display:grid;place-items:center;}
+
+/* Use the existing field dimensions and default Select surface for all pickers. */
+[data-slot=select-trigger] {height:2.5rem;min-height:2.5rem;}
+[data-slot=select-trigger][data-size=sm] {height:2.25rem;min-height:2.25rem;}
+[data-slot=select-content] {background:var(--popover);border:1px solid var(--border);max-width:calc(100vw - 1rem);}
+[data-slot=select-item] {text-align:start;}
+.form-editor .editor-question>[data-slot=card] {background:var(--background);border-color:var(--input);}
+.form-editor {padding-bottom:12rem;}
+.form-editor .workspace-sticky-save-bar,.form-editor .workspace-sticky-save-bar-inner {background:var(--card);}
+.member-directory-toolbar [data-slot=popover-trigger],.member-directory-toolbar .member-directory-search,.member-directory-toolbar [role=tablist] {height:2.5rem;min-height:2.5rem;}
+.member-directory-actions {gap:.5rem;}
+.member-directory-actions>span:last-child {border-inline-start:1px solid var(--border);padding-inline-start:.5rem;margin-inline-start:.25rem;}
+
+@media(max-width:767px){[role=alertdialog] .management-action-footer{flex-direction:column;align-items:stretch;}[role=alertdialog] .management-action-footer>button{width:100%;}}

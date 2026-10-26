@@ -1,3 +1,4 @@
+import {NativeSelect} from "@/components/ui/native-select";
 import Link from "next/link"
 import { CalendarDays, Clock, ChevronDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -94,7 +95,7 @@ export function ActivityHours({ data, page, term, status, locale }: {
     {data.memberships.filter(membership => membership.self).map(membership => <details key={membership.id} className="rounded-lg border border-border/70 p-3">
       <summary className="cursor-pointer text-sm font-medium">{c("طلب ساعات ذاتي", "Self-reported hours request")} · <bdi>{membership.name}</bdi></summary>
       <div className="pt-3"><HoursForm operation="self" fields={{ member: membership.id }} label={c("إرسال للمراجعة", "Submit for review")} locale={locale}>
-        <FormField  label={<>{c("نطاق العمل", "Work scope")}</>}><select name="committee"><option value="">{c("الجهة بالكامل", "Whole organization")}</option>{membership.committees.map(item => <option key={item.id} value={item.id} dir="auto">{item.name}</option>)}</select></FormField>
+        <FormField  label={<>{c("نطاق العمل", "Work scope")}</>}><NativeSelect name="committee"><option value="">{c("الجهة بالكامل", "Whole organization")}</option>{membership.committees.map(item => <option key={item.id} value={item.id} dir="auto">{item.name}</option>)}</NativeSelect></FormField>
         <HoursFields locale={locale} />
       </HoursForm></div>
     </details>)}

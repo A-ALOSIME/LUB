@@ -1,4 +1,5 @@
 "use client";
+import {NativeSelect} from "@/components/ui/native-select";
 
 import { useActionState, useState } from "react";
 import { requestCode, verifyCode, type CodeState } from "./actions";
@@ -73,11 +74,11 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
       </div>
       <div>
         <label htmlFor="signup-academic-level">{en ? "Academic level" : "المستوى الدراسي"}</label>
-        <select id="signup-academic-level" name="academicLevel" required value={draft.academicLevel} onChange={event => updateText("academicLevel", event.currentTarget.value)} {...fieldProps("academicLevel")}>
+        <NativeSelect id="signup-academic-level" name="academicLevel" required value={draft.academicLevel} onChange={event => updateText("academicLevel", event.currentTarget.value)} {...fieldProps("academicLevel")}>
           <option value="" disabled>{en ? "Select level" : "اختر المستوى"}</option>
           {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{en ? `Level ${index + 1}` : `المستوى ${index + 1}`}</option>)}
           <option value="graduate">{en ? "Graduate studies" : "دراسات عليا"}</option>
-        </select>
+        </NativeSelect>
         {fieldError("academicLevel")}
       </div>
     </div>

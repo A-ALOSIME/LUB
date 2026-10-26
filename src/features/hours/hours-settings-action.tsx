@@ -30,7 +30,7 @@ export function HoursSettingsAction({ data, org, filters, locale }: { data: Hour
     <label className="flex items-center gap-2"><input name="active" type="checkbox" className="size-4" defaultChecked={rule?.is_active ?? true}/>{c("قاعدة نشطة", "Active rule")}</label>
   </>;
 
-  return <ManagementActionSheet label="" title={c("إعدادات الساعات", "Hours settings")} locale={locale} icon={<Settings2 aria-hidden="true" />} triggerSize="icon-sm" triggerAriaLabel={c("إعدادات الساعات", "Hours settings")} initiallyOpen={rulePage > 0}>
+  return <ManagementActionSheet label={c("إعدادات الساعات","Hours settings")} title={c("إعدادات الساعات", "Hours settings")} locale={locale} icon={<Settings2 aria-hidden="true" />} triggerSize="sm" triggerAriaLabel={c("إعدادات الساعات", "Hours settings")} initiallyOpen={rulePage > 0}>
     <div className="space-y-7">
       {data.canPolicy && <section className="space-y-3" aria-labelledby="self-policy-title">
         <h2 id="self-policy-title" className="font-semibold">{c("طلب الساعات الذاتي", "Self-reported hours")}</h2>

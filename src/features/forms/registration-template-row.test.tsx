@@ -26,3 +26,9 @@ it("requires a named irreversible-delete confirmation before requesting deletion
  fireEvent.click(within(dialog).getByRole("button",{name:"حذف النموذج"}));await waitFor(()=>expect(mocks.refresh).toHaveBeenCalled());expect((mocks.mutate.mock.calls[0][1] as FormData).get("operation")).toBe("delete-form");
  expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({title:"تم حذف النموذج",type:"success"}));
 });
+
+it("offers an explicit edit link before duplicate and delete without nesting them in the row link",()=>{
+ view();const edit=screen.getByRole('link',{name:'تعديل النموذج'}),open=screen.getByRole('link',{name:'فتح النموذج طلب الانضمام'});
+ expect(edit.getAttribute('href')).toBe(open.getAttribute('href'));expect(open.contains(edit)).toBe(false);
+ const actions=document.querySelector('.registration-template-actions')!;expect([...actions.querySelectorAll('[aria-label]')].map(node=>node.getAttribute('aria-label'))).toEqual(['تعديل النموذج','تكرار النموذج','حذف النموذج']);
+});

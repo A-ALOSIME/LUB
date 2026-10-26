@@ -6,15 +6,16 @@ import { joinPhone, splitPhone } from "@/lib/phone";
 
 afterEach(cleanup);
 
-it("splits saved international numbers and combines a country change without reversing digits", () => {
+it("splits saved international numbers and combines a country change without reversing digits", async () => {
   const { container } = render(<form><label htmlFor="phone">الجوال</label><PhoneInput id="phone" name="phone" defaultValue="+966506502858" /></form>);
   const phone = screen.getByRole("textbox", { name: "الجوال" });
   expect(phone.getAttribute("dir")).toBe("ltr");
   expect(phone).toHaveProperty("value", "506502858");
-  expect(screen.getByRole("combobox", { name: "رمز الدولة" })).toHaveProperty("value", "966");
+  expect(screen.getByRole("combobox", { name: "رمز الدولة" }).textContent).toContain("+966");
   fireEvent.change(phone, { target: { value: "٠٥٠١٢٣٤٥٦٧" } });
   expect(new FormData(container.querySelector("form")!).get("phone")).toBe("+966501234567");
-  fireEvent.change(screen.getByRole("combobox"), { target: { value: "971" } });
+  fireEvent.click(screen.getByRole("combobox"));
+  const option=await screen.findByRole("option",{name:"+971"});fireEvent.pointerDown(option);fireEvent.click(option);
   fireEvent.change(phone, { target: { value: "501234567" } });
   expect(new FormData(container.querySelector("form")!).get("phone")).toBe("+971501234567");
   fireEvent.change(phone, { target: { value: "" } });
