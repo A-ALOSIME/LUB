@@ -33,7 +33,7 @@ export function RenewalCreationActions({ locale, mode, canCreateRound, canCreate
 
   return <>
     {mode === "cards" ? cards : <DropdownMenu>
-      <DropdownMenuTrigger render={<Button type="button" size="sm"><Plus data-icon="inline-start" aria-hidden="true" />{c("جديد", "New")}</Button>} />
+      <DropdownMenuTrigger render={<Button type="button" size="sm"><Plus data-icon="inline-start" aria-hidden="true" />{canCreateRound?c("جولة تسجيل جديدة", "New registration round"):c("حملة تجديد جديدة", "New renewal campaign")}</Button>} />
       <DropdownMenuContent align={en ? "end" : "start"} className="w-56">
         {canCreateRound && <DropdownMenuItem onClick={() => setRoundOpen(true)}>{c("جولة تسجيل", "Registration round")}</DropdownMenuItem>}
         {canCreateCampaign && <DropdownMenuItem onClick={() => setCampaignOpen(true)}>{c("حملة تجديد", "Renewal campaign")}</DropdownMenuItem>}

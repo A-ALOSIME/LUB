@@ -14,6 +14,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 type Presentation = "dialog" | "sheet";
 const ManagementActionContext = createContext<{ close: () => void; locale: Locale } | null>(null);
 
+export function useManagementAction() { return useContext(ManagementActionContext); }
+
 export function ManagementActionProvider({ locale, close, children }: { locale: Locale; close: () => void; children: ReactNode }) {
   return <ManagementActionContext.Provider value={{ close, locale }}>{children}</ManagementActionContext.Provider>;
 }
