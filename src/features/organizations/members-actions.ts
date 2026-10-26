@@ -1,5 +1,7 @@
 "use server";
 
+import {sql} from "drizzle-orm";
+import {withUser} from "@/db/client";
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { requireManagementUser } from "./access";
@@ -18,9 +20,11 @@ const value = (form: FormData, name: string, max: number, min = 0) => z.string()
 export async function mutateOrganizationMembers(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
   const user = await requireManagementUser();
   try {
-    const operation = z.enum(["grant", "end-grant", "end-member"]).parse(form.get("operation"));
+    const operation = z.enum(["grant", "end-grant", "end-member", "move-member"]).parse(form.get("operation"));
     const organizationId = id(form, "org");
-    if (operation === "grant") {
+    if(operation==="move-member"){
+      await withUser(user.id,tx=>tx.execute(sql`select lub.move_member_committee(${id(form,"member")},${form.get("committee")?id(form,"committee"):null},${form.get("confirmRoleChange")==="on"})`));
+    } else if (operation === "grant") {
       const memberId = id(form, "member");
       const capability = permission.parse(form.get("capability"));
       const committeeId = form.get("committee") ? id(form, "committee") : null;

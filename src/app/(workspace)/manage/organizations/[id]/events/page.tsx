@@ -1,5 +1,4 @@
-import { RowAction } from "@/components/row-action";
-import { Eye } from "lucide-react";
+import {EventListActions} from "@/features/events/list-actions";
 import { CalendarDays, Megaphone, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,9 +6,8 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { EventDraftPreview } from "@/features/events/draft-preview";
 import { eventDate, eventDateEn, eventLabels, eventLabelsEn } from "@/features/events/display";
-import { EventFields, EventForm } from "@/features/events/form";
+import { EventCreateForm } from "@/features/events/form";
 import { eventWorkspaceOverview } from "@/features/events/workspace";
 import { loadManagementPageData } from "@/features/organizations/access";
 import { AnnouncementDialog } from "@/app/(workspace)/manage/organizations/[id]/announcement-dialog";
@@ -19,6 +17,7 @@ import { OrganizationStatusBadge } from "@/features/organizations/organization-s
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
 import { getPreferences } from "@/lib/preferences";
 import { localizedMetadata } from "@/lib/localized-metadata";
+import {formatCount} from "@/lib/display";
 import { formatRiyadhDateTime } from "@/lib/datetime";
 
 export async function generateMetadata() {
@@ -44,9 +43,7 @@ export default async function ManageEvents({
   if (!data) notFound();
   const initialSection = search.section === "announcements" ? "announcements" : "events";
   const actions = <EventsAnnouncementsActions organizationId={id} locale={locale} canCreateEvent={data.canManage} canCreateAnnouncement={data.canManageAnnouncements}>
-    {data.canManage && <EventForm splitBody cancelVariant="ghost" operation="save" fields={{ org: id }} label={c("حفظ المسودة", "Save draft")} secondaryAction={<EventDraftPreview locale={locale} />} locale={locale}>
-      <EventFields organization={id} templates={data.templates} locale={locale} />
-    </EventForm>}
+    {data.canManage && <EventCreateForm organization={id} templates={data.templates} locale={locale}/>}
   </EventsAnnouncementsActions>;
 
   return <div className="workspace-content organization-events-page">
@@ -62,7 +59,6 @@ export default async function ManageEvents({
       dir={en ? "ltr" : "rtl"}
       legacyHashSections={{ "#new-event": "events", "#new-announcement": "announcements" }}
       actionHiddenSections={[
-        ...(data.events.length === 0 ? ["events"] : []),
         ...(data.announcements.length === 0 ? ["announcements"] : []),
       ]}
       action={<div id="new-event" className="organization-events-actions"><span id="new-announcement" />{actions}</div>}
@@ -70,14 +66,7 @@ export default async function ManageEvents({
       <OrganizationSectionTabPanel id="events">
         <section aria-label={c("الفعاليات", "Events")} className="workspace-events-section">
           {!data.canViewEvents ? <p className="workspace-empty">{c("ما عندك صلاحية عرض فعاليات الجهة.", "You do not have permission to view organization events.")}</p>
-            : data.events.length ? <ul className="divide-y divide-line">{data.events.slice(0, 25).map(event => <li key={event.id} className="flex min-w-0 items-center gap-3 py-3 first:pt-0">
-              {event.has_poster && <Link href={`/events/${event.id}`} aria-label={en ? `Open ${event.title}` : `افتح ${event.title}`} className="relative size-12 shrink-0 overflow-hidden rounded-md border border-border"><Image src={`/event-posters/${event.id}`} alt="" fill unoptimized sizes="48px" /></Link>}
-              <div className="min-w-0 flex-1">
-                <h3 dir="auto" className="truncate font-semibold"><Link href={`/events/${event.id}`} className="text-link">{event.title}</Link></h3>
-                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted"><time dateTime={event.starts_at}>{date(event.starts_at)}</time><span aria-hidden="true">·</span><span>{c("المسجلون", "Registrants")}: {event.registrant_count}</span></p>
-              </div>
-              <OrganizationStatusBadge status={event.status_code === "Published" ? "published" : event.status_code === "Draft" ? "draft" : "closed"}>{labels[event.status_code]}</OrganizationStatusBadge><RowAction label={c("عرض الفعالية","View event")} href={`/events/${event.id}`}><Eye/></RowAction>
-            </li>)}</ul> : <WorkspaceEmptyState icon={CalendarDays} title={c("لا توجد فعاليات بعد", "No events yet")} description={c("أنشئ أول فعالية للجهة.", "Create the organization's first event.")} action={data.canManage ? <a href="#new-event" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("فعالية جديدة", "New event")}</a> : undefined} />}
+            : data.events.length ? <ul className="divide-y divide-border">{data.events.slice(0,25).map(event=><li key={event.id} className="relative flex min-w-0 flex-wrap items-center gap-4 py-4 transition-colors hover:bg-accent/50"><Link href={`/events/${event.id}`} className="absolute inset-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring" aria-label={`${c("عرض الفعالية","View event")} ${event.title||c("بدون عنوان","Untitled")}`}/><div className="pointer-events-none relative grid h-16 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted">{event.has_poster?<Image src={`/event-posters/${event.id}`} alt="" fill unoptimized loading="lazy" sizes="96px" className="object-contain"/>:<CalendarDays className="text-muted-foreground"/>}</div><div className="pointer-events-none min-w-0 flex-1"><h3 className="font-medium"><bdi>{event.title||c("فعالية بدون عنوان","Untitled event")}</bdi></h3><p className="mt-1 text-sm text-muted-foreground"><time dateTime={event.starts_at||undefined}>{date(event.starts_at)}</time>{event.location_text&&<> · <bdi>{event.location_text}</bdi></>}</p><p className="text-sm text-muted-foreground">{formatCount(event.registrant_count,"registrants",locale)}</p></div><OrganizationStatusBadge status={event.status_code==="Published"?"published":event.status_code==="Draft"?"draft":"closed"}>{labels[event.status_code]}</OrganizationStatusBadge>{data.canManage&&<EventListActions event={event} locale={locale}/>}</li>)}</ul> : <WorkspaceEmptyState icon={CalendarDays} title={c("لا توجد فعاليات بعد", "No events yet")} description={c("أنشئ أول فعالية للجهة.", "Create the organization's first event.")} action={undefined} />}
           {data.canViewEvents && <nav aria-label={c("صفحات الفعاليات", "Event pages")} className="mt-5 flex gap-5">{page > 0 && <Link className="text-link" href={`?section=events&page=${page - 1}`}>{c("السابق", "Previous")}</Link>}{data.events.length > 25 && <Link className="text-link" href={`?section=events&page=${page + 1}`}>{c("التالي", "Next")}</Link>}</nav>}
         </section>
       </OrganizationSectionTabPanel>

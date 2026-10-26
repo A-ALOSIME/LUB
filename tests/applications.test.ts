@@ -260,3 +260,48 @@ it("repairs absent Storage policies without allowing foreign uploads or private 
  await asUser(student);await db.query("delete from storage.objects where name=$1",[key]);
  await owner();expect((await db.query("select id from storage.objects where name=$1",[key])).rows).toHaveLength(0);
 });
+
+it("allows paused rounds to reopen, requires extending expired rounds and prevents two live rounds",async()=>{
+ await db.query("select lub.change_round_status($1,'Closed')",[round]);
+ await db.query("select lub.change_round_status($1,'Open')",[round]);
+ const second=(await db.query<{id:string}>("select lub.create_registration_round($1,$2,'جولة أخرى',now(),now()+interval '2 days',true) as id",[org,template])).rows[0].id;
+ await denied(()=>db.query("select lub.change_round_status($1,'Open')",[second]));
+ await db.query("select lub.change_round_status($1,'Closed')",[round]);
+ await owner();await db.query("update lub.registration_rounds set opens_at=now()-interval '2 days',closes_at=now()-interval '1 day' where id=$1",[round]);
+ await asUser(leader);await denied(()=>db.query("select lub.change_round_status($1,'Open')",[round]));
+ await db.query("select lub.save_registration_round($1,$2,$3,'الجولة الممددة',now()-interval '2 days',now()+interval '1 day',true,true)",[round,org,template]);
+ expect((await db.query<{open:boolean}>("select lub.round_is_open($1) as open",[round])).rows[0].open).toBe(true);
+});
+it("deletes a round's applications and answers while preserving accepted memberships",async()=>{
+ const app=await submit();await asUser(leader);await db.query("select lub.decide_application($1,'Accepted','')",[app]);
+ const member=(await db.query<{id:string}>("select accepted_membership_id as id from lub.membership_applications where id=$1",[app])).rows[0].id;
+ await asUser(other);await denied(()=>db.query("select lub.delete_registration_round($1)",[round]));
+ await asUser(leader);await db.query("select lub.delete_registration_round($1)",[round]);
+ await owner();expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(0);
+ expect((await db.query("select id from lub.membership_applications where id=$1",[app])).rows).toHaveLength(0);
+ expect((await db.query("select id from lub.form_responses where respondent_user_id=$1",[student])).rows).toHaveLength(0);
+ const rows=(await db.query<{status_code:string;source_application_id:string|null}>("select status_code,source_application_id from lub.organization_memberships where id=$1",[member])).rows;
+ expect(rows[0]).toEqual({status_code:'Active',source_application_id:null});
+});
+
+it("moves a member within the organization and confirms removal of committee leadership",async()=>{
+ const app=await submit();await asUser(leader);await db.query("select lub.decide_application($1,'Accepted','')",[app]);
+ const member=(await db.query<{id:string}>("select accepted_membership_id as id from lub.membership_applications where id=$1",[app])).rows[0].id;
+ await owner();const next=(await db.query<{id:string}>("insert into lub.committees(organization_id,name) values($1,'لجنة ثانية') returning id",[org])).rows[0].id;
+ await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,committee_id,role_code,assigned_by_user_id) values($1,$2,$3,'CL',$4)",[member,org,committee,leader]);
+ await asUser(student);await denied(()=>db.query("select lub.move_member_committee($1,$2,true)",[member,next]));
+ await asUser(leader);await denied(()=>db.query("select lub.move_member_committee($1,$2,false)",[member,next]));
+ await db.query("select lub.move_member_committee($1,$2,true)",[member,next]);await owner();
+ expect((await db.query("select committee_id from lub.committee_memberships where organization_membership_id=$1 and status_code='Active'",[member])).rows).toEqual([{committee_id:next}]);
+ expect((await db.query<{end_date:string|null}>("select end_date from lub.role_assignments where organization_membership_id=$1 and role_code='CL'",[member])).rows[0].end_date).not.toBeNull();
+ await asUser(leader);await db.query("select lub.move_member_committee($1,null,true)",[member]);await owner();
+ expect((await db.query("select id from lub.committee_memberships where organization_membership_id=$1 and status_code='Active'",[member])).rows).toHaveLength(0);
+});
+
+it("keeps incomplete round drafts private and validates publication",async()=>{
+ const draft=(await db.query<{id:string}>("select lub.save_registration_round(null,$1,null,'',null,null,true,false) as id",[org])).rows[0].id;
+ await denied(()=>db.query("select lub.change_round_status($1,'Open')",[draft]));
+ await owner();await db.exec("select set_config('request.jwt.claim.sub','',true);set local role anon");expect((await db.query("select id from lub.registration_rounds where id=$1",[draft])).rows).toHaveLength(0);
+ await asUser(leader);await db.query("select lub.change_round_status($1,'Closed')",[round]);
+ await db.exec("reset role;select set_config('request.jwt.claim.sub','',true);set local role anon");expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(0);
+});

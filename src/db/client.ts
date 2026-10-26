@@ -6,17 +6,25 @@ import * as schema from "./schema";
 import { databaseTLS } from "./tls";
 import { getHyperdriveDatabaseUrl, getRuntimeDatabaseUrl } from "./runtime-url";
 
-function connect() {
-  const hyperdriveUrl = getHyperdriveDatabaseUrl();
-  const url = getRuntimeDatabaseUrl();
-  if (!url) throw new Error("Profile database is not configured.");
+function createDatabase(url: string, hyperdriveUrl?: string) {
   return drizzle(postgres(url, {
     max: 1,
     prepare: Boolean(hyperdriveUrl),
     fetch_types: false,
     connect_timeout: 10,
-    ...(!hyperdriveUrl && { ssl: databaseTLS(url) }),
+    ...(!hyperdriveUrl && { ssl: databaseTLS(url), idle_timeout: 10, max_lifetime: 60 }),
   }), { schema });
+}
+// Node's direct/session-pooler connection must survive repeated reads and dev HMR.
+// Hyperdrive sockets remain request-scoped in Workers.
+const directPool = globalThis as typeof globalThis & { __lubDirectPool?: { url: string; db: ReturnType<typeof createDatabase> } };
+function connect() {
+  const hyperdriveUrl = getHyperdriveDatabaseUrl();
+  const url = getRuntimeDatabaseUrl();
+  if (!url) throw new Error("Profile database is not configured.");
+  if (hyperdriveUrl) return createDatabase(url, hyperdriveUrl);
+  if (directPool.__lubDirectPool?.url !== url) directPool.__lubDirectPool = { url, db: createDatabase(url) };
+  return directPool.__lubDirectPool.db;
 }
 export function getDb() { return connect(); }
 

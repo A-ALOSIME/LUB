@@ -2235,3 +2235,18 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .member-directory-actions>span:last-child {border-inline-start:1px solid var(--border);padding-inline-start:.5rem;margin-inline-start:.25rem;}
 
 @media(max-width:767px){[role=alertdialog] .management-action-footer{flex-direction:column;align-items:stretch;}[role=alertdialog] .management-action-footer>button{width:100%;}}
+
+/* Keep the launcher and event content inside the available viewport. */
+.floating-assistant-link {inset-inline-end:auto;left:max(1.25rem,env(safe-area-inset-left));right:auto;max-width:calc(100vw - 2.5rem);overflow:visible;padding-inline:1.25rem;}
+.event-card-poster-fallback {display:grid;height:100%;place-items:center;background:var(--muted);color:var(--muted-foreground);}
+.event-card-poster-fallback svg {width:2.5rem;height:2.5rem;}
+.event-card-organization {padding:0 1.2rem 1rem;}
+.event-card-organization-logo {border-radius:var(--radius);padding:.25rem;}
+.event-card-organization-logo img {padding:0;}
+.event-detail-hero {grid-template-columns:minmax(0,1fr) minmax(16rem,.6fr);align-items:start;}
+.event-detail-poster {min-height:0;aspect-ratio:auto;width:100%;max-width:28rem;align-self:center;justify-self:center;}
+.event-detail-poster img {display:block;width:100%;height:auto;object-fit:contain;}
+.event-detail-poster-placeholder {min-height:0;aspect-ratio:16/9;width:100%;}
+.event-detail-facts {width:100%;margin:0;gap:.5rem;}
+.event-detail-fact {padding:.65rem;}
+@media(max-width:767px){.event-detail-hero {grid-template-columns:minmax(0,1fr);}.event-detail-poster {grid-row:1;max-height:none;}.floating-assistant-link {padding:0;}}

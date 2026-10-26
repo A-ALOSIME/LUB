@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({ postgres: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("postgres", () => ({ default: (...args: unknown[]) => { mocks.postgres(...args); return {}; } }));
 vi.mock("drizzle-orm/postgres-js", () => ({ drizzle: () => database }));
-import { withUser, withVisitor } from "./client";
+import {getDb, withUser, withVisitor } from "./client";
 import { setHyperdriveDatabaseUrl } from "./runtime-url";
 const owner = "00000000-0000-4000-8000-000000000001";
 beforeAll(async () => {
@@ -36,17 +36,22 @@ it("restores scope after rollback and gives visitors no private read access", as
   const visitor = await withVisitor(tx => tx.select({ role: sql<string>`current_user`, subject: sql<string>`current_setting('request.jwt.claim.sub',true)` }).from(sql`(select 1) as probe`));
   expect(visitor[0]).toMatchObject({ role: "anon", subject: "" });
 });
-it("creates a fresh single-connection client for each request transaction", async () => {
+it("reuses a bounded direct pool across request transactions without leaking role scope", async () => {
+  vi.stubEnv("DATABASE_URL", "postgres://test@127.0.0.1/pool-reuse");
   mocks.postgres.mockClear();
   await withVisitor(tx => tx.execute(sql`select 1`));
   await withVisitor(tx => tx.execute(sql`select 1`));
-  expect(mocks.postgres).toHaveBeenCalledTimes(2);
+  expect(mocks.postgres).toHaveBeenCalledOnce();
+  const pool=getDb();for(let i=0;i<20;i++)expect(getDb()).toBe(pool);
   for (const [, options] of mocks.postgres.mock.calls) {
     expect(options.max).toBe(1);
     expect(options.fetch_types).toBe(false);
+    expect(options.idle_timeout).toBe(10);
+    expect(options.max_lifetime).toBe(60);
   }
 });
 it("keeps the direct TLS setup for local database connections", async () => {
+  vi.stubEnv("DATABASE_URL", "postgres://test@127.0.0.1/tls-test");
   mocks.postgres.mockClear();
   await withVisitor(tx => tx.execute(sql`select 1`));
   expect(mocks.postgres.mock.calls[0][1]).toMatchObject({ max: 1, prepare: false, ssl: false });
@@ -58,4 +63,7 @@ it("uses the Worker Hyperdrive binding in production while local runs keep their
   expect(mocks.postgres.mock.calls[0][0]).toBe("postgres://worker:secret@hyperdrive.invalid/postgres");
   expect(mocks.postgres.mock.calls[0][1]).toMatchObject({ max: 1, prepare: true, fetch_types: false });
   expect(mocks.postgres.mock.calls[0][1]).not.toHaveProperty("ssl");
+  expect(mocks.postgres.mock.calls[0][1]).not.toHaveProperty("idle_timeout");
+  await withVisitor(tx => tx.execute(sql`select 1`));
+  expect(mocks.postgres).toHaveBeenCalledTimes(2);
 });

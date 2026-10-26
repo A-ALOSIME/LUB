@@ -7,7 +7,7 @@ import { requireUser } from "@/features/auth/session";
 import { studentOperationError } from "@/features/auth/authorization";
 import { definitionSchema, validateAnswers } from "./definition";
 import { getRound } from "./repository";
-export type WorkflowState = { error?: string; success?: string; bulk?: string; templateId?:string };
+export type WorkflowState = { error?: string; success?: string; bulk?: string; templateId?:string;eventId?:string };
 const uuid = (form: FormData, name: string) => z.uuid().parse(form.get(name));
 const optionalUuid = (form: FormData, name: string) => form.get(name) ? uuid(form,name) : null;
 const text = (form: FormData, name: string, max = 120) => z.string().trim().min(1).max(max).parse(form.get(name));
@@ -15,7 +15,7 @@ function json(form: FormData, name: string, max: number) { const value=z.string(
 export async function mutateWorkflow(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
  const user = await requireUser(); let bulk: string | undefined; let templateId:string|undefined;
  try {
-  const operation = z.enum(["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form","create-round","round-status","submit","withdraw","decide","note","bulk"]).parse(form.get("operation"));
+  const operation = z.enum(["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form","create-round","save-round","delete-round","round-status","submit","withdraw","decide","note","bulk"]).parse(form.get("operation"));
   if (["submit","withdraw"].includes(operation)) {
    const adminError = await studentOperationError(user.id);
    if (adminError) return { error: adminError };
@@ -29,12 +29,14 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
     case "save-form": return sql`select lub.save_form_draft(${uuid(form,"version")},${JSON.stringify(definitionSchema.parse(json(form,"definition",128000)))}::jsonb,${z.coerce.number().int().positive().parse(form.get("revision"))})`;
     case "publish-form": return sql`select lub.publish_form_version(${uuid(form,"version")})`;
     case "draft-form": return sql`select lub.start_form_draft(${uuid(form,"template")})`;
-    case "create-round": {
-     const opens=z.iso.datetime({ offset:true }).parse(form.get("opens")); const closes=z.iso.datetime({ offset:true }).parse(form.get("closes"));
-     if (new Date(closes)<=new Date(opens)) throw new Error("dates");
-     return sql`select lub.create_registration_round(${uuid(form,"org")},${uuid(form,"template")},${text(form,"title")},${opens}::timestamptz,${closes}::timestamptz,${form.get("withdrawal")==="on"})`;
+    case "delete-round": {if(form.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.delete_registration_round(${uuid(form,"round")})`;}
+    case "create-round":
+    case "save-round": {
+     const opens=form.get("opens")?z.iso.datetime({ offset:true }).parse(form.get("opens")):null; const closes=form.get("closes")?z.iso.datetime({ offset:true }).parse(form.get("closes")):null;
+     if (opens&&closes&&new Date(closes)<=new Date(opens)) throw new Error("dates");
+     return sql`select lub.save_registration_round(${optionalUuid(form,"round")},${uuid(form,"org")},${optionalUuid(form,"template")},${z.string().trim().max(120).parse(form.get("title")??"")},${opens}::timestamptz,${closes}::timestamptz,${form.get("withdrawal")==="on"},${form.get("intent")!=="draft"&&(form.get("publish")==="on"||form.get("intent")==="publish"||operation==="create-round")})`;
     }
-    case "round-status": return sql`select lub.change_round_status(${uuid(form,"round")},${z.enum(["Open","Closed","Archived"]).parse(form.get("status"))})`;
+    case "round-status": return sql`select lub.change_round_status(${uuid(form,"round")},${z.enum(["Open","Closed"]).parse(form.get("status"))})`;
     case "submit": {
      const round=await getRound(uuid(form,"round"),user.id); if (!round) throw new Error("round");
      const application=optionalUuid(form,"application"); const detail=application && round.application?.id===application ? round.application : undefined;
@@ -55,7 +57,7 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
   const result=await withUser(user.id,tx=>tx.execute(query));
   if(operation==="duplicate-form") templateId=z.uuid().parse(result[0]?.id);
   if (operation==="bulk" && !form.get("undoBulk")) bulk=z.uuid().parse(result[0]?.id);
- } catch { if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
+ } catch (error) { const cause=error instanceof Error && "cause" in error?error.cause:error; const message=cause instanceof Error?cause.message:""; if(message.includes("ROUND_REQUIRED_FIELDS"))return {error:"أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر."}; if(message.includes("ROUND_ACTIVE_EXISTS"))return {error:"توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى."}; if(message.includes("ROUND_EXPIRED"))return {error:"انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح."}; if(message.includes("ROUND_FORM_LOCKED"))return {error:"لا يمكن استبدال النموذج بعد استقبال طلبات. يمكنك تعديل أسئلته في نسخة جديدة."}; if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
  updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
  return { success: form.get("undoBulk") ? "تم التراجع عن الطلبات التي لم تتغير بعد العملية؛ التغييرات اللاحقة محفوظة." : form.get("operation")==="duplicate-form" ? "تم إنشاء نسخة" : form.get("operation")==="delete-form" ? "تم حذف النموذج" : "تم حفظ التغيير.", bulk, templateId };
 }

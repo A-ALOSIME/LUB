@@ -1,7 +1,10 @@
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings2 } from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {PublicRegistration,RegistrationCallToAction} from "@/features/forms/public-registration";
+import {getRound} from "@/features/forms/repository";
+import { ArrowRight, Settings2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { eventDate } from "@/features/events/display";
 import { readPublicOrganization as getPublicOrganization } from "@/features/organizations/public-data";
@@ -87,6 +90,8 @@ export default async function OrganizationPage({ params, searchParams }: {
   if (!detail) notFound();
 
   const { organization, committees, contacts, leadership, rounds, upcomingEvents, announcements } = detail;
+  const currentRound=rounds[0];
+  const ownRegistration=currentRound&&user?(await getRound(currentRound.id,user.id))?.application:null;
   const canManageOrganization = superAdmin || Boolean(user && await canManageOrganizationSettings(user.id, organization.id).catch(() => false));
   const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
   const presentation = buildOrganizationProfilePresentation({ curated: profile, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
@@ -132,7 +137,7 @@ export default async function OrganizationPage({ params, searchParams }: {
   if (hasActivity && !sectionNavItems.some(item => item.id === "activities")) {
     sectionNavItems.push({ id: "activities", label: en ? "Events" : "الفعاليات", icon: "events", profileSectionIndexes: [] });
   }
-  if (rounds.length) sectionNavItems.push({ id: "applications", label: en ? "Applications" : "التقديم", icon: "membership", profileSectionIndexes: [] });
+  sectionNavItems.push({ id: "applications", label: en ? "Applications" : "التقديم", icon: "membership", profileSectionIndexes: [] });
   const requestedSection = Array.isArray(query.section) ? query.section[0] : query.section;
   const orderedNavItems = orderOrganizationTabs(sectionNavItems);
   const activeSection = orderedNavItems.find(item => item.id === requestedSection) ?? orderedNavItems[0];
@@ -163,12 +168,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     ...(logoUrl?{logo:logoUrl}:{}),
     ...(sameAs.length?{sameAs:[...new Set(sameAs)]}:{}),
   }}/>}<main id="main" className="mx-auto max-w-7xl px-5 pb-20 pt-9 sm:px-8 sm:pt-12">
-    <Link href="/organizations" className="text-link text-sm">{en?"Clubs and councils":"الأندية والمجالس"}</Link>
-    {canManageOrganization && <nav aria-label={en ? "Organization management" : "إدارة الجهة"} className="mt-4 flex">
-      <Link href={`/manage/organizations/${organization.id}`} className="button button-secondary button-compact">
-        <Settings2 aria-hidden="true" />{en ? "Organization settings" : "إعدادات الجهة"}
-      </Link>
-    </nav>}
+    <div className="flex flex-wrap items-center justify-between gap-3"><Button nativeButton={false} variant="ghost" render={<Link href="/organizations"/>}><ArrowRight/>{en?"Clubs and councils":"الأندية والمجالس"}</Button>{canManageOrganization&&<Button nativeButton={false} variant="outline" render={<Link href={`/manage/organizations/${organization.id}`}/>}><Settings2/>{en?"Organization settings":"إعدادات الجهة"}</Button>}</div>
     <header id="organization-overview" className="organization-hero organization-section-nav-target mt-6">
       {profile?.coverSrc && <figure className={"organization-hero-cover" + (profile?.imageTheme ? " organization-hero-cover--" + profile.imageTheme : "")}><Image src={profile.coverSrc} alt={en ? profile.imageTheme === "ieee" ? `Logo of ${organization.nameAr}` : `${organization.nameAr} banner` : profile.imageTheme === "ieee" ? `شعار ${organization.nameAr}` : `غلاف ${organization.nameAr}`} fill sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-hero-cover-image" /></figure>}
       <div className={"organization-hero-main" + (profile?.coverSrc ? " organization-hero-main--cover" : "") + (profile?.coverSrc && organization.logoUrl ? " organization-hero-main--custom-cover" : "")}>
@@ -180,6 +180,7 @@ export default async function OrganizationPage({ params, searchParams }: {
           <p className="text-sm font-bold text-action">{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</p>
           <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl">{organization.nameAr}</h1>
           {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9">{visibleSummary}</p>}
+          {currentRound&&!superAdmin&&<div className="mt-5"><RegistrationCallToAction round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></div>}
           {organization.tags.length > 0 && <ul aria-label={en ? "Organization interests" : "مجالات الجهة"} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm">{tag}</li>)}</ul>}
           {organization.statusCode !== "Active" && <p className="mt-6 rounded-lg border border-line bg-white p-4 leading-8">{en ? `This organization is ${organization.statusCode.toLowerCase()}.` : `هذه الجهة ${organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}.`}{organization.archivedAt && <> {en ? "Archived on" : "أُرشفت بتاريخ"} {formatRiyadhDate(organization.archivedAt, preferences.locale)}{en ? ". This link remains available to preserve its history." : "، ويبقى هذا الرابط متاحًا لحفظ تاريخها."}</>}</p>}
           {socialLinks.some(link => link.href) && <section id="organization-contact" className="organization-hero-social organization-section-nav-target" aria-labelledby="organization-social-title">
@@ -209,7 +210,7 @@ export default async function OrganizationPage({ params, searchParams }: {
             {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{en ? "Selected events" : "فعاليات مختارة"}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}>{event.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{en ? "All organization events" : "كل فعاليات الجهة"}</Link>}</section>}
           </div>
         </section>}
-        {item.id === "applications" && rounds.length > 0 && <section className="panel mt-8 p-6 sm:p-8"><h2 className="text-xl font-bold">{en ? "Join this organization" : "طلبات الانضمام"}</h2><ul className="mt-5 space-y-5">{rounds.map(round => <li key={round.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4"><div><h3 dir="auto" className="font-semibold">{round.title}</h3>{!round.open && <p className="mt-1 text-sm text-muted">{en ? "Applications closed" : "التقديم مغلق"}</p>}</div>{!superAdmin && <Link className={round.open ? "button button-compact" : "button button-secondary button-compact"} href={`/organizations/${slug}/apply/${round.id}`}>{en ? round.open ? "Apply now" : "View round" : round.open ? "قدّم الآن" : "عرض الجولة"}</Link>}</li>)}</ul></section>}
+        {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></section>}
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={en ? "Organization structure" : "هيكل الجهة"}>
           <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{en ? "Committees" : "اللجان"}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={en ? "No public committees yet." : "لا توجد لجان عامة حالياً."} /></section>
         </section>}

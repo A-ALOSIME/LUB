@@ -6,6 +6,21 @@ import {Upload, Pencil, Trash2} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 
+async function compactPoster(file: File) {
+  if(file.size<=512*1024 || typeof createImageBitmap!=="function")return file;
+  const bitmap=await createImageBitmap(file);
+  try {
+    const scale=Math.min(1,1400/Math.max(bitmap.width,bitmap.height));
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+    canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    const context=canvas.getContext("2d");if(!context)return file;
+    context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,file.type,.8));
+    return blob&&blob.size<file.size?new File([blob],file.name,{type:file.type}):file;
+  } finally {bitmap.close();}
+}
+
 function posterUploadMessage(code: string | undefined, status: number, locale: Locale) {
   const en = locale === "en";
   const messages: Record<string, [string, string]> = {
@@ -50,7 +65,7 @@ export function EventPosterField({ organization, locale }: { organization: strin
     setError("");
     try {
       const body = new FormData();
-      body.set("file", file);
+      body.set("file", await compactPoster(file));
       body.set("organization", organization);
       const response = await fetch("/files/upload?purpose=event-poster", { method: "POST", body });
       const result = await response.json().catch(() => null) as { id?: string; error?: string } | null;

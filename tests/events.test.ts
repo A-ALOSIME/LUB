@@ -46,3 +46,23 @@ it("pins form versions, validates required answers and rejects stale response ed
  await actor(peer);expect((await db.query("select id from lub.form_responses")).rows).toEqual([]);await denied(()=>db.query("select lub.cancel_event_registration($1)",[r]));await actor(leader);expect((await db.query("select answers from lub.form_responses")).rows).toHaveLength(1);
 });
 it("delegates only organization capabilities and revokes event access immediately",async()=>{await db.exec("reset role");const m=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,student])).rows[0].id;await actor(leader);await db.query("select lub.grant_event_permission($1,'EVENT_ATTENDANCE_MANAGE',null)",[m]);const e=await create();await publish(e);await actor(peer);const r=await register(e);await actor(student);await db.query("select lub.mark_event_attendance($1,'Present')",[r]);await denied(()=>create());await actor(leader);const g=(await db.query<{id:string}>("select id from lub.permission_grants where permission_code='EVENT_ATTENDANCE_MANAGE'")).rows[0].id;await db.query("select lub.end_event_permission($1)",[g]);await actor(student);await denied(()=>db.query("select lub.mark_event_attendance($1,'Absent')",[r]));});
+
+it("stores incomplete drafts privately and only publishes complete events",async()=>{
+ const draft=(await db.query<{id:string}>("select lub.save_event(null,$1,'','','In_Person',null,null,null,null,null,null,null,null,0,null) as id",[org])).rows[0].id;
+ await denied(()=>db.query("select lub.change_event_status($1,'Published',1)",[draft]));
+ await db.exec("reset role;set local role anon");expect((await db.query("select id from lub.events where id=$1",[draft])).rows).toHaveLength(0);
+});
+it("unpublishes an event without dropping registrations and hides its public row",async()=>{
+ const event=await create();await publish(event);await actor(student);const registration=await register(event);
+ await actor(leader);await db.query("select lub.change_event_status($1,'Draft',2)",[event]);
+ await db.exec("reset role;set local role anon");expect((await db.query("select id from lub.events where id=$1",[event])).rows).toHaveLength(0);
+ await actor(leader);expect((await db.query("select id from lub.event_registrations where id=$1",[registration])).rows).toHaveLength(1);
+ await db.query("select lub.change_event_status($1,'Published',3)",[event]);
+});
+
+it("atomically saves and publishes a complete event and rolls back incomplete publication",async()=>{
+ await denied(()=>db.query("select lub.save_and_publish_event(null,$1,'','','In_Person',null,null,null,null,null,null,null,null,0,null,null,true)",[org]));
+ expect((await db.query("select id from lub.events")).rows).toHaveLength(0);
+ const saved=(await db.query<{id:string}>("select lub.save_and_publish_event(null,$1,'فعالية مباشرة','','In_Person','كلية الحاسب',null,now()+interval '3 days',now()+interval '4 days',now()-interval '1 hour',now()+interval '2 days',null,null,0,null,null,true) as id",[org])).rows[0].id;
+ expect((await db.query<{status_code:string}>("select status_code from lub.events where id=$1",[saved])).rows[0].status_code).toBe('Published');
+});

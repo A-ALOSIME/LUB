@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { OrganizationMemberWorkspace } from "@/features/organizations/management-repository";
 import { MemberDirectory } from "./member-directory";
 
+vi.mock("next/navigation",()=>({useRouter:()=>({refresh:vi.fn()})}));
 vi.mock("@/features/hours/view", () => ({ HoursFields: () => null }));
 vi.mock("@/features/hours/form", () => ({ HoursForm: () => null }));
 vi.mock("@/features/forms/mutation-form", () => ({ WorkflowForm: () => null }));
@@ -60,6 +61,7 @@ it("shows named member actions in place and keeps membership ending last", () =>
   expect(screen.queryByRole("menuitem")).toBeNull();
   expect(screen.getAllByRole("button", { name: "منح صلاحية" })).toHaveLength(2);
   expect(screen.getAllByRole("button", { name: "إضافة ساعات" })).toHaveLength(2);
+  expect(screen.getAllByRole("button", { name: "نقل إلى لجنة" })).toHaveLength(2);
   expect(screen.getAllByRole("button", { name: "إنهاء العضوية" })).toHaveLength(2);
 
   const actionRows = document.querySelectorAll(".member-directory-actions");
@@ -80,7 +82,7 @@ it("keeps all action positions visible for every member and disables unavailable
   const actionRows = document.querySelectorAll(".member-directory-actions");
   expect(actionRows).toHaveLength(workspace.members.length * 2);
   for (const row of actionRows) {
-    expect(row.querySelectorAll('[data-slot="button"]')).toHaveLength(3);
+    expect(row.querySelectorAll('[data-slot="button"]')).toHaveLength(4);
     expect(row.textContent).toContain("منح صلاحية");
     expect(row.textContent).toContain("إضافة ساعات");
     expect(row.textContent).toContain("إنهاء العضوية");

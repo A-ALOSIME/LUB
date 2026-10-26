@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     return failure(400, "invalid_file");
   }
   if (file.size > maxFileSize) return failure(413, "file_too_large");
+  if(purpose && !["image/jpeg","image/png","application/octet-stream", ""].includes(file.type)) return failure(400,"unsupported_poster_type");
 
   if (purpose) {
     const organization = z.uuid().safeParse(form.get("organization"));

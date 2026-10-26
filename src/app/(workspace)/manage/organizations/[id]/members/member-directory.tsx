@@ -1,4 +1,7 @@
 "use client";
+import {useRouter} from "next/navigation";
+import {Alert,AlertDescription} from "@/components/ui/alert";
+import {Checkbox} from "@/components/ui/checkbox";
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogCancel} from "@/components/ui/alert-dialog";
 
 import { academicLevel,formatHours } from "@/lib/display";
@@ -17,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { FilterTabs } from "@/components/ui/filter-tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateInput } from "@/features/forms/date-input";
-import { Clock, Search, ShieldCheck, ShieldPlus, UserRoundMinus } from "lucide-react";
+import { FolderInput, Clock, Search, ShieldCheck, ShieldPlus, UserRoundMinus } from "lucide-react";
 import type { OrganizationMemberWorkspace, OrganizationPermissionWorkspace } from "@/features/organizations/management-repository";
 import type { Locale } from "@/lib/preferences";
 import { permissionLabels, scopedPermissions } from "../permissions/permission-editor";
@@ -43,7 +46,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
   }, [en, query, status, workspace.members]);
 
   return <>
-    <div className="member-directory-toolbar" dir={en ? "ltr" : "rtl"}>
+    <div className="member-directory-toolbar mb-6" dir={en ? "ltr" : "rtl"}>
       <div className="member-directory-search-wrap">
         <Search aria-hidden="true" className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input type="text" role="searchbox" dir={en ? "ltr" : "rtl"} value={query} onChange={event => setQuery(event.target.value)} placeholder={c("الاسم أو التخصص أو اللجنة","Name, major or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search ps-9" />
@@ -80,14 +83,18 @@ function MemberActions({ organization, member, workspace, committees, locale, mo
   const en = locale === "en";
   const c = (ar: string, english: string) => en ? english : ar;
   const canAddHours = workspace.canAddHours || member.hourScopes.length > 0;
-  const [action, setAction] = useState<"hours" | "grant" | "end" | null>(null);
+  const [action, setAction] = useState<"hours" | "grant" | "move" | "end" | null>(null);
+  const router=useRouter();
+  const hasCommitteeRole=member.roles.some(role=>["CL","CD"].includes(role.code));
   const canGrant = workspace.canGrant && member.status === "Active";
   return <>
     <div className={`member-directory-actions${mobile ? " member-directory-actions--mobile" : ""}`}>
       <RowAction label={c("منح صلاحية","Grant permission")} disabled={!canGrant} onClick={()=>setAction("grant")}><ShieldPlus/></RowAction>
       <RowAction label={c("إضافة ساعات","Add hours")} disabled={member.status!=="Active"||!canAddHours} onClick={()=>setAction("hours")}><Clock/></RowAction>
+      <RowAction label={c("نقل إلى لجنة","Move to committee")} disabled={member.status!=="Active"||!member.canManage} onClick={()=>setAction("move")}><FolderInput/></RowAction>
       <RowAction danger className="member-directory-action--end" label={c("إنهاء العضوية","End membership")} disabled={member.status!=="Active"||!member.canManage} onClick={()=>setAction("end")}><UserRoundMinus/></RowAction>
     </div>
+    {action==="move"&&<ManagementActionSheet label="" title={c(`نقل ${member.name} إلى لجنة`,`Move ${member.name} to a committee`)} locale={locale} open hideTrigger mobileBottomSheet onOpenChange={open=>{if(!open)setAction(null);}}><WorkflowForm operation="move-member" fields={{org:organization,member:member.id}} label={c("تأكيد النقل","Confirm move")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>{setAction(null);router.refresh();}}><FormField label={c("اللجنة","Committee")}><NativeSelect name="committee" defaultValue={member.committees[0]?.id??""}><option value="">{c("بدون لجنة","No committee")}</option>{committees.map(committee=><option key={committee.id} value={committee.id}>{committee.name}</option>)}</NativeSelect></FormField>{member.committees.length>1&&<p className="text-sm text-muted-foreground">{c("سيحل الاختيار محل لجان العضو الحالية.","This selection replaces the member's current committees.")}</p>}{hasCommitteeRole&&<><Alert><AlertDescription>{c("النقل ينهي أي دور قيادي أو تفويض في اللجان السابقة؛ لا يمنح دورًا قياديًا تلقائيًا في اللجنة الجديدة.","Moving ends leadership and scoped permissions in previous committees; it does not grant leadership in the new committee.")}</AlertDescription></Alert><label className="flex items-center gap-2"><Checkbox name="confirmRoleChange" value="on" required/>{c("أوافق على تغيير أدوار اللجان السابقة","Confirm previous committee role changes")}</label></>}</WorkflowForm></ManagementActionSheet>}
     {action === "grant" && <PermissionGrantDialog organization={organization} member={member} committees={committees} locale={locale} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger/>}
     {action === "hours" && <ManagementActionSheet label="" title={c("إضافة ساعات للعضو","Add member hours")} locale={locale} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger><HoursForm operation="add" fields={{ member: member.id }} label={c("حفظ الساعات","Save hours")} locale={locale}>
       {(workspace.canAddHours || member.hourScopes.length > 0) && <FormField  label={<>{c("اللجنة (اختياري)","Committee (optional)")}</>}><NativeSelect name="committee" required={!workspace.canAddHours} defaultValue=""><option value="">{workspace.canAddHours ? c("الجهة بالكامل","Whole organization") : c("اختر لجنة","Choose a committee")}</option>{member.hourScopes.map(scope => <option key={scope.id} value={scope.id} dir="auto">{scope.name}</option>)}</NativeSelect></FormField>}

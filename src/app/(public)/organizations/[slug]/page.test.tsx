@@ -60,7 +60,7 @@ it("fits the cyber security logo and keeps social links inside the organization 
   const contact = screen.getByRole("heading", { name: "روابط التواصل" }).closest("#organization-contact");
   expect(contact?.closest("#organization-overview")).toBeTruthy();
   expect(screen.queryByText("تابع الجهة أو تواصل معها عبر الروابط المتاحة.")).toBeNull();
-  expect(screen.queryByRole("link", { name: "إعدادات الجهة" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "إعدادات الجهة" })).toBeNull();
 });
 
 it("shows a return link to organization settings for its manager", async () => {
@@ -72,7 +72,7 @@ it("shows a return link to organization settings for its manager", async () => {
   });
   render(page);
 
-  expect(screen.getByRole("link", { name: "إعدادات الجهة" }).getAttribute("href")).toBe("/manage/organizations/custom-logo-club-id");
+  expect(screen.getByRole("button", { name: "إعدادات الجهة" }).getAttribute("href")).toBe("/manage/organizations/custom-logo-club-id");
 });
 
 it("uses a manager-uploaded organization logo on the public page", async () => {
@@ -158,7 +158,7 @@ it("keeps contact links above section pages and groups the club overview", async
 
   expect(screen.getByRole("tab", { name: "عن الجهة" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.queryByRole("tab", { name: "اللجان" })).toBeNull();
-  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(1);
+  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(2);
   expect(screen.getByRole("heading", { name: "الأهداف" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "اللجان" })).toBeNull();
   expect(contact).toBeTruthy();
@@ -200,7 +200,7 @@ it("shows Dhaheer goals in the common overview as a concise list", async () => {
 
   const navigation = screen.getByRole("navigation", { name: "أقسام نادي ظهير" });
   expect(screen.getByRole("tab", { name: "عن الجهة" }).getAttribute("aria-selected")).toBe("true");
-  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(1);
+  expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(2);
   expect(screen.getByRole("heading", { name: "التطوع وخدمة المجتمع" })).toBeTruthy();
   expect(document.querySelector("#organization-profile-about .organization-profile-items--bulleted")).toBeTruthy();
 });
@@ -243,7 +243,7 @@ it("uses the same populated tab names and order for clubs and councils, ending i
   for (const typeCode of ["Club", "Council"]) {
     vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...data, organization: { ...data.organization, typeCode, mission: "", memberCount: 0, publicProfileContent: { goals: "هدف", fields: "مجال", programs: "برنامج", achievements: "إنجاز", partners: "شريك" } }, committees: [{ id: "committee", name: "لجنة", description: "", parentCommitteeId: null, leaderName: null }] });
     const ui = render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({}) }));
-    expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["عن الجهة", "المجالات", "البرامج", "الإنجازات", "الشركاء", "اللجان"]);
+    expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["عن الجهة", "المجالات", "البرامج", "الإنجازات", "التقديم", "الشركاء", "اللجان"]);
     expect(screen.queryByRole("tab", { name: "الهيكلة" })).toBeNull();
     ui.unmount();
   }
@@ -254,11 +254,13 @@ it("removes empty tabs and recreates them when actual content or committees are 
   const empty = { ...data, organization: { ...data.organization, mission: "", memberCount: 0, publicProfileContent: { vision: "", offerings: "", goals: "", fields: "", programs: "", achievements: "", partners: "" } }, committees: [], leadership: [] };
   vi.mocked(readPublicOrganization).mockResolvedValueOnce(empty);
   const ui = render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({ section: "structure" }) }));
-  expect(screen.queryByRole("tablist")).toBeNull();
+  expect(screen.getAllByRole("tab").map(tab=>tab.textContent)).toEqual(["التقديم"]);
+  expect(screen.getByText("التسجيل مغلق حاليًا")).toBeTruthy();
   expect(screen.queryByRole("group", { name: "الهيكل التنظيمي للجان" })).toBeNull();
   ui.unmount();
   vi.mocked(readPublicOrganization).mockResolvedValueOnce({ ...empty, organization: { ...empty.organization, publicProfileContent: { partners: "شريك جديد" } }, committees: [{ id: "new", name: "لجنة جديدة", description: "", parentCommitteeId: null, leaderName: null }] });
   render(await OrganizationPage({ params: Promise.resolve({ slug: "custom-logo-club" }), searchParams: Promise.resolve({}) }));
-  expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["الشركاء", "اللجان"]);
+  expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["التقديم", "الشركاء", "اللجان"]);
+  fireEvent.click(screen.getByRole("tab",{name:"الشركاء"}));
   expect(screen.getByRole("heading", { name: "الشركاء" })).toBeTruthy();
 });

@@ -1,4 +1,7 @@
 "use client";
+import {useRouter} from "next/navigation";
+import {Button} from "@/components/ui/button";
+import {EventDraftPreview} from "./draft-preview";
 import { NativeSelect } from "@/components/ui/native-select";
 import {useId, useState, type ReactNode} from "react";
 import {Input} from "@/components/ui/input";
@@ -15,7 +18,8 @@ import {ApplicationForm} from "@/features/forms/application-form";
 import type {Event} from "./repository";
 import type {Locale} from "@/lib/preferences";
 import { FormField } from "@/components/form-field";
-export function EventForm(props:Omit<Parameters<typeof WorkflowForm>[0],"mutation">){return <WorkflowForm {...props} mutation={mutateEvent}/>;}
+export function EventForm(props:Omit<Parameters<typeof WorkflowForm>[0],"mutation">){const router=useRouter();return <WorkflowForm {...props} mutation={mutateEvent} onSuccess={state=>{props.onSuccess?.(state);if(props.operation==="duplicate"&&state.eventId)router.push(`/events/${state.eventId}`);}}/>;}
+export function EventCreateForm({organization,templates,locale}:{organization:string;templates:Array<{id:string;name:string}>;locale:Locale}){const router=useRouter();const c=(ar:string,en:string)=>locale==="en"?en:ar;return <EventForm operation="save" fields={{org:organization,publish:"on"}} label={c("نشر الآن","Publish now")} locale={locale} splitBody onSuccess={state=>{if(state.eventId)router.push(`/events/${state.eventId}`);}} secondaryAction={<><Button type="submit" name="intent" value="draft" variant="outline" formNoValidate>{c("حفظ المسودة","Save draft")}</Button><EventDraftPreview locale={locale}/></>}><EventFields organization={organization} templates={templates} locale={locale}/></EventForm>;}
 export function EventRegistrationForm(props:Parameters<typeof ApplicationForm>[0]){return <ApplicationForm {...props} mutation={mutateEvent}/>;}
 export function EventFields({value,templates=[],locale="ar",organization}:{value?:Event;templates?:Array<{id:string;name:string}>;locale?:Locale;organization:string}) {
  const frozen=value?.status_code==="Published",en=locale==="en",c=(ar:string,english:string)=>en?english:ar,id=useId();

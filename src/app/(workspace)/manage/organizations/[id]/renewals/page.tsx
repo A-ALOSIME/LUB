@@ -1,4 +1,4 @@
-import { RegistrationRoundFields } from "@/features/forms/registration-round-fields";
+import {RoundForm} from "@/features/forms/round-actions";
 import { FilePlus2, CalendarRange, ClipboardList } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -54,7 +54,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const canCreateRound = !!registration?.allowed.includes("REGISTRATION_ROUNDS_MANAGE");
   const canCreateCampaign = !!renewals?.allowed;
   const canManageForms = !!registration?.allowed.includes("FORMS_MANAGE");
-  const createRoundForm = <WorkflowForm operation="create-round" fields={{org:id}} label={c("حفظ كمسودة","Save as draft")} locale={locale} disabled={!publishedTemplates.length} splitBody><RegistrationRoundFields formHref={canManageForms?`/manage/organizations/${id}/renewals?section=forms`:undefined} templates={publishedTemplates} locale={locale}/></WorkflowForm>;
+  const createRoundForm = <RoundForm organization={id} templates={publishedTemplates} locale={locale}/>;
   const createCampaignForm = renewals?.allowed && <HoursForm operation="campaign" fields={{ org: id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}>
     <FormField  id="renewal-term" label={<>{c("الفصل الدراسي","Academic term")}</>}><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}>{term.name_ar} · {term.academic_year}</option>)}</NativeSelect></FormField>
     <DateRangeInput startName="opens" endName="closes" label={c("فترة استقبال الردود", "Response period")} required includeTime locale={locale}/>
@@ -85,7 +85,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
       {sectionItems.some(item => item.id === "rounds") && <OrganizationSectionTabPanel id="rounds">
         <div className="min-w-0 space-y-6">
           <section aria-label={c("قائمة الجولات والحملات", "Rounds and campaigns list")} className="space-y-3">
-            <CombinedManagementList rounds={rounds} campaigns={campaigns} organization={id} locale={locale} canManageRounds={canCreateRound} emptyAction={!hasItems && (canCreateRound || canCreateCampaign) ? createActions("cards") : undefined}/>
+            <CombinedManagementList rounds={rounds} templates={publishedTemplates} campaigns={campaigns} organization={id} locale={locale} canManageRounds={canCreateRound} emptyAction={!hasItems && (canCreateRound || canCreateCampaign) ? createActions("cards") : undefined}/>
           </section>
           {renewals?.selected && <ManagementActionSheet label="" title={`${c("حملة التجديد", "Renewal campaign")} · ${renewals.selected.name}`} locale={locale} presentation="sheet" initiallyOpen hideTrigger>
             <RenewalWorkspaceView data={renewals} org={id} page={page} memberPage={memberPage} locale={locale} hideNewCampaign hideCampaignList/>

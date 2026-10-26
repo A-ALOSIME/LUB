@@ -22,10 +22,10 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
  }catch{return localizedMetadata("تفاصيل الفعالية","Event details");}
 }
 
-export default async function EventPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{page?:string}>}){
+export default async function EventPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{page?:string;action?:string}>}){
  const {id}=await params;
  if(!z.uuid().safeParse(id).success)notFound();
- const {page:raw}=await searchParams;
+ const {page:raw,action}=await searchParams;
  const page=Math.floor(Math.min(10000,Math.max(0,Number(raw)||0)));
  const [user,{locale}]=await Promise.all([getVerifiedUser(),getPreferences()]);
  const en=locale==="en";
@@ -52,5 +52,5 @@ export default async function EventPage({params,searchParams}:{params:Promise<{i
   ...(imageUrls.length?{image:imageUrls}:{}),
  }:null;
 
- return <>{schema&&<JsonLd data={schema}/>}<main id="main" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10"><EventContent data={data} user={Boolean(user&&!superAdmin)} superAdmin={superAdmin} locale={locale}/><nav aria-label={en?"Registrant pages":"صفحات المسجلين"} className="mt-6 flex gap-5">{page>0&&<Link className="text-link" href={`/events/${id}?page=${page-1}`}>{en?"Previous":"السابق"}</Link>}{data.registrations.length>25&&<Link className="text-link" href={`/events/${id}?page=${page+1}`}>{en?"Next":"التالي"}</Link>}</nav></main></>;
+ return <>{schema&&<JsonLd data={schema}/>}<main id="main" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10"><EventContent data={data} user={Boolean(user&&!superAdmin)} superAdmin={superAdmin} locale={locale} initialAction={data.canManage&&(action==="edit"||action==="settings")?action:undefined}/><nav aria-label={en?"Registrant pages":"صفحات المسجلين"} className="mt-6 flex gap-5">{page>0&&<Link className="text-link" href={`/events/${id}?page=${page-1}`}>{en?"Previous":"السابق"}</Link>}{data.registrations.length>25&&<Link className="text-link" href={`/events/${id}?page=${page+1}`}>{en?"Next":"التالي"}</Link>}</nav></main></>;
 }

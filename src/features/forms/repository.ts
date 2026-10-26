@@ -7,7 +7,7 @@ export const capabilities = { FORMS_MANAGE: "إدارة النماذج", REGISTR
 export const statuses: Record<string, string> = { Draft: "مسودة", Published: "منشور", Open: "مفتوحة", Closed: "مغلقة", Archived: "مؤرشفة", Submitted: "قيد المراجعة", Interview: "مقابلة", Accepted: "مقبول", Rejected: "مرفوض", Withdrawn: "منسحب" };
 export type Template = { id: string; name: string; organization_id: string | null; version_count?: number;updated_at?:string;round_count?:number;event_count?:number;can_delete?:boolean; versions: Version[] };
 export type Version = { id: string; version_number: number; status_code: string; revision: number; definition: FormDefinition };
-export type Round = { id: string; title: string; status_code: string; opens_at: string; closes_at: string; form_template_id: string; allow_withdrawal: boolean; open: boolean };
+export type Round = { id: string; title: string; status_code: string; opens_at: string; closes_at: string; form_template_id: string; allow_withdrawal: boolean; open: boolean; application_count?:number };
 export type Application = { id: string; status_code: string; created_at: string; title: string; round_id: string; slug: string; organization_name: string; name: string; major: string; level: string; committee: string | null; round_open: boolean; allow_withdrawal: boolean; has_active_application: boolean; has_newer_application: boolean; canReview: boolean; canBulk: boolean };
 export type Detail = { id: string; organization_id:string; canStaff:boolean; status_code: string; version: Version; response_revision: number; answers: Answers; requested_committee_id: string | null; messages: Array<{ body: string; created_at: string }>; notes: Array<{ body: string; created_at: string }>; history: Array<{ to_status_code: string; created_at: string; reason: string | null }>; canReview: boolean };
 type Readiness={accountStatus:string|null;onboarded:boolean};
@@ -23,7 +23,7 @@ export async function getWorkspace(user: string, org: string, selected: string |
   const rows = await tx.execute(sql`select o.name_ar as name,(select status_code from lub.users where id=${user}) as "accountStatus",exists(select 1 from lub.student_profiles where user_id=${user}) as onboarded,
    (select coalesce(jsonb_agg(c),'[]') from unnest(array['FORMS_MANAGE','REGISTRATION_ROUNDS_MANAGE','APPLICATIONS_VIEW','APPLICATIONS_REVIEW','APPLICATIONS_BULK_ACTION']) c where lub.has_org_permission(o.id,c) or exists(select 1 from lub.committees cc where cc.organization_id=o.id and lub.has_org_permission(o.id,c,cc.id))) as allowed,
    coalesce((select jsonb_agg(t) from (select t.id,t.name,t.organization_id,lub.can_delete_form(t.id) as can_delete,(select count(*)::int from lub.events e where e.registration_form_template_id=t.id) as event_count,lub.form_last_updated(t.id) as updated_at,(select count(*)::int from lub.registration_rounds rr where rr.form_template_id=t.id) as round_count,(select count(*)::int from lub.form_versions vv where vv.form_template_id=t.id) as version_count,coalesce((select jsonb_agg(case when t.id=${selected}::uuid then to_jsonb(v) else to_jsonb(v)-'definition' end order by v.version_number desc) from (select * from lub.form_versions vv where vv.form_template_id=t.id order by vv.version_number desc limit 2) v),'[]') as versions from lub.form_templates t where t.organization_id=o.id or t.is_system_template order by t.created_at desc limit 100) t),'[]') as templates,
-   coalesce((select jsonb_agg(r) from (select r.*,lub.round_is_open(r.id) as open from lub.registration_rounds r where r.organization_id=o.id order by r.created_at desc limit 100) r),'[]') as rounds,
+   coalesce((select jsonb_agg(r) from (select r.id,r.title,r.status_code,r.allow_withdrawal,coalesce(r.form_template_id::text,'') as form_template_id,coalesce(r.opens_at::text,'') as opens_at,coalesce(r.closes_at::text,'') as closes_at,lub.round_is_open(r.id) as open,lub.round_application_count(r.id) as application_count from lub.registration_rounds r where r.organization_id=o.id order by r.created_at desc limit 100) r),'[]') as rounds,
    coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.name)) from lub.committees c where c.organization_id=o.id and c.status_code='Active'),'[]') as committees
    from lub.organizations o where o.id=${org}`);
   return rows[0] as unknown as OrganizationRegistrationWorkspace | undefined;
@@ -31,7 +31,7 @@ export async function getWorkspace(user: string, org: string, selected: string |
 }
 export async function publicRounds(org: string) {
  return withVisitor(async tx => {
-  const rows = await tx.execute(sql`select id,title,status_code,opens_at,closes_at,form_template_id,allow_withdrawal,lub.round_is_open(id) as open from lub.registration_rounds where organization_id=${org} order by opens_at desc limit 50`);
+  const rows = await tx.execute(sql`select id,title,status_code,opens_at,closes_at,form_template_id,allow_withdrawal,lub.round_is_open(id) as open from lub.registration_rounds where organization_id=${org} and status_code='Open' and closes_at>statement_timestamp() order by opens_at limit 1`);
   return rows as unknown as Round[];
  });
 }

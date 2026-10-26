@@ -1,5 +1,6 @@
 "use client";
 
+import {useRouter} from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import {
   ArrowDown,
@@ -53,7 +54,6 @@ import {
   type FormDefinition,
   type FormField as QuestionField,
 } from "./definition";
-import { WorkflowForm } from "./mutation-form";
 import { mutateWorkflow } from "./actions";
 import type { Locale } from "@/lib/preferences";
 import { FormField } from "@/components/form-field";
@@ -69,14 +69,15 @@ export function FormEditor({
   revision,
   initial,
   locale = "ar",
-  template,
+  returnHref,
 }: {
   version: string;
   revision: number;
   initial: FormDefinition;
   locale?: Locale;
-  template?: string;
+  returnHref?: string;
 }) {
+  const router=useRouter();
   const en = locale === "en",
     c = (ar: string, english: string) => (en ? english : ar),
     id = useId(),
@@ -214,6 +215,7 @@ export function FormEditor({
           if (result.error) throw new Error(result.error);
           setPublished(true);
           setPublishOpen(false);
+          if(returnHref)router.push(returnHref);
         }
         toast.add({
           title: publish
@@ -260,32 +262,7 @@ export function FormEditor({
     section.fields=section.fields.map(field=>({...field,id:ids.get(field.id)!,...(field.condition?{condition:{...field.condition,fieldId:ids.get(field.condition.fieldId)??field.condition.fieldId}}:{})}));
     next.sections.splice(si+1,0,section);setOpenedSections(previous=>[...previous,section.id]);setDefinition(next);
   }
-  if (published)
-    return (
-      <div className="flex flex-col gap-4">
-        <p role="status">
-          {c(
-            "تم نشر النسخة. هذه النسخة للقراءة فقط.",
-            "Published. This version is read-only.",
-          )}
-        </p>
-        <ul>
-          {definition.sections
-            .flatMap((s) => s.fields)
-            .map((f) => (
-              <li key={f.id}>{f.label}</li>
-            ))}
-        </ul>
-        {template && (
-          <WorkflowForm
-            operation="draft-form"
-            fields={{ template }}
-            label={c("بدء مسودة نسخة جديدة", "Start a new draft version")}
-            locale={locale}
-          />
-        )}
-      </div>
-    );
+  if(published)return <p role="status">{c("تم نشر النسخة","Version published")}</p>;
   return (
     <>
       <form

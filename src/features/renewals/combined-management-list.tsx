@@ -1,84 +1,28 @@
-import { Archive,LockKeyhole,Play,Eye } from "lucide-react";
-import { RowAction } from "@/components/row-action";
-import { Badge } from "@/components/ui/badge";
-import { ManagementActionSheet } from "@/components/management-action-sheet";
-import type { ReactNode } from "react";
-import { WorkflowForm } from "@/features/forms/mutation-form";
-import type { Round } from "@/features/forms/repository";
-import type { Campaign } from "./repository";
-import type { Locale } from "@/lib/preferences";
-import { formatRiyadhDateTime } from "@/lib/datetime";
+import {Eye} from "lucide-react";
+import type {ReactNode} from "react";
+import {RowAction} from "@/components/row-action";
+import {Badge} from "@/components/ui/badge";
+import {Card,CardHeader,CardTitle,CardContent} from "@/components/ui/card";
+import {Table,TableHeader,TableBody,TableRow,TableHead,TableCell} from "@/components/ui/table";
+import {RoundActions} from "@/features/forms/round-actions";
+import type {Round} from "@/features/forms/repository";
+import type {Campaign} from "./repository";
+import type {Locale} from "@/lib/preferences";
+import {formatRiyadhDateTime} from "@/lib/datetime";
+import {formatCount} from "@/lib/display";
 
-type Item =
-  | { kind: "round"; id: string; title: string; opens: string; closes: string; status: string; round: Round }
-  | { kind: "campaign"; id: string; title: string; opens: string; closes: string; status: string; campaign: Campaign };
-
-function statusLabel(status: string, locale: Locale) {
-  if (locale === "en") return status === "Archived" ? "Closed" : status;
-  return status === "Draft" ? "مسودة" : status === "Open" ? "مفتوحة" : "مغلقة";
-}
-
-function dateRange(from: string, to: string, locale: Locale) {
-  const format = (value: string) => formatRiyadhDateTime(value, locale);
-  return locale === "en" ? `From ${format(from)} to ${format(to)}` : `من ${format(from)} إلى ${format(to)}`;
-}
-
-export function CombinedManagementList({ rounds, campaigns, organization, locale, canManageRounds, emptyAction }: {
-  rounds: Round[];
-  campaigns: Campaign[];
-  organization: string;
-  locale: Locale;
-  canManageRounds: boolean;
-  emptyAction?: ReactNode;
-}) {
-  const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
-  const items: Item[] = [
-    ...rounds.map(round => ({ kind: "round" as const, id: round.id, title: round.title, opens: round.opens_at, closes: round.closes_at, status: round.status_code, round })),
-    ...campaigns.map(campaign => ({ kind: "campaign" as const, id: campaign.id, title: campaign.name, opens: campaign.opens_at, closes: campaign.closes_at, status: campaign.status_code, campaign })),
-  ].sort((a, b) => Date.parse(b.opens) - Date.parse(a.opens));
-
-  if (!items.length) return <section className="space-y-4">
-    <div className="space-y-1">
-      <h2 className="text-base font-semibold">{c("ابدأ جولة تسجيل أو حملة تجديد", "Start a registration round or renewal campaign")}</h2>
-      <p className="text-sm text-muted-foreground">{c("اختر النوع المناسب للبدء.", "Choose the type you want to create.")}</p>
-    </div>
-    {emptyAction}
-  </section>;
-
-  return <div className="rounded-lg border border-border min-w-0"><div className="hidden md:block">
-    <table className="w-full text-start text-sm">
-      <thead><tr>
-        <th className="px-3 py-2 font-medium">{c("النوع", "Type")}</th>
-        <th className="px-3 py-2 font-medium">{c("الاسم", "Name")}</th>
-        <th className="px-3 py-2 font-medium">{c("التواريخ", "Dates")}</th>
-        <th className="px-3 py-2 font-medium">{c("الحالة", "Status")}</th>
-        <th className="px-3 py-2 font-medium">{c("الإجراءات", "Actions")}</th>
-      </tr></thead>
-      <tbody className="divide-y divide-line">{items.map(item => <tr key={`${item.kind}-${item.id}`}>
-        <td className="px-3 py-3"><Badge variant="outline">{item.kind === "round" ? c("جولة تسجيل", "Registration round") : c("حملة تجديد", "Renewal campaign")}</Badge></td>
-        <td className="max-w-64 px-3 py-3 font-medium" dir="auto">{item.kind === "campaign"
-          ? <a className="text-link break-words" href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`}>{item.title}</a>
-          : <span className="break-words">{item.title}</span>}</td>
-        <td className="px-3 py-3 text-muted">{dateRange(item.opens, item.closes, locale)}</td>
-        <td className="px-3 py-3 whitespace-nowrap"><Badge variant={item.status === "Open" ? "secondary" : "outline"}>{statusLabel(item.status, locale)}</Badge></td>
-        <td className="px-3 py-3"><div className="flex items-center gap-1">{item.kind==="campaign"&&<RowAction href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`} label={c("عرض الحملة","View campaign")}><Eye/></RowAction>}{item.kind === "round" && canManageRounds && ["Open", "Closed", "Archived"].map(status => {
-          if(!(item.status === "Draft" ? ["Open", "Archived"] : item.status === "Open" ? ["Closed"] : item.status === "Closed" ? ["Archived"] : []).includes(status))return <span key={status} className="row-action-space" aria-hidden="true"/>;
-          const label = en ? status === "Open" ? "Open" : status === "Closed" ? "Close" : "Archive" : status === "Open" ? "فتح" : status === "Closed" ? "إغلاق" : "أرشفة";
-          return <ManagementActionSheet key={status} rowAction icon={status==="Open"?<Play/>:status==="Closed"?<LockKeyhole/>:<Archive/>} label={label} title={en ? `${label} registration round ${item.title}?` : `${label} جولة ${item.title}؟`} locale={locale}>
-            <WorkflowForm operation="round-status" fields={{ round: item.round.id, status }} label={en ? `Confirm ${label.toLocaleLowerCase()}` : `تأكيد ${label} الجولة`} locale={locale}>
-              <label className="flex items-start gap-2"><input type="checkbox" name="confirm" required className="mt-1 size-4"/>{en ? "I confirm this status change." : "أؤكد تغيير حالة الجولة."}</label>
-            </WorkflowForm>
-          </ManagementActionSheet>;
-        })}</div></td>
-      </tr>)}</tbody>
-    </table></div><ul className="grid gap-3 p-3 md:hidden">{items.map(item=><li key={item.id} className="rounded-lg border border-border p-3"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-medium">{item.title}</h3><Badge variant="outline">{statusLabel(item.status,locale)}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{dateRange(item.opens,item.closes,locale)}</p><div className="mt-3 border-t border-border pt-2"><div className="flex items-center gap-1">{item.kind==="campaign"&&<RowAction href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`} label={c("عرض الحملة","View campaign")}><Eye/></RowAction>}{item.kind === "round" && canManageRounds && ["Open", "Closed", "Archived"].map(status => {
-          if(!(item.status === "Draft" ? ["Open", "Archived"] : item.status === "Open" ? ["Closed"] : item.status === "Closed" ? ["Archived"] : []).includes(status))return <span key={status} className="row-action-space" aria-hidden="true"/>;
-          const label = en ? status === "Open" ? "Open" : status === "Closed" ? "Close" : "Archive" : status === "Open" ? "فتح" : status === "Closed" ? "إغلاق" : "أرشفة";
-          return <ManagementActionSheet key={status} rowAction icon={status==="Open"?<Play/>:status==="Closed"?<LockKeyhole/>:<Archive/>} label={label} title={en ? `${label} registration round ${item.title}?` : `${label} جولة ${item.title}؟`} locale={locale}>
-            <WorkflowForm operation="round-status" fields={{ round: item.round.id, status }} label={en ? `Confirm ${label.toLocaleLowerCase()}` : `تأكيد ${label} الجولة`} locale={locale}>
-              <label className="flex items-start gap-2"><input type="checkbox" name="confirm" required className="mt-1 size-4"/>{en ? "I confirm this status change." : "أؤكد تغيير حالة الجولة."}</label>
-            </WorkflowForm>
-          </ManagementActionSheet>;
-        })}</div></div></li>)}</ul></div>;
+type Item={kind:"round";id:string;title:string;opens:string;closes:string;status:string;round:Round}|{kind:"campaign";id:string;title:string;opens:string;closes:string;status:string;campaign:Campaign};
+export function CombinedManagementList({rounds,campaigns,organization,locale,canManageRounds,emptyAction,templates=[]}:{rounds:Round[];campaigns:Campaign[];organization:string;locale:Locale;canManageRounds:boolean;emptyAction?:ReactNode;templates?:Array<{id:string;name:string}>}){
+ const c=(ar:string,en:string)=>locale==="en"?en:ar;
+ const now=rounds.length?new Date().getTime():0;
+ const current=rounds.filter(r=>["Open","Closed"].includes(r.status_code)&&Date.parse(r.closes_at)>now).sort((a,b)=>Number(b.status_code==="Open")-Number(a.status_code==="Open")||Date.parse(a.opens_at)-Date.parse(b.opens_at))[0];
+ const items:Item[]=[...rounds.filter(r=>r.id!==current?.id).map(round=>({kind:"round" as const,id:round.id,title:round.title,opens:round.opens_at,closes:round.closes_at,status:round.status_code,round})),...campaigns.map(campaign=>({kind:"campaign" as const,id:campaign.id,title:campaign.name,opens:campaign.opens_at,closes:campaign.closes_at,status:campaign.status_code,campaign}))].sort((a,b)=>Date.parse(b.opens)-Date.parse(a.opens));
+ const label=(status:string,opens:string,closes:string)=>status==="Draft"?c("مسودة","Draft"):status==="Open"&&Date.parse(closes)>now?Date.parse(opens)>now?c("لم تبدأ بعد","Upcoming"):c("مفتوحة","Open"):c("مغلقة","Closed");
+ const period=(opens:string,closes:string)=><div className="flex flex-col gap-1 text-sm text-muted-foreground"><span>{c("من","From")} <bdi>{formatRiyadhDateTime(opens,locale)}</bdi></span><span>{c("إلى","To")} <bdi>{formatRiyadhDateTime(closes,locale)}</bdi></span></div>;
+ const actions=(item:Item)=>item.kind==="round"?canManageRounds?<RoundActions round={item.round} templates={templates} organization={organization} locale={locale}/>:null:<RowAction label={c("عرض الحملة","View campaign")} href={`/manage/organizations/${organization}/renewals?campaign=${item.id}`}><Eye/></RowAction>;
+ if(!rounds.length&&!campaigns.length)return <section className="flex flex-col gap-4"><div><h2 className="font-semibold">{c("ابدأ جولة تسجيل أو حملة تجديد","Start a registration round or renewal campaign")}</h2><p className="text-sm text-muted-foreground">{c("اختر النوع المناسب للبدء.","Choose the type to create.")}</p></div>{emptyAction}</section>;
+ return <div className="flex min-w-0 flex-col gap-6">
+  {current&&<Card><CardHeader><div className="flex flex-wrap items-center gap-2"><CardTitle>{current.title}</CardTitle><Badge variant="secondary">{label(current.status_code,current.opens_at,current.closes_at)}</Badge></div></CardHeader><CardContent className="flex flex-wrap items-center gap-5">{period(current.opens_at,current.closes_at)}<span>{formatCount(current.application_count??0,"applications",locale)}</span>{canManageRounds&&<RoundActions round={current} organization={organization} templates={templates} locale={locale}/>}</CardContent></Card>}
+  {items.length>0&&<section className="flex flex-col gap-3"><h2 className="text-base font-medium">{c("السابقة والمسودات والحملات","Previous rounds, drafts and campaigns")}</h2><div className="hidden rounded-lg border border-border md:block"><Table><TableHeader><TableRow><TableHead>{c("الاسم","Name")}</TableHead><TableHead>{c("النوع","Type")}</TableHead><TableHead>{c("الفترة","Period")}</TableHead><TableHead>{c("الحالة","Status")}</TableHead><TableHead>{c("الإجراءات","Actions")}</TableHead></TableRow></TableHeader><TableBody>{items.map(item=><TableRow key={item.id}><TableCell className="font-medium"><bdi>{item.title}</bdi>{item.kind==="round"&&<p className="text-sm font-normal text-muted-foreground">{formatCount(item.round.application_count??0,"applications",locale)}</p>}</TableCell><TableCell>{item.kind==="round"?c("جولة تسجيل","Registration round"):c("حملة تجديد","Renewal campaign")}</TableCell><TableCell>{period(item.opens,item.closes)}</TableCell><TableCell><Badge variant="outline">{label(item.status,item.opens,item.closes)}</Badge></TableCell><TableCell>{actions(item)}</TableCell></TableRow>)}</TableBody></Table></div><ul className="flex flex-col gap-3 md:hidden">{items.map(item=><li key={item.id}><Card><CardHeader><CardTitle>{item.title}</CardTitle><Badge variant="outline">{label(item.status,item.opens,item.closes)}</Badge></CardHeader><CardContent className="flex flex-col gap-3">{period(item.opens,item.closes)}{item.kind==="round"&&<p>{formatCount(item.round.application_count??0,"applications",locale)}</p>}{actions(item)}</CardContent></Card></li>)}</ul></section>}
+ </div>;
 }
