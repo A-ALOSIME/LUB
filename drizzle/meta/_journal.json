@@ -323,6 +323,13 @@
       "when": 1792939554158,
       "tag": "0045_talent_discovery_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793010211561,
+      "tag": "0046_restore_application_storage_policies",
+      "breakpoints": true
     }
   ]
 }

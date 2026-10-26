@@ -33,6 +33,7 @@ export function EventPosterField({ organization, locale }: { organization: strin
   const [error, setError] = useState("");
   const [preview, setPreview] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  const [retryFile, setRetryFile] = useState<File>();
   const en = locale === "en";
   const c = (ar: string, english: string) => en ? english : ar;
 
@@ -40,12 +41,13 @@ export function EventPosterField({ organization, locale }: { organization: strin
 
   async function upload(file?: File) {
     if (!file) return;
-    if(!["image/jpeg","image/png"].includes(file.type)||file.size>5*1024*1024){setError(c("استخدم صورة PNG أو JPEG بحجم لا يتجاوز 5MB.","Choose PNG or JPEG up to 5 MB."));return;}
+    setRetryFile(undefined);
+    if(file.size>5*1024*1024){setError(posterUploadMessage("file_too_large",413,locale));return;}
+    if(!["image/jpeg","image/png"].includes(file.type)){setError(posterUploadMessage("unsupported_poster_type",400,locale));return;}
+    setRetryFile(file);
     setPending(true);
     input.current?.setCustomValidity(c("انتظر اكتمال رفع الصورة.","Wait for the image upload."));
     setError("");
-    setAsset("");
-    setPreview("");
     try {
       const body = new FormData();
       body.set("file", file);
@@ -58,6 +60,7 @@ export function EventPosterField({ organization, locale }: { organization: strin
       }
       setAsset(result.id);
       setPreview(URL.createObjectURL(file));
+      setRetryFile(undefined);
     } catch {
       setError(posterUploadMessage(undefined, 0, locale));
     } finally {
@@ -66,12 +69,12 @@ export function EventPosterField({ organization, locale }: { organization: strin
     }
   }
 
-  function remove() {setAsset("");setPreview("");setError("");if(input.current){input.current.value="";input.current.setCustomValidity("");}}
+  function remove() {setRetryFile(undefined);setAsset("");setPreview("");setError("");if(input.current){input.current.value="";input.current.setCustomValidity("");}}
   return <section className="event-poster-upload" aria-label={c("بوستر الفعالية","Event poster")} data-preview-url={preview}>
     <input type="hidden" name="poster" value={asset}/>
     <span className="event-poster-label">{c("بوستر الفعالية","Event poster")}</span>
     <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png" disabled={pending} aria-label={c("صورة بوستر الفعالية","Event poster image")} onInvalid={event=>event.preventDefault()} onChange={event=>void upload(event.target.files?.[0])}/>
     {preview?<><div className="event-poster-preview"><Image src={preview} alt={c("معاينة بوستر الفعالية","Event poster preview")} fill unoptimized sizes="(max-width:767px) 100vw, 32rem" className="object-cover"/></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>input.current?.click()}><Pencil/>{c("تغيير","Change")}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={remove}><Trash2/>{c("حذف","Remove")}</Button></div></>:<div className="event-poster-dropzone" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();void upload(event.dataTransfer.files?.[0]);}}><Button type="button" variant="ghost" disabled={pending} onClick={()=>input.current?.click()}><Upload/><span>{pending?c("جارٍ الرفع…","Uploading…"):c("اسحب الصورة هنا أو اضغط للاختيار","Drop an image here or click to choose")}</span></Button><p><bdi>PNG</bdi> {c("أو","or")} <bdi>JPEG</bdi> · {c("حد أقصى","Maximum")} <bdi>5MB</bdi></p></div>}
-    {pending&&<p role="status">{c("جارٍ رفع الصورة…","Uploading image…")}</p>}{error&&<p role="alert" className="error-message">{error}</p>}
+    {pending&&<p role="status">{c("جارٍ رفع الصورة…","Uploading image…")}</p>}{error&&<div className="flex flex-wrap items-center gap-2"><p role="alert" className="error-message">{error}</p>{retryFile&&<Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>void upload(retryFile)}>{c("إعادة المحاولة","Retry")}</Button>}</div>}
   </section>;
 }

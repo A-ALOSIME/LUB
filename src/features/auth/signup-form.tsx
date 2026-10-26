@@ -42,7 +42,7 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
   const fieldProps = (field: string) => ({ "aria-invalid": Boolean(error(field)), "aria-describedby": error(field) ? `${field}-error` : undefined });
 
   return emailToVerify ? <div className="space-y-5">
-    <p role="status" className="leading-8 text-muted">{en ? "If this email is eligible for sign-up, a 6-digit verification code will arrive at " : "إذا كان البريد مؤهلًا للتسجيل، سيصلك رمز تحقق من 6 أرقام على "}<bdi className="font-medium text-ink">{emailToVerify}</bdi>{en ? ". Enter it below to create your account." : ". أدخله أدناه لإنشاء حسابك."}</p>
+    <p role="status" className="leading-8 text-muted">{en ? "If this email is eligible for sign-up, a 6-digit verification code will arrive at " : "إذا كان البريد مؤهلًا للتسجيل، سيصلك رمز تحقق من 6 أرقام على "}<bdi className="font-medium text-ink">{emailToVerify}</bdi>{en ? ". Enter it below, or follow the confirmation link in the same email to complete your account." : ". أدخله أدناه، أو استخدم رابط التأكيد في نفس الرسالة لإكمال حسابك."}</p>
     <p className="text-sm leading-7 text-muted">{en ? "If the code does not arrive within a minute, check your spam folder or your university email quarantine, then choose “Change details or request a new code” to try again." : "إذا لم يصلك الرمز خلال دقيقة، تحقّق من مجلد البريد العشوائي (Spam) أو الرسائل المحجوزة في بريد الجامعة، ثم اضغط «تعديل البيانات أو طلب رمز جديد» للمحاولة مرة أخرى."}</p>
     <SignupOtpForm email={emailToVerify} returnTo={returnTo} locale={locale} />
     <button type="button" onClick={() => setChangeDetails(true)} className="text-link">{en ? "Change details or request a new code" : "تعديل البيانات أو طلب رمز جديد"}</button>

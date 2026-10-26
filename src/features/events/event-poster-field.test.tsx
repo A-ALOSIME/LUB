@@ -39,3 +39,32 @@ it("shows the safe reason returned by the upload API", async () => {
 
   await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("لا تملك صلاحية رفع بوستر لهذه الجهة."));
 });
+
+it("retries the same failed file without resetting the surrounding form", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ error: "storage_unavailable" }), { status: 503 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ id: "retry-asset" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:retry") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+  render(<form><input aria-label="عنوان الفعالية" defaultValue="فعالية تجريبية" /><EventPosterField organization="org-1" locale="ar" /></form>);
+  const file = new File([new Uint8Array([137, 80, 78, 71])], "poster.png", { type: "image/png" });
+  fireEvent.change(screen.getByLabelText("صورة بوستر الفعالية"), { target: { files: [file] } });
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "إعادة المحاولة" }));
+  await screen.findByAltText("معاينة بوستر الفعالية");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect((fetchMock.mock.calls[1][1].body as FormData).get("file")).toBe(file);
+  expect((screen.getByLabelText("عنوان الفعالية") as HTMLInputElement).value).toBe("فعالية تجريبية");
+});
+
+it("distinguishes oversized images from unsupported formats before upload", () => {
+  const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+  render(<EventPosterField organization="org-1" locale="ar" />);
+  const input = screen.getByLabelText("صورة بوستر الفعالية");
+  fireEvent.change(input, { target: { files: [new File(["gif"], "poster.gif", { type: "image/gif" })] } });
+  expect(screen.getByRole("alert").textContent).toBe("استخدم صورة JPEG أو PNG.");
+  fireEvent.change(input, { target: { files: [new File([new Uint8Array(5 * 1024 * 1024 + 1)], "poster.png", { type: "image/png" })] } });
+  expect(screen.getByRole("alert").textContent).toBe("حجم الصورة أكبر من 5 ميجابايت.");
+  expect(fetchMock).not.toHaveBeenCalled();
+});

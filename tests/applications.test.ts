@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import { initialDefinition } from "@/features/forms/definition";
@@ -245,4 +246,17 @@ it("preserves forms referenced by events even when they have no registration rou
  await owner();await db.query("insert into lub.events(organization_id,created_by_user_id,title,description,location_type_code,location_text,starts_at,ends_at,registration_opens_at,registration_closes_at,registration_form_template_id) values($1,$2,'فعالية','وصف','In_Person','قاعة',now()+interval '1 day',now()+interval '2 days',now(),now()+interval '1 hour',$3)",[org,leader,unused]);
  await asUser(leader);expect((await db.query<{allowed:boolean}>("select lub.can_delete_form($1) as allowed",[unused])).rows[0].allowed).toBe(false);
  await denied(()=>db.query("select lub.delete_form($1)",[unused]));
+});
+
+it("repairs absent Storage policies without allowing foreign uploads or private reads",async()=>{
+ await owner();
+ await db.exec("drop policy lub_files_insert on storage.objects; drop policy lub_files_read on storage.objects; drop policy lub_files_delete on storage.objects; drop policy public_event_posters on storage.objects");
+ await db.exec(readFileSync("drizzle/0046_restore_application_storage_policies.sql","utf8"));
+ const key=student+"/30000000-0000-4000-8000-000000000099";
+ await asUser(student);await db.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-application-files',$1,$2)",[key,student]);
+ expect((await db.query("select id from storage.objects where name=$1",[key])).rows).toHaveLength(1);
+ await asUser(other);expect((await db.query("select id from storage.objects where name=$1",[key])).rows).toHaveLength(0);
+ await denied(()=>db.query("insert into storage.objects(bucket_id,name) values('lub-application-files',$1)",[student+"/30000000-0000-4000-8000-000000000098"]));
+ await asUser(student);await db.query("delete from storage.objects where name=$1",[key]);
+ await owner();expect((await db.query("select id from storage.objects where name=$1",[key])).rows).toHaveLength(0);
 });
