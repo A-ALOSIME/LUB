@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
 
 let db: PGlite;
+let publicSlug:string;
 const owner = "00000000-0000-4000-8000-000000000001";
 const peer = "00000000-0000-4000-8000-000000000002";
 const org = "00000000-0000-4000-8000-000000000101";
@@ -26,7 +27,7 @@ async function denied(operation: () => Promise<unknown>) {
 async function profile() {
   const rows = await db.query<{ profile: Record<string, unknown> | null }>(
     "select lub.public_talent($1,0,0,0) as profile",
-    [owner],
+    [publicSlug],
   );
   return rows.rows[0].profile;
 }
@@ -60,6 +61,7 @@ beforeEach(async () => {
     );
     await db.query("insert into lub.profile_settings(user_id) values($1)", [user]);
   }
+  publicSlug=(await db.query<{public_slug:string}>("select public_slug from lub.profile_settings where user_id=$1",[owner])).rows[0].public_slug;
   await actor(owner);
 });
 
@@ -110,7 +112,7 @@ it("lets the least-privilege Worker call only the public talent projections", as
   expect((await db.query("select * from lub.talent_directory('',null,0)")).rows).toHaveLength(1);
   const rows = await db.query<{ profile: Record<string, unknown> | null }>(
     "select lub.public_talent($1,0,0,0) as profile",
-    [owner],
+    [publicSlug],
   );
   expect(rows.rows[0].profile).toMatchObject({ name: "طالب 0", total: null });
   await denied(() => db.query("select university_id_ciphertext from lub.student_profiles"));
@@ -177,7 +179,7 @@ it("publishes all approved hours and membership history when the profile is enab
   await visitor();
   expect(await profile()).toMatchObject({ total: "4.00", organizations: [expect.objectContaining({ hours: "4.00" })] });
   const organization = ((await profile())?.organizations as Array<{ memberships: Array<{ roles: unknown[] }> }>)[0];
-  expect(organization.memberships[0].roles).toHaveLength(1);
+  expect(organization.memberships[0].roles).toHaveLength(1);expect(organization.memberships[0].roles[0]).toMatchObject({hours:"4.00"});
 });
 
 it("includes completed-event attendance and all verified contributions", async () => {
@@ -226,6 +228,28 @@ it("searches normalized public skills without changing their stored spelling",as
 it("exposes stored avatars only while the matching active profile is published",async()=>{
  await db.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-avatars',$1,$2)",[owner+'/avatar.webp',owner]);
  await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeNull();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toEqual([]);
- await actor(owner);await publish();await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeTruthy();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toHaveLength(1);expect((await profile())?.avatar_version).toBeTruthy();
+ await actor(owner);await publish();await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeTruthy();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toEqual([]);
+ await db.query("select set_config('storage.operation','object.list',false)");expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toEqual([]);
+ await db.query("select set_config('storage.operation','object.get_authenticated',false)");expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toHaveLength(1);expect((await profile())?.avatar_version).toBeTruthy();
  await actor(owner);await publish(false);await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeNull();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toEqual([]);
 });
+
+
+it("uses opaque public profile slugs and never includes private identity IDs",async()=>{
+ await publish();await db.exec("reset role");const slug=(await db.query<{public_slug:string}>("select public_slug from lub.profile_settings where user_id=$1",[owner])).rows[0].public_slug;
+ expect(slug).not.toBe(owner);await visitor();const p=(await db.query<{p:Record<string,unknown>}>("select lub.public_talent($1,0,0,0) as p",[slug])).rows[0].p;
+ expect(p.name).toBe("طالب 0");expect(JSON.stringify(p)).not.toContain(owner);expect(p.indexable).toBe(false);expect((await db.query<{p:unknown}>("select lub.public_talent($1,0,0,0) as p",[owner])).rows[0].p).toBeNull();
+});
+it("normalizes Arabic names, majors, organizations and bilingual skill aliases with shared filters",async()=>{
+ await publish();await db.query("select lub.save_talent_skill('Python',true),lub.save_talent_skill('SQL',true)");await db.exec("reset role");await db.query("update lub.student_profiles set full_name_ar='أحـمَد يحيى',major_name='تقنية المعلومات' where user_id=$1",[owner]);await visitor();
+ for(const q of ["احمد","يحيي","تقنيه","بايثون"]){const r=(await db.query<{r:{total:number;items:unknown[]}}>("select lub.search_talent($1::jsonb) as r",[JSON.stringify({q,skills:["python","SQL"]})])).rows[0].r;expect(r.total).toBe(1);expect(r.items).toHaveLength(1);}
+ expect((await db.query<{r:{total:number}}>("select lub.search_talent($1::jsonb) as r",[JSON.stringify({minHours:5})])).rows[0].r.total).toBe(0);
+});
+it("excludes administrators and flagged test accounts from every public talent projection",async()=>{
+ await publish();await db.exec("reset role");await db.query("update lub.users set is_test_account=true where id=$1",[owner]);await visitor();expect((await db.query<{r:{total:number}}>("select lub.search_talent('{}') as r")).rows[0].r.total).toBe(0);
+ await db.exec("reset role");await db.query("update lub.users set is_test_account=false where id=$1",[owner]);await db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)",[owner]);await visitor();expect((await db.query<{r:{total:number}}>("select lub.search_talent('{}') as r")).rows[0].r.total).toBe(0);expect(await profile()).toBeNull();
+});
+
+it("keeps optional indexing off until the owner opts in and supports safe Behance links",async()=>{await db.query("select lub.save_talent_settings('نبذة',true,true)");await db.query("select lub.save_talent_link(null,'Behance','أعمالي','https://behance.net/test',true)");await visitor();expect((await profile())?.indexable).toBe(true);expect((await profile())?.links).toEqual([expect.objectContaining({kind:"Behance"})]);await actor(peer);await db.query("select lub.save_talent_settings('',true,false)");await visitor();expect((await profile())?.indexable).toBe(true);});
+
+it("keeps phone numbers private and supplies bilingual metadata without overwriting owner spelling",async()=>{await db.query("select lub.save_talent_link(null,'Phone','جوال','+966500000000',true)");await db.query("select lub.save_talent_skill('بايثون',true)");await publish();await visitor();expect((await profile())?.links).toEqual([]);await actor(owner);const workspace=(await db.query<{data:{links:Array<{is_public:boolean}>;skills:Array<{name:string}>}}>("select lub.talent_workspace() as data")).rows[0].data;expect(workspace.links[0].is_public).toBe(false);expect(workspace.skills[0].name).toBe('بايثون');await db.exec('reset role');expect((await db.query("select name_en,aliases from lub.skills where name_ar='بايثون'")).rows[0]).toEqual({name_en:'Python',aliases:['Python','بايثون']});});

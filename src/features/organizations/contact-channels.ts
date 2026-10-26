@@ -1,7 +1,7 @@
 import type { OrganizationProfileLink } from "./local-content";
 
 export const organizationContactKinds = [
-  "Website", "Email", "Phone", "LinkedIn", "GitHub", "Instagram", "X", "YouTube", "TikTok", "WhatsApp", "Telegram",
+  "Behance", "Website", "Email", "Phone", "LinkedIn", "GitHub", "Instagram", "X", "YouTube", "TikTok", "WhatsApp", "Telegram",
 ] as const;
 
 export type OrganizationContactKind = typeof organizationContactKinds[number];
@@ -90,6 +90,7 @@ export function storedLinksToContactChannels(links: readonly { linkType: string;
 
 export function organizationContactLabel(kind: string, en: boolean) {
   const labels: Record<OrganizationContactKind, [string, string]> = {
+    Behance: ["بيهانس", "Behance"],
     Website: ["الموقع", "Website"], Email: ["البريد", "Email"], Phone: ["الهاتف", "Phone"],
     LinkedIn: ["LinkedIn", "LinkedIn"], GitHub: ["GitHub", "GitHub"], Instagram: ["Instagram", "Instagram"],
     X: ["X", "X"], YouTube: ["YouTube", "YouTube"], TikTok: ["TikTok", "TikTok"],

@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 const mocks=vi.hoisted(()=>({version:vi.fn(),download:vi.fn()}));
-vi.mock("@/db/client",()=>({withVisitor:(callback:(tx:{execute:()=>Promise<unknown>})=>Promise<unknown>)=>callback({execute:async()=>[{version:await mocks.version()}]})}));
+vi.mock("@/db/client",()=>({getDb:()=>({execute:async()=>[{object_key:"private-owner/avatar.webp",version:await mocks.version()}]})}));
 vi.mock("@/lib/supabase/server",()=>({createClient:async()=>({storage:{from:()=>({download:mocks.download})}})}));
 import {GET} from "./route";
 const id="00000000-0000-4000-8000-000000000001",context={params:Promise.resolve({id})};
@@ -16,7 +16,7 @@ it("never returns a private profile photo, even for a previously cached version"
 });
 it("serves the published fixed avatar path with revalidation and image headers",async()=>{
  const result=await GET(new Request("http://localhost/avatar"),context);
- expect(result.status).toBe(200);expect(await result.text()).toBe("webp");expect(mocks.download).toHaveBeenCalledWith(`${id}/avatar.webp`);
+ expect(result.status).toBe(200);expect(await result.text()).toBe("webp");expect(mocks.download).toHaveBeenCalledWith("private-owner/avatar.webp");
  expect(result.headers.get("content-type")).toBe("image/webp");expect(result.headers.get("cache-control")).toContain("must-revalidate");expect(result.headers.get("cross-origin-resource-policy")).toBe("same-origin");
 });
 it("rechecks publication before responding to an unchanged image version",async()=>{

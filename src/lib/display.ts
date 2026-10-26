@@ -1,6 +1,8 @@
 import type { Locale } from "./preferences";
 
 const countForms = {
+  organizations:{one:"جهة واحدة",two:"جهتان",oblique:"جهتين",plural:"جهات",singular:"جهة",zero:"لا جهات",en:"organization"},
+  events:{one:"فعالية واحدة",two:"فعاليتان",oblique:"فعاليتين",plural:"فعاليات",singular:"فعالية",zero:"لا فعاليات",en:"event"},
   applications: {one:"طلب واحد",two:"طلبان",oblique:"طلبين",plural:"طلبات",singular:"طلبًا",zero:"لا طلبات",en:"application"},
   registrants: {one:"مسجل واحد",two:"مسجلان",oblique:"مسجلين",plural:"مسجلين",singular:"مسجلًا",zero:"لا مسجلين",en:"registrant"},
   hours: { one:"ساعة واحدة", two:"ساعتان", oblique:"ساعتين", plural:"ساعات", singular:"ساعة", zero:"لا ساعات", en:"hour" },

@@ -1,0 +1,4 @@
+import {expect,it} from "vitest";
+import {parseTalentFilters,talentHref,talentReturnPath} from "./filters";
+it("round trips multi-skill filters, bounds values and preserves Arabic search",()=>{const f=parseTalentFilters({q:"  أحـمد  ",skill:["Python","بايثون","SQL"],major:"نظم المعلومات",level:"5",minHours:"8",sort:"hours",page:"2"});expect(f.skills).toEqual(["python","sql"]);const href=talentHref(f);expect(talentReturnPath(href)).toBe(href);expect(parseTalentFilters({page:"-9",minHours:"9999999",level:"invalid"})).toMatchObject({page:0,minHours:100000,level:""});});
+it("only returns to the talent directory and drops unrelated query parameters",()=>{for(const path of ["//evil.invalid/talent","https://evil.invalid/talent","/manage","javascript:alert(1)"])expect(talentReturnPath(path)).toBe("/talent");expect(talentReturnPath("/talent?q=ahmad&secret=hidden")).toBe("/talent?q=ahmad");});

@@ -22,11 +22,13 @@ function SheetContent({
   className,
   side = "right",
   showCloseButton = true,
+  closeLabel = "Close",
   children,
   ...props
 }: DialogPrimitive.Popup.Props & {
   side?: "right" | "left" | "top" | "bottom"
   showCloseButton?: boolean
+  closeLabel?: string
 }) {
   const popupRef = React.useRef<HTMLDivElement>(null);
   const sideClasses = {
@@ -61,7 +63,7 @@ function SheetContent({
             render={<Button variant="ghost" size="icon-sm" className="absolute end-3 top-3" />}
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{closeLabel}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

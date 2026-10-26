@@ -15,7 +15,7 @@ import type { Locale } from "@/lib/preferences";
 import {FormField} from "@/components/form-field";
 
 const channelPlaceholder: Record<OrganizationContactKind, string> = {
-  Website: "https://example.com", Email: "name@example.com", Phone: "+966 5X XXX XXXX",
+  Behance: "https://behance.net/...", Website: "https://example.com", Email: "name@example.com", Phone: "+966 5X XXX XXXX",
   LinkedIn: "https://linkedin.com/company/...", GitHub: "https://github.com/...", Instagram: "https://instagram.com/...",
   X: "https://x.com/...", YouTube: "https://youtube.com/@...", TikTok: "https://tiktok.com/@...",
   WhatsApp: "https://wa.me/...", Telegram: "https://t.me/...",

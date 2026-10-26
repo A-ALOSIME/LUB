@@ -1,8 +1,102 @@
-import {TalentSearch} from "@/features/talent/talent-search";
-import {localizedMetadata} from "@/lib/localized-metadata";
-import Link from "next/link";
-import {talentDirectory,talentSkillOptions} from "@/features/talent/repository";
-import {TalentCards} from "@/features/talent/view";
-import {getPreferences} from "@/lib/preferences";
-export async function generateMetadata(){return localizedMetadata('اكتشاف المواهب','Talent discovery',{}, {index:true,canonical:"/talent",description:{ar:"اكتشف ملفات المهارات والإنجازات التي اختار الطلاب نشرها في لُبّ، مع احترام خيارات ظهور كل ملف.",en:"Discover the skills and achievements students choose to publish on LUB, with each profile's visibility controlled by its owner."}});}
-export default async function TalentDirectory({searchParams}:{searchParams:Promise<{q?:string;skill?:string;page?:string}>}){const [s,{locale}]=await Promise.all([searchParams,getPreferences()]);const en=locale==="en";const q=(s.q??"").slice(0,120),skill=(s.skill??"").slice(0,80),page=Math.floor(Math.min(10000,Math.max(0,Number(s.page)||0)));const [items,options]=await Promise.all([talentDirectory(q,skill||null,page),talentSkillOptions()]);const href=(p:number)=>`?${new URLSearchParams({q,skill,page:String(p)})}`;return <><main id="main" className="mx-auto max-w-4xl px-5 py-10 sm:px-8"><h1 className="text-3xl font-bold">{en?"Discover talent":"اكتشاف المواهب"}</h1><p className="mt-4 leading-8 text-muted">{en?"Profiles students chose to publish, with skills and achievements you can explore freely.":"ملفات نشرها الطلاب باختيارهم، ومهارات وإنجازات قابلة للاستكشاف بدون تسجيل."}</p><TalentSearch query={q} skill={skill} options={options} en={en}/><TalentCards items={items.slice(0,24)} locale={locale}/><nav aria-label={en?"Talent pages":"صفحات المواهب"} className="mt-6 flex gap-5">{page>0&&<Link className="text-link" href={href(page-1)}>{en?"Previous":"السابق"}</Link>}{items.length>24&&<Link className="text-link" href={href(page+1)}>{en?"Next":"التالي"}</Link>}</nav></main></>;}
+import { TalentSearch } from "@/features/talent/talent-search";
+import { localizedMetadata } from "@/lib/localized-metadata";
+import { searchTalent } from "@/features/talent/repository";
+import { TalentCards, TalentEmpty } from "@/features/talent/view";
+import {
+  parseTalentFilters,
+  talentHref,
+  type TalentQuery,
+} from "@/features/talent/filters";
+import { getPreferences } from "@/lib/preferences";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
+export async function generateMetadata() {
+  return localizedMetadata(
+    "اكتشاف المواهب",
+    "Talent discovery",
+    {},
+    {
+      index: true,
+      canonical: "/talent",
+      description: {
+        ar: "اكتشف مهارات الطلاب ومشاركاتهم وساعاتهم المعتمدة في لُبّ.",
+        en: "Discover student skills, participation and approved activity through LUB.",
+      },
+    },
+  );
+}
+export default async function TalentDirectory({
+  searchParams,
+}: {
+  searchParams: Promise<TalentQuery>;
+}) {
+  const [query, { locale }] = await Promise.all([
+    searchParams,
+    getPreferences(),
+  ]);
+  const filters = parseTalentFilters(query),
+    en = locale === "en",
+    result = await searchTalent(filters),
+    from = talentHref(filters);
+  return (
+    <main
+      id="main"
+      dir={en ? "ltr" : "rtl"}
+      className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-8"
+    >
+      <header className="flex flex-col gap-3">
+        <h1 className="text-3xl font-bold">
+          {en ? "Discover talent" : "اكتشاف المواهب"}
+        </h1>
+        <p className="leading-relaxed text-muted-foreground">
+          {en
+            ? "Student skills, backed by approved activity in clubs, councils and events."
+            : "مهارات طلابية تدعمها مشاركة موثّقة في الأندية والمجالس والفعاليات."}
+        </p>
+      </header>
+      <TalentSearch initial={filters} options={result.options} en={en} />
+      <p
+        role="status"
+        aria-live="polite"
+        className="text-sm text-muted-foreground"
+      >
+        {new Intl.NumberFormat("en-US").format(result.total)}{" "}
+        {en ? "results" : "نتيجة"}
+      </p>
+      {result.items.length ? (
+        <TalentCards items={result.items} locale={locale} returnTo={from} />
+      ) : (
+        <TalentEmpty en={en} filtered={result.available > 0} />
+      )}
+      {(filters.page > 0 || (filters.page + 1) * 24 < result.total) && (
+        <Pagination aria-label={en ? "Talent pages" : "صفحات المواهب"}>
+          <PaginationContent>
+            {filters.page > 0 && (
+              <PaginationItem>
+                <PaginationPrevious
+                  href={talentHref({ ...filters, page: filters.page - 1 })}
+                  text={en ? "Previous" : "السابق"}
+                  aria-label={en ? "Previous page" : "الصفحة السابقة"}
+                />
+              </PaginationItem>
+            )}
+            {(filters.page + 1) * 24 < result.total && (
+              <PaginationItem>
+                <PaginationNext
+                  href={talentHref({ ...filters, page: filters.page + 1 })}
+                  text={en ? "Next" : "التالي"}
+                  aria-label={en ? "Next page" : "الصفحة التالية"}
+                />
+              </PaginationItem>
+            )}
+          </PaginationContent>
+        </Pagination>
+      )}
+    </main>
+  );
+}

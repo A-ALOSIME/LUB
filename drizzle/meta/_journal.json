@@ -351,6 +351,13 @@
       "when": 1793011724455,
       "tag": "0049_event_drafts_and_publication",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793025435326,
+      "tag": "0050_talent_discovery_privacy",
+      "breakpoints": true
     }
   ]
 }

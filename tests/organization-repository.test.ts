@@ -115,7 +115,7 @@ it("executes safe talent DTOs and combines private readiness with workspace in o
  const {talentDirectory,publicTalent,talentWorkspace}=await import("@/features/talent/repository");const pages={organizations:0,events:0,projects:0,sources:0};
  expect(await publicTalent(leader,pages)).toBeNull();expect(await talentDirectory("",null,0)).toEqual([]);scopedReads=0;const workspace=await talentWorkspace(leader,pages);expect(scopedReads).toBe(1);expect(workspace?.onboarded).toBe(true);expect(workspace?.settings).toEqual({public_profile_enabled:false});
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.save_talent_settings('نبذة',true)");await engine.query("select lub.save_talent_skill('تصميم',true)");await engine.exec("reset role");
- expect((await talentDirectory("القائد","تصميم",0)).map(p=>p.id)).toEqual([leader]);expect((await publicTalent(leader,pages))?.skills).toEqual(["تصميم"]);expect(JSON.stringify(await publicTalent(leader,pages))).not.toMatch(/secret2|lookup|university/);
+ const settings=(await talentWorkspace(leader,pages))!.settings;expect(settings).toMatchObject({public_slug:expect.any(String),allow_indexing:false});const slug=settings.public_slug!;expect(slug).not.toBe(leader);expect((await talentDirectory("القائد","تصميم",0)).map(p=>p.id)).toEqual([slug]);expect((await publicTalent(slug,pages))?.skills).toEqual(["تصميم"]);expect(JSON.stringify(await publicTalent(slug,pages))).not.toMatch(/secret2|lookup|university/);expect(JSON.stringify(await publicTalent(slug,pages))).not.toContain(leader);
 });
 
 it("reads published event discovery anonymously and private event data in one scoped query",async()=>{

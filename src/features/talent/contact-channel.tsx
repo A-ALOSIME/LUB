@@ -2,12 +2,12 @@ import { organizationContactAddableKinds, organizationContactLabel, type Organiz
 import { OrganizationSocialIcon } from "@/features/organizations/social-links";
 
 export type TalentChannelKind = OrganizationContactKind;
-export const talentAddableChannelKinds = organizationContactAddableKinds;
+export const talentAddableChannelKinds = [...organizationContactAddableKinds,"Behance"] as const;
 
 export function TalentChannelIcon({ kind, className = "size-4" }: { kind: string; className?: string }) {
   return <OrganizationSocialIcon kind={kind} className={className} />;
 }
 
 export function talentChannelLabel(kind: string, en: boolean) {
-  return organizationContactLabel(kind, en);
+  const label=organizationContactLabel(kind,en);return en?label:kind==="Website"?"الموقع الشخصي":kind==="Email"?"البريد الإلكتروني":`حساب ${label}`;
 }

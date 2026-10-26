@@ -1,12 +1,13 @@
 import type { OrganizationProfileLink } from "./local-content";
-import { SiGithub } from "react-icons/si";
+import { SiGithub,SiBehance } from "react-icons/si";
 
-type SocialIconName = "x" | "linkedin" | "instagram" | "youtube" | "tiktok" | "whatsapp" | "telegram" | "github" | "email" | "phone" | "website" | "link";
+type SocialIconName = "behance" | "x" | "linkedin" | "instagram" | "youtube" | "tiktok" | "whatsapp" | "telegram" | "github" | "email" | "phone" | "website" | "link";
 
 function iconName(link: OrganizationProfileLink): SocialIconName {
   const details = `${link.label} ${link.value} ${link.href ?? ""}`.toLowerCase();
   if (link.href?.startsWith("mailto:") || /email|e-mail|بريد|ايميل|إيميل/.test(details)) return "email";
   if (link.href?.startsWith("tel:") || /phone|telephone|هاتف|جوال/.test(details)) return "phone";
+  if (/behance/.test(details)) return "behance";
   if (/linkedin|لينكد/.test(details)) return "linkedin";
   if (/instagram|انستغرام|انستقرام/.test(details)) return "instagram";
   if (/youtube|يوتيوب/.test(details)) return "youtube";
@@ -31,6 +32,7 @@ function SocialIcon({ name, className }: { name: SocialIconName; className?: str
     case "tiktok": return <svg {...common}><path fill="currentColor" d="M19.6 7.1a5.7 5.7 0 0 1-3.8-1.5v8.2a5.7 5.7 0 1 1-5.7-5.7c.4 0 .8 0 1.2.1v3.2a2.6 2.6 0 1 0 1.4 2.4V2h3.2a5.7 5.7 0 0 0 3.7 3.2Z" /></svg>;
     case "whatsapp": return <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.5 11.7a8.5 8.5 0 0 1-12.6 7.5L3 20l.8-4.7a8.5 8.5 0 1 1 16.7-3.6Z" /><path d="M8.1 8.1c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .5.4l.7 1.7c.1.3.1.5-.1.7l-.5.6c-.2.2-.2.4 0 .7.5.9 1.2 1.6 2.1 2.1.3.2.5.2.7-.1l.7-.8c.2-.2.4-.3.7-.2l1.7.8c.3.1.4.3.4.5 0 .3-.2 1.2-.7 1.6-.5.5-1.2.7-2 .6-1-.1-2.1-.6-3.5-1.8-1.2-1-2.1-2.3-2.4-3.1-.4-1-.4-1.8-.2-2.4Z" /></svg>;
     case "telegram": return <svg {...common}><path fill="currentColor" d="M21.8 4.2 18.6 20c-.2 1.1-.9 1.3-1.8.8l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L6 13.4l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6L20.3 3c.9-.3 1.8.2 1.5 1.2Z" /></svg>;
+    case "behance": return <SiBehance {...common} />;
     case "github": return <SiGithub {...common} />;
     case "email": return <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></svg>;
     case "phone": return <svg {...common} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-4.3-1.3-1.6 2a14.1 14.1 0 0 1-7.8-7.8l2-1.6Z" /></svg>;

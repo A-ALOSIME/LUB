@@ -45,8 +45,8 @@ it("renders icon-only LinkedIn and GitHub links without exposing their URLs", ()
       { kind: "GitHub", label: "GitHub", value: "https://github.com/student" },
     ],
   }} pages={pages} />);
-  const linkedIn = screen.getByRole("link", { name: "LinkedIn" });
-  const github = screen.getByRole("link", { name: "GitHub" });
+  const linkedIn = screen.getByRole("link", { name: "حساب LinkedIn" });
+  const github = screen.getByRole("link", { name: "حساب GitHub" });
   expect(linkedIn.getAttribute("href")).toBe("https://linkedin.com/in/student");
   expect(github.getAttribute("href")).toBe("https://github.com/student");
   expect(linkedIn.className).toContain("size-10");

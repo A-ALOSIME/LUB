@@ -14,7 +14,7 @@ const id = (form: FormData, key: string) => z.uuid().parse(form.get(key));
 const optionalId = (form: FormData, key: string) => form.get(key) ? id(form, key) : null;
 const text = (form: FormData, key: string, max: number, min = 0) => z.string().trim().min(min).max(max).parse(form.get(key) ?? "");
 const checked = (form: FormData, key: string) => form.get(key) === "true";
-const linkKind = z.enum([...organizationContactAddableKinds, "GitHub"]);
+const linkKind = z.enum([...organizationContactAddableKinds, "GitHub","Behance"]);
 
 function contactValue(kind: z.infer<typeof linkKind>, input: string) {
   const normalized = normalizeOrganizationContact({ kind, value: kind === "Phone" ? normalizeDigits(input) : input });
@@ -32,7 +32,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
     await withUser(user.id, async (tx) => {
       switch (operation) {
         case "profile": {
-          await tx.execute(sql`select lub.save_talent_settings(${text(form, "bio", 1000)},${checked(form, "enabled")})`);
+          await tx.execute(sql`select lub.save_talent_settings(${text(form, "bio", 1000)},${checked(form, "enabled")},${checked(form,"indexable")})`);
 
           const linkIds = z.array(z.uuid()).max(10).parse(form.getAll("linkId"));
           for (const linkId of linkIds) {

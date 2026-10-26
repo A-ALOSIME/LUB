@@ -7,10 +7,11 @@ import type { Locale } from "@/lib/preferences";
 import { organizationContactAddableKinds, organizationContactLabel, type OrganizationContactKind } from "./contact-channels";
 import { OrganizationSocialIcon } from "./social-links";
 
-export function ContactChannelAddMenu({ locale, onSelect, disabled = false }: {
+export function ContactChannelAddMenu({ locale, onSelect, disabled = false, kinds = organizationContactAddableKinds }: {
   locale: Locale;
   onSelect: (kind: OrganizationContactKind) => void;
   disabled?: boolean;
+  kinds?: readonly OrganizationContactKind[];
 }) {
   const en = locale === "en";
   return <DropdownMenu>
@@ -18,7 +19,7 @@ export function ContactChannelAddMenu({ locale, onSelect, disabled = false }: {
       <Plus aria-hidden="true" />{en ? "Add channel" : "إضافة قناة"}
     </DropdownMenuTrigger>
     <DropdownMenuContent align={en ? "end" : "start"} className="min-w-40">
-      <DropdownMenuGroup>{organizationContactAddableKinds.map(kind => <DropdownMenuItem key={kind} onClick={() => onSelect(kind)}>
+      <DropdownMenuGroup>{kinds.map(kind => <DropdownMenuItem key={kind} onClick={() => onSelect(kind)}>
         <OrganizationSocialIcon kind={kind} className="size-4" />
         {organizationContactLabel(kind, en)}
       </DropdownMenuItem>)}</DropdownMenuGroup>

@@ -44,12 +44,12 @@ it("uses the organization contact menu before opening the add-channel form", asy
 
   fireEvent.click(within(menu).getByRole("menuitem", { name: /X/ }));
   const dialog = await screen.findByRole("dialog");
-  expect(within(dialog).getByLabelText("X")).toBeTruthy();
+  expect(within(dialog).getByLabelText("حساب X")).toBeTruthy();
   expect(within(dialog).queryByRole("button", { name: "GitHub" })).toBeNull();
 });
 
 it("keeps the public profile link in the publish footer", () => {
-  render(<TalentWorkspaceEditor data={{ ...data, settings: { public_profile_enabled: true } }} user="student" pages={pages} />);
+  render(<TalentWorkspaceEditor data={{ ...data, settings: { public_profile_enabled: true,public_slug:"11111111-1111-4111-8111-111111111111" } }} user="student" pages={pages} />);
 
   const view = screen.getByRole("link", { name: "عرض الملف العام" });
   expect(view.closest(".workspace-page-header")).toBeNull();

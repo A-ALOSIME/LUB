@@ -11,6 +11,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Empty, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {Badge} from "@/components/ui/badge";
+import {Switch} from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
@@ -82,7 +84,7 @@ function AddContactDialog({ locale, disabled }: { locale: Locale; disabled: bool
   const visibilityLabel = en ? "Show this contact publicly" : "إظهار قناة التواصل للعامة";
 
   return <>
-    <ContactChannelAddMenu locale={locale} disabled={disabled} onSelect={nextKind => { setKind(nextKind as TalentChannelKind); setOpen(true); }} />
+    <ContactChannelAddMenu kinds={talentAddableChannelKinds} locale={locale} disabled={disabled} onSelect={nextKind => { setKind(nextKind as TalentChannelKind); setOpen(true); }} />
     <Dialog open={open} onOpenChange={setOpen}>
     <DialogContent dir={en ? "ltr" : "rtl"} className="talent-form-dialog font-sans sm:max-w-lg" showCloseButton={false}>
       <DialogHeader className="text-start">
@@ -113,14 +115,14 @@ function AddContactDialog({ locale, disabled }: { locale: Locale; disabled: bool
         </Field>
         <Field orientation="horizontal" className="items-center justify-between gap-4 border-t border-border pt-3">
           <FieldLabel>{visibilityLabel}</FieldLabel>
-          <ContactVisibilityButton
+          {kind === "Phone" ? <Badge variant="outline">{en?"Private phone number":"رقم جوال خاص"}</Badge> : <ContactVisibilityButton
             name="visible"
             label={talentChannelLabel(kind, en)}
             visible={false}
             locale={locale}
             hideLabel={en ? "Make this contact private" : "إخفاء قناة التواصل عن العامة"}
             showLabel={en ? "Show this contact publicly" : "إظهار قناة التواصل للعامة"}
-          />
+          />}
         </Field>
         </FieldGroup>
       </TalentForm>
@@ -166,7 +168,7 @@ function EditContactDialog({ link, locale }: { link: TalentWorkspace["links"][nu
         </Field>
         <Field orientation="horizontal" className="items-center justify-between gap-4 border-t border-border pt-3">
           <FieldLabel>{visibilityLabel}</FieldLabel>
-          <ContactVisibilityButton name="visible" label={label} visible={link.is_public} locale={locale} />
+          {link.link_type === "Phone" ? <Badge variant="outline">{en?"Private phone number":"رقم جوال خاص"}</Badge> : <ContactVisibilityButton name="visible" label={label} visible={link.is_public} locale={locale} />}
         </Field>
       </TalentForm>
       <DialogFooter>
@@ -236,7 +238,7 @@ function AddProjectDialog({ sources, locale }: { sources: TalentWorkspace["sourc
   </Dialog>;
 }
 
-function ProfileSettingsForm({ data, user, pages, locale }: { data: TalentWorkspace; user: string; pages: TalentPages; locale: Locale }) {
+function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; user: string; pages: TalentPages; locale: Locale }) {
   const message = useRef<HTMLParagraphElement>(null);
   const [dirty, setDirty] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -286,7 +288,7 @@ function ProfileSettingsForm({ data, user, pages, locale }: { data: TalentWorksp
                     <input type="hidden" name={`${fields}kind`} value={link.link_type} />
                     <input type="hidden" name={`${fields}label`} value={link.label} />
                     <input type="hidden" name={`${fields}value`} value={link.url_or_value} />
-                    <ContactVisibilityButton key={`${link.id}-${link.is_public}`} name={`${fields}visible`} label={label} visible={link.is_public} locale={locale} onVisibilityChange={markDirty} />
+                    {link.link_type === "Phone" ? <Badge variant="outline">{en?"Private phone number":"رقم جوال خاص"}</Badge> : <ContactVisibilityButton key={`${link.id}-${link.is_public}`} name={`${fields}visible`} label={label} visible={link.is_public} locale={locale} onVisibilityChange={markDirty} />}
                     <EditContactDialog link={link} locale={locale} />
                     <DeleteConfirmation id={link.id} operation="remove-link" item={label} locale={locale} />
                   </li>;
@@ -357,7 +359,8 @@ function ProfileSettingsForm({ data, user, pages, locale }: { data: TalentWorksp
             onVisibilityChange={markDirty}
           />
         </div>
-        {data.settings.public_profile_enabled && <Button render={<Link href={`/talent/${user}`} />} variant="outline" size="sm" className="w-fit shrink-0 gap-1.5 no-underline" aria-label={en ? "View public profile" : "عرض الملف العام"}>
+        <Field orientation="horizontal"><FieldLabel htmlFor="talent-indexing">{en?"Allow search engines to index my public profile":"السماح لمحركات البحث بفهرسة ملفي العام"}</FieldLabel><Switch id="talent-indexing" name="indexable" value="true" defaultChecked={data.settings.allow_indexing??false} onCheckedChange={markDirty}/></Field>
+        {data.settings.public_profile_enabled && data.settings.public_slug && <Button render={<Link href={`/talent/${data.settings.public_slug}`} />} variant="outline" size="sm" className="w-fit shrink-0 gap-1.5 no-underline" aria-label={en ? "View public profile" : "عرض الملف العام"}>
           <Eye aria-hidden="true" data-icon="inline-start" /><span>{en ? "View profile" : "عرض الملف العام"}</span>
         </Button>}
       </CardFooter>

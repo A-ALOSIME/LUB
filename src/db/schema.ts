@@ -9,6 +9,7 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
 
 export const users = lub.table("users", {
+  isTestAccount: boolean("is_test_account").notNull().default(false),
   id: uuid("id").primaryKey(),
   email: varchar("email", { length: 254 }).notNull().unique(),
   phone: varchar("phone", { length: 16 }).unique(),
@@ -31,6 +32,8 @@ export const studentProfiles = lub.table("student_profiles", {
 export const profileSettings = lub.table("profile_settings", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "restrict" }),
   publicProfileEnabled: boolean("public_profile_enabled").notNull().default(false),
+  publicSlug: uuid("public_slug").notNull().defaultRandom().unique(),
+  allowIndexing: boolean("allow_indexing").notNull().default(false),
   updatedAt: updatedAt(),
 }).enableRLS();
 
@@ -330,9 +333,9 @@ export const eventAssets=lub.table("event_assets",{
 },t=>[primaryKey({columns:[t.eventId,t.assetId]}),check("event_asset_type_check",sql`${t.assetTypeCode} in ('Approval','Attendance','Report','Photo','Poster')`)]).enableRLS();
 export const profileLinks=lub.table("profile_links",{
  id:uuid("id").primaryKey().defaultRandom(),userId:uuid("user_id").notNull().references(()=>users.id),linkType:varchar("link_type",{length:20}).notNull(),label:varchar("label",{length:80}).notNull(),urlOrValue:varchar("url_or_value",{length:2048}).notNull(),isPublic:boolean("is_public").notNull().default(false),
-},t=>[check("talent_link_check",sql`${t.linkType} in ('Email','Phone','Website','LinkedIn','GitHub','X','TikTok','Instagram') and length(trim(${t.label})) between 1 and 80 and length(trim(${t.urlOrValue}))>0`),index("talent_link_user_idx").on(t.userId)]).enableRLS();
+},t=>[check("talent_link_check",sql`${t.linkType} in ('Email','Phone','Website','LinkedIn','GitHub','X','TikTok','Instagram','Behance') and length(trim(${t.label})) between 1 and 80 and length(trim(${t.urlOrValue}))>0`),index("talent_link_user_idx").on(t.userId)]).enableRLS();
 export const skills=lub.table("skills",{
- id:uuid("id").primaryKey().defaultRandom(),nameAr:varchar("name_ar",{length:80}).notNull().unique(),isActive:boolean("is_active").notNull().default(true),
+ id:uuid("id").primaryKey().defaultRandom(),nameAr:varchar("name_ar",{length:80}).notNull().unique(),nameEn:varchar("name_en",{length:80}),aliases:jsonb("aliases").$type<string[]>().notNull().default([]),isActive:boolean("is_active").notNull().default(true),
 },t=>[check("talent_skill_name_check",sql`length(trim(${t.nameAr})) between 2 and 80`)]).enableRLS();
 export const studentSkills=lub.table("student_skills",{
  userId:uuid("user_id").notNull().references(()=>users.id),skillId:uuid("skill_id").notNull().references(()=>skills.id),sourceCode:varchar("source_code",{length:20}).notNull().default("Self_Declared"),isPublic:boolean("is_public").notNull().default(true),
