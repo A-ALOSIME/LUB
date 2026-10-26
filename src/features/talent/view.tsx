@@ -1,13 +1,15 @@
-import { formatHours } from "@/lib/display";
+import { academicLevel, formatHours } from "@/lib/display";
 import Link from "next/link";
 import { Award, CalendarDays, Clock3, GraduationCap, MapPin, UsersRound } from "lucide-react";
 import type { PublicTalent, TalentCard, TalentPages } from "./repository";
 import { eventDay, eventDayEn, eventLabels, eventLabelsEn } from "@/features/events/display";
 import type { Locale } from "@/lib/preferences";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TalentChannelIcon, talentChannelLabel } from "./contact-channel";
+import { TalentContactLinks } from "./contact-links";
+import { displaySkills } from "./skill-normalization";
+import { Button } from "@/components/ui/button";
 
 const roleLabels: Record<string, string> = { OL: "قائد الجهة", OD: "نائب القائد", CL: "قائد اللجنة", CD: "نائب قائد اللجنة" };
 const roleLabelsEn: Record<string, string> = { OL: "Organization leader", OD: "Deputy leader", CL: "Committee leader", CD: "Deputy committee leader" };
@@ -23,19 +25,21 @@ export function TalentPagination({ pages, keyName, more, locale = "ar" }: { page
 
 export function TalentCards({ items, locale = "ar" }: { items: TalentCard[]; locale?: Locale }) {
   const en = locale === "en";
-  return items.length ? <ul className="grid gap-4 sm:grid-cols-2">{items.map((talent) => <li key={talent.id}>
-    <Card size="sm" className="h-full min-w-0">
-      <CardHeader>
-        <CardTitle className="text-lg"><Link href={`/talent/${talent.id}`} className="text-link">{talent.name}</Link></CardTitle>
-        <p dir="auto" className="text-sm text-muted-foreground">{talent.major}</p>
-      </CardHeader>
-      <CardContent className="min-w-0">
-        {talent.bio && <p dir="auto" className="line-clamp-3 break-words leading-7 text-muted-foreground">{talent.bio}</p>}
-        {talent.skills.length > 0 && <ul className="mt-3 flex flex-wrap gap-2" aria-label={en ? "Published skills" : "المهارات المنشورة"}>{talent.skills.map((skill) => <li key={skill} dir="auto" className="rounded-full bg-muted px-2.5 py-1 text-xs">{skill}</li>)}</ul>}
-      </CardContent>
-    </Card>
-  </li>)}</ul> : <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">{en ? "No matching published talent profiles right now." : "لا توجد ملفات مهارية منشورة مطابقة الآن."}</p>;
+  return items.length ? <ul className="grid gap-4 sm:grid-cols-2">{items.map(talent => {
+    const skills = displaySkills(talent.skills);
+    return <li key={talent.id}><Link href={`/talent/${talent.id}`} className="block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Card size="sm" className="h-full min-w-0 transition-colors hover:bg-accent/50">
+        <CardContent className="grid min-w-0 gap-3">
+          <div className="flex items-center gap-3"><Avatar size="lg">{talent.avatar_version && <AvatarImage src={avatarUrl(talent)} alt=""/>}<AvatarFallback>{talent.name.trim().slice(0,1)}</AvatarFallback></Avatar><div className="min-w-0"><h2 className="break-words text-lg font-semibold">{talent.name}</h2><p className="text-sm text-muted-foreground">{talent.major}{talent.level && <> · {academicLevel(talent.level,locale)}</>}</p></div></div>
+          {Number(talent.total)>0 && <Badge variant="outline"><Clock3/>{hoursLabel(talent.total!,en)}</Badge>}
+          {skills.length>0 && <div className="flex flex-wrap gap-2">{skills.slice(0,5).map(skill=><Badge key={skill} variant="secondary" dir="auto">{skill}</Badge>)}{skills.length>5&&<Badge variant="outline" dir="ltr">+{skills.length-5}</Badge>}</div>}
+        </CardContent>
+      </Card>
+    </Link></li>;
+  })}</ul> : <div className="space-y-3 py-8 text-center"><p className="text-muted-foreground">{en ? "No matching published talent profiles." : "لا توجد ملفات مهارية مطابقة."}</p><Button nativeButton={false} variant="outline" render={<Link href="/talent"/>}>{en?"Clear search":"مسح البحث"}</Button></div>;
 }
+
+function avatarUrl(profile: TalentCard) { return `/talent/${profile.id}/avatar?v=${encodeURIComponent(profile.avatar_version ?? "")}`; }
 
 function formatDate(value: string, en: boolean) {
   return (en ? eventDayEn : eventDay)(value);
@@ -60,66 +64,49 @@ export function PublicTalentView({ profile: p, pages, locale = "ar" }: { profile
   const labels = en ? eventLabelsEn : eventLabels;
   const roles = en ? roleLabelsEn : roleLabels;
   const firstInitial = p.name.trim().normalize("NFC").slice(0, 1) || (en ? "S" : "ط");
-  const level = en ? p.level === "graduate" ? "Graduate" : `Level ${p.level}` : p.level === "graduate" ? "خريج" : `المستوى ${p.level}`;
+  const level = academicLevel(p.level,locale);
+  const skills = displaySkills(p.skills);
   const total = p.total !== null && Number(p.total) > 0 ? p.total : null;
 
-  return <div dir="rtl" className="grid min-w-0 gap-4">
+  return <div dir={en?"ltr":"rtl"} className="grid min-w-0 gap-4">
     <Card className="min-w-0">
       <CardContent className="grid min-w-0 gap-4 p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:p-5">
         <Avatar size="lg" className="size-14 sm:size-16">
+          {p.avatar_version && <AvatarImage src={avatarUrl(p)} alt=""/>}
           <AvatarFallback className="bg-primary text-xl font-semibold text-primary-foreground sm:text-2xl">{firstInitial}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <h1 dir="auto" className="break-words text-2xl font-bold leading-tight sm:text-3xl">{p.name}</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3"><h1 dir="auto" className="break-words text-2xl font-bold leading-tight sm:text-3xl">{p.name}</h1>{total && <Badge variant="outline"><Clock3/>{hoursLabel(total,en)}</Badge>}</div>
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span className="inline-flex min-w-0 items-center gap-1.5"><GraduationCap aria-hidden="true" className="size-4 shrink-0" /><bdi dir="auto">{p.major}</bdi></span>
             <span>{level}</span>
           </p>
-          {total && <Badge variant="outline" className="mt-3 h-7 gap-1.5 px-2.5 text-sm font-medium"><Clock3 aria-hidden="true" />{hoursLabel(total, en)}</Badge>}
+
           {p.bio && <p dir="auto" className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground">{p.bio}</p>}
-          {p.skills.length > 0 && <div className="mt-4 flex flex-wrap gap-2" aria-label={en ? "Published skills" : "المهارات المنشورة"}>
-            {p.skills.map((skill) => <Badge key={skill} variant="secondary" dir="auto" className="h-auto max-w-full whitespace-normal px-2.5 py-1 text-xs">{skill}</Badge>)}
-          </div>}
-          {p.links.length > 0 && <nav className="mt-4 flex flex-wrap gap-2" aria-label={en ? "Published contact channels" : "قنوات التواصل المنشورة"}>
-            {p.links.map((link, index) => {
-              const href = link.kind === "Email" ? `mailto:${link.value}` : link.kind === "Phone" ? `tel:${link.value}` : link.value;
-              const label = talentChannelLabel(link.kind, en);
-              return <a key={`${link.kind}-${index}`} href={href} rel="noopener noreferrer" aria-label={label} title={label} className="organization-contact-icon transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                <TalentChannelIcon kind={link.kind} className="size-4 shrink-0" />
-              </a>;
-            })}
-          </nav>}
+          {skills.length > 0 ? <div className="mt-4 flex flex-wrap gap-2" aria-label={en ? "Published skills" : "المهارات المنشورة"}>
+            {skills.map((skill) => <Badge key={skill} variant="secondary" dir="auto" className="h-auto max-w-full whitespace-normal px-2.5 py-1 text-xs">{skill}</Badge>)}
+          </div> : <p className="mt-3 text-sm text-muted-foreground">{en?"No published skills.":"لا توجد مهارات منشورة."}</p>}
+          {p.links.length > 0 && <TalentContactLinks links={p.links} en={en}/>}
+          {!total && <p className="mt-3 text-sm text-muted-foreground">{en?"No approved hours yet.":"لا توجد ساعات معتمدة بعد."}</p>}
         </div>
       </CardContent>
     </Card>
 
     {p.organizations.length > 0 && <PublicSection title={en ? "Memberships and roles" : "العضويات والأدوار"} icon={<UsersRound aria-hidden="true" className="size-4" />}>
       <ul className="divide-y divide-border">
-        {p.organizations.slice(0, 25).map((organization) => <li key={organization.id} className="py-3 first:pt-0 last:pb-0">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Link dir="auto" href={`/organizations/${organization.slug}`} className="font-medium text-primary underline-offset-4 hover:underline">{organization.name}</Link>
-            {organization.archived && <Badge variant="outline">{en ? "Archived" : "مؤرشفة"}</Badge>}
-          </div>
-          {organization.hours !== null && Number(organization.hours) > 0 && <p className="mt-1 text-xs text-muted-foreground">{hoursLabel(organization.hours, en)}</p>}
-          <ul className="mt-2 flex flex-col gap-2">
-            {organization.memberships.map((membership, membershipIndex) => <li key={`${membership.start_date}-${membershipIndex}`} className="text-sm">
-              <p className="text-muted-foreground">
-                {membership.end_date
-                  ? `${en ? "Member from" : "عضو من"} ${formatDate(membership.start_date, en)} ${en ? "to" : "حتى"} ${formatDate(membership.end_date, en)}`
-                  : `${en ? "Member since" : "عضو منذ"} ${formatDate(membership.start_date, en)}`}
-              </p>
-              {membership.roles.length > 0 && <ul className="mt-1 flex flex-col gap-1 border-s-2 border-border ps-3">
-                {membership.roles.map((role, roleIndex) => <li key={`${role.code}-${role.starts}-${roleIndex}`} className="flex flex-wrap gap-x-2 text-sm">
-                  <span className="font-medium">{roles[role.code] ?? role.code}</span>
-                  <span className="text-muted-foreground">{formatDate(role.starts, en)}{role.ends ? ` ${en ? "to" : "إلى"} ${formatDate(role.ends, en)}` : ""}</span>
-                </li>)}
-              </ul>}
-            </li>)}
-          </ul>
-        </li>)}
+        {p.organizations.slice(0, 25).map(organization => {
+          const memberships=organization.memberships;
+          const joined=memberships.map(m=>m.start_date).sort()[0];
+          const codes=[...new Set(memberships.flatMap(m=>m.roles.map(r=>r.code)))];
+          return <li key={organization.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><Link dir="auto" href={`/organizations/${organization.slug}`} className="font-medium hover:text-primary">{organization.name}</Link>{organization.archived && <Badge variant="outline">{en?"Archived":"مؤرشفة"}</Badge>}{codes.length?codes.map(code=><Badge key={code} variant="secondary">{roles[code]??code}</Badge>):<Badge variant="secondary">{en?"Member":"عضو"}</Badge>}</div>{joined&&<p className="text-sm text-muted-foreground">{en?"Member since":"عضو منذ"} {formatDate(joined,en)}</p>}</div>
+            {Number(organization.hours)>0 && <span className="text-sm text-muted-foreground">{hoursLabel(organization.hours!,en)}</span>}
+          </li>;
+        })}
       </ul>
       <TalentPagination pages={pages} keyName="organizations" more={p.organizations.length > 25} locale={locale} />
     </PublicSection>}
+    {!p.organizations.length && <p className="text-sm text-muted-foreground">{en?"No published memberships.":"لا توجد عضويات منشورة."}</p>}
 
     {p.events.length > 0 && <PublicSection title={en ? "Attendance and contributions" : "الحضور والمساهمات"} icon={<CalendarDays aria-hidden="true" className="size-4" />}>
       <ul className="divide-y divide-border">

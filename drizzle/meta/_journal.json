@@ -316,6 +316,13 @@
       "when": 1792885843352,
       "tag": "0044_form_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792939554158,
+      "tag": "0045_talent_discovery_avatars",
+      "breakpoints": true
     }
   ]
 }

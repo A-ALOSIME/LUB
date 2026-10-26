@@ -1,10 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { formatHours,recordCount } from "@/lib/display";
 import { LiveFilterForm } from "@/components/live-filter-form";
-import { NativeSelect } from "@/components/ui/native-select";
 import Link from "next/link";
 import { HoursForm } from "./form";
-import { TermSelect } from "./view";
 import { HoursRecordTable } from "./hours-record-table";
 import type { HoursWorkspace } from "./repository";
 import { TaskPagination } from "@/features/tasks/task-list";
@@ -29,7 +27,8 @@ export function HoursWorkspaceView({ data, org, filters, locale = "ar" }: { data
     <LiveFilterForm className="hours-filters">
       <input type="hidden" name="section" value="hours"/><input type="hidden" name="hoursPage" value="0"/>{filters.status&&<input type="hidden" name="hourStatus" value={filters.status}/>}
       <div className="hours-search"><Search aria-hidden="true"/><Input type="search" name="q" defaultValue={filters.q??""} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>
-      <div className="hours-filter-scroll"><div className="w-52 shrink-0"><TermSelect compact terms={data.terms} all value={term??""} locale={locale}/></div><div className="w-40 shrink-0"><NativeSelect name="committee" aria-label={c("اللجنة","Committee")} defaultValue={committee??""}><option value="">{c("كل اللجان","All committees")}</option>{data.scopes.filter(scope=>scope.id).map(scope=><option key={scope.id} value={scope.id!}>{scope.name}</option>)}</NativeSelect></div><HoursStatusFilters value={filters.status??"all"} locale={locale}/></div>
+      {term&&<input type="hidden" name="term" value={term}/ >}{committee&&<input type="hidden" name="committee" value={committee}/ >}
+      <div className="hours-filter-scroll border-s border-border ps-3"><HoursStatusFilters value={filters.status??"all"} locale={locale}/></div>
     </LiveFilterForm>
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale}/>

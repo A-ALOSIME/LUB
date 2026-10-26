@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { getPreferences } from "@/lib/preferences";
 import { DeferredChatWidget } from "@/features/ai/deferred-chat-widget";
@@ -42,17 +40,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function StudentChatWidget({ locale }: { locale: "ar" | "en" }) {
-  const requestHeaders = await headers();
-  if (requestHeaders.get("x-lub-area") === "management") return null;
-  return <DeferredChatWidget locale={locale} />;
-}
-
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { locale, theme } = await getPreferences();
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={thmanyahDisplay.variable}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
     <Toaster timeout={3000}>{children}</Toaster>
-    <Suspense fallback={null}><StudentChatWidget locale={locale} /></Suspense>
+    <DeferredChatWidget locale={locale} />
   </body></html>;
 }

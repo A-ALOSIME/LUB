@@ -215,3 +215,17 @@ it("returns only active profile settings and no per-organization or event privac
   await actor(owner);
   expect((await db.query<{ data: unknown }>("select lub.talent_workspace() as data")).rows[0].data).toEqual({ status: "Inactive", onboarded: false });
 });
+
+it("searches normalized public skills without changing their stored spelling",async()=>{
+ await db.query("select lub.save_talent_skill('Python',true),lub.save_talent_skill('SQL',true)");await db.query("select lub.save_talent_skill('Private skill',false)");await publish();await visitor();
+ expect((await db.query("select name from lub.talent_skill_options()")).rows).toEqual([{name:"Python"},{name:"SQL"}]);
+ expect((await db.query("select * from lub.talent_directory('بايثون',null,0)")).rows).toHaveLength(1);
+ expect((await db.query("select * from lub.talent_directory('', 'sql',0)")).rows).toHaveLength(1);
+ await actor(owner);expect((await db.query<{data:unknown}>("select lub.talent_workspace() as data")).rows[0].data).toMatchObject({skills:expect.arrayContaining([{name:'Python',public:true},{name:'SQL',public:true}])});
+});
+it("exposes stored avatars only while the matching active profile is published",async()=>{
+ await db.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-avatars',$1,$2)",[owner+'/avatar.webp',owner]);
+ await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeNull();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toEqual([]);
+ await actor(owner);await publish();await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeTruthy();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toHaveLength(1);expect((await profile())?.avatar_version).toBeTruthy();
+ await actor(owner);await publish(false);await visitor();expect((await db.query<{version:string|null}>("select lub.public_avatar_version($1) as version",[owner])).rows[0].version).toBeNull();expect((await db.query("select name from storage.objects where bucket_id='lub-avatars'")).rows).toEqual([]);
+});

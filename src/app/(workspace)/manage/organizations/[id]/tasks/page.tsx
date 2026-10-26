@@ -1,3 +1,4 @@
+import { HoursAdvancedFilters } from "@/features/hours/hours-advanced-filters";
 import { cloneElement } from "react";
 import { RowAction } from "@/components/row-action";
 import { formatHours } from "@/lib/display";
@@ -116,6 +117,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
     exportScopes={hours.exportScopes}
     locale={locale}
     settingsAction={settingsAction}
+    filtersAction={<HoursAdvancedFilters data={{terms:hours.terms,scopes:hours.scopes}} filters={filters} locale={locale}/>}
     hasRecords={Boolean(hours.records.length)}
     canAddHours={Boolean(hours.scopes.some(scope => scope.manual))}
   />;

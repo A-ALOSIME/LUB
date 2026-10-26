@@ -340,6 +340,7 @@ export function FormEditor({
                 </>}>
                 <Textarea
                   id={`${section.id}-description`}
+                  placeholder={c("وصف قصير يوضح محتوى هذا القسم", "Briefly describe this section")}
                   maxLength={1000}
                   rows={2}
                   value={section.description}
@@ -565,6 +566,7 @@ export function FormEditor({
                               </>}>
                               <Input
                                 id={`${field.id}-help`}
+                                placeholder={c("توضيح يساعد الطالب على الإجابة", "Help the student answer this question")}
                                 maxLength={1000}
                                 value={field.help}
                                 onChange={(e) =>
@@ -741,7 +743,7 @@ export function FormEditor({
           onUndo={() => setDefinition(JSON.parse(saved))}
           message={
             dirty
-              ? <span className="editor-unsaved"><span aria-hidden="true"/>{c("غير محفوظ","Unsaved")}</span>
+              ? <Badge variant="secondary">{c("غير محفوظ","Unsaved")}</Badge>
               : c("المسودة محفوظة", "Draft saved")
           }
           actions={
@@ -834,5 +836,5 @@ function EditorSection({title,tools,children,defaultOpen=false,kind="section",on
 }
 function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {
  const en=locale==="en";
- return <DropdownMenu><DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label}/>}><Ellipsis/></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup><DropdownMenuItem disabled={upDisabled} onClick={onUp}><ArrowUp/>{en?"Move up":"تحريك لأعلى"}</DropdownMenuItem><DropdownMenuItem disabled={downDisabled} onClick={onDown}><ArrowDown/>{en?"Move down":"تحريك لأسفل"}</DropdownMenuItem><DropdownMenuItem disabled={copyDisabled} onClick={onCopy}><Copy/>{en?"Duplicate":"نسخ"}</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator/><DropdownMenuGroup><DropdownMenuItem variant="destructive" disabled={deleteDisabled} onClick={onDelete}><Trash2/>{en?"Delete":"حذف"}</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>;
+ return <DropdownMenu><DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label}/>}><Ellipsis/></DropdownMenuTrigger><DropdownMenuContent align="end" className="form-editor-menu"><DropdownMenuGroup><DropdownMenuItem disabled={upDisabled} onClick={onUp}><ArrowUp/>{en?"Move up":"تحريك لأعلى"}</DropdownMenuItem><DropdownMenuItem disabled={downDisabled} onClick={onDown}><ArrowDown/>{en?"Move down":"تحريك لأسفل"}</DropdownMenuItem><DropdownMenuItem disabled={copyDisabled} onClick={onCopy}><Copy/>{en?"Duplicate":"نسخ"}</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator/><DropdownMenuGroup><DropdownMenuItem variant="destructive" disabled={deleteDisabled} onClick={onDelete}><Trash2/>{en?"Delete":"حذف"}</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>;
 }

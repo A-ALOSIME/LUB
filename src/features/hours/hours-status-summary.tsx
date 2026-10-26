@@ -16,8 +16,8 @@ export function HoursStatusSummary({ totals, locale = "ar" }: { totals: HoursSta
     {cards.map(item => <Card key={item.id} size="sm" className="hours-stat-card min-w-0" data-status={item.id}>
       <CardContent className="flex min-w-0 flex-col gap-1 py-3">
         <p className="hours-stat-title text-xs leading-5 text-muted-foreground"><span aria-hidden="true" className="hours-stat-dot"/>{item.title}</p>
-        <p className="min-w-0 break-words text-xl font-bold tabular-nums">{formatHours(item.value,locale)}</p>
-        {item.count!==undefined&&<p className="text-xs text-muted-foreground">{en?`From ${recordCount(item.count,locale)}`:item.count===0?"لا توجد سجلات":`من ${formatCount(item.count,"records",locale,"oblique")}`}</p>}
+        <p className="min-w-0 break-words text-xl font-bold tabular-nums">{Number(item.value)===0?(en?"0 hours":"0 ساعة"):formatHours(item.value,locale)}</p>
+        {item.count!==undefined&&<p className="text-xs text-muted-foreground">{en?`From ${recordCount(item.count,locale)}`:item.count===0?"لا سجلات":`من ${formatCount(item.count,"records",locale,"oblique")}`}</p>}
       </CardContent>
     </Card>)}
   </section>;

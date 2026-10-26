@@ -14,6 +14,7 @@ const profile: PublicTalent = {
   level: "12",
   bio: null,
   total: null,
+  avatar_version: null,
   skills: [],
   links: [],
   organizations: [{
@@ -48,7 +49,8 @@ it("renders icon-only LinkedIn and GitHub links without exposing their URLs", ()
   const github = screen.getByRole("link", { name: "GitHub" });
   expect(linkedIn.getAttribute("href")).toBe("https://linkedin.com/in/student");
   expect(github.getAttribute("href")).toBe("https://github.com/student");
-  expect(linkedIn.className).toContain("hover:bg-accent");
+  expect(linkedIn.className).toContain("size-10");
+  expect(linkedIn.getAttribute("target")).toBe("_blank");
   expect(screen.queryByText("https://linkedin.com/in/student")).toBeNull();
   expect(screen.queryByText("https://github.com/student")).toBeNull();
   expect(document.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);

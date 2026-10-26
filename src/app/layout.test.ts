@@ -10,6 +10,7 @@ vi.mock("@/features/ai/chat-widget", () => ({ ChatWidget: () => null }));
 vi.mock("next/headers", () => ({ headers: async () => request.headers }));
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "font" }) }));
 
+import {DeferredChatWidget,showAssistantLauncher} from "@/features/ai/deferred-chat-widget";
 import RootLayout, { generateMetadata } from "./layout";
 
 function findStudentChatWidget(node: ReactNode): ReactElement | undefined {
@@ -22,7 +23,7 @@ function findStudentChatWidget(node: ReactNode): ReactElement | undefined {
   }
   if (!node || typeof node !== "object" || !("props" in node) || !("type" in node)) return undefined;
   const element = node as ReactElement;
-  if (typeof element.type === "function" && element.type.name === "StudentChatWidget") return element;
+  if (typeof element.type === "function" && element.type === DeferredChatWidget) return element;
   return findStudentChatWidget((element.props as { children?: ReactNode }).children);
 }
 
@@ -31,7 +32,7 @@ async function renderStudentChatWidget(area: "student" | "management"): Promise<
   const root = await RootLayout({ children: null });
   const element = findStudentChatWidget(root);
   if (!element || typeof element.type !== "function") throw new Error("Student chat widget not found in root layout.");
-  return await (element.type as (props: { locale: "ar" | "en" }) => Promise<ReactNode>)(element.props as { locale: "ar" | "en" });
+  return element;
 }
 
 it("returns the root shell without waiting for the account authorization checks", async () => {
@@ -52,9 +53,12 @@ it("keeps the public assistant available to superadmins without fetching account
 });
 
 it("keeps the assistant out of management pages without checking account access", async () => {
-  const widget = await renderStudentChatWidget("management");
+  await renderStudentChatWidget("management");
 
-  expect(widget).toBeNull();
+  expect(showAssistantLauncher("/manage/organizations/abc")).toBe(false);
+  expect(showAssistantLauncher("/account/talent")).toBe(false);
+  expect(showAssistantLauncher("/ai")).toBe(false);
+  for(const path of ["/","/organizations","/organizations/club","/events/discover","/talent","/talent/member"])expect(showAssistantLauncher(path)).toBe(true);
   expect(account.getVerifiedAccountAccess).not.toHaveBeenCalled();
 });
 

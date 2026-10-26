@@ -1,4 +1,5 @@
 "use client";
+import {LubBrandName} from "./lub-brand-name";
 import Link from "next/link";
 import {useEffect,useRef} from "react";
 import {usePathname} from "next/navigation";
@@ -17,5 +18,5 @@ export function SiteNavigation({en}:{en:boolean}) {
   return()=>observer?.disconnect();
  },[path]);
  const items=[{href:"/organizations",match:"/organizations",label:en?"Clubs and councils":"الأندية والمجالس"},{href:"/events/discover",match:"/events",label:en?"Events":"الفعاليات"},{href:"/talent",match:"/talent",label:en?"Talent":"المواهب"},{href:"/ai",match:"/ai",label:en?"Ask LUB":"اسأل لُبّ"}];
- return <nav ref={nav} dir={en?"ltr":"rtl"} aria-label={en?"Main navigation":"التنقل الرئيسي"} className="site-nav site-header-nav">{items.map(item=><Link key={item.href} href={item.href} prefetch={item.href!=="/ai"} aria-current={path===item.match||path.startsWith(item.match+"/")?"page":undefined}><span className="site-nav-label">{item.label}</span><span className="site-nav-size-label" aria-hidden="true">{item.label}</span></Link>)}</nav>;
+ return <nav ref={nav} dir={en?"ltr":"rtl"} aria-label={en?"Main navigation":"التنقل الرئيسي"} className="site-nav site-header-nav">{items.map(item=><Link key={item.href} href={item.href} prefetch={item.href!=="/ai"} aria-current={path===item.match||path.startsWith(item.match+"/")?"page":undefined}><span className="site-nav-label">{item.href==="/ai"&&!en?<span className="site-nav-brand-label">اسأل <LubBrandName wordmark/></span>:item.label}</span><span className="site-nav-size-label" aria-hidden="true">{item.label}</span></Link>)}</nav>;
 }

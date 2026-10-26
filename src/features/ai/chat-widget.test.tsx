@@ -167,9 +167,20 @@ it("uses the original theme logos and preserves ordinary brand text when copying
  const copy=vi.fn().mockResolvedValue(undefined);Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:copy}});
  const text="اسأل لُبّ عن النادي، لُب يساعدك. لب في قلب المجتمع.";vi.stubGlobal("fetch",vi.fn().mockResolvedValue(streamResponse([{type:"delta",text},{type:"done"}])));
  render(<ChatWidget locale="ar" inline/>);expect(screen.getByRole("img",{name:"لُبّ"})).toBeTruthy();
- submit("مرحبا");await waitFor(()=>expect(screen.getByRole("article",{name:"الإجابة"}).textContent).toContain(text));
- const answer=screen.getByRole("article",{name:"الإجابة"});expect(answer.querySelectorAll('.lub-chat-name')).toHaveLength(3);
- expect(answer.querySelector('.lub-chat-avatar img.brand-light')?.getAttribute('src')).toContain('/brand/logo.d904bc5ef68d.svg');expect(answer.querySelector('.lub-chat-avatar img.brand-dark')?.getAttribute('src')).toContain('/brand/logo-reversed.4c09d1c07d25.svg');
- expect(answer.querySelector('[data-slot=bubble-content]')?.textContent).toBe(text);expect(answer.textContent).not.toContain("ـ");
+ submit("مرحبا");await waitFor(()=>expect(document.querySelectorAll('.lub-chat-assistant .lub-brand-name')).toHaveLength(3));
+ const answer=screen.getByRole("article",{name:"الإجابة"});
+ expect([...answer.querySelectorAll('.lub-brand-original')].map(node=>node.textContent)).toEqual(["لُبّ","لُب","لب"]);
+ expect(answer.querySelector('.lub-chat-avatar svg')).toBeTruthy();expect(answer.querySelector('.lub-chat-avatar img')).toBeNull();
+ expect(answer.querySelector('.lub-chat-avatar')?.getAttribute('aria-hidden')).toBe('true');
+ expect(answer.textContent).toContain("قلب المجتمع.");
  fireEvent.click(screen.getByRole("button",{name:"نسخ الإجابة"}));await waitFor(()=>expect(copy).toHaveBeenCalledWith(text));
+});
+
+it("keeps the pending answer and its symbol in place when the first token arrives",async()=>{
+ let controller!:ReadableStreamDefaultController<Uint8Array>;
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue({ok:true,body:new ReadableStream<Uint8Array>({start(value){controller=value;}})}));
+ render(<ChatWidget locale="ar" inline/>);submit("عن لُبّ");
+ const pending=screen.getByRole("article",{name:"الإجابة"}),symbol=pending.querySelector('.lub-chat-avatar svg');expect(symbol).toBeTruthy();expect(pending.textContent).toContain("يفكّر…");expect(pending.textContent).not.toContain("لُب");
+ await act(async()=>{controller.enqueue(new TextEncoder().encode('data: {"type":"delta","text":"أهلاً"}\n\ndata: {"type":"done"}\n\n'));controller.close();});
+ expect(screen.getByRole("article",{name:"الإجابة"})).toBe(pending);expect(pending.querySelector('.lub-chat-avatar svg')).toBe(symbol);expect(pending.textContent).toContain("أهلاً");
 });

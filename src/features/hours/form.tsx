@@ -21,6 +21,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { ManagementActionFooter } from "@/components/management-action-sheet";
+import { Button } from "@/components/ui/button";
 import { useActionToast } from "@/components/action-toast";
 
 export function HoursForm({
@@ -32,6 +33,7 @@ export function HoursForm({
   onSuccess,
   buttonClassName,
   disabled = false,
+  policyFooter = false,
 }: {
   operation: string;
   fields?: Record<string, string>;
@@ -41,12 +43,14 @@ export function HoursForm({
   onSuccess?: () => void;
   buttonClassName?: string;
   disabled?: boolean;
+  policyFooter?: boolean;
 }) {
   const [state, action, pending] = useActionState<HoursState, FormData>(
     mutateHours,
     {},
   );
   const alert = useRef<HTMLParagraphElement>(null);
+  const [resetGeneration,setResetGeneration]=useState(0);
   const submitted = useRef<FormData | null>(null),
     [dismissedDuplicate, setDismissedDuplicate] = useState<HoursState | null>(
       null,
@@ -63,14 +67,14 @@ export function HoursForm({
         onSubmit={(event) => {
           submitted.current = new FormData(event.currentTarget);
         }}
-        onReset={(e) => e.preventDefault()}
+        onReset={event=>{event.preventDefault();if(policyFooter)setResetGeneration(value=>value+1);}}
         className="space-y-4"
       >
         <input type="hidden" name="operation" value={operation} />
         {Object.entries(fields).map(([k, v]) => (
           <input key={k} type="hidden" name={k} value={v} />
         ))}
-        <fieldset disabled={pending} className="min-w-0 space-y-4">
+        <fieldset key={resetGeneration} disabled={pending} className="min-w-0 space-y-4">
           {children}
           <ManagementActionFooter
             label={
@@ -79,6 +83,9 @@ export function HoursForm({
             pending={pending}
             disabled={disabled}
             buttonClassName={buttonClassName}
+            sticky={!policyFooter}
+            showCancel={!policyFooter}
+            secondaryAction={policyFooter?<Button type="reset" variant="ghost" disabled={pending}>{locale==="en"?"Cancel":"إلغاء"}</Button>:undefined}
           />
         </fieldset>
         {state.error && (
