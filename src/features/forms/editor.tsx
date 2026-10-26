@@ -536,6 +536,7 @@ export function FormEditor({
                               </>}>
                               <Input
                                 id={`${field.id}-${key}`}
+                                placeholder={c("بدون حد", "No limit")}
                                 type="number"
                                 step="any"
                                 value={field[key] ?? ""}

@@ -2218,3 +2218,6 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .registration-template-row:last-child {border-end-start-radius:var(--radius);border-end-end-radius:var(--radius);}
 
 .talent-search input[type=search] {padding-inline-start:2.5rem;}
+
+.site-header-nav a:has(.site-nav-brand-label) {position:relative;}
+.site-header-nav a:has(.site-nav-brand-label)>.site-nav-label {position:absolute;inset:0;display:grid;place-items:center;}
