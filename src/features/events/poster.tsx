@@ -18,14 +18,17 @@ import type { Locale } from "@/lib/preferences";
 function PosterImage({
   src,
   natural = false,
+  expanded = false,
 }: {
   src: string;
   natural?: boolean;
+  expanded?: boolean;
 }) {
+  const [portrait,setPortrait]=useState(false);
   const [loaded, setLoaded] = useState(false),
     [failed, setFailed] = useState(false);
   return (
-    <div className={natural ? "event-poster-natural" : "event-poster-frame"}>
+    <div data-orientation={portrait ? "portrait" : "landscape"} data-expanded={expanded || undefined} className={natural ? "event-poster-natural" : "event-poster-frame"}>
       {!failed && !natural && (
         <span
           aria-hidden="true"
@@ -51,7 +54,7 @@ function PosterImage({
               ? "event-poster-natural-image"
               : "event-poster-contained-image"
           }
-          onLoad={() => setLoaded(true)}
+          onLoad={(event) => {setLoaded(true);setPortrait(event.currentTarget.naturalHeight > event.currentTarget.naturalWidth);}}
           onError={() => setFailed(true)}
         />
       )}
@@ -112,7 +115,7 @@ export function EventPoster({
             <X />
           </DialogClose>
         </DialogHeader>
-        <PosterImage key={src} src={src} natural />
+        <PosterImage key={src} src={src} natural expanded />
       </DialogContent>
     </Dialog>
   );

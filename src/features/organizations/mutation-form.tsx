@@ -63,8 +63,8 @@ function restoreFormControls(form: HTMLFormElement, saved: FormControlsSnapshot)
 const fieldLabels: Record<string, string> = { nameAr: "اسم الجهة", name: "اسم اللجنة", slug: "اسم الرابط", typeCode: "نوع الجهة", summary: "النبذة", mission: "الرسالة", tagNames: "مجالات الاهتمام", contacts: "قنوات التواصل", email: "البريد", description: "وصف اللجنة", title: "عنوان الإعلان", body: "نص الإعلان", pinned: "تثبيت الإعلان" };
 const fieldLabelsEn: Record<string, string> = { nameAr: "Organization name", name: "Committee name", slug: "URL name", typeCode: "Organization type", summary: "Summary", mission: "Mission", tagNames: "Interests", contacts: "Contact channels", email: "Email", description: "Committee description", title: "Announcement title", body: "Announcement text", pinned: "Pin announcement" };
 
-export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel, children, locale="ar", onSuccess, formClassName, buttonClassName, stickySaveBar = false, cancelInModal = true, inlineFooter = false }: {
-  operation: MutationOperation; fields?: Record<string, string>; submitLabel: string; confirmLabel?: string; children?: ReactNode;locale?:Locale; onSuccess?: () => void; formClassName?: string; buttonClassName?: string; stickySaveBar?: boolean; cancelInModal?: boolean; inlineFooter?: boolean;
+export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel, children, locale="ar", onSuccess, formClassName, buttonClassName, stickySaveBar = false, cancelInModal = true, inlineFooter = false, footerAction }: {
+  operation: MutationOperation; fields?: Record<string, string>; submitLabel: string; confirmLabel?: string; children?: ReactNode;locale?:Locale; onSuccess?: () => void; formClassName?: string; buttonClassName?: string; stickySaveBar?: boolean; cancelInModal?: boolean; inlineFooter?: boolean; footerAction?: ReactNode;
 }) {
   const labels=locale==="en"?fieldLabelsEn:fieldLabels;
   const [state, action, pending] = useActionState<MutationState, FormData>(mutateOrganization, {});
@@ -201,7 +201,7 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
       <fieldset disabled={pending} aria-describedby={state.error ? errorId : undefined} className="space-y-5">
         {children}
         {confirmLabel && <label className="mb-0 flex items-start gap-3 text-sm leading-7"><input type="checkbox" name="confirmed" required className="mt-1 size-5 shrink-0 accent-action" /><span>{confirmLabel}</span></label>}
-        {!stickySaveBar && <ManagementActionFooter label={pending ? locale==="en"?"Working…":"جارٍ التنفيذ…" : submitLabel} pending={pending} buttonClassName={buttonClassName} showCancel={cancelInModal} sticky={!inlineFooter}/>}
+        {!stickySaveBar && <ManagementActionFooter label={pending ? locale==="en"?"Working…":"جارٍ التنفيذ…" : submitLabel} pending={pending} buttonClassName={buttonClassName} showCancel={cancelInModal} secondaryAction={footerAction} sticky={!inlineFooter}/>}
       </fieldset>
     </ProfileFormContext.Provider>
     {state.error && <div id={errorId} ref={errorRef} tabIndex={-1} role="alert" className={stickySaveBar ? "sr-only" : "error-message"}>{actionFeedback(state.error,locale)}{state.fieldErrors && <ul className="mt-3 space-y-2">{Object.entries(state.fieldErrors).filter(([key]) => labels[key]).map(([key, messages]) => <li key={key}>{labels[key]}: {messages?.map(message=>actionFeedback(message,locale)).join(" ")}</li>)}</ul>}</div>}

@@ -55,3 +55,5 @@ it("renders icon-only LinkedIn and GitHub links without exposing their URLs", ()
   expect(screen.queryByText("https://github.com/student")).toBeNull();
   expect(document.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);
 });
+
+it("shows numeric zero statistics and never uses a single-letter organization avatar in memberships",()=>{render(<PublicTalentView profile={profile} pages={pages}/>);expect(screen.getByText("0 فعاليات")).toBeTruthy();expect(screen.getByText("0 ساعة")).toBeTruthy();expect(screen.queryByText("ن")).toBeNull();});

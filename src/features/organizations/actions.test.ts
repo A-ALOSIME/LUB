@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ user: vi.fn(), status: vi.fn(), create: vi.fn(), save: vi.fn(), appoint: vi.fn(), lifecycle: vi.fn(), grant: vi.fn(), end: vi.fn(), committee: vi.fn(), copy: vi.fn(), committeeStatus: vi.fn(), announcement: vi.fn(), archiveAnnouncement: vi.fn(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), status: vi.fn(), create: vi.fn(), save: vi.fn(), appoint: vi.fn(), remove: vi.fn(), lifecycle: vi.fn(), grant: vi.fn(), end: vi.fn(), committee: vi.fn(), copy: vi.fn(), committeeStatus: vi.fn(), announcement: vi.fn(), archiveAnnouncement: vi.fn(), revalidate: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/features/auth/session", () => ({ requireUser: mocks.user }));
 vi.mock("@/features/profile/repository", () => ({ getAccountStatus: mocks.status }));
-vi.mock("./management-repository", () => ({ createOrganization: mocks.create, saveOrganizationProfile: mocks.save, appointPrimaryLeader: mocks.appoint, setOrganizationStatus: mocks.lifecycle, grantSuperAdmin: mocks.grant, endSuperAdmin: mocks.end, saveCommittee: mocks.committee, copyCommittee: mocks.copy, setCommitteeStatus: mocks.committeeStatus, saveAnnouncement: mocks.announcement, archiveAnnouncement: mocks.archiveAnnouncement }));
+vi.mock("./management-repository", () => ({ createOrganization: mocks.create, saveOrganizationProfile: mocks.save, appointPrimaryLeader: mocks.appoint, removePrimaryLeader: mocks.remove, setOrganizationStatus: mocks.lifecycle, grantSuperAdmin: mocks.grant, endSuperAdmin: mocks.end, saveCommittee: mocks.committee, copyCommittee: mocks.copy, setCommitteeStatus: mocks.committeeStatus, saveAnnouncement: mocks.announcement, archiveAnnouncement: mocks.archiveAnnouncement }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate, updateTag: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
 import { mutateOrganization } from "./actions";
@@ -70,3 +70,8 @@ it("fails closed for inactive accounts and does not echo external database detai
   expect(mocks.revalidate).not.toHaveBeenCalled();
 });
 it('creates with a verified actor and optional leader, then opens the shared administrator editor',async()=>{mocks.create.mockResolvedValue({id:org});await expect(mutateOrganization({},form({operation:'create-org',nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:'',email:'leader@example.invalid',userId:'forged'}))).rejects.toThrow(`REDIRECT:/manage/organizations/${org}/edit`);expect(mocks.create).toHaveBeenCalledWith('verified-user',{nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:''},'leader@example.invalid');});
+
+it("requires confirmation for leader removal and derives its actor from the session",async()=>{
+ expect((await mutateOrganization({},form({operation:"remove-leader",organizationId:org}))).error).toBeDefined();expect(mocks.remove).not.toHaveBeenCalled();
+ expect((await mutateOrganization({},form({operation:"remove-leader",organizationId:org,confirmed:"on",userId:"forged"}))).success).toBeDefined();expect(mocks.remove).toHaveBeenCalledWith("verified-user",org);
+});

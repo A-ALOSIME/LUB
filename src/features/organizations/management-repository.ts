@@ -258,6 +258,9 @@ export async function createOrganization(userId: string, input: CreateOrganizati
 export async function appointPrimaryLeader(userId: string, organizationId: string, email: string) {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.set_primary_leader(${organizationId},${email})`); });
 }
+export async function removePrimaryLeader(userId: string, organizationId: string) {
+  return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.remove_primary_leader(${organizationId})`); });
+}
 export async function setOrganizationStatus(userId: string, organizationId: string, status: "Active" | "Inactive" | "Archived") {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.set_organization_status(${organizationId},${status})`); });
 }
@@ -265,7 +268,7 @@ export async function grantSuperAdmin(userId: string, email: string) {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.grant_super_admin(${email})`); });
 }
 export async function endSuperAdmin(userId: string, targetUserId: string) {
-  return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.end_super_admin(${targetUserId})`); });
+  return withUser(userId, async tx => { await requireSuperAdmin(tx); if(userId === targetUserId) throw new Error("Cannot end own Super Admin permission"); await tx.execute(sql`select lub.end_super_admin(${targetUserId})`); });
 }
 
 async function requireProfileEditor(tx:Transaction,organizationId:string){

@@ -21,14 +21,14 @@ export async function organizationSlugAvailability(
 }
 export async function findOrganizationLeader(
   search: string,
-): Promise<Array<{ name: string; email: string }>> {
+): Promise<Array<{ name: string; email: string; major?: string }>> {
   const user = await requireUser();
   const text = z.string().trim().max(254).parse(search);
   return withUser(user.id, async (tx) => {
     const [row] = await tx.execute(
       sql`select lub.admin_leader_candidates(${text}) as candidates`,
     );
-    return row.candidates as Array<{ name: string; email: string }>;
+    return row.candidates as Array<{ name: string; email: string; major?: string }>;
   });
 }
 export async function saveOrganizationIdentity(

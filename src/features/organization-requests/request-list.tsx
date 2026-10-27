@@ -1,10 +1,11 @@
 "use client";
+import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
 import { actionFeedback } from "@/lib/action-feedback";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, X, Building2, Plus, Undo2 } from "lucide-react";
+import { Check, X, Building2, Plus, Undo2, ChevronDown } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -111,7 +112,7 @@ export function OpeningRequestList({
           {data.items.slice(0, 25).map((item) => (
             <Card
               key={item.id}
-              className="relative transition-colors hover:bg-muted/40"
+              className="relative min-w-0 transition-colors hover:bg-muted/40"
             >
               <CardHeader>
                 <div className="flex items-start gap-3">
@@ -129,7 +130,7 @@ export function OpeningRequestList({
                     <CardTitle>
                       <button
                         type="button"
-                        className="after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-ring"
+                        className="break-words text-start after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-ring"
                         onClick={() => setSelected(item)}
                       >
                         {item.name_ar}
@@ -201,6 +202,8 @@ export function OpeningRequestList({
         title={detail?.name_ar ?? c("تفاصيل الطلب", "Request details")}
         hideTrigger
         presentation="sheet"
+        sheetSide="start"
+        sheetClassName="m-3 h-[calc(100dvh-1.5rem)] max-w-[calc(100vw-1.5rem)] rounded-xl"
         locale={locale}
         open={!!detail}
         onOpenChange={(open) => {
@@ -254,13 +257,13 @@ export function OpeningRequestList({
               <p className="text-sm text-muted-foreground">
                 {c("النبذة", "Description")}
               </p>
-              <p className="mt-2 whitespace-pre-wrap">{detail.summary}</p>
+              <RequestLongText key={`${detail.id}-summary`} value={detail.summary} en={en}/>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
                 {c("الرسالة والأهداف", "Mission and goals")}
               </p>
-              <p className="mt-2 whitespace-pre-wrap">{detail.mission}</p>
+              <RequestLongText key={`${detail.id}-mission`} value={detail.mission} en={en}/>
             </div>
             {detail.interests.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -414,4 +417,10 @@ export function OpeningRequestList({
       </AlertDialog>
     </div>
   );
+}
+
+function RequestLongText({value,en}:{value:string;en:boolean}) {
+ const [open,setOpen]=useState(false);
+ if(value.length<=240)return <p className="mt-2 whitespace-pre-wrap break-words">{value}</p>;
+ return <Collapsible open={open} onOpenChange={setOpen} className="mt-2"><p className="whitespace-pre-wrap break-words">{value.slice(0,240)}{!open&&"…"}</p><CollapsibleContent className="whitespace-pre-wrap break-words">{value.slice(240)}</CollapsibleContent><CollapsibleTrigger render={<Button variant="ghost" size="sm"/>}>{open?(en?"Show less":"عرض أقل"):(en?"Show more":"عرض المزيد")}<ChevronDown className={open?"rotate-180":""}/></CollapsibleTrigger></Collapsible>;
 }

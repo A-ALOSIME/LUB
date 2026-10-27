@@ -1,15 +1,8 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import {
-  MoreHorizontal,
-  Pencil,
-  UserRound,
-  Power,
-  Globe,
-  Building2,
-} from "lucide-react";
+import { UserRound, UserRoundMinus, Power, Building2 } from "lucide-react";
+import { RowAction } from "@/components/row-action";
 import {
   Table,
   TableHeader,
@@ -21,17 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
 import { OrganizationStatusBadge } from "./organization-status-badge";
 import { AdminOrganizationDecision } from "./admin-organization-decision";
 import type { AdminOrganizationRow } from "./management-repository";
@@ -47,7 +29,7 @@ export function AdminOrganizationTable({
     c = (ar: string, english: string) => (en ? english : ar),
     [decision, setDecision] = useState<{
       organization: AdminOrganizationRow;
-      kind: "leader" | "status";
+      kind: "leader" | "status" | "remove-leader";
     } | null>(null);
   function status(item: AdminOrganizationRow) {
     return (
@@ -64,76 +46,19 @@ export function AdminOrganizationTable({
           ? c("نشطة", "Active")
           : item.statusCode === "Archived"
             ? c("مؤرشفة", "Archived")
-            : c("غير نشطة", "Inactive")}
+            : c("موقوفة", "Inactive")}
       </OrganizationStatusBadge>
     );
   }
+  function leader(item: AdminOrganizationRow) {
+    return item.leaderName ?? <Button variant="outline" size="sm" onClick={() => setDecision({organization:item,kind:"leader"})}>{c("تعيين قائد","Assign leader")}</Button>;
+  }
   function actions(item: AdminOrganizationRow) {
-    return (
-      <div className="inline-flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={`/manage/organizations/${item.id}/edit`} />}
-        >
-          {c("إدارة", "Manage")}
-        </Button>
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger render={<span className="inline-flex" />}>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={c(
-                      `إجراءات ${item.nameAr}`,
-                      `${item.nameAr} actions`,
-                    )}
-                  />
-                }
-              >
-                <MoreHorizontal />
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              {c("إجراءات الجهة", "Organization actions")}
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              render={<Link href={`/manage/organizations/${item.id}/edit`} />}
-            >
-              <Pencil />
-              {c("تعديل البيانات", "Edit details")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                setDecision({ organization: item, kind: "leader" })
-              }
-            >
-              <UserRound />
-              {c("تغيير القائد", "Change leader")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                setDecision({ organization: item, kind: "status" })
-              }
-            >
-              <Power />
-              {c("تغيير الحالة", "Change status")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              render={<Link href={`/organizations/${item.slug}`} />}
-            >
-              <Globe />
-              {c("فتح الصفحة العامة", "Open public page")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    );
+    return <div className="inline-flex flex-wrap items-center gap-2">
+      <RowAction label={item.leaderName ? c("تغيير القائد","Change leader") : c("تعيين قائد","Assign leader")} onClick={()=>setDecision({organization:item,kind:"leader"})}><UserRound /></RowAction>
+      <RowAction label={item.statusCode === "Active" ? c("إيقاف الجهة","Deactivate organization") : c("تفعيل الجهة","Activate organization")} onClick={()=>setDecision({organization:item,kind:"status"})}><Power /></RowAction>
+      <RowAction label={c("حذف القائد","Remove leader")} danger disabled={!item.leaderName} onClick={()=>setDecision({organization:item,kind:"remove-leader"})}><UserRoundMinus /></RowAction>
+    </div>;
   }
   function name(item: AdminOrganizationRow) {
     return (
@@ -166,19 +91,19 @@ export function AdminOrganizationTable({
   return (
     <>
       <div className="hidden xl:block">
-        <Table className="table-fixed">
+        <Table className="table-fixed [&_td]:py-5">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[32%]">
+              <TableHead className="w-[34%]">
                 {c("الجهة", "Organization")}
               </TableHead>
               <TableHead className="w-[10%]">{c("النوع", "Type")}</TableHead>
               <TableHead className="w-[12%]">{c("الحالة", "Status")}</TableHead>
               <TableHead className="w-[18%]">{c("القائد", "Leader")}</TableHead>
               <TableHead className="w-[8%]">
-                {c("الأعضاء", "Members")}
+                {c("عدد الأعضاء", "Members")}
               </TableHead>
-              <TableHead className="w-[20%]">
+              <TableHead className="w-[18%]">
                 {c("الإجراءات", "Actions")}
               </TableHead>
             </TableRow>
@@ -198,7 +123,7 @@ export function AdminOrganizationTable({
                 </TableCell>
                 <TableCell>{status(item)}</TableCell>
                 <TableCell className="whitespace-normal">
-                  {item.leaderName ?? c("بدون قائد", "No leader")}
+                  {leader(item)}
                 </TableCell>
                 <TableCell>{item.memberCount}</TableCell>
                 <TableCell>{actions(item)}</TableCell>
@@ -221,7 +146,7 @@ export function AdminOrganizationTable({
                 {status(item)}
               </div>
               <p className="text-sm">
-                {item.leaderName ?? c("بدون قائد", "No leader")} ·{" "}
+                {leader(item)} ·{" "}
                 {c("الأعضاء:", "Members:")} <bdi>{item.memberCount}</bdi>
               </p>
               {actions(item)}

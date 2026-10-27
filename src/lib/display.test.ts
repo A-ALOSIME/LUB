@@ -8,3 +8,5 @@ it("shares zero, singular, dual, plural and large Arabic counts across units",()
  expect(formatCount(0,"records")).toBe("لا سجلات");expect(formatCount(2,"records","ar","oblique")).toBe("سجلين");
  expect(formatCount(12,"records")).toBe("12 سجلًا");expect(formatCount(2,"versions")).toBe("نسختان");expect(formatCount(0,"members")).toBe("لا أعضاء");expect(formatCount(12,"members")).toBe("12 عضوًا");expect(formatCount(2,"rounds","en")).toBe("2 rounds");
 });
+
+it("can show numeric zero in compact statistics without changing empty-state wording",()=>{expect(formatCount(0,"events","ar","nominative","number")).toBe("0 فعاليات");expect(formatCount(0,"organizations","ar","nominative","number")).toBe("0 جهات");expect(formatCount(0,"hours","ar","nominative","number")).toBe("0 ساعة");expect(formatCount(0,"events")).toBe("لا فعاليات");});

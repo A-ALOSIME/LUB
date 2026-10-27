@@ -155,8 +155,8 @@ it("rejects unknown leader and leaves the previous primary appointment intact", 
 it("prevents removing the last SA and permits a second SA without granting organization powers", async () => {
   await asUser(admin);
   await db.query("select lub.grant_super_admin($1)", ["student4@example.invalid"]);
-  await db.query("select lub.end_super_admin($1)", [admin]);
   await db.exec("reset role"); await asUser(outsider);
+  await db.query("select lub.end_super_admin($1)", [admin]);
   expect((await db.query<{ yes: boolean }>("select lub.is_super_admin() as yes")).rows[0].yes).toBe(true);
   expect(await permission("ORG_PROFILE_MANAGE")).toBe(false);
   await expect(db.query("select lub.end_super_admin($1)", [outsider])).rejects.toThrow();
@@ -190,4 +190,22 @@ it('checks administrator URL availability while rejecting ordinary student calle
  await asUser(admin);const available=async(slug:string,except:string|null=null)=>(await db.query<{available:boolean}>('select lub.admin_organization_slug_available($1,$2) as available',[slug,except])).rows[0].available;
  expect(await available('tech')).toBe(false);expect(await available('tech',org)).toBe(true);expect(await available('new-url')).toBe(true);expect(await available('bad/url')).toBe(false);
  await db.exec('reset role');await asUser(leader);await expect(db.query("select lub.admin_organization_slug_available('new-url',null)")).rejects.toThrow();
+});
+
+it("prevents ending your own administrator role even with another active administrator", async () => {
+  await asUser(admin);
+  await db.query("select lub.grant_super_admin($1)", ["student4@example.invalid"]);
+  await expect(db.query("select lub.end_super_admin($1)", [admin])).rejects.toThrow("Cannot end own");
+});
+it("removes primary leadership without deleting membership or role history", async () => {
+  await asUser(admin);
+  await db.query("select lub.remove_primary_leader($1)",[org]);
+  expect((await db.query<{leaderName:string|null}>("select lub.admin_organization_identity($1)->>'leaderName' as \"leaderName\"",[org])).rows[0].leaderName).toBeNull();
+  await db.exec("reset role");
+  expect((await db.query("select id from lub.organization_memberships where organization_id=$1 and user_id=$2 and end_date is null",[org,leader])).rows).toHaveLength(1);
+  expect((await db.query("select id from lub.role_assignments where organization_id=$1 and is_primary_leader and end_date=current_date",[org])).rows).toHaveLength(1);
+});
+it("rejects primary leader removal by an organization leader", async () => {
+  await asUser(leader);
+  await expect(db.query("select lub.remove_primary_leader($1)",[org])).rejects.toThrow("Super Admin required");
 });

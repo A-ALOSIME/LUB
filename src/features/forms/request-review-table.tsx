@@ -52,6 +52,7 @@ export type ReviewRow = {
   createdAt: string;
   selectable: boolean;
   decisions: ReviewDecision[];
+  completedDecisions?: ReviewDecision[];
 };
 export function RequestReviewTable({
   rows,
@@ -177,6 +178,8 @@ export function RequestReviewTable({
                   <CalendarDays />
                 )}
               </RowAction>
+            ) : row.completedDecisions?.includes(status) ? (
+              <RowAction key={status} label={c("مقبول بالفعل","Already accepted")} disabled><Check /></RowAction>
             ) : (
               <span
                 key={status}

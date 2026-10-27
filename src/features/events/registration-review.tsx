@@ -65,6 +65,7 @@ export function EventRegistrationReview({
         subtitle: r.title,
         status: r.review_status_code,
         createdAt: r.created_at,
+        completedDecisions: r.review_status_code === "Accepted" ? ["Accepted"] : [],
         selectable: r.canReview && r.review_status_code !== "Rejected",
         decisions: r.canReview
           ? r.review_status_code === "Pending"

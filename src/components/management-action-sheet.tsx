@@ -39,7 +39,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   </div>;
 }
 
-export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction }: {
+export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction, sheetSide, sheetClassName }: {
   label: string;
   title: string;
   children: ReactNode;
@@ -57,6 +57,8 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   triggerAriaLabel?: string;
   rowAction?: boolean;
   headerAction?: ReactNode;
+  sheetSide?: "start" | "end";
+  sheetClassName?: string;
 }) {
   const mobile = useIsMobile();
   const [localOpen, setLocalOpen] = useState(initiallyOpen);
@@ -73,7 +75,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
 
   if (presentation === "sheet" || mobile) return <Sheet open={open} onOpenChange={setOpen}>
     {directTrigger ?? (!hideTrigger && <SheetTrigger render={trigger} />)}
-    <SheetContent dir={dir} side={mobile ? "bottom" : "left"} showCloseButton={false} className={`management-action-sheet${mobile ? " management-action-bottom-sheet" : ""} gap-0 overflow-hidden p-0${width === "wide" ? " management-action-sheet-wide" : ""}`}>
+    <SheetContent dir={dir} side={mobile ? "bottom" : sheetSide ? ((sheetSide === "start") !== en ? "right" : "left") : "left"} showCloseButton={false} className={`management-action-sheet${mobile ? " management-action-bottom-sheet" : ""} gap-0 overflow-hidden p-0 ${sheetClassName ?? ""}${width === "wide" ? " management-action-sheet-wide" : ""}`}>
       <SheetHeader className="management-action-header">
         <SheetTitle className="min-w-0 flex-1 break-words text-start">{title}</SheetTitle>{headerAction}
         <SheetClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-3 top-3" aria-label={cancelLabel} title={cancelLabel}><X aria-hidden="true" /></Button>} />

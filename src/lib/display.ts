@@ -14,11 +14,11 @@ const countForms = {
   members: { one:"عضو واحد", two:"عضوان", oblique:"عضوين", plural:"أعضاء", singular:"عضوًا", zero:"لا أعضاء", en:"member" },
 } as const;
 
-export function formatCount(value: number | string, unit: keyof typeof countForms, locale: Locale = "ar", grammaticalCase: "nominative" | "oblique" = "nominative") {
+export function formatCount(value: number | string, unit: keyof typeof countForms, locale: Locale = "ar", grammaticalCase: "nominative" | "oblique" = "nominative", zeroStyle: "words" | "number" = "words") {
   const count = Number(value), forms = countForms[unit];
   const number = countFormatter.format(count);
   if (locale === "en") return `${number} ${forms.en}${count === 1 ? "" : "s"}`;
-  if (count === 0) return forms.zero;
+  if (count === 0) return zeroStyle === "number" ? `${number} ${unit === "hours" ? forms.singular : forms.plural}` : forms.zero;
   if (count === 1) return forms.one;
   if (count === 2) return grammaticalCase === "oblique" ? forms.oblique : forms.two;
   return `${number} ${Number.isInteger(count) && count >= 3 && count <= 10 ? forms.plural : forms.singular}`;

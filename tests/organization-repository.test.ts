@@ -451,7 +451,7 @@ it("allows system administrators to edit organization profiles without gaining s
 });
 it("filters administrator organization rows and searches eligible leaders without exposing student identifiers",async()=>{
  await appointPrimaryLeader(admin,org,'leader@example.invalid');const directory=await getAdminOrganizations(admin,{q:'تقنية',type:'Club',status:'Active',page:0});expect(directory.organizations).toHaveLength(1);expect(directory.organizations[0]).toMatchObject({id:org,leaderName:'القائد',memberCount:1});
- await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec('set role authenticated');const result=(await engine.query<{data:Array<{name:string;email:string}>}>("select lub.admin_leader_candidates('leader@') as data")).rows[0].data;expect(result).toEqual([{name:'القائد',email:'leader@example.invalid'}]);expect(JSON.stringify(result)).not.toMatch(/secret|lookup|university|academic_level/);await engine.exec('reset role');
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec('set role authenticated');const result=(await engine.query<{data:Array<{name:string;email:string}>}>("select lub.admin_leader_candidates('leader@') as data")).rows[0].data;expect(result).toEqual([{name:'القائد',email:'leader@example.invalid',major:'الحاسب'}]);expect(JSON.stringify(result)).not.toMatch(/secret|lookup|university|academic_level/);await engine.exec('reset role');
 });
 it('creates an organization with its optional leader in one transaction and rolls back invalid appointments',async()=>{
  const input={nameAr:'نادي جديد بقائد',slug:'new-leader-club',typeCode:'Club' as const,summary:'',mission:''};

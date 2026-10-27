@@ -1,160 +1,38 @@
 "use client";
-import { useActionState, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
-import { FormField } from "@/components/form-field";
-import { FieldGroup } from "@/components/ui/field";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-  SelectItem,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useActionToast } from "@/components/action-toast";
-import { actionFeedback } from "@/lib/action-feedback";
-import { mutateOrganization } from "./actions";
-import { organizationStatuses, type MutationState } from "./validation";
-import { LeaderEmailSearch } from "./leader-email-search";
-import type { AdminOrganizationIdentity } from "./management-repository";
-import type { Locale } from "@/lib/preferences";
-export function AdminOrganizationDecision({
-  organization,
-  kind,
-  locale,
-  onClose,
-}: {
-  organization: AdminOrganizationIdentity;
-  kind: "leader" | "status";
-  locale: Locale;
-  onClose: () => void;
-}) {
-  const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
-    router = useRouter();
-  const [status, setStatus] = useState(organization.statusCode);
-  const [state, action, pending] = useActionState<MutationState, FormData>(
-    async (previous, form) => {
-      const result = await mutateOrganization(previous, form);
-      if (result.success) {
-        onClose();
-        router.refresh();
-      }
-      return result;
-    },
-    {},
-  );
-  useActionToast(state, locale);
-  return (
-    <AlertDialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !pending) onClose();
-      }}
-    >
-      <AlertDialogContent dir={en ? "ltr" : "rtl"}>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {kind === "leader"
-              ? c(
-                  `تعيين قائد ${organization.nameAr}؟`,
-                  `Appoint a leader for ${organization.nameAr}?`,
-                )
-              : c(
-                  `تغيير حالة ${organization.nameAr}؟`,
-                  `Change ${organization.nameAr} status?`,
-                )}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {kind === "leader"
-              ? c(
-                  "سيُعيّن الحساب المحدد قائدًا، مع حفظ تاريخ القائد السابق والعضويات.",
-                  "Appoint the selected account and retain the previous leader and membership history.",
-                )
-              : c(
-                  "ستُطبق الحالة المختارة على الجهة. إيقافها أو أرشفتها يوقف إجراءاتها.",
-                  "Apply the selected status. Inactive or archived organizations cannot run operations.",
-                )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <form action={action} className="flex flex-col gap-5">
-          <input
-            type="hidden"
-            name="operation"
-            value={kind === "leader" ? "appoint-leader" : "org-status"}
-          />
-          <input type="hidden" name="organizationId" value={organization.id} />
-          <input type="hidden" name="confirmed" value="on" />
-          <fieldset disabled={pending}>
-            <FieldGroup>
-              {kind === "leader" ? (
-                <LeaderEmailSearch locale={locale} required />
-              ) : (
-                <FormField label={c("الحالة", "Status")}>
-                  <Select
-                    name="status"
-                    value={status}
-                    onValueChange={(value) => {
-                      if (value) setStatus(value);
-                    }}
-                    items={
-                      en
-                        ? {
-                            Active: "Active",
-                            Inactive: "Inactive",
-                            Archived: "Archived",
-                          }
-                        : organizationStatuses
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(organizationStatuses).map(
-                        ([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {en ? value : label}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-              )}
-            </FieldGroup>
-          </fieldset>
-          {state.error && (
-            <Alert variant="destructive">
-              <AlertDescription>
-                {actionFeedback(state.error, locale)}
-              </AlertDescription>
-            </Alert>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogAction type="submit" disabled={pending}>
-              {pending
-                ? c("جاري الحفظ…", "Saving…")
-                : kind === "leader"
-                  ? c("تأكيد تعيين القائد", "Confirm appointment")
-                  : c("تأكيد تغيير الحالة", "Confirm status change")}
-            </AlertDialogAction>
-            <AlertDialogCancel disabled={pending}>
-              {c("إلغاء", "Cancel")}
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+import {startTransition,useActionState,useRef,useState} from "react";
+import {useRouter} from "next/navigation";
+import {ManagementActionSheet} from "@/components/management-action-sheet";
+import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogAction,AlertDialogCancel} from "@/components/ui/alert-dialog";
+import {Alert,AlertDescription} from "@/components/ui/alert";
+import {Button} from "@/components/ui/button";
+import {useActionToast} from "@/components/action-toast";
+import {actionFeedback} from "@/lib/action-feedback";
+import {mutateOrganization} from "./actions";
+import type {MutationState} from "./validation";
+import {LeaderEmailSearch} from "./leader-email-search";
+import type {AdminOrganizationIdentity} from "./management-repository";
+import type {Locale} from "@/lib/preferences";
+export function AdminOrganizationDecision({organization,kind,locale,onClose}:{organization:AdminOrganizationIdentity;kind:"leader"|"status"|"remove-leader";locale:Locale;onClose:()=>void}) {
+ const en=locale==="en",c=(ar:string,english:string)=>en?english:ar,router=useRouter(),form=useRef<HTMLFormElement>(null);
+ const [submission,setSubmission]=useState<FormData|null>(null),direct=kind!=="leader";
+ const [confirm,setConfirm]=useState(direct);
+ const title=kind==="leader"?c(`تعيين قائد ${organization.nameAr}`,`Assign ${organization.nameAr} leader`):kind==="remove-leader"?c(`حذف قائد ${organization.nameAr}؟`,`Remove ${organization.nameAr} leader?`):organization.statusCode==="Active"?c(`إيقاف ${organization.nameAr}؟`,`Deactivate ${organization.nameAr}?`):c(`تفعيل ${organization.nameAr}؟`,`Activate ${organization.nameAr}?`);
+ const [state,action,pending]=useActionState<MutationState,FormData>(async(previous,data)=>{const result=await mutateOrganization(previous,data);if(result.success){onClose();router.refresh();}return result;},{});
+ useActionToast(state,locale);
+ function execute(){const data=submission??new FormData();data.set("operation",kind==="leader"?"appoint-leader":kind==="remove-leader"?"remove-leader":"org-status");data.set("organizationId",organization.id);data.set("confirmed","on");if(kind==="status")data.set("status",organization.statusCode==="Active"?"Inactive":"Active");startTransition(()=>action(data));}
+ return <>
+  {!direct&&<ManagementActionSheet label="" title={title} hideTrigger open locale={locale} onOpenChange={open=>{if(!open&&!pending)onClose();}}>
+   <form ref={form} className="flex flex-col gap-5" onSubmit={event=>{event.preventDefault();setSubmission(new FormData(event.currentTarget));setConfirm(true);}}>
+    <LeaderEmailSearch locale={locale} required/>
+    <div className="management-action-footer"><Button type="submit">{c("تعيين القائد","Assign leader")}</Button><Button variant="ghost" onClick={onClose}>{c("إلغاء","Cancel")}</Button></div>
+   </form>
+  </ManagementActionSheet>}
+  <AlertDialog open={confirm} onOpenChange={open=>{if(!pending){setConfirm(open);if(!open&&direct)onClose();}}}>
+   <AlertDialogContent dir={en?"ltr":"rtl"}>
+    <AlertDialogHeader><AlertDialogTitle>{title}</AlertDialogTitle><AlertDialogDescription>{kind==="leader"?c(`سيُعيّن الحساب ${submission?.get("email")??""} قائدًا، مع الاحتفاظ بتاريخ القائد السابق والعضويات.`,`Appoint ${submission?.get("email")??""} and preserve role and membership history.`):kind==="remove-leader"?c(`ستنتهي صلاحية قيادة ${organization.leaderName??"القائد"}، وتبقى عضويته وسجل دوره محفوظين.`,"End leadership access while retaining membership and role history."):organization.statusCode==="Active"?c("ستتوقف إجراءات الجهة حتى إعادة تفعيلها.","Organization operations will stop until reactivated."):c("ستعود الجهة للعمل بحالتها النشطة.","Restore active organization operations.")}</AlertDialogDescription></AlertDialogHeader>
+    {state.error&&<Alert variant="destructive"><AlertDescription>{actionFeedback(state.error,locale)}</AlertDescription></Alert>}
+    <AlertDialogFooter><AlertDialogAction disabled={pending} variant={kind==="remove-leader"?"danger-outline":"default"} onClick={execute}>{pending?c("جاري الحفظ…","Saving…"):c("تأكيد","Confirm")}</AlertDialogAction><AlertDialogCancel disabled={pending}>{c("إلغاء","Cancel")}</AlertDialogCancel></AlertDialogFooter>
+   </AlertDialogContent>
+  </AlertDialog>
+ </>;
 }

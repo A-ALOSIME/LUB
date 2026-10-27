@@ -70,5 +70,5 @@ export type OrganizationProfileInput = z.infer<typeof organizationProfileSchema>
 export type OrganizationPublicProfileContentInput = z.infer<typeof organizationPublicProfileContentSchema>;
 export type CommitteeInput = z.infer<typeof committeeSchema>;
 export type MutationState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> };
-export const mutationOperationSchema = z.enum(["create-org", "org-profile", "org-status", "appoint-leader", "grant-admin", "end-admin", "save-committee", "copy-committee", "committee-status", "save-announcement", "archive-announcement"]);
+export const mutationOperationSchema = z.enum(["create-org", "org-profile", "org-status", "appoint-leader", "remove-leader", "grant-admin", "end-admin", "save-committee", "copy-committee", "committee-status", "save-announcement", "archive-announcement"]);
 export type MutationOperation = z.infer<typeof mutationOperationSchema>;

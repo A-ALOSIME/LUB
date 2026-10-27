@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { getPreferences } from "@/lib/preferences";
 import { requireVerifiedProxyIdentity } from "@/features/auth/session";
@@ -9,13 +9,7 @@ import { getAdminOrganizations } from "@/features/organizations/management-repos
 import { AdminOrganizationTable } from "@/features/organizations/admin-organization-table";
 import { localOrganizationContent } from "@/features/organizations/local-content";
 import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
-import {
-  InputGroup,
-  InputGroupInput,
-  InputGroupAddon,
-} from "@/components/ui/input-group";
-import { LiveFilterForm } from "@/components/live-filter-form";
+import { AdminOrganizationFilters } from "@/features/organizations/admin-organization-filters";
 export async function generateMetadata() {
   return localizedMetadata("إدارة الجهات", "Organizations");
 }
@@ -36,16 +30,8 @@ export default async function AdminOrganizationsPage({
     ]),
     en = locale === "en";
   const filters = {
-    q: z
-      .string()
-      .trim()
-      .max(120)
-      .catch("")
-      .parse(query.q ?? ""),
-    type: z
-      .enum(["", "Club", "Council"])
-      .catch("")
-      .parse(query.type ?? ""),
+    q: "",
+    type: "",
     status: z
       .enum(["", "Active", "Inactive", "Archived"])
       .catch("")
@@ -81,47 +67,11 @@ export default async function AdminOrganizationsPage({
     >
       <header className="workspace-page-header">
         <h1>{en ? "Organizations" : "الجهات"}</h1>
-        <Button nativeButton={false} render={<Link href="/manage/organizations/new" />}>
-          <Plus />
-          {en ? "Add organization" : "إضافة جهة"}
-        </Button>
       </header>
-      <LiveFilterForm className="flex flex-wrap items-center gap-3">
-        <InputGroup className="min-w-0 flex-1 basis-64">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type="search"
-            name="q"
-            defaultValue={filters.q}
-            maxLength={120}
-            aria-label={en ? "Search organizations" : "بحث عن جهة"}
-            placeholder={en ? "Search organizations…" : "ابحث عن جهة…"}
-          />
-        </InputGroup>
-        <NativeSelect
-          className="w-full sm:w-44"
-          name="type"
-          defaultValue={filters.type}
-          aria-label={en ? "Organization type" : "نوع الجهة"}
-        >
-          <option value="">{en ? "All types" : "كل الأنواع"}</option>
-          <option value="Club">{en ? "Clubs" : "الأندية"}</option>
-          <option value="Council">{en ? "Councils" : "المجالس"}</option>
-        </NativeSelect>
-        <NativeSelect
-          className="w-full sm:w-44"
-          name="status"
-          defaultValue={filters.status}
-          aria-label={en ? "Status" : "الحالة"}
-        >
-          <option value="">{en ? "All statuses" : "كل الحالات"}</option>
-          <option value="Active">{en ? "Active" : "نشطة"}</option>
-          <option value="Inactive">{en ? "Inactive" : "غير نشطة"}</option>
-          <option value="Archived">{en ? "Archived" : "مؤرشفة"}</option>
-        </NativeSelect>
-      </LiveFilterForm>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <AdminOrganizationFilters value={filters.status} locale={locale}/>
+        <Button nativeButton={false} render={<Link href="/manage/organizations/new" />}><Plus />{en ? "Add organization" : "إضافة جهة"}</Button>
+      </div>
       <p className="text-sm text-muted-foreground">
         {en ? "Results:" : "النتائج:"} <bdi>{data.total ?? 0}</bdi>
       </p>

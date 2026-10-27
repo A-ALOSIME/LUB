@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/features/auth/session";
 import { getAccountStatus } from "@/features/profile/repository";
 import { createOrganizationSchema, organizationProfileSchema, organizationPublicProfileContentJsonSchema, committeeSchema, announcementSchema, mutationOperationSchema, type MutationOperation, type MutationState } from "./validation";
-import { createOrganization, saveOrganizationProfile, appointPrimaryLeader, setOrganizationStatus, grantSuperAdmin, endSuperAdmin, saveCommittee, copyCommittee, setCommitteeStatus, saveAnnouncement, archiveAnnouncement } from "./management-repository";
+import { createOrganization, saveOrganizationProfile, appointPrimaryLeader, removePrimaryLeader, setOrganizationStatus, grantSuperAdmin, endSuperAdmin, saveCommittee, copyCommittee, setCommitteeStatus, saveAnnouncement, archiveAnnouncement } from "./management-repository";
 import { getAuthConfig } from "@/lib/env";
 import { isOrganizationImageUrl } from "./logo-file";
 
@@ -47,6 +47,11 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
         confirmation.parse(form.get("confirmed"));
         await appointPrimaryLeader(user.id, organizationId(), emailSchema.parse(String(form.get("email") ?? "").trim()));
         success = "تم تعيين القائد الأساسي وحفظ تاريخ الأدوار.";
+        break;
+      case "remove-leader":
+        confirmation.parse(form.get("confirmed"));
+        await removePrimaryLeader(user.id, organizationId());
+        success = "تم حذف القائد مع الاحتفاظ بالعضوية وسجل الدور.";
         break;
       case "grant-admin":
         confirmation.parse(form.get("confirmed"));
@@ -103,6 +108,7 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
     }
     if(cause&&typeof cause==="object"&&"code" in cause&&cause.code==="23505"&&(("constraint_name" in cause&&String(cause.constraint_name).includes("slug"))||("constraint" in cause&&String(cause.constraint).includes("slug"))))return {error:"اسم الرابط مستخدم بالفعل. اختر اسمًا آخر.",fieldErrors:{slug:["اسم الرابط مستخدم بالفعل. اختر اسمًا آخر."]}};
     if(cause instanceof Error&&cause.message.includes("ORGANIZATION_NAME_EXISTS"))return {error:"توجد جهة بهذا الاسم. اختر اسمًا مختلفًا."};
+    if (cause instanceof Error && cause.message === "Cannot end own Super Admin permission") return {error:"لا يمكنك سحب صلاحيتك أنت."};
     if (cause instanceof Error && cause.message === "Last active Super Admin cannot be ended") return { error: "لا يمكن إنهاء صلاحية آخر مشرف عام نشط." };
     if (cause instanceof Error && cause.message === "Verified onboarded candidate required") return { error: "الحساب المحدد يحتاج التحقق من بريده وإكمال بياناته أولًا." };
     return { error: "تعذّر تنفيذ الإجراء. تحقق من صلاحياتك وصحة البيانات. عند تعيين حساب، يجب أن يكون متحققًا ومكتمل البيانات." };

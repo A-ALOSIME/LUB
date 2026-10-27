@@ -23,7 +23,7 @@ export function LeaderEmailSearch({
     en = locale === "en";
   const [query, setQuery] = useState(""),
     [selected, setSelected] = useState<string | null>(null),
-    [items, setItems] = useState<Array<{ name: string; email: string }>>([]),
+    [items, setItems] = useState<Array<{ name: string; email: string; major?: string }>>([]),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(false);
   useEffect(() => {
@@ -129,6 +129,7 @@ export function LeaderEmailSearch({
                   <span>
                     {items.find((item) => item.email === email)?.name}
                   </span>
+                  <span className="text-sm text-muted-foreground">{items.find((item) => item.email === email)?.major}</span>
                   <bdi className="text-sm text-muted-foreground">{email}</bdi>
                 </span>
               </ComboboxItem>

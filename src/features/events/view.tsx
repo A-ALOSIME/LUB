@@ -52,7 +52,7 @@ export function EventCards({
     day = en ? eventDayEn : eventDay,
     time = en ? eventTimeEn : eventTime;
   return items.length ? (
-    <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),22rem))] justify-center gap-5">
       {items.slice(0, 24).map((e) => {
         const localOrganization = localOrganizationContent(
           e.org_name,
@@ -127,8 +127,8 @@ export function EventCards({
               </div>
               <span
                 className={buttonVariants({
-                  variant: "outline",
-                  className: "self-start mx-5 mb-5",
+                  variant: "default",
+                  className: "mx-5 mb-5",
                 })}
               >
                 {en ? "View event" : "عرض الفعالية"}

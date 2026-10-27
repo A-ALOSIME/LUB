@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import {Button} from "@/components/ui/button";
 import { useState } from "react";
 import { FormField } from "@/components/form-field";
 import { FieldGroup } from "@/components/ui/field";
@@ -22,12 +24,15 @@ export function CreateOrganizationForm({ locale }: { locale: Locale }) {
   return (
     <MutationForm
       operation="create-org"
+      inlineFooter
+      formClassName="flex flex-col gap-6"
+      footerAction={<Button variant="ghost" nativeButton={false} render={<Link href="/manage/organizations"/>}>{en?"Cancel":"إلغاء"}</Button>}
       locale={locale}
       fields={{ summary: "", mission: "" }}
       submitLabel={en ? "Create organization" : "إنشاء الجهة"}
     >
-      <FieldGroup>
-        <FormField label={en ? "Organization name" : "اسم الجهة"}>
+      <FieldGroup className="grid gap-5 sm:grid-cols-2">
+        <FormField label={en ? "Organization name" : "اسم الجهة"} required>
           <Input
             name="nameAr"
             required

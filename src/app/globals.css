@@ -2244,7 +2244,7 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .event-card-organization-logo {border-radius:var(--radius);padding:.25rem;}
 .event-card-organization-logo img {padding:0;}
 .event-detail-hero {grid-template-columns:minmax(0,1fr) minmax(16rem,.6fr);align-items:start;}
-.event-detail-poster {min-height:0;aspect-ratio:auto;width:100%;max-width:28rem;align-self:center;justify-self:center;}
+.event-detail-poster {min-height:0;max-height:none;aspect-ratio:auto;width:100%;max-width:none;align-self:center;justify-self:center;overflow:visible;}
 .event-detail-poster img {display:block;width:100%;height:auto;object-fit:contain;}
 .event-detail-poster-placeholder {min-height:0;aspect-ratio:16/9;width:100%;}
 .event-detail-facts {width:100%;margin:0;gap:.5rem;}
@@ -2262,8 +2262,11 @@ input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:f
 .event-poster-open[data-slot=button] {display:block;width:100%;height:auto;padding:0;overflow:hidden;}
 .event-card:hover .event-poster-contained-image {transform:none;}
 .event-detail-fact {height:100%;}
+.event-detail-facts {grid-auto-rows:1fr;}
+.event-poster-natural[data-orientation=portrait]:not([data-expanded]) {max-width:24rem;margin-inline:auto;}
 
-.public-event-registration {margin-block:1rem;}
+.public-event-registration {margin-block:.5rem;}
+.public-event-cta [data-slot=button] {min-height:3rem;}
 .public-event-cta {width:min(100%,28rem);}
 .public-event-cta>button {width:100%;}
 @media(max-width:767px){body:has(.public-event-cta) #main {padding-bottom:8rem;}.public-event-cta {position:fixed;inset-inline:0;bottom:0;z-index:30;width:auto;padding:.75rem 1rem max(.75rem,env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--background);}.public-event-cta>div {justify-content:center;}}

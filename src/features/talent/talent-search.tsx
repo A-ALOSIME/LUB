@@ -100,6 +100,7 @@ export function TalentSearch({
           },
         ]
       : []),
+    ...(filters.sort !== "relevance" ? [{key:"sort",label:filters.sort === "hours" ? c("الأكثر ساعات","Most hours") : c("الاسم","Name"),clear:()=>patch({sort:"relevance"})}] : []),
     ...(filters.minHours
       ? [
           {
@@ -153,11 +154,11 @@ export function TalentSearch({
             </InputGroupAddon>
           )}
         </InputGroup>
-        <div className="md:hidden">
+        <div className="shrink-0">
           <Sheet>
             <SheetTrigger render={<Button variant="outline" />}>
               <SlidersHorizontal />
-              {c("الفلاتر", "Filters")}
+              {c("فلاتر", "Filters")}
               {chips.length > 0 && (
                 <Badge variant="secondary">{chips.length}</Badge>
               )}
@@ -177,7 +178,6 @@ export function TalentSearch({
           </Sheet>
         </div>
       </div>
-      <div className="hidden md:block">{controls}</div>
       {chips.length > 0 && (
         <div
           className="flex flex-wrap items-center gap-2"
@@ -250,8 +250,8 @@ function TalentFilterFields({
   const keys = [...new Set([...catalog.keys(), ...value.skills])];
   const label = (key: string) => catalog.get(key) ?? skillLabel(key);
   return (
-    <FieldGroup className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-      <Field className="md:col-span-2">
+    <FieldGroup className="grid gap-5 sm:grid-cols-2">
+      <Field className="sm:col-span-2">
         <FieldLabel>{c("المهارات", "Skills")}</FieldLabel>
         <Combobox
           multiple

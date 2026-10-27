@@ -339,20 +339,12 @@ export function PublicTalentView({
     previous = grouped(true);
   return (
     <div
-      className={
-        p.bio ||
-        p.organizations.length ||
-        p.events.length ||
-        p.projects.length ||
-        owner
-          ? "grid min-w-0 items-start gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]"
-          : "mx-auto grid w-full max-w-xl gap-5"
-      }
+      className="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-5"
     >
       <aside className="min-w-0">
         <Card>
-          <CardHeader className="items-start gap-3">
-            <Avatar className="size-20">
+          <CardHeader className="flex flex-row items-center gap-4">
+            <Avatar className="size-20 shrink-0">
               {p.avatar_version && (
                 <AvatarImage
                   src={`/talent/${p.id}/avatar?v=${encodeURIComponent(p.avatar_version)}`}
@@ -361,6 +353,7 @@ export function PublicTalentView({
               )}
               <AvatarFallback>{p.name.trim().slice(0, 1)}</AvatarFallback>
             </Avatar>
+            <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
             <h1 className="break-words text-2xl font-semibold">
               <bdi>{p.name}</bdi>
             </h1>
@@ -370,6 +363,7 @@ export function PublicTalentView({
             {Number(p.total) > 0 && (
               <ApprovedHours value={p.total!} locale={locale} />
             )}
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {skills.length > 0 ? (
@@ -400,29 +394,8 @@ export function PublicTalentView({
               <TalentContactLinks links={p.links} en={en} />
             )}
           </CardContent>
-          <CardFooter className="grid grid-cols-3 items-start gap-3 border-t border-border pt-4">
-            <div>
-              <p className="font-semibold">
-                {formatHours(p.total ?? 0, locale)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {c("معتمدة", "Approved")}
-              </p>
-            </div>
-            <p className="font-semibold">
-              {formatCount(
-                p.stats?.organizations ?? p.organizations.length,
-                "organizations",
-                locale,
-              )}
-            </p>
-            <p className="font-semibold">
-              {formatCount(
-                p.stats?.events ?? p.events.length,
-                "events",
-                locale,
-              )}
-            </p>
+          <CardFooter className="grid grid-cols-3 items-center gap-3 border-t border-border pt-4 text-center">
+            {[{value:p.total??0,unit:"hours"},{value:p.stats?.organizations??p.organizations.length,unit:"organizations"},{value:p.stats?.events??p.events.length,unit:"events"}].map(stat=><p key={stat.unit} className="font-medium">{formatCount(stat.value,stat.unit as "hours"|"organizations"|"events",locale,"nominative","number")}</p>)}
           </CardFooter>
         </Card>
       </aside>
@@ -477,7 +450,6 @@ export function PublicTalentView({
                             className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0"
                           >
                             <div className="flex flex-wrap items-center gap-3">
-                              <OrganizationAvatar name={o.name} logo={o.logo} />
                               <div className="min-w-0 flex-1">
                                 <Link
                                   className="font-semibold hover:text-primary"
@@ -497,7 +469,7 @@ export function PublicTalentView({
                                 </span>
                               )}
                             </div>
-                            <div className="flex flex-col gap-2 ps-0 sm:ps-11">
+                            <div className="flex flex-wrap items-center gap-2">
                               {o.memberships.map((m, index) =>
                                 m.roles.length ? (
                                   m.roles.map((r, ri) => (
