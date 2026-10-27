@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getAuthConfig } from "@/lib/env";
 import { getCachedSupabaseJwks } from "@/lib/supabase-jwks-cache";
 
@@ -21,10 +21,12 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-lub-management-view", request.nextUrl.pathname === "/manage/organizations" ? "organizations" : request.nextUrl.pathname === "/manage" ? "dashboard" : request.nextUrl.pathname === "/manage/account" ? "account" : "other");
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
-  let response = NextResponse.next({ request: { headers: requestHeaders } });
+  const refreshedCookies = new Map<string,{value:string;options:CookieOptions}>();
   let forwardedAuthHeaders: Record<string, string> = {};
   const config = request.nextUrl.pathname==="/api/health"?null:getAuthConfig();
-  if (config) {
+  const sessionCookie = config ? `sb-${new URL(config.url).hostname.split(".")[0]}-auth-token` : "";
+  const hasSession = sessionCookie && request.cookies.getAll().some(({name})=>name === sessionCookie || name.startsWith(`${sessionCookie}.`));
+  if (config && hasSession) {
     const supabase = createServerClient(config.url, config.key, {
       cookieOptions: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" },
       cookies: {
@@ -33,11 +35,9 @@ export async function proxy(request: NextRequest) {
           for (const { name, value } of updates) request.cookies.set(name, value);
           // Forward refreshed cookies as well as the nonce to Server Components.
           requestHeaders.set("cookie", request.headers.get("cookie") ?? "");
-          response = NextResponse.next({ request: { headers: requestHeaders } });
-          for (const { name, value, options } of updates) response.cookies.set(name, value, options);
+          for (const { name, value, options } of updates) refreshedCookies.set(name,{value,options});
           if (headers) {
             forwardedAuthHeaders = { ...forwardedAuthHeaders, ...headers };
-            for (const [name, value] of Object.entries(headers)) response.headers.set(name, value);
           }
         },
       },
@@ -63,9 +63,8 @@ export async function proxy(request: NextRequest) {
   }
   // Rebuild the forwarded request after claims verification so the server
   // render receives the verified subject along with any refreshed cookies.
-  const refreshedResponse = response;
-  response = NextResponse.next({ request: { headers: requestHeaders } });
-  for (const cookie of refreshedResponse.cookies.getAll()) response.cookies.set(cookie);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  for (const [name,{value,options}] of refreshedCookies) response.cookies.set(name,value,options);
   for (const [name, value] of Object.entries(forwardedAuthHeaders)) response.headers.set(name, value);
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("Cache-Control", "private, no-store");

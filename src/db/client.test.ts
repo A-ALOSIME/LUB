@@ -4,10 +4,10 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 let database: PgliteDatabase;
 let engine: PGlite;
-const mocks = vi.hoisted(() => ({ postgres: vi.fn() }));
+const mocks = vi.hoisted(() => ({ postgres: vi.fn(), configure: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("postgres", () => ({ default: (...args: unknown[]) => { mocks.postgres(...args); return {}; } }));
-vi.mock("drizzle-orm/postgres-js", () => ({ drizzle: () => database }));
+vi.mock("drizzle-orm/postgres-js", () => ({ drizzle: (...args: unknown[]) => {mocks.configure(...args);return database;} }));
 import {getDb, withUser, withVisitor } from "./client";
 import { setHyperdriveDatabaseUrl } from "./runtime-url";
 const owner = "00000000-0000-4000-8000-000000000001";
@@ -66,4 +66,10 @@ it("uses the Worker Hyperdrive binding in production while local runs keep their
   expect(mocks.postgres.mock.calls[0][1]).not.toHaveProperty("idle_timeout");
   await withVisitor(tx => tx.execute(sql`select 1`));
   expect(mocks.postgres).toHaveBeenCalledTimes(2);
+});
+
+it("does not rebuild the unused relational model when creating request database clients",()=>{
+ mocks.configure.mockClear();getDb();getDb();
+ expect(mocks.configure).toHaveBeenCalledTimes(2);
+ for(const args of mocks.configure.mock.calls)expect(args).toHaveLength(1);
 });

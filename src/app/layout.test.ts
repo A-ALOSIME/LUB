@@ -3,6 +3,8 @@ import type { ReactElement, ReactNode } from "react";
 
 const preferences = vi.hoisted(() => ({ locale: "ar" as "ar" | "en" }));
 const account = vi.hoisted(() => ({ getVerifiedAccountAccess: vi.fn(async (): Promise<{ user: { id: string } | null; isSuperAdmin: boolean }> => ({ user: null, isSuperAdmin: false })) }));
+const identity = vi.hoisted(()=>({user:null as {id:string}|null}));
+vi.mock("@/features/auth/session",()=>({getVerifiedProxyIdentity:async()=>identity.user}));
 const request = vi.hoisted(() => ({ headers: new Headers() }));
 vi.mock("@/lib/preferences", () => ({ getPreferences: async () => ({ locale: preferences.locale, theme: "dark" }) }));
 vi.mock("@/features/auth/verified-account", () => ({ getVerifiedAccountAccess: account.getVerifiedAccountAccess }));
@@ -12,26 +14,27 @@ vi.mock("@/features/profile/completion-actions",()=>({claimProfileCompletionNoti
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "font" }) }));
 
 import {DeferredChatWidget,showAssistantLauncher} from "@/features/ai/deferred-chat-widget";
+import {ProfileCompletionNotice} from "@/features/profile/completion-notice";
 import RootLayout, { generateMetadata } from "./layout";
 
-function findStudentChatWidget(node: ReactNode): ReactElement | undefined {
+function findComponent(node: ReactNode, target: unknown): ReactElement | undefined {
   if (Array.isArray(node)) {
     for (const child of node) {
-      const found = findStudentChatWidget(child);
+      const found = findComponent(child,target);
       if (found) return found;
     }
     return undefined;
   }
   if (!node || typeof node !== "object" || !("props" in node) || !("type" in node)) return undefined;
   const element = node as ReactElement;
-  if (typeof element.type === "function" && element.type === DeferredChatWidget) return element;
-  return findStudentChatWidget((element.props as { children?: ReactNode }).children);
+  if (typeof element.type === "function" && element.type === target) return element;
+  return findComponent((element.props as { children?: ReactNode }).children,target);
 }
 
 async function renderStudentChatWidget(area: "student" | "management"): Promise<ReactNode> {
   request.headers = new Headers({ "x-lub-area": area });
   const root = await RootLayout({ children: null });
-  const element = findStudentChatWidget(root);
+  const element = findComponent(root,DeferredChatWidget);
   if (!element || typeof element.type !== "function") throw new Error("Student chat widget not found in root layout.");
   return element;
 }
@@ -80,4 +83,9 @@ it("describes LUB as a student clubs platform in English metadata", async () => 
   expect(metadata.title).toEqual({ default: "LUB | Student Clubs and Events", template: "%s | LUB" });
   expect(metadata.description).toContain("student clubs, councils, and events");
   expect(metadata.description).toContain("Imam Mohammad Ibn Saud Islamic University");
+});
+
+it("does not mount the completion-notice request for visitors",async()=>{
+ identity.user=null;expect(findComponent(await RootLayout({children:null}),ProfileCompletionNotice)).toBeUndefined();
+ identity.user={id:"verified-user"};expect(findComponent(await RootLayout({children:null}),ProfileCompletionNotice)).toBeDefined();identity.user=null;
 });

@@ -1,5 +1,7 @@
 import type { Locale } from "./preferences";
 
+const countFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits:2 });
+
 const countForms = {
   organizations:{one:"جهة واحدة",two:"جهتان",oblique:"جهتين",plural:"جهات",singular:"جهة",zero:"لا جهات",en:"organization"},
   events:{one:"فعالية واحدة",two:"فعاليتان",oblique:"فعاليتين",plural:"فعاليات",singular:"فعالية",zero:"لا فعاليات",en:"event"},
@@ -14,7 +16,7 @@ const countForms = {
 
 export function formatCount(value: number | string, unit: keyof typeof countForms, locale: Locale = "ar", grammaticalCase: "nominative" | "oblique" = "nominative") {
   const count = Number(value), forms = countForms[unit];
-  const number = new Intl.NumberFormat("en-US", { maximumFractionDigits:2 }).format(count);
+  const number = countFormatter.format(count);
   if (locale === "en") return `${number} ${forms.en}${count === 1 ? "" : "s"}`;
   if (count === 0) return forms.zero;
   if (count === 1) return forms.one;

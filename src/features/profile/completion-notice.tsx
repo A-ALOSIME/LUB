@@ -3,12 +3,15 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import type { Locale } from "@/lib/preferences";
-import { claimProfileCompletionNotice } from "./completion-actions";
 export function ProfileCompletionNotice({ locale }: { locale: Locale }) {
   const router = useRouter();
   useEffect(() => {
     let active = true;
-    void claimProfileCompletionNotice().then((show) => {
+    const controller = new AbortController();
+    // A JSON response avoids rendering the current page again for a notice flag.
+    void fetch("/api/account/completion-notice",{method:"POST",credentials:"same-origin",signal:controller.signal})
+      .then(async response=>response.ok && (await response.json()).show === true)
+      .catch(()=>false).then((show) => {
       if (active && show)
         toast.add({
           title:
@@ -24,6 +27,7 @@ export function ProfileCompletionNotice({ locale }: { locale: Locale }) {
     });
     return () => {
       active = false;
+      controller.abort();
     };
   }, [locale, router]);
   return null;
