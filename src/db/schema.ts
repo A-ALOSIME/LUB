@@ -79,6 +79,14 @@ export const organizations = lub.table("organizations", {
   index("org_status_name_idx").on(t.statusCode, t.nameAr),
 ]).enableRLS();
 
+export const organizationOpeningRequests=lub.table("organization_opening_requests",{
+ id:uuid("id").primaryKey().defaultRandom(),applicantUserId:uuid("applicant_user_id").notNull().references(()=>users.id),
+ nameAr:varchar("name_ar",{length:120}).notNull(),typeCode:text("type_code").notNull(),summary:varchar("summary",{length:1000}).notNull(),mission:varchar("mission",{length:3000}).notNull(),interests:jsonb("interests").$type<string[]>().notNull().default([]),logoWebpBase64:text("logo_webp_base64"),
+ statusCode:text("status_code").notNull().default("Pending"),decisionNote:varchar("decision_note",{length:1000}).notNull().default(""),decidedByUserId:uuid("decided_by_user_id").references(()=>users.id),organizationId:uuid("organization_id").references(()=>organizations.id),createdAt:createdAt(),decidedAt:timestamp("decided_at",{withTimezone:true}),
+},t=>[uniqueIndex("opening_request_pending_owner").on(t.applicantUserId).where(sql`${t.statusCode}='Pending'`),index("opening_request_status_time").on(t.statusCode,t.createdAt),
+ check("opening_name_check",sql`char_length(trim(${t.nameAr})) between 2 and 120`),check("opening_type_check",sql`${t.typeCode} in ('Club','Council')`),check("opening_summary_check",sql`char_length(trim(${t.summary}))>0`),check("opening_mission_check",sql`char_length(trim(${t.mission}))>0`),check("opening_interests_check",sql`jsonb_typeof(${t.interests})='array' and jsonb_array_length(${t.interests})<=20`),check("opening_logo_check",sql`${t.logoWebpBase64} is null or char_length(${t.logoWebpBase64})<=88000`),check("opening_status_check",sql`${t.statusCode} in ('Pending','Accepted','Rejected','Withdrawn')`),check("opening_organization_check",sql`(${t.statusCode}='Accepted')=(${t.organizationId} is not null)`),check("opening_rejection_check",sql`${t.statusCode}<>'Rejected' or char_length(trim(${t.decisionNote}))>0`),check("opening_decision_time_check",sql`(${t.statusCode}='Pending')=(${t.decidedAt} is null)`)
+]).enableRLS();
+
 export const tags = lub.table("tags", {
   id: uuid("id").primaryKey().defaultRandom(),
   nameAr: varchar("name_ar", { length: 40 }).notNull().unique(),
@@ -292,7 +300,7 @@ export const taskSubmissions=lub.table("task_submissions",{
 export const taskSubmissionAssets=lub.table("task_submission_assets",{taskSubmissionId:uuid("task_submission_id").notNull().references(()=>taskSubmissions.id),assetId:uuid("asset_id").notNull().references(()=>applicationAssets.id)},t=>[primaryKey({columns:[t.taskSubmissionId,t.assetId]})]).enableRLS();
 export const notifications=lub.table("notifications",{
  id:uuid("id").primaryKey().defaultRandom(),recipientUserId:uuid("recipient_user_id").notNull().references(()=>users.id),typeCode:varchar("type_code",{length:40}).notNull(),title:varchar("title",{length:120}).notNull(),body:text("body").notNull(),targetUrl:text("target_url").notNull(),createdAt:createdAt(),readAt:timestamp("read_at",{withTimezone:true}),
-},t=>[index("notification_recipient_time_idx").on(t.recipientUserId,t.createdAt),check("notification_target_check",sql`${t.targetUrl} ~ '^/(tasks|events)/[0-9a-f-]{36}$' or ${t.targetUrl} in ('/hours','/renewals','/applications')`)]).enableRLS();
+},t=>[index("notification_recipient_time_idx").on(t.recipientUserId,t.createdAt),check("notification_target_check",sql`${t.targetUrl} ~ '^/(tasks|events)/[0-9a-f-]{36}$' or ${t.targetUrl} in ('/hours','/renewals','/applications','/applications?tab=organizations')`)]).enableRLS();
 
 export const academicTerms=lub.table("academic_terms",{
  id:uuid("id").primaryKey().defaultRandom(),academicYear:varchar("academic_year",{length:20}).notNull(),termCode:varchar("term_code",{length:20}).notNull(),nameAr:varchar("name_ar",{length:120}).notNull(),startDate:date("start_date").notNull(),endDate:date("end_date").notNull(),
