@@ -91,11 +91,20 @@ export async function changeAccountEmail(
     const email = await pendingFor(user);
     if (!email) return { error: "انتهت جلسة تغيير البريد. اطلب رمزًا جديدًا." };
     const token = otpSchema.parse(form.get("token"));
-    const { error } = await client.auth.verifyOtp({
+    let { error } = await client.auth.verifyOtp({
       email,
       token,
       type: "email_change",
     });
+    // Secure email change sends one code to each address. The provider validates
+    // the old-inbox code against the current email, not the requested one.
+    if (error?.code === "otp_expired") {
+      ({ error } = await client.auth.verifyOtp({
+        email: user.email,
+        token,
+        type: "email_change",
+      }));
+    }
     if (error)
       return {
         pendingEmail: email,

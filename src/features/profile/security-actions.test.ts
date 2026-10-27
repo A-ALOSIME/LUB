@@ -29,3 +29,18 @@ it('does not persist a different authenticated identity or expose provider error
 it('validates password confirmation before calling the provider and does not return the password',async()=>{
  const password='fictional-unit-test-password';expect((await changeAccountPassword({},form({password,confirmation:'mismatch'}))).error).toBeTruthy();expect(mock.updateUser).not.toHaveBeenCalled();const result=await changeAccountPassword({},form({password,confirmation:password}));expect(mock.updateUser).toHaveBeenCalledWith({password});expect(result.success).toBeTruthy();expect(JSON.stringify(result)).not.toContain(password);
 });
+it('verifies an old-inbox code against the verified current address after the pending address rejects it',async()=>{
+ await changeAccountEmail({},form({operation:'request',email:'new@example.invalid'}));
+ mock.verifyOtp.mockResolvedValueOnce({error:{code:'otp_expired',status:403}}).mockResolvedValueOnce({error:null});
+ mock.getUser.mockResolvedValue({data:{user:{id:user.id,email:user.email,email_confirmed_at:user.emailVerifiedAt}},error:null});
+ const result=await changeAccountEmail({},form({operation:'confirm',token:'123456',email:'forged@example.invalid'}));
+ expect(mock.verifyOtp.mock.calls).toEqual([[{email:'new@example.invalid',token:'123456',type:'email_change'}],[{email:user.email,token:'123456',type:'email_change'}]]);
+ expect(result.pendingEmail).toBe('new@example.invalid');expect(result.completed).not.toBe(true);expect(mock.sync).not.toHaveBeenCalled();expect(mock.cookies.has('lub-pending-email')).toBe(true);
+});
+it('does not retry rate-limited confirmations or synchronize an invalid code',async()=>{
+ await changeAccountEmail({},form({operation:'request',email:'new@example.invalid'}));
+ mock.verifyOtp.mockResolvedValue({error:{code:'over_request_rate_limit',status:429}});
+ expect((await changeAccountEmail({},form({operation:'confirm',token:'123456'}))).error).toBeTruthy();expect(mock.verifyOtp).toHaveBeenCalledTimes(1);expect(mock.sync).not.toHaveBeenCalled();
+ mock.verifyOtp.mockClear();mock.verifyOtp.mockResolvedValue({error:{code:'otp_expired',status:403}});
+ expect((await changeAccountEmail({},form({operation:'confirm',token:'123456'}))).error).toBeTruthy();expect(mock.verifyOtp).toHaveBeenCalledTimes(2);expect(mock.sync).not.toHaveBeenCalled();
+});

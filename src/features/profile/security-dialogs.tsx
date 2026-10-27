@@ -84,8 +84,8 @@ export function EmailChangeDialog({
               label={en ? "Verification code" : "رمز التحقق"}
               hint={
                 en
-                  ? "Check the new inbox. Your current inbox may also require a separate confirmation."
-                  : "تحقق من البريد الجديد. قد يصلك تأكيد إضافي إلى البريد الحالي حسب إعدادات الأمان."
+                  ? "Enter the code from either inbox. If both require confirmation, enter the other code next."
+                  : "أدخل رمز أي من البريدين. إذا طُلب تأكيدهما، أدخل رمز البريد الآخر بعده."
               }
             >
               <Input
