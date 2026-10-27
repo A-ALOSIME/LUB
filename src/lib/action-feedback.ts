@@ -2,6 +2,12 @@ import type { Locale } from "./preferences";
 
 // Server actions return stable Arabic copy; keep the same feedback in either UI language.
 const english: Record<string, string> = {
+  "يجب أن تكون نهاية الفصل في تاريخ البداية أو بعده.": "The end date must be on or after the start date.",
+  "تتداخل هذه الفترة مع فصل محفوظ. اختر تواريخ لا تتداخل مع الفصول الحالية.": "These dates overlap a saved term. Choose dates outside existing terms.",
+  "تعذّر إضافة الفصل. راجع الحقول وتأكد من عدم تكرار السنة ورمز الفصل ومن صلاحيتك.": "Could not add the term. Check your fields, access, and that the year and term code are not duplicated.",
+  "اسم الرابط مستخدم بالفعل. اختر اسمًا آخر.":"This URL name is already in use. Choose another one.",
+  "تم حفظ إعدادات الجهة.":"Organization settings saved.",
+  "تعذّر حفظ إعدادات الجهة. تحقق من توفر اسم الرابط وصلاحياتك.":"Could not save organization settings. Check URL availability and your permissions.",
   "راجع الحقول المطلوبة.": "Check the required fields.",
   "لديك طلب قيد المراجعة بالفعل. يمكنك متابعته في طلباتك.": "You already have a request under review. Track it in My requests.",
   "توجد جهة بهذا الاسم. اختر اسمًا مختلفًا.": "An organization with this name already exists. Choose another name.",

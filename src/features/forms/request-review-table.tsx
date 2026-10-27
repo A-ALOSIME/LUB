@@ -34,10 +34,13 @@ import { RowAction } from "@/components/row-action";
 import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
 import { toast } from "@/components/ui/toast";
 import { formatCount } from "@/lib/display";
-import { formatRiyadhDate, formatRiyadhTime } from "@/lib/datetime";
+import { formatRiyadhDate, formatRiyadhTime, formatRiyadhDateTime } from "@/lib/datetime";
+import { DateInput } from "./date-input";
 import type { Locale } from "@/lib/preferences";
 import type { WorkflowState } from "./actions";
 import { RequestStatusBadge } from "./request-status-badge";
+
+function interviewIsPast(value: string) { return new Date(value).getTime() <= Date.now(); }
 
 export type ReviewDecision = "Accepted" | "Rejected" | "Interview";
 export type ReviewRow = {
@@ -80,6 +83,8 @@ export function RequestReviewTable({
       status: ReviewDecision;
     } | null>(null),
     [message, setMessage] = useState(""),
+    [interviewAt, setInterviewAt] = useState(""),
+    [interviewPast, setInterviewPast] = useState(false),
     [pending, start] = useTransition();
   const c = (ar: string, en: string) => (locale === "en" ? en : ar);
   const labels = {
@@ -91,6 +96,8 @@ export function RequestReviewTable({
     checked = selected.filter((id) => selectable.some((r) => r.id === id));
   function choose(ids: string[], status: ReviewDecision) {
     setMessage("");
+    setInterviewAt("");
+    setInterviewPast(false);
     setDecision({ ids, status });
   }
   function toggle(target: string, value: boolean) {
@@ -102,9 +109,10 @@ export function RequestReviewTable({
   }
   function execute() {
     if (!decision) return;
+    if(decision.status === "Interview" && (!interviewAt || interviewIsPast(interviewAt))){setInterviewPast(true);return;}
     start(async () => {
       try {
-        const result = await onDecision(eligible, decision.status, message);
+        const result = await onDecision(eligible, decision.status, decision.status === "Interview" ? `${formatRiyadhDateTime(interviewAt,locale,true)}\n${message}` : message);
         if (result.error) {
           toast.add({ title: result.error, type: "error", timeout: 0 });
           return;
@@ -397,6 +405,7 @@ export function RequestReviewTable({
                 )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {decision?.status === "Interview" && <><DateInput key={`${decision.ids.join(",")}-interview`} name="interviewAt" label={c("موعد المقابلة","Interview date and time")} required locale={locale} onValueChange={value=>{setInterviewAt(value);setInterviewPast(interviewIsPast(value));}}/>{interviewPast&&<p role="alert" className="text-sm text-destructive">{c("اختر موعد مقابلة في المستقبل.","Choose a future interview appointment.")}</p>}</>}
           {decision?.status !== "Accepted" && (
             <FormField
               label={
@@ -425,7 +434,7 @@ export function RequestReviewTable({
               disabled={
                 pending ||
                 !eligible.length ||
-                (decision?.status === "Interview" && !message.trim())
+                (decision?.status === "Interview" && (!message.trim() || !interviewAt || interviewPast))
               }
               onClick={(e) => {
                 e.preventDefault();

@@ -305,19 +305,23 @@ export function DatePickerField({
   required = false,
   value: initial = "",
   locale = "ar",
+  onValueChange,
+  error,
 }: {
   name: string;
   label: string;
   required?: boolean;
   value?: string;
   locale?: Locale;
+  onValueChange?: (value: string) => void;
+  error?: string;
 }) {
   const [value, setValue] = useState(initial),
     [open, setOpen] = useState(false),
     id = useId();
   return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <Field data-invalid={!!error || undefined}>
+      <FieldLabel htmlFor={id}>{label}{required && <span className="text-destructive" aria-hidden="true">*</span>}</FieldLabel>
       <CalendarPopup
         open={open}
         onOpenChange={setOpen}
@@ -329,6 +333,8 @@ export function DatePickerField({
             type="text"
             readOnly
             required={required}
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
             value={value ? formatRiyadhDate(value, locale) : ""}
             placeholder={locale === "en" ? "Choose a date" : "اختر التاريخ"}
             className="cursor-pointer font-normal"
@@ -340,11 +346,13 @@ export function DatePickerField({
           locale={locale}
           onSelect={(date) => {
             setValue(date);
+            onValueChange?.(date);
             setOpen(false);
           }}
         />
       </CalendarPopup>
       <input type="hidden" name={name} value={value} />
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </Field>
   );
 }
@@ -355,12 +363,14 @@ export function DateInput({
   required = false,
   value: initial,
   locale = "ar",
+  onValueChange,
 }: {
   name: string;
   label: string;
   required?: boolean;
   value?: string;
   locale?: Locale;
+  onValueChange?: (value: string) => void;
 }) {
   const initialValue = currentRiyadhDateTime(initial),
     [date, setDate] = useState(initialValue.date),
@@ -388,8 +398,8 @@ export function DateInput({
           />
         }
       >
-        <CalendarPanel future value={date} locale={locale} onSelect={setDate}
-          afterCalendar={<><TimeSelect label={en ? "Time" : "الوقت"} value={time} onChange={setTime} locale={locale}/><FieldDescription>{en ? "All times are in Riyadh time" : "كل الأوقات بتوقيت الرياض"}</FieldDescription></>}
+        <CalendarPanel future value={date} locale={locale} onSelect={next=>{setDate(next);onValueChange?.(`${next}T${time}:00+03:00`);}}
+          afterCalendar={<><TimeSelect label={en ? "Time" : "الوقت"} value={time} onChange={next=>{setTime(next);onValueChange?.(date?`${date}T${next}:00+03:00`:"");}} locale={locale}/><FieldDescription>{en ? "All times are in Riyadh time" : "كل الأوقات بتوقيت الرياض"}</FieldDescription></>}
           footer={<div className="period-picker-footer"><Button type="button" onClick={() => setOpen(false)}>{en ? "Done" : "تم"}</Button></div>}/>
 
       </CalendarPopup>
