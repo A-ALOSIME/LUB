@@ -30,3 +30,11 @@ it("rejects unknown fields/options, oversized answers and invalid file IDs", () 
   const file = definitionSchema.parse({ layout: "SinglePage", sections: [{ id: section, title: "مرفق", description: "", fields: [{ id: first, type: "File", label: "ملف", help: "", required: true, options: [], maxLength: 500 }] }] });
   expect(() => validateAnswers(file, { [first]: "other-user/path" })).toThrow();
 });
+
+it("supports explicit dynamic committee questions without stored options and validates committee IDs",()=>{
+ const schema=definitionSchema.parse({layout:'SinglePage',sections:[{id:section,title:'اللجنة',description:'',fields:[{id:first,type:'Committee',label:'اختر فريقك',help:'',required:true,options:[],maxLength:300}]}]});
+ expect(validateAnswers(schema,{[first]:second})).toEqual({[first]:second});
+ expect(()=>validateAnswers(schema,{})).toThrow();
+ expect(()=>validateAnswers(schema,{[first]:'forged'})).toThrow();
+ expect(definitionSchema.safeParse({...schema,sections:[{...schema.sections[0],fields:[{...schema.sections[0].fields[0],options:[{value:'fake',label:'مزور'}]}]}]}).success).toBe(false);
+});

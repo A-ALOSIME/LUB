@@ -411,10 +411,13 @@ it("executes the workflow repository with actual RLS and bounded question payloa
  expect((await getWorkspace(leader,org,template))?.templates.find(t=>t.id===template)?.versions[0].definition).toEqual(initialDefinition);
  expect((await getWorkspace(leader,org))?.templates.find(t=>t.id===template)?.versions[0].definition).toBeUndefined();
  expect((await publicRounds(org))[0].id).toBe(round);expect((await getRound(round))?.version.id).toBe(version);
- await engine.exec("begin");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[admin]);await engine.exec("set local role authenticated");
+ const applicant="00000000-0000-4000-8000-000000000003";
+ await engine.query("insert into auth.users values($1)",[applicant]);await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'applicant@example.invalid',now())",[applicant]);await engine.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,'المتقدم','private',$2,'نظم معلومات','5')",[applicant,'c'.repeat(64)]);
+ await engine.exec("begin");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[admin]);await engine.exec("set local role authenticated;savepoint admin_denied");
+ await expect(engine.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:"مشاركة"})])).rejects.toThrow();await engine.exec("rollback to savepoint admin_denied;release savepoint admin_denied");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[applicant]);
  const app=(await engine.query<{id:string}>("select lub.submit_application($1,$2,$3::jsonb,null,null,null) as id",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:"مشاركة"})])).rows[0].id;await engine.exec("commit");
- expect((await listApplications(leader,org))[0].name).toBe("المشرف");expect((await getApplicationDetail(admin,app))?.answers).toEqual({[initialDefinition.sections[0].fields[0].id]:"مشاركة"});
- expect(await ownApplication(admin,round)).toBe(app);
+ expect((await listApplications(leader,org))[0].name).toBe("المتقدم");expect((await getApplicationDetail(applicant,app))?.answers).toEqual({[initialDefinition.sections[0].fields[0].id]:"مشاركة"});
+ expect(await ownApplication(applicant,round)).toBe(app);
 });
 it("supplies the personal dashboard in one scoped read without another user's private records",async()=>{
  const {getMyPageData}=await import("@/features/organizations/my-page-repository");

@@ -587,6 +587,7 @@ export function EventContent({
                 registration_opens_at: e.registration_opens_at,
                 opensLater: new Date(e.registration_opens_at) > new Date(),
               }}
+              committees={data.committees}
               open={data.open}
               remaining={data.remaining}
               own={data.own}

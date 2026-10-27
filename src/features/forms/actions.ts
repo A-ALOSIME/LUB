@@ -43,7 +43,7 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
      if(application&&!detail)throw new Error("application");
      const version=detail?.version ?? round.version; if (!version || version.id!==uuid(form,"version")) throw new Error("version");
      const answers=validateAnswers(definitionSchema.parse(version.definition),json(form,"answers",256000));
-     return sql`select lub.submit_application(${round.id},${version.id},${JSON.stringify(answers)}::jsonb,${optionalUuid(form,"committee")},${application},${application ? z.coerce.number().int().positive().parse(form.get("revision")) : null})`;
+     return sql`select lub.submit_application(${round.id},${version.id},${JSON.stringify(answers)}::jsonb,${null},${application},${application ? z.coerce.number().int().positive().parse(form.get("revision")) : null})`;
     }
     case "withdraw": return sql`select lub.withdraw_application(${uuid(form,"application")})`;
     case "decide": return sql`select lub.decide_application(${uuid(form,"application")},${z.enum(["Accepted","Rejected","Interview"]).parse(form.get("status"))},${z.string().trim().max(3000).parse(form.get("message") ?? "")})`;

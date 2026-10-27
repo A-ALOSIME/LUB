@@ -441,6 +441,7 @@ export function FormEditor({
                           </FieldDescription>
                         )}
                       </Field>
+                      {field.type === "Committee" && <FieldDescription>{c("تُحدّث الخيارات تلقائيًا من لجان الجهة الرئيسية والفرعية المتاحة للمتقدمين.","Choices stay in sync with the organization’s public committees and subcommittees.")}</FieldDescription>}
                       {field.options.length > 0 && (
                         <FieldGroup>
                           {field.options.map((option, oi) => (

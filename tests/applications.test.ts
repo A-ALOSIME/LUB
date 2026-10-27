@@ -9,6 +9,8 @@ const student = "00000000-0000-4000-8000-000000000002";
 const other = "00000000-0000-4000-8000-000000000003";
 const org = "00000000-0000-4000-8000-000000000101";
 const committee = "00000000-0000-4000-8000-000000000201";
+const committeeQuestion='00000000-0000-4000-8000-000000000202';
+const committeeDefinition={...initialDefinition,sections:[{...initialDefinition.sections[0],fields:[...initialDefinition.sections[0].fields,{id:committeeQuestion,type:'Committee' as const,label:'اللجنة المطلوبة',help:'',required:false,options:[],maxLength:300}]}]};
 let template: string; let version: string; let round: string;
 beforeAll(async () => {
   db = new PGlite();
@@ -34,7 +36,7 @@ beforeEach(async () => {
   await asUser(leader);
   template = (await db.query<{ id: string }>("select lub.create_form($1,'طلب انضمام',null) as id", [org])).rows[0].id;
   version = (await db.query<{ id: string }>("select id from lub.form_versions where form_template_id=$1", [template])).rows[0].id;
-  await db.query("select lub.save_form_draft($1,$2::jsonb,1)", [version, JSON.stringify(initialDefinition)]);
+  await db.query("select lub.save_form_draft($1,$2::jsonb,1)", [version, JSON.stringify(committeeDefinition)]);
   await db.query("select lub.publish_form_version($1)", [version]);
   round = (await db.query<{ id: string }>("select lub.create_registration_round($1,$2,'التسجيل الجديد',now()-interval '1 hour',now()+interval '1 day',true) as id", [org, template])).rows[0].id;
   await db.query("select lub.change_round_status($1,'Open')", [round]);
@@ -43,7 +45,7 @@ afterEach(async () => { await db.exec("rollback"); });
 afterAll(async () => { await db.close(); });
 async function submit(id = student) {
   await asUser(id);
-  return (await db.query<{ id: string }>("select lub.submit_application($1,$2,$3::jsonb,$4,null,null) as id", [round, version, JSON.stringify({ [initialDefinition.sections[0].fields[0].id]: "أرغب بالمشاركة" }), committee])).rows[0].id;
+  return (await db.query<{ id: string }>("select lub.submit_application($1,$2,$3::jsonb,$4,null,null) as id", [round, version, JSON.stringify({ [initialDefinition.sections[0].fields[0].id]: "أرغب بالمشاركة",[committeeQuestion]:committee }), committee])).rows[0].id;
 }
 it("keeps published versions immutable, creates independent copies, and denies unaffiliated template writes", async () => {
   await denied(() => db.query("select lub.save_form_draft($1,$2::jsonb,2)", [version, JSON.stringify(initialDefinition)]));
@@ -87,7 +89,7 @@ it("permits Interview edits while open, then locks final decisions and creates m
   const application = await submit(); await asUser(leader);
   await db.query("select lub.decide_application($1,'Interview','موعد المقابلة غدًا')", [application]);
   await asUser(student);
-  await db.query("select lub.submit_application($1,$2,$3::jsonb,$4,$5,1)", [round, version, JSON.stringify({ [initialDefinition.sections[0].fields[0].id]: "إجابة معدلة" }), committee, application]);
+  await db.query("select lub.submit_application($1,$2,$3::jsonb,$4,$5,1)", [round, version, JSON.stringify({ [initialDefinition.sections[0].fields[0].id]: "إجابة معدلة",[committeeQuestion]:committee }), committee, application]);
   await asUser(leader); await db.query("select lub.decide_application($1,'Accepted','')", [application]);
   await owner();
   expect((await db.query("select id from lub.organization_memberships where user_id=$1 and status_code='Active'", [student])).rows).toHaveLength(1);
@@ -307,3 +309,39 @@ it("keeps incomplete round drafts private and validates publication",async()=>{
 });
 
 it("preserves a rejection reason for the applicant and in the decision timeline",async()=>{const application=await submit();await asUser(leader);await db.query("select lub.decide_application($1,'Rejected','اكتملت المقاعد')",[application]);await asUser(student);expect((await db.query("select reason from lub.application_status_history where application_id=$1 and to_status_code='Rejected'",[application])).rows).toEqual([{reason:'اكتملت المقاعد'}]);await asUser(other);expect((await db.query("select reason from lub.application_status_history where application_id=$1",[application])).rows).toEqual([]);});
+
+it("resolves explicit committee answers against current organization scope and updates hierarchical options",async()=>{
+ await owner();const child=(await db.query<{id:string}>("insert into lub.committees(organization_id,parent_committee_id,name) values($1,$2,'الفرعية') returning id",[org,committee])).rows[0].id;
+ await asUser(student);expect((await db.query("select name from lub.form_committee_options($1) where id=$2",[org,child])).rows).toEqual([{name:'التقنية / الفرعية'}]);
+ await denied(()=>db.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابة',[committeeQuestion]:other})]));
+ const app=(await db.query<{id:string}>("select lub.submit_application($1,$2,$3::jsonb,null,null,null) as id",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابة',[committeeQuestion]:child})])).rows[0].id;
+ expect((await db.query<{labels:{answers:Record<string,string>}}>("select lub.application_committee_labels($1) as labels",[app])).rows[0].labels.answers[committeeQuestion]).toBe('الفرعية');
+ await asUser(leader);await owner();await db.query("update lub.committees set status_code='Archived',archived_at=now() where id=$1",[child]);await asUser(student);expect((await db.query("select id from lub.form_committee_options($1) where id=$2",[org,child])).rows).toEqual([]);
+ await denied(()=>db.query("select lub.submit_application($1,$2,$3::jsonb,null,$4,1)",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابة',[committeeQuestion]:child}),app]));
+ expect((await db.query<{labels:{answers:Record<string,string>}}>("select lub.application_committee_labels($1) as labels",[app])).rows[0].labels.answers[committeeQuestion]).toBe('الفرعية');
+ await asUser(other);expect((await db.query("select lub.application_committee_labels($1) as labels",[app])).rows[0]).toEqual({labels:null});
+});
+
+it("migrates legacy forms by creating versions while retaining published responses, selected committees and draft edits",async()=>{
+ await db.query("select lub.change_round_status($1,'Closed')",[round]);
+ const legacy=(await db.query<{id:string}>("select lub.create_form($1,'نموذج سابق',null) as id",[org])).rows[0].id;
+ const old=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[legacy])).rows[0].id;
+ await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[old,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[old]);
+ const previousRound=(await db.query<{id:string}>("select lub.create_registration_round($1,$2,'جولة سابقة',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,legacy])).rows[0].id;await db.query("select lub.change_round_status($1,'Open')",[previousRound]);
+ const draft=(await db.query<{id:string}>("select lub.start_form_draft($1) as id",[legacy])).rows[0].id;
+ const edited=structuredClone(initialDefinition);edited.sections[0].fields[0].label='تعديل غير منشور';await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[draft,JSON.stringify(edited)]);
+ await owner();const response=(await db.query<{id:string}>("insert into lub.form_responses(form_version_id,respondent_user_id,answers) values($1,$2,$3::jsonb) returning id",[old,student,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابتي القديمة'})])).rows[0].id;
+ const app=(await db.query<{id:string}>("insert into lub.membership_applications(registration_round_id,applicant_user_id,requested_committee_id,form_response_id) values($1,$2,$3,$4) returning id",[previousRound,student,committee,response])).rows[0].id;
+ const sql=readFileSync('drizzle/0052_explicit_committee_questions.sql','utf8').split('-- BEGIN legacy committee conversion')[1].split('-- END legacy committee conversion')[0];await db.exec(sql);
+ expect((await db.query("select answers,form_version_id from lub.form_responses where id=$1",[response])).rows[0]).toEqual({answers:{[initialDefinition.sections[0].fields[0].id]:'إجابتي القديمة'},form_version_id:old});
+ const versions=(await db.query<{id:string;status_code:string;definition:typeof initialDefinition}>("select id,status_code,definition from lub.form_versions where form_template_id=$1 order by version_number",[legacy])).rows;
+ expect(versions).toHaveLength(4);expect(versions[0].definition).toEqual(initialDefinition);expect(versions[1].status_code).toBe('Retired');expect(versions[3].definition.sections[0].fields[0].label).toBe('تعديل غير منشور');expect(versions[2].definition.sections[0].fields.at(-1)?.type).toBe('Committee');
+ await asUser(student);await db.query("select lub.submit_application($1,$2,$3::jsonb,null,$4,1)",[previousRound,old,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابة معدلة'}),app]);expect((await db.query("select requested_committee_id from lub.membership_applications where id=$1",[app])).rows[0]).toEqual({requested_committee_id:committee});
+ await asUser(leader);await denied(()=>db.query("select lub.save_form_draft($1,$2::jsonb,1)",[old,JSON.stringify(edited)]));
+});
+
+it("does not infer a committee for a new form without an explicit committee question",async()=>{
+ const draft=(await db.query<{id:string}>("select lub.start_form_draft($1) as id",[template])).rows[0].id;await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[draft,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[draft]);
+ await asUser(student);const app=(await db.query<{id:string}>("select lub.submit_application($1,$2,$3::jsonb,$4,null,null) as id",[round,draft,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابة'}),committee])).rows[0].id;
+ expect((await db.query("select requested_committee_id from lub.membership_applications where id=$1",[app])).rows[0]).toEqual({requested_committee_id:null});
+});

@@ -27,7 +27,7 @@ import { mutateEvent } from "./actions";
 
 type Props = Pick<
   EventDetail,
-  "open" | "remaining" | "own" | "form" | "status" | "onboarded"
+  "open" | "remaining" | "own" | "form" | "status" | "onboarded" | "committees"
 > & {
   event: {
     id: string;
@@ -50,6 +50,7 @@ export function PublicEventRegistration({
   onboarded,
   user,
   locale,
+  committees=[],
 }: Props) {
   const [pending, start] = useTransition(),
     [withdraw, setWithdraw] = useState(false),
@@ -172,7 +173,7 @@ export function PublicEventRegistration({
           round=""
           version={form.id}
           definition={form.definition}
-          committees={[]}
+          committees={committees}
           locale={locale}
         />
       </ManagementActionSheet>

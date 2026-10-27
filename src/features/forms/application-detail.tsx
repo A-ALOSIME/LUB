@@ -30,6 +30,7 @@ export function ApplicationDetail({
         </section>
       )}
       <dl className="space-y-5">
+        {detail.committee_labels?.legacy&&!detail.version.definition.sections.some(s=>s.fields.some(f=>f.type==='Committee'))&&<div><dt className="text-sm text-muted-foreground">{en?'Requested committee':'اللجنة المطلوبة'}</dt><dd className="mt-1">{detail.committee_labels.legacy}</dd></div>}
         {detail.version.definition.sections
           .flatMap((s) => s.fields)
           .filter((f) => detail.answers[f.id] !== undefined)
@@ -60,6 +61,8 @@ export function ApplicationDetail({
                     ) : (
                       "موافق"
                     )
+                  ) : f.type === 'Committee' ? (
+                    detail.committee_labels?.answers[f.id]??(en?'Committee no longer available':'لجنة لم تعد متاحة')
                   ) : f.options.length ? (
                     (Array.isArray(detail.answers[f.id])
                       ? (detail.answers[f.id] as string[])
