@@ -34,6 +34,13 @@ import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, save
 const admin = "00000000-0000-4000-8000-000000000001";
 const leader = "00000000-0000-4000-8000-000000000002";
 const org = "00000000-0000-4000-8000-000000000101";
+const learner="00000000-0000-4000-8000-000000000009";
+async function createLearner() {
+ await engine.query("insert into auth.users values($1)",[learner]);
+ await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'learner@example.invalid',now())",[learner]);
+ await engine.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,'الطالب','private',$2,'نظم معلومات','5')",[learner,"9".repeat(64)]);
+}
+
 beforeEach(async () => {
   selectedReads=0;
   holdRawRead=false; rawReadStarted=undefined; resumeRawRead=undefined; visitorReadStarted=undefined;
@@ -155,27 +162,28 @@ it("exports scoped approved hours directly as CSV without persisting report docu
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);await engine.query("select lub.grant_report_permission($1,null,null)",[member]);await engine.query("select lub.grant_report_permission($1,null,null)",[adminMember]);await engine.exec("reset role");
  scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0,rulePage:0})).toBeUndefined();
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[exporter]);await engine.exec("set role authenticated");const exported=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,$2) as csv",[org,term])).rows[0].csv;expect(exported).toContain('"الاسم","الساعات المعتمدة"');expect(exported).toContain('2.50');expect(exported).not.toContain('storage_key');await engine.exec("reset role");
- const managed=await getManagementOrganization(admin,org);expect(managed?.organization.canReports).toBe(true);expect(managed?.organization.canHours).toBe(false);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
+ const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(false);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
 });
 
 it("reads hours and renewals with scoped totals, bounded lists and the genuine repository SQL",async()=>{
  const {myHours,hoursWorkspace,termWorkspace}=await import("@/features/hours/repository");
  const {myRenewals,renewalWorkspace}=await import("@/features/renewals/repository");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
- const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
+ await createLearner();
+ const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,learner])).rows[0].id;
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");
  const term=(await engine.query<{id:string}>("select lub.create_academic_term('2026','T1','الفصل الأول',current_date-30,current_date+90) as id")).rows[0].id;
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
  for(let i=0;i<27;i++)await engine.query("select lub.add_hours($1,null,$2,1.5,current_date,'عمل تطوعي',false,true)",[member,term]);
  const c=(await engine.query<{id:string}>("select lub.create_renewal($1,$2,now()-interval '1 hour',now()+interval '1 day',false) as id",[org,term])).rows[0].id;
  await engine.query("select lub.change_renewal_status($1,'Open')",[c]);await engine.exec("reset role");
- scopedReads=0;const own=await myHours(admin,term,0);expect(scopedReads).toBe(1);expect(own?.account.onboarded).toBe(true);expect(own?.total).toBe("40.50");expect(own?.records).toHaveLength(26);expect(own?.records[0].decisions).toHaveLength(1);expect((await myHours(admin,term,1))?.records).toHaveLength(2);
+ scopedReads=0;const own=await myHours(learner,term,0);expect(scopedReads).toBe(1);expect(own?.account.onboarded).toBe(true);expect(own?.total).toBe("40.50");expect(own?.records).toHaveLength(26);expect(own?.records[0].decisions).toHaveLength(1);expect((await myHours(learner,term,1))?.records).toHaveLength(2);
  expect((await myHours(leader,term,0))?.records).toHaveLength(0);
- const filters={term,committee:null,page:0,memberPage:0,rulePage:0};scopedReads=0;const workspace=await hoursWorkspace(leader,org,filters);expect(scopedReads).toBe(1);expect(workspace?.total).toBe("40.50");expect(workspace?.scopes[0].approve).toBe(true);expect(workspace?.members).toHaveLength(2);expect(workspace?.records[0].owner).toBe("المشرف");expect(await hoursWorkspace(admin,org,filters)).toBeUndefined();
+ const filters={term,committee:null,page:0,memberPage:0,rulePage:0};scopedReads=0;const workspace=await hoursWorkspace(leader,org,filters);expect(scopedReads).toBe(1);expect(workspace?.total).toBe("40.50");expect(workspace?.scopes[0].approve).toBe(true);expect(workspace?.members).toHaveLength(2);expect(workspace?.records[0].owner).toBe("الطالب");expect(await hoursWorkspace(admin,org,filters)).toBeUndefined();
  expect((await termWorkspace(admin))?.canManage).toBe(true);expect((await termWorkspace(leader))?.canManage).toBe(false);
- scopedReads=0;const renewals=await myRenewals(admin,0);expect(scopedReads).toBe(1);expect(renewals?.items).toHaveLength(1);expect(renewals?.items[0].response.canRespond).toBe(true);
+ scopedReads=0;const renewals=await myRenewals(learner,0);expect(scopedReads).toBe(1);expect(renewals?.items).toHaveLength(1);expect(renewals?.items[0].response.canRespond).toBe(true);
  scopedReads=0;const renew=await renewalWorkspace(leader,org,c,0,0);expect(scopedReads).toBe(1);expect(renew?.selected?.id).toBe(c);expect(renew?.responses).toHaveLength(2);expect(renew?.counts[0].count).toBe(2);expect(await renewalWorkspace(admin,org,c,0,0)).toBeUndefined();
- const {getMyPageData}=await import("@/features/organizations/my-page-repository");expect((await getMyPageData(admin)).hours).toBe("40.50");
+ const {getMyPageData}=await import("@/features/organizations/my-page-repository");expect((await getMyPageData(learner)).hours).toBe("40.50");
 });
 
 it("reads scoped tasks, selected submissions, personal summaries and former-member history through real repository SQL",async()=>{
@@ -263,12 +271,13 @@ it("keeps administrative counts scoped to the super admin dashboard summary", as
 
 it("loads assigned organizations and administrator rosters in one scoped query each", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
-  const membership = (await engine.query<{ id: string }>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id", [org, admin])).rows[0].id;
+  await createLearner();
+  const membership = (await engine.query<{ id: string }>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id", [org, learner])).rows[0].id;
   await engine.query("select set_config('request.jwt.claim.sub',$1,false)", [leader]); await engine.exec("set role authenticated");
   await engine.query("select lub.grant_report_permission($1,null,null)", [membership]); await engine.exec("reset role");
 
   selectedReads = 0;
-  expect((await getAssignedManagementOrganizations(admin)).map(item => item.id)).toEqual([org]);
+  expect((await getAssignedManagementOrganizations(learner)).map(item => item.id)).toEqual([org]);
   expect(selectedReads).toBe(1);
 
   const priorDatabaseScope = (await engine.query<{ role: string; subject: string }>("select current_user as role,current_setting('request.jwt.claim.sub',true) as subject")).rows[0];
@@ -329,7 +338,9 @@ it("loads the administrator profile with one RLS-scoped statement", async () => 
 
 it("keeps ended leadership roles in the student's own membership history", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
-  await appointPrimaryLeader(admin, org, "admin@example.invalid");
+  await createLearner();
+  await expect(appointPrimaryLeader(admin, org, "admin@example.invalid")).rejects.toThrow();
+  await appointPrimaryLeader(admin, org, "learner@example.invalid");
   const [history] = await getMembershipHistory(leader);
   expect(history.statusCode).toBe("Active");
   expect(history.endDate).toBeNull();
@@ -428,3 +439,17 @@ it("supplies the personal dashboard in one scoped read without another user's pr
 });
 
 it("reads scoped event review rows and counts in one query without exposing student identifiers or avatars",async()=>{await appointPrimaryLeader(admin,org,'leader@example.invalid');await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec('set role authenticated');const event=(await engine.query<{id:string}>("select lub.save_and_publish_event(null,$1,'ورشة','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',5,null,0,null,null,true) as id",[org])).rows[0].id;await engine.query("select lub.register_event($1,null,'{}',null)",[event]);await engine.exec('reset role');const {eventRegistrants}=await import('@/features/events/review-repository');scopedReads=0;const data=await eventRegistrants(leader,org);expect(scopedReads).toBe(1);expect(data.accepted).toBe(1);expect(data.items[0]).toMatchObject({name:'القائد',review_status_code:'Accepted'});expect(JSON.stringify(data)).not.toMatch(/university|ciphertext|lookup_hash|avatar|secret2/);expect((await eventRegistrants(admin,org)).items).toEqual([]);});
+
+it('excludes active system administrators from member lists, public counts, hours and exports while retaining their original records',async()=>{
+ await appointPrimaryLeader(admin,org,'leader@example.invalid');await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);
+ const adminMember=(await engine.query<{id:string}>('insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id',[org,admin])).rows[0].id;
+ const leaderMember=(await engine.query<{id:string}>('select id from lub.organization_memberships where organization_id=$1 and user_id=$2',[org,leader])).rows[0].id;
+ const term=(await engine.query<{id:string}>("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('QA','T1','الفصل الدراسي الأول',current_date-10,current_date+10) returning id")).rows[0].id;
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);
+ for(const [member,hours] of [[leaderMember,2],[adminMember,20]])await engine.query("insert into lub.hour_records(organization_id,organization_membership_id,academic_term_id,source_code,hours,activity_date,description,status_code,requested_by_user_id,reviewed_by_user_id,reviewed_at) values($1,$2,$3,'MANUAL',$4,current_date,'عمل','Approved',$5,$5,now())",[org,member,term,hours,leader]);
+ const {getOrganizationMemberDirectory}=await import('@/features/organizations/management-repository');const {hoursWorkspace}=await import('@/features/hours/repository');
+ expect((await getOrganizationMemberDirectory(leader,org))?.members.map(m=>m.name)).toEqual(['القائد']);expect((await getPublicOrganization('tech'))?.organization.memberCount).toBe(1);
+ const hours=await hoursWorkspace(leader,org,{term:null,committee:null,page:0,memberPage:0,rulePage:0});expect(hours?.total).toBe('2.00');expect(hours?.records).toHaveLength(1);expect(hours?.members.map(m=>m.name)).not.toContain('المشرف');
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec('set role authenticated');const csv=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,null,null,'') as csv",[org])).rows[0].csv;expect(csv).not.toContain('المشرف');await engine.exec('reset role');
+ expect((await engine.query('select id from lub.organization_memberships where id=$1',[adminMember])).rows).toHaveLength(1);expect((await engine.query('select id from lub.hour_records where organization_membership_id=$1',[adminMember])).rows).toHaveLength(1);
+});

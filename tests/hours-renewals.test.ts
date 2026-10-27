@@ -2,7 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
 let db:PGlite;
-const leader="00000000-0000-4000-8000-000000000001",member="00000000-0000-4000-8000-000000000002",admin="00000000-0000-4000-8000-000000000003";
+const leader="00000000-0000-4000-8000-000000000001",member="00000000-0000-4000-8000-000000000002",admin="00000000-0000-4000-8000-000000000003",systemAdmin="00000000-0000-4000-8000-000000000004";
 const org="00000000-0000-4000-8000-000000000101",committee="00000000-0000-4000-8000-000000000201";
 let memberships:string[],term:string;
 beforeAll(async()=>{
@@ -15,14 +15,14 @@ async function asUser(id:string){await db.exec("reset role");await db.query("sel
 async function denied(fn:()=>Promise<unknown>){await db.exec("savepoint denied");await expect(fn()).rejects.toThrow();await db.exec("rollback to savepoint denied;release savepoint denied");}
 beforeEach(async context=>{
  await db.exec("begin");memberships=[];
- for(const [i,id] of [leader,member,admin].entries()){
+ for(const [i,id] of [leader,member,admin,systemAdmin].entries()){
  await db.query("insert into auth.users values($1)",[id]);await db.query("insert into lub.users(id,email,email_verified_at) values($1,$2,now())",[id,`hours${i}@example.invalid`]);
  await db.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,$2,'private',$3,'الحاسب','4')",[id,`طالب ${i}`,String(i).repeat(64)]);
  }
  await db.query("insert into lub.organizations(id,type_code,slug,name_ar) values($1,'Club','tech','نادي التقنية')",[org]);await db.query("insert into lub.committees(id,organization_id,name) values($1,$2,'التقنية')",[committee,org]);
  for(const id of [leader,member,admin])memberships.push((await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,id])).rows[0].id);
  await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,role_code,is_primary_leader,assigned_by_user_id) values($1,$2,'OL',true,$3)",[memberships[0],org,leader]);
- await db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)",[admin]);await asUser(admin);
+ await db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)",[systemAdmin]);await asUser(systemAdmin);
  term="";if(!context.task.name.startsWith("requires a covering term"))term=(await db.query<{id:string}>("select lub.create_academic_term('2026-2027','T1','الفصل الأول',current_date-30,current_date+90) as id")).rows[0].id;await asUser(leader);
 });
 afterEach(async()=>{await db.exec("rollback");});afterAll(async()=>{await db.close();});
@@ -94,7 +94,7 @@ it("protects response ownership/window and records decline or no response withou
  await asUser(admin);await denied(()=>db.query("select lub.respond_renewal($1,'Renewed')",[peer.id]));
 });
 it("allows only administrators to create non-overlapping immutable formal terms",async()=>{
- await denied(()=>db.query("select lub.create_academic_term('2027','T2','الفصل الثاني',current_date+91,current_date+180)"));await asUser(admin);
+ await denied(()=>db.query("select lub.create_academic_term('2027','T2','الفصل الثاني',current_date+91,current_date+180)"));await asUser(systemAdmin);
  await denied(()=>db.query("select lub.create_academic_term('2026','T3','فصل متداخل',current_date,current_date+10)"));
  await db.query("select lub.create_academic_term('2027','T2','الفصل الثاني',current_date+91,current_date+180)");expect((await db.query("select id from lub.academic_terms")).rows).toHaveLength(2);await db.exec("reset role");await denied(()=>db.query("update lub.academic_terms set end_date=current_date where id=$1",[term]));
 });

@@ -379,6 +379,13 @@
       "when": 1793073600000,
       "tag": "0053_private_student_account",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793077200000,
+      "tag": "0054_administrative_account_separation",
+      "breakpoints": true
     }
   ]
 }
