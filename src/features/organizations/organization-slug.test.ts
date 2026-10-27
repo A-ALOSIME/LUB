@@ -1,0 +1,3 @@
+import {expect,it} from 'vitest';
+import {suggestOrganizationSlug} from './organization-slug';
+it('suggests readable, valid Latin slugs from Arabic and English organization names',()=>{expect(suggestOrganizationSlug('نادي البيانات')).toBe('nady-albyanat');expect(suggestOrganizationSlug('Data & AI Club')).toBe('data-ai-club');expect(suggestOrganizationSlug('  لُبّ  ')).toBe('lb');expect(suggestOrganizationSlug('')).toBe('');expect(suggestOrganizationSlug('علوم '.repeat(50))).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);expect(suggestOrganizationSlug('علوم '.repeat(50)).length).toBeLessThanOrEqual(80);});

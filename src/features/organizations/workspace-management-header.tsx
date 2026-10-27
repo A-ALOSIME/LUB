@@ -35,6 +35,7 @@ function pageTitle(pathname: string, locale: Locale) {
     "/manage/terms": ["الفصول الأكاديمية", "Academic terms"],
   };
   const pathLabels: Record<string, [string, string]> = {
+    edit:["بيانات الجهة","Organization details"],
     members: ["الأعضاء", "Members"], applications: ["الأعضاء", "Members"], permissions: ["الأعضاء", "Members"],
     renewals: ["التسجيل والتجديد", "Registration and renewal"], events: ["الفعاليات والإعلانات", "Events and announcements"],
     tasks: ["المهام والساعات", "Tasks and hours"], hours: ["المهام والساعات", "Tasks and hours"],

@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 import { useActionToast } from "@/components/action-toast";
 
-const logoBucketUrl = "/storage/v1/object/public/lub-organization-logos/organizations/";
-
 export function OrganizationLogoEditor({ organizationId, organizationName, logoUrl, fallbackLogoUrl, locale }: {
   organizationId: string;
   organizationName: string;
@@ -25,7 +23,7 @@ export function OrganizationLogoEditor({ organizationId, organizationName, logoU
   const inputRef = useRef<HTMLInputElement>(null);
   const en = locale === "en";
   const currentLogo = logoUrl || fallbackLogoUrl;
-  const customLogo = logoUrl.includes(logoBucketUrl);
+  const customLogo = Boolean(logoUrl);
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

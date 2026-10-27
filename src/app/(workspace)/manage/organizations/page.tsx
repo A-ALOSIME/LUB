@@ -1,64 +1,158 @@
-import { NativeSelect } from "@/components/ui/native-select";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { z } from "zod";
+import { Plus, Search } from "lucide-react";
 import { localizedMetadata } from "@/lib/localized-metadata";
-import { getAdminOrganizations } from "@/features/organizations/management-repository";
-import { MutationForm } from "@/features/organizations/mutation-form";
-import { organizationStatuses, organizationTypes } from "@/features/organizations/validation";
-import { requireVerifiedProxyIdentity } from "@/features/auth/session";
 import { getPreferences } from "@/lib/preferences";
-import { FormField } from "@/components/form-field";
-
-export async function generateMetadata() { return localizedMetadata("إدارة الجهات", "Organizations"); }
-
-export default async function AdminOrganizationsPage() {
-  const [user, { locale }] = await Promise.all([requireVerifiedProxyIdentity(), getPreferences()]);
-  const en = locale === "en";
-  const access = await getAdminOrganizations(user.id);
-  if (!access.allowed) notFound();
-  const organizations = access.organizations;
-
-  return <div className="workspace-content">
-    <header className="workspace-page-header">
-      <div>
+import { requireVerifiedProxyIdentity } from "@/features/auth/session";
+import { getAdminOrganizations } from "@/features/organizations/management-repository";
+import { AdminOrganizationTable } from "@/features/organizations/admin-organization-table";
+import { localOrganizationContent } from "@/features/organizations/local-content";
+import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import {
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+} from "@/components/ui/input-group";
+import { LiveFilterForm } from "@/components/live-filter-form";
+export async function generateMetadata() {
+  return localizedMetadata("إدارة الجهات", "Organizations");
+}
+export default async function AdminOrganizationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    status?: string;
+    page?: string;
+  }>;
+}) {
+  const [user, { locale }, query] = await Promise.all([
+      requireVerifiedProxyIdentity(),
+      getPreferences(),
+      searchParams,
+    ]),
+    en = locale === "en";
+  const filters = {
+    q: z
+      .string()
+      .trim()
+      .max(120)
+      .catch("")
+      .parse(query.q ?? ""),
+    type: z
+      .enum(["", "Club", "Council"])
+      .catch("")
+      .parse(query.type ?? ""),
+    status: z
+      .enum(["", "Active", "Inactive", "Archived"])
+      .catch("")
+      .parse(query.status ?? ""),
+    page: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(10000)
+      .catch(0)
+      .parse(query.page ?? 0),
+  };
+  const data = await getAdminOrganizations(user.id, filters);
+  if (!data.allowed) notFound();
+  const rows = data.organizations.map((item) => ({
+    ...item,
+    logoUrl:
+      item.logoUrl ||
+      localOrganizationContent(item.nameAr, item.typeCode)?.logoSrc ||
+      "",
+  }));
+  const href = (page: number) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ ...filters, page }))
+      if (value !== "" && value !== 0) params.set(key, String(value));
+    return `/manage/organizations?${params}`;
+  };
+  return (
+    <main
+      id="main"
+      className="workspace-content flex flex-col gap-6"
+      dir={en ? "ltr" : "rtl"}
+    >
+      <header className="workspace-page-header">
         <h1>{en ? "Organizations" : "الجهات"}</h1>
-      </div>
-      <Link href="/manage/organizations/new" prefetch={false} className="button button-compact">{en ? "Add organization" : "إضافة جهة"}</Link>
-    </header>
-
-    {organizations.length ? <ul className="grid gap-4 xl:grid-cols-2">{organizations.map(organization => <li key={organization.id} className="panel min-w-0 p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 dir="auto" className="text-lg font-semibold leading-8">{organization.nameAr}</h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
-            <span>{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</span>
-            <span aria-hidden="true">·</span>
-            <span>{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>
-          </div>
-        </div>
-        <Link href={`/organizations/${organization.slug}`} prefetch={false} className="text-link shrink-0 text-sm">{en ? "Public page" : "الصفحة العامة"}</Link>
-      </div>
-
-      {organization.statusCode === "Active" && <details className="mt-5 rounded-lg border border-line p-4">
-        <summary className="cursor-pointer font-medium">{en ? "Appoint or replace the primary leader" : "تعيين أو استبدال القائد الأساسي"}</summary>
-        <div className="mt-5">
-          <MutationForm operation="appoint-leader" fields={{ organizationId: organization.id }} submitLabel={en ? "Appoint leader" : "تعيين القائد"} confirmLabel={en ? "I confirm appointing this account as primary leader" : "أؤكد تعيين هذا الحساب قائدًا أساسيًا"} locale={locale}>
-            <FormField  id={`leader-${organization.id}`} label={<>{en ? "Leader email" : "بريد القائد"}</>}><input id={`leader-${organization.id}`} name="email" type="email" dir="ltr" required maxLength={254} autoComplete="off" /></FormField>
-          </MutationForm>
-        </div>
-      </details>}
-
-      <details className="mt-3 rounded-lg border border-line p-4">
-        <summary className="cursor-pointer font-medium">{en ? "Change organization status" : "تغيير حالة الجهة"}</summary>
-        <div className="mt-5">
-          <MutationForm operation="org-status" fields={{ organizationId: organization.id }} submitLabel={en ? "Update status" : "تحديث الحالة"} confirmLabel={en ? "I confirm changing this organization's status" : "أؤكد تغيير حالة الجهة"} locale={locale}>
-            <FormField  id={`status-${organization.id}`} label={<>{en ? "Status" : "الحالة"}</>}><NativeSelect id={`status-${organization.id}`} name="status" defaultValue={organization.statusCode}>{Object.entries(organizationStatuses).map(([code, label]) => <option key={code} value={code}>{en ? code : label}</option>)}</NativeSelect></FormField>
-          </MutationForm>
-        </div>
-      </details>
-    </li>)}</ul> : <div className="workspace-compact-empty" role="status">
-      <p>{en ? "No organizations yet." : "لا توجد جهات بعد."}</p>
-      <Link href="/manage/organizations/new" prefetch={false} className="button button-compact">{en ? "Add organization" : "إضافة جهة"}</Link>
-    </div>}
-  </div>;
+        <Button nativeButton={false} render={<Link href="/manage/organizations/new" />}>
+          <Plus />
+          {en ? "Add organization" : "إضافة جهة"}
+        </Button>
+      </header>
+      <LiveFilterForm className="flex flex-wrap items-center gap-3">
+        <InputGroup className="min-w-0 flex-1 basis-64">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="search"
+            name="q"
+            defaultValue={filters.q}
+            maxLength={120}
+            aria-label={en ? "Search organizations" : "بحث عن جهة"}
+            placeholder={en ? "Search organizations…" : "ابحث عن جهة…"}
+          />
+        </InputGroup>
+        <NativeSelect
+          className="w-full sm:w-44"
+          name="type"
+          defaultValue={filters.type}
+          aria-label={en ? "Organization type" : "نوع الجهة"}
+        >
+          <option value="">{en ? "All types" : "كل الأنواع"}</option>
+          <option value="Club">{en ? "Clubs" : "الأندية"}</option>
+          <option value="Council">{en ? "Councils" : "المجالس"}</option>
+        </NativeSelect>
+        <NativeSelect
+          className="w-full sm:w-44"
+          name="status"
+          defaultValue={filters.status}
+          aria-label={en ? "Status" : "الحالة"}
+        >
+          <option value="">{en ? "All statuses" : "كل الحالات"}</option>
+          <option value="Active">{en ? "Active" : "نشطة"}</option>
+          <option value="Inactive">{en ? "Inactive" : "غير نشطة"}</option>
+          <option value="Archived">{en ? "Archived" : "مؤرشفة"}</option>
+        </NativeSelect>
+      </LiveFilterForm>
+      <p className="text-sm text-muted-foreground">
+        {en ? "Results:" : "النتائج:"} <bdi>{data.total ?? 0}</bdi>
+      </p>
+      <AdminOrganizationTable organizations={rows} locale={locale} />
+      {(filters.page > 0 || (filters.page + 1) * 25 < (data.total ?? 0)) && (
+        <nav
+          className="flex items-center justify-between"
+          aria-label={en ? "Organization pages" : "صفحات الجهات"}
+        >
+          {filters.page > 0 ? (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={href(filters.page - 1)} />}
+            >
+              {en ? "Previous" : "السابق"}
+            </Button>
+          ) : (
+            <span />
+          )}
+          {(filters.page + 1) * 25 < (data.total ?? 0) && (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={href(filters.page + 1)} />}
+            >
+              {en ? "Next" : "التالي"}
+            </Button>
+          )}
+        </nav>
+      )}
+    </main>
+  );
 }

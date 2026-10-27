@@ -158,7 +158,7 @@ export function MyPageNavigation({
 
   const overviewHref = superAdmin ? "/manage" : "/me";
   const systemLinks: SidebarLink[] = [
-    { href: "/manage/organizations", label: c("الجهات", "Organizations"), icon: Network, active: pathname === "/manage/organizations" },
+    { href: "/manage/organizations", label: c("الجهات", "Organizations"), icon: Network, active: isWithinPath(pathname,"/manage/organizations") },
     {href:"/manage/organization-requests",label:c("طلبات فتح الأندية","Organization requests"),icon:Send,active:pathname==="/manage/organization-requests",count:pendingOrganizationRequests},
     { href: "/manage/admins", label: c("المشرفون العامون", "Administrators"), icon: Shield, active: pathname === "/manage/admins" },
     { href: "/manage/terms", label: c("الفصول الأكاديمية", "Academic terms"), icon: GraduationCap, active: pathname === "/manage/terms" },
