@@ -24,6 +24,7 @@ export function notificationHref(targetUrl: string | null | undefined) {
   const [path, rawQuery = ""] = targetUrl.split("?", 2)
   const source = new URLSearchParams(rawQuery)
   if (path === "/renewals" || path === "/applications" && source.get("tab") === "renewals") return "/applications?tab=renewals"
+  if (path === "/applications" && source.get("tab") === "organizations") return "/applications?tab=organizations"
   if (path === "/applications") return "/applications"
   if (path === "/documents") return "/activity?tab=hours"
   if (path === "/hours") {

@@ -1,3 +1,5 @@
+import {openingRequests} from "@/features/organization-requests/repository";
+import {OpeningRequestList} from "@/features/organization-requests/request-list";
 import { z } from "zod";
 import { checkReadiness } from "@/features/hours/view";
 import { myRenewals } from "@/features/renewals/repository";
@@ -21,6 +23,12 @@ export default async function Applications({ searchParams }: { searchParams: Pro
   const en = locale === "en";
   const query = await searchParams;
   const tab = resolveRequestsTab(query.tab);
+
+  if(tab==="organizations"){
+    const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(Array.isArray(query.page)?query.page[0]:query.page??0);
+    const data=await openingRequests(user.id,true,null,page);
+    return <main id="main" dir={en?"ltr":"rtl"} className="workspace-page--wide min-w-0 space-y-5"><header className="workspace-page-header"><h1>{en?"My requests":"طلباتي"}</h1></header><MyRequestsTabs activeTab={tab} locale={locale}><OpeningRequestList data={data} locale={locale} page={page}/></MyRequestsTabs></main>;
+  }
 
   if (tab === "renewals") {
     const input = Array.isArray(query.page) ? query.page[0] : query.page;

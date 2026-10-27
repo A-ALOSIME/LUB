@@ -30,6 +30,7 @@ function pageTitle(pathname: string, locale: Locale) {
     "/manage/account": ["بيانات الحساب", "Account details"],
     "/manage/organizations": ["الجهات", "Organizations"],
     "/manage/organizations/new": ["جهة جديدة", "New organization"],
+    "/manage/organization-requests": ["طلبات فتح الأندية","Organization requests"],
     "/manage/admins": ["المشرفون العامون", "Administrators"],
     "/manage/terms": ["الفصول الأكاديمية", "Academic terms"],
   };

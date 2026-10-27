@@ -2279,3 +2279,5 @@ input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:f
 @media(max-width:767px){body:has(.public-event-cta) .floating-assistant-link {bottom:calc(5rem + env(safe-area-inset-bottom));}}
 
 .event-detail-facts {grid-auto-rows:1fr;}
+
+.organization-opening-form textarea[data-slot=textarea],.organization-opening-confirmation textarea[data-slot=textarea] {min-height:6rem;height:auto;field-sizing:fixed;}

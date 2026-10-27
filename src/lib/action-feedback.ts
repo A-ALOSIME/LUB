@@ -2,6 +2,12 @@ import type { Locale } from "./preferences";
 
 // Server actions return stable Arabic copy; keep the same feedback in either UI language.
 const english: Record<string, string> = {
+  "راجع الحقول المطلوبة.": "Check the required fields.",
+  "لديك طلب قيد المراجعة بالفعل. يمكنك متابعته في طلباتك.": "You already have a request under review. Track it in My requests.",
+  "توجد جهة بهذا الاسم. اختر اسمًا مختلفًا.": "An organization with this name already exists. Choose another name.",
+  "تعذّر حفظ الطلب. راجع البيانات والصلاحيات وحدّث الصفحة إذا تم اتخاذ قرار عليه.": "Could not save the request. Check your details and permissions, and refresh if a decision was already made.",
+  "تم إرسال طلب فتح الجهة.": "Organization request submitted.",
+  "تم حفظ القرار.": "Decision saved.",
   "أدخل رقم هوية وطنية أو إقامة صحيحًا من 10 أرقام.": "Enter a valid 10-digit Saudi national or resident ID.",
   "اختر تخصصك من القائمة.": "Select your major from the list.",
   "الرقم الجامعي مستخدم في حساب آخر.": "This university number is used by another account.",

@@ -7,7 +7,7 @@ import { contactChannelFromStoredLink } from "./contact-channels";
 
 const publicFields = {
   id: organizations.id, slug: organizations.slug, nameAr: organizations.nameAr,
-  typeCode: organizations.typeCode, summary: organizations.summary,
+  typeCode: organizations.typeCode, summary: organizations.summary, logoUrl:organizations.logoUrl,
   statusCode: organizations.statusCode, archivedAt: organizations.archivedAt,
   // Qualify the outer reference: Drizzle removes field qualifiers in single-table selects.
   // JSONB has a stable driver representation; varchar[] may arrive as a raw

@@ -30,3 +30,4 @@ it("lets the applications preview return to the saved requests view", () => {
   fireEvent.click(screen.getByRole("tab", { name: "طلبات الانضمام" }));
   expect(push).toHaveBeenCalledWith("/applications?tab=applications");
 });
+it('opens the organization request category with a persistent URL',()=>{render(<MyRequestsTabs activeTab="applications" locale="ar"><div>طلباتي</div></MyRequestsTabs>);fireEvent.click(screen.getByRole('tab',{name:'طلبات فتح الأندية'}));expect(push).toHaveBeenCalledWith('/applications?tab=organizations');});

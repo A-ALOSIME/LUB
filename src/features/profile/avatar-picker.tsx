@@ -6,7 +6,7 @@ import {Button} from "@/components/ui/button";
 import type {Locale} from "@/lib/preferences";
 import {avatarMaxBytes, stripAvatarMetadata} from "./avatar-file";
 
-export async function prepareAvatar(file: File) {
+export async function prepareAvatar(file: File, fit: "cover" | "contain" = "cover") {
   if (!["image/jpeg","image/png"].includes(file.type) || !file.size || file.size > 2 * 1024 * 1024) throw new Error("Use JPG or PNG up to 2 MB");
   const bitmap = await createImageBitmap(file, {imageOrientation:"from-image"});
   try {
@@ -14,7 +14,10 @@ export async function prepareAvatar(file: File) {
     const canvas = document.createElement("canvas"); canvas.width = 256; canvas.height = 256;
     const context = canvas.getContext("2d"); if (!context) throw new Error("Image unavailable");
     const side = Math.min(bitmap.width,bitmap.height);
-    context.drawImage(bitmap,(bitmap.width-side)/2,(bitmap.height-side)/2,side,side,0,0,256,256);
+    if(fit==="contain") {
+      const scale=256/Math.max(bitmap.width,bitmap.height),width=bitmap.width*scale,height=bitmap.height*scale;
+      context.drawImage(bitmap,(256-width)/2,(256-height)/2,width,height);
+    } else context.drawImage(bitmap,(bitmap.width-side)/2,(bitmap.height-side)/2,side,side,0,0,256,256);
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve,"image/webp",.78));
     if (!blob || blob.type !== "image/webp" || blob.size > avatarMaxBytes + 8192) throw new Error("Image unavailable");
     const bytes = stripAvatarMetadata(new Uint8Array(await blob.arrayBuffer()));

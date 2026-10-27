@@ -16,6 +16,8 @@ it("requests the authorized draft once and refreshes directly into the editor",a
 it("keeps a clear retry after a failed draft request",async()=>{
  mocks.mutate.mockResolvedValueOnce({error:"تعذّر فتح المحرر"}).mockResolvedValueOnce({success:"تم"});
  render(<OpenPublishedEditor template="template" locale="ar"/>);
- fireEvent.click(await screen.findByRole("button",{name:"إعادة المحاولة"}));
+ const retry=await screen.findByRole("button",{name:"إعادة المحاولة"});
+ await waitFor(()=>expect((retry as HTMLButtonElement).disabled).toBe(false));
+ fireEvent.click(retry);
  await waitFor(()=>expect(mocks.refresh).toHaveBeenCalledOnce());expect(mocks.mutate).toHaveBeenCalledTimes(2);
 });

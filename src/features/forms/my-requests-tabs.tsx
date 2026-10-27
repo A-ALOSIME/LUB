@@ -28,12 +28,13 @@ export function MyRequestsTabs({
       options={[
         { value: "applications", label: en ? "Applications" : "طلبات الانضمام" },
         { value: "renewals", label: en ? "Renewals" : "طلبات التجديد" },
+        { value: "organizations", label: en ? "Organization requests" : "طلبات فتح الأندية" },
       ]}
       size="sm"
       activeTone="primary"
       className="workspace-segmented-control"
       onValueChange={next => {
-        if ((next === "applications" || next === "renewals") && next !== activeTab) {
+        if ((next === "applications" || next === "renewals" || next === "organizations") && next !== activeTab) {
           router.push(requestsTabHref(next));
         }
       }}

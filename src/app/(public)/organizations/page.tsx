@@ -1,3 +1,5 @@
+import {Button} from "@/components/ui/button";
+import {Plus} from "lucide-react";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
 import Image from "next/image";
@@ -25,9 +27,10 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
   return <><main id="main" className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
     <header className="directory-heading">
       <div><p className="mb-2 text-sm font-medium text-action">{en ? "College of Computer and Information Sciences" : "كلية علوم الحاسب والمعلومات"}</p><h1 className="text-4xl leading-normal sm:text-5xl">{en ? "Clubs and councils" : "الأندية والمجالس"}</h1></div>
+      <div className="flex flex-wrap items-center gap-3"><Button render={<Link href="/organization-requests/new"/>}><Plus/>{en?"Request a club or council":"طلب فتح نادي أو مجلس"}</Button>
       {groups && groups.some(group => group.items.length > 0) && <nav aria-label={en ? "Organization types" : "أنواع الجهات"} className="directory-shortcuts">
         {groups.filter(group => group.items.length > 0).map(group => <a key={group.code} href={`#group-${group.code}`} className="button button-secondary">{group.title}</a>)}
-      </nav>}
+      </nav>}</div>
     </header>
     {!directory && <section className="panel p-8" role="alert"><h2 className="text-xl font-semibold">{en ? "Could not load organizations" : "تعذّر تحميل الجهات"}</h2><p className="mt-3 leading-7 text-muted">{en ? "Please refresh the page in a moment." : "حاول تحديث الصفحة بعد قليل."}</p><Link href="/organizations" className="button button-secondary mt-5">{en ? "Try again" : "إعادة المحاولة"}</Link></section>}
     {directory && (directory.organizations.length === 0 ? <section className="panel px-6 py-12 text-center"><h2 className="text-xl font-semibold">{en ? "No organizations to show yet" : "لا توجد جهات لعرضها الآن"}</h2><p className="mt-3 leading-8 text-muted">{en ? "Clubs and councils will appear here when they are added to LUB." : "تظهر الأندية والمجالس هنا عندما تُضاف إلى لُبّ."}</p></section> : <>
@@ -35,9 +38,9 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
         <h2 id={`group-${group.code}`} className="directory-divider">{group.title}</h2>
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
-          const imageSrc = profile?.logoSrc;
+          const imageSrc = organization.logoUrl || profile?.logoSrc;
           // The CyberSec PNG has tall transparent margins; size its visible mark to the square art.
-          const imageStyle = profile?.imageTheme === "cybersec"
+          const imageStyle = organization.logoUrl ? {objectFit:"contain" as const,objectPosition:"center",padding:0} : profile?.imageTheme === "cybersec"
             ? { transform: "translateY(8px) scale(2.078)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
             : profile?.imageTheme === "tuwaiq"
               ? { transform: "scale(1.4)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }

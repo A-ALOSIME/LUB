@@ -1,6 +1,7 @@
-export type RequestsTab = "applications" | "renewals";
+export type RequestsTab = "applications" | "renewals" | "organizations";
 
 export function resolveRequestsTab(value: string | string[] | undefined): RequestsTab {
+  if((Array.isArray(value)?value[0]:value)==="organizations")return "organizations";
   return (Array.isArray(value) ? value[0] : value) === "renewals" ? "renewals" : "applications";
 }
 
