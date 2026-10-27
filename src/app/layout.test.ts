@@ -13,7 +13,7 @@ vi.mock("next/headers", () => ({ headers: async () => request.headers }));
 vi.mock("@/features/profile/completion-actions",()=>({claimProfileCompletionNotice:vi.fn().mockResolvedValue(false)}));
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "font" }) }));
 
-import {DeferredChatWidget,showAssistantLauncher} from "@/features/ai/deferred-chat-widget";
+import {DeferredChatWidget} from "@/features/ai/deferred-chat-widget";
 import {ProfileCompletionNotice} from "@/features/profile/completion-notice";
 import RootLayout, { generateMetadata } from "./layout";
 
@@ -56,13 +56,11 @@ it("keeps the public assistant available to superadmins without fetching account
   expect(account.getVerifiedAccountAccess).not.toHaveBeenCalled();
 });
 
-it("keeps the assistant out of management pages without checking account access", async () => {
+it("keeps the assistant mounted in management pages without checking account access", async () => {
   await renderStudentChatWidget("management");
 
-  expect(showAssistantLauncher("/manage/organizations/abc")).toBe(false);
-  expect(showAssistantLauncher("/account/talent")).toBe(false);
-  expect(showAssistantLauncher("/ai")).toBe(false);
-  for(const path of ["/","/organizations","/organizations/club","/events/discover","/talent","/talent/member"])expect(showAssistantLauncher(path)).toBe(true);
+  expect(await renderStudentChatWidget("management")).not.toBeNull();
+  expect(await renderStudentChatWidget("student")).not.toBeNull();
   expect(account.getVerifiedAccountAccess).not.toHaveBeenCalled();
 });
 

@@ -2284,3 +2284,12 @@ input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:f
 .event-detail-facts {grid-auto-rows:1fr;}
 
 .organization-opening-form textarea[data-slot=textarea],.organization-opening-confirmation textarea[data-slot=textarea] {min-height:6rem;height:auto;field-sizing:fixed;}
+
+/* The embedded view shares the full-page conversation without the page layout. */
+.lub-chat-embedded {height:100%;min-height:0;}
+.lub-chat-embedded .lub-chat-panel {height:100%;min-height:0;justify-content:flex-start;}
+.lub-chat-embedded .lub-chat-panel:not(.has-messages) .lub-chat-thread {flex:1;min-height:0;}
+.lub-chat-embedded .lub-chat-panel:not(.has-messages) .lub-chat-messages {height:100%;}
+.lub-chat-embedded .lub-chat-thread-content {padding:1rem .75rem;gap:1rem;}
+.lub-chat-embedded .lub-chat-welcome {padding-block:1rem;}
+.lub-chat-embedded .lub-chat-composer {padding:.75rem;}

@@ -1,3 +1,4 @@
+import {ChatSessionProvider} from "@/features/ai/chat-session";
 import {ProfileCompletionNotice} from "@/features/profile/completion-notice";
 import {getVerifiedProxyIdentity} from "@/features/auth/session";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
@@ -47,7 +48,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const [{ locale, theme },identity] = await Promise.all([getPreferences(),getVerifiedProxyIdentity()]);
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={thmanyahDisplay.variable}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
-    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><Toaster timeout={3000}>{children}{identity&&<ProfileCompletionNotice locale={locale}/>}</Toaster>
-    <DeferredChatWidget locale={locale} /></DirectionProvider>
+    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><ChatSessionProvider locale={locale}><Toaster timeout={3000}>{children}{identity&&<ProfileCompletionNotice locale={locale}/>}</Toaster>
+    <DeferredChatWidget locale={locale} /></ChatSessionProvider></DirectionProvider>
   </body></html>;
 }
