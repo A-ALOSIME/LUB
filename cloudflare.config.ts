@@ -1,4 +1,4 @@
-import { bindings, defineConfig, defineWorker } from "cf/config";
+import { bindings, defineConfig, defineWorker, exports as workerExports } from "cf/config";
 import { loadEnv } from "vite";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -21,12 +21,14 @@ export default defineConfig({
     name: "lub-community",
     domains: ["lub.community"],
     entrypoint: "src/worker-entry.js",
+    exports: { LUBRenderer: workerExports.durableObject({ storage: "sqlite" }) },
     compatibilityDate: "2026-09-30",
     compatibilityFlags: ["nodejs_compat"],
     placement: { region: "aws:eu-central-1" },
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
+      RENDERER: bindings.durableObject({ worker: "lub-community", exportName: "LUBRenderer" }),
       APP_URL: bindings.text("https://lub.community/"),
       DATABASE_URL: bindings.secret(),
       HYPERDRIVE: bindings.hyperdrive({ id: "e158eb91367d419d98f0c624c52a6a3c" }),

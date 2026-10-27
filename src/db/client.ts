@@ -12,6 +12,8 @@ function createDatabase(url: string, hyperdriveUrl?: string) {
     prepare: Boolean(hyperdriveUrl),
     fetch_types: false,
     connect_timeout: 10,
+    // Release idle renderer sockets/timers so free Durable Objects can hibernate.
+    ...(hyperdriveUrl && { idle_timeout: 0.1, max_lifetime: 10 }),
     ...(!hyperdriveUrl && { ssl: databaseTLS(url), idle_timeout: 10, max_lifetime: 60 }),
   }));
 }

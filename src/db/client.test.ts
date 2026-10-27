@@ -63,7 +63,7 @@ it("uses the Worker Hyperdrive binding in production while local runs keep their
   expect(mocks.postgres.mock.calls[0][0]).toBe("postgres://worker:secret@hyperdrive.invalid/postgres");
   expect(mocks.postgres.mock.calls[0][1]).toMatchObject({ max: 1, prepare: true, fetch_types: false });
   expect(mocks.postgres.mock.calls[0][1]).not.toHaveProperty("ssl");
-  expect(mocks.postgres.mock.calls[0][1]).not.toHaveProperty("idle_timeout");
+  expect(mocks.postgres.mock.calls[0][1]).toMatchObject({idle_timeout:0.1,max_lifetime:10});
   await withVisitor(tx => tx.execute(sql`select 1`));
   expect(mocks.postgres).toHaveBeenCalledTimes(2);
 });
