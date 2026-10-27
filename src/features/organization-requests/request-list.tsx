@@ -203,7 +203,7 @@ export function OpeningRequestList({
         hideTrigger
         presentation="sheet"
         sheetSide="start"
-        sheetClassName="m-3 h-[calc(100dvh-1.5rem)] max-w-[calc(100vw-1.5rem)] rounded-xl"
+        sheetClassName="sm:m-3 sm:h-[calc(100dvh-1.5rem)] sm:max-w-[calc(100vw-1.5rem)] sm:rounded-xl"
         locale={locale}
         open={!!detail}
         onOpenChange={(open) => {
