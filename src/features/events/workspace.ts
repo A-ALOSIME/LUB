@@ -10,7 +10,7 @@ type EventWorkspace = {
   canViewEvents: boolean;
   canManage: boolean;
   canManageAnnouncements: boolean;
-  events: Array<Pick<Event, "id" | "title" | "starts_at" | "ends_at" | "status_code" | "has_poster" | "revision" | "location_text" | "location_type_code"> & { registrant_count: number }>;
+  events: Array<Pick<Event, "id" | "organization_id" | "title" | "starts_at" | "ends_at" | "status_code" | "has_poster" | "revision" | "location_text" | "location_type_code"> & { registrant_count: number }>;
   templates: Array<{ id: string; name: string }>;
   announcements: Array<{ id: string; title: string; body: string; published: boolean; pinned: boolean; createdAt: string }>;
 };
@@ -27,7 +27,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
         lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE') as "canManageAnnouncements",
         case when lub.has_event_access(o.id) then coalesce((
           select jsonb_agg(e) from (
-            select e.id, e.title, coalesce(e.starts_at::text,'') as starts_at, coalesce(e.ends_at::text,'') as ends_at, e.status_code,e.revision,e.location_text,e.location_type_code,
+            select e.id, e.organization_id,e.title, coalesce(e.starts_at::text,'') as starts_at, coalesce(e.ends_at::text,'') as ends_at, e.status_code,e.revision,e.location_text,e.location_type_code,
               exists(select 1 from lub.event_assets ea where ea.event_id=e.id and ea.asset_type_code='Poster') as has_poster,
               (select count(*)::int from lub.event_registrations r where r.event_id=e.id) as registrant_count
             from lub.events e where e.organization_id=o.id

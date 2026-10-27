@@ -1,0 +1,11 @@
+import {beforeEach,expect,it,vi} from "vitest";
+const mocks=vi.hoisted(()=>({user:vi.fn(),rows:vi.fn(),download:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({getVerifiedUser:mocks.user}));
+vi.mock("@/db/client",()=>({withUser:async()=>mocks.rows()}));
+vi.mock("@/lib/supabase/server",()=>({createClient:async()=>({storage:{from:()=>({download:mocks.download})}})}));
+import {GET} from "./route";
+const id='00000000-0000-4000-8000-000000000001',ctx={params:Promise.resolve({id})};
+beforeEach(()=>{vi.resetAllMocks();mocks.user.mockResolvedValue({id:'verified'});mocks.rows.mockResolvedValue([{object_key:'private/image.png',mime_type:'image/png',size_bytes:8}]);mocks.download.mockResolvedValue({data:new Blob([new Uint8Array([137,80,78,71,13,10,26,10])]),error:null});});
+it("requires a session and an accessible image record before downloading",async()=>{mocks.user.mockResolvedValue(null);expect((await GET(new Request('http://localhost'),ctx)).status).toBe(401);expect(mocks.rows).not.toHaveBeenCalled();mocks.user.mockResolvedValue({id:'verified'});mocks.rows.mockResolvedValue([]);expect((await GET(new Request('http://localhost'),ctx)).status).toBe(404);expect(mocks.download).not.toHaveBeenCalled();});
+it("streams validated private images on the same origin without a signed URL",async()=>{const result=await GET(new Request('http://localhost'),ctx);expect(result.status).toBe(200);expect(result.headers.get('content-type')).toBe('image/png');expect(result.headers.get('cache-control')).toBe('private, no-store');expect(result.headers.get('location')).toBeNull();expect((await result.arrayBuffer()).byteLength).toBe(8);});
+it("does not serve HTML or mismatched image contents",async()=>{mocks.rows.mockResolvedValue([{object_key:'private/html',mime_type:'text/html',size_bytes:8}]);expect((await GET(new Request('http://localhost'),ctx)).status).toBe(404);mocks.rows.mockResolvedValue([{object_key:'private/image.png',mime_type:'image/png',size_bytes:8}]);mocks.download.mockResolvedValue({data:new Blob(['<script>']),error:null});expect((await GET(new Request('http://localhost'),ctx)).status).toBe(503);});

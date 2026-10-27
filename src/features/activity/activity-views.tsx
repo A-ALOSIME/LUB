@@ -3,7 +3,7 @@ import Link from "next/link"
 import { CalendarDays, Clock, ChevronDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { LiveFilterForm } from "@/components/live-filter-form"
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state"
 import { ActivityHourFilter, type ActivityHourStatus } from "./activity-hour-filter"
@@ -14,13 +14,13 @@ import { Progress } from "@/components/ui/progress"
 import { formatHours } from "@/lib/display"
 import { HoursStatusSummary } from "@/features/hours/hours-status-summary"
 import { HoursForm } from "@/features/hours/form"
-import { eventDate, eventLabels } from "@/features/events/view"
-import { eventDateEn, eventLabelsEn } from "@/features/events/display"
+import {formatRiyadhDate} from "@/lib/datetime"
+
 import { TaskPagination } from "@/features/tasks/task-list"
 import type { Locale } from "@/lib/preferences"
 import { FormField } from "@/components/form-field";
 
-type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; attendance: string }
+type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; review_status?:string;attendance: string }
 
 function statusVariant(status: string): "secondary" | "outline" | "destructive" {
   if (["Approved", "Present", "Completed", "Registered"].includes(status)) return "secondary"
@@ -30,19 +30,12 @@ function statusVariant(status: string): "secondary" | "outline" | "destructive" 
 
 export function ActivityEventRows({ events, page, locale }: { events: MyEvent[]; page: number; locale: Locale }) {
   const en = locale === "en"
-  const labels = en ? eventLabelsEn : eventLabels
-  const date = en ? eventDateEn : eventDate
+  const date=(value:string)=>formatRiyadhDate(value,locale)
+  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?en?"Registration cancelled":"أُلغي التسجيل":event.review_status==="Rejected"?en?"Registration rejected":"مرفوض":event.review_status==="Pending"?en?"Awaiting approval":"بانتظار الموافقة":event.attendance==="Present"?en?"Attendance confirmed":"حضور مؤكد":event.attendance==="Absent"?en?"Did not attend":"لم تحضر":event.attendance==="Excused"?en?"Excused":"معذور":en?"Accepted · awaiting attendance confirmation":"مقبول · بانتظار تأكيد الحضور"
 
   return <div className="flex min-w-0 flex-col gap-3">
     {events.length ? <ItemGroup role="list" aria-label={en ? "My events" : "فعالياتي"}>
-      {events.slice(0, 25).map(event => <Item key={event.id} role="listitem" size="sm">
-        <ItemMedia variant="icon"><CalendarDays aria-hidden="true" /></ItemMedia>
-        <ItemContent>
-          <ItemTitle><Link className="text-foreground hover:underline" href={`/events/${event.id}`} dir="auto">{event.title}</Link></ItemTitle>
-          <ItemDescription>{date(event.starts_at)} · {labels[event.registration] ?? event.registration} · {labels[event.attendance] ?? event.attendance}</ItemDescription>
-        </ItemContent>
-        <ItemActions><Badge variant={statusVariant(event.attendance === "Pending" ? event.registration : event.attendance)}>{labels[event.attendance] ?? labels[event.registration] ?? event.attendance}</Badge></ItemActions>
-      </Item>)}
+      {events.slice(0,25).map(event=><Link key={event.id} href={`/events/${event.id}`} className="rounded-lg outline-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring"><Item role="listitem" size="sm"><ItemMedia variant="icon"><CalendarDays aria-hidden="true"/></ItemMedia><ItemContent><ItemTitle className="flex flex-wrap items-center gap-2"><bdi>{event.title}</bdi><Badge variant={statusVariant(event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge></ItemTitle><ItemDescription>{date(event.starts_at)}</ItemDescription></ItemContent></Item></Link>)}
     </ItemGroup> : <WorkspaceEmptyState
       icon={CalendarDays}
       title={en ? "No event registrations yet" : "ما سجلت في فعالية بعد"}

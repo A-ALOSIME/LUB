@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, ClipboardList, Info, Plus } from "lucide-react";
-import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
+import {RequestStatusBadge} from "./request-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,13 +13,6 @@ import type { Application } from "./repository";
 import { ApplicationStatusFilters } from "./application-status-filters";
 import { formatRiyadhDateTime } from "@/lib/datetime";
 
-const statusLabels: Record<string, { ar: string; en: string; className: string }> = {
-  Submitted: { ar: "قيد المراجعة", en: "Under review", className: "border-primary/40 bg-primary/5 text-primary" },
-  Interview: { ar: "مقابلة", en: "Interview", className: "border-primary/40 bg-primary/5 text-primary" },
-  Accepted: { ar: "مقبول", en: "Accepted", className: "border-primary/40 text-primary" },
-  Rejected: { ar: "مرفوض", en: "Rejected", className: "border-destructive/40 bg-destructive/5 text-destructive" },
-  Withdrawn: { ar: "مسحوب", en: "Withdrawn", className: "border-border text-muted-foreground" },
-};
 
 function formatApplicationDate(value: string, locale: Locale) {
   return formatRiyadhDateTime(value, locale);
@@ -42,12 +35,7 @@ function applicationsHref({ status, preview, page = 1 }: {
   return search ? `/applications?${search}` : "/applications";
 }
 
-function ApplicationStatusBadge({ application, locale }: { application: Application; locale: Locale }) {
-  const en = locale === "en";
-  const status = statusLabels[application.status_code] ?? statusLabels.Submitted;
-  const tone = application.status_code === "Accepted" ? "accepted" : application.status_code === "Rejected" ? "rejected" : application.status_code === "Submitted" || application.status_code === "Interview" ? "review" : "inactive";
-  return <OrganizationStatusBadge status={tone}>{en ? status.en : status.ar}</OrganizationStatusBadge>;
-}
+function ApplicationStatusBadge({application,locale}:{application:Application;locale:Locale}){return <RequestStatusBadge status={application.status_code} locale={locale}/>;}
 
 function ApplicationActions({ application, locale, preview }: { application: Application; locale: Locale; preview: boolean }) {
   return <ApplicationRowActions
@@ -71,7 +59,7 @@ function ApplicationTable({ rows, locale, preview }: { rows: Application[]; loca
           <TableHead className="w-[42%] px-4">{en ? "Organization" : "الجهة"}</TableHead>
           <TableHead className="w-[24%] px-4">{en ? "Applied on" : "تاريخ التقديم"}</TableHead>
           <TableHead className="w-[22%] px-4">{en ? "Status" : "الحالة"}</TableHead>
-          <TableHead className="w-12 px-2 text-center">{en ? "Actions" : "إجراءات"}</TableHead>
+          <TableHead className="w-12 px-2 text-center">{en ? "Actions" : "الإجراءات"}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

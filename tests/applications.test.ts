@@ -305,3 +305,5 @@ it("keeps incomplete round drafts private and validates publication",async()=>{
  await asUser(leader);await db.query("select lub.change_round_status($1,'Closed')",[round]);
  await db.exec("reset role;select set_config('request.jwt.claim.sub','',true);set local role anon");expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(0);
 });
+
+it("preserves a rejection reason for the applicant and in the decision timeline",async()=>{const application=await submit();await asUser(leader);await db.query("select lub.decide_application($1,'Rejected','اكتملت المقاعد')",[application]);await asUser(student);expect((await db.query("select reason from lub.application_status_history where application_id=$1 and to_status_code='Rejected'",[application])).rows).toEqual([{reason:'اكتملت المقاعد'}]);await asUser(other);expect((await db.query("select reason from lub.application_status_history where application_id=$1",[application])).rows).toEqual([]);});

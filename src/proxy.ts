@@ -9,7 +9,7 @@ export async function proxy(request: NextRequest) {
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
-    "style-src 'self' 'unsafe-inline'", "img-src 'self' data:", "font-src 'self'",
+    "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'",
     `connect-src 'self'${process.env.NODE_ENV !== "production" ? " ws: wss:" : ""}`,
     "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'",
   ].join("; ");

@@ -6,12 +6,12 @@ import type { Locale } from "@/lib/preferences";
 
 export type ApplicationReviewStatusOption = FilterTabOption & { href: string };
 
-export function ApplicationReviewStatusFilters({ value, options, locale }: { value: string; options: ApplicationReviewStatusOption[]; locale: Locale }) {
+export function ApplicationReviewStatusFilters({ value, options, locale,ariaLabel }: { value: string; options: ApplicationReviewStatusOption[]; locale: Locale;ariaLabel?:string }) {
   const router = useRouter();
   const en = locale === "en";
   return <FilterTabs
     value={value}
-    ariaLabel={en ? "Filter organization applications" : "تصفية طلبات الأعضاء"}
+    ariaLabel={ariaLabel??(en ? "Filter organization applications" : "تصفية طلبات الأعضاء")}
     dir={en ? "ltr" : "rtl"}
     size="sm"
     activeTone="primary"

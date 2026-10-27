@@ -19,7 +19,7 @@ it("uploads a selected JPEG/PNG poster with its organization and shows the previ
   const file = new File([new Uint8Array([137, 80, 78, 71])], "poster.png", { type: "image/png" });
   fireEvent.change(screen.getByLabelText("صورة بوستر الفعالية"), { target: { files: [file] } });
 
-  await waitFor(() => expect(screen.getByAltText("معاينة بوستر الفعالية").getAttribute("src")).toBe("blob:poster"));
+  await waitFor(() => expect(screen.getByAltText("معاينة بوستر الفعالية").getAttribute("src")).toBe("/files/asset-1/preview"));
   expect(screen.getByRole("button",{name:"تغيير"})).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"حذف"}));
   expect(document.querySelector<HTMLInputElement>('input[name="poster"]')?.value).toBe("");
@@ -68,3 +68,5 @@ it("distinguishes oversized images from unsupported formats before upload", () =
   expect(screen.getByRole("alert").textContent).toBe("حجم الصورة أكبر من 5 ميجابايت.");
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+it("shows the local poster immediately while upload is still pending",async()=>{vi.stubGlobal('fetch',vi.fn(()=>new Promise(()=>{})));Object.defineProperty(URL,'createObjectURL',{configurable:true,value:vi.fn(()=> 'blob:immediate')});Object.defineProperty(URL,'revokeObjectURL',{configurable:true,value:vi.fn()});render(<EventPosterField organization="org-1" locale="ar"/>);fireEvent.change(screen.getByLabelText('صورة بوستر الفعالية'),{target:{files:[new File(['image'],'poster.png',{type:'image/png'})]}});expect(screen.getByAltText('معاينة بوستر الفعالية').getAttribute('src')).toBe('blob:immediate');expect(screen.getByRole('status').textContent).toContain('جارٍ');});

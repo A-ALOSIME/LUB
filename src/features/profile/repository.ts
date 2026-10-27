@@ -1,7 +1,7 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { eq,sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
-import { users, studentProfiles, profileSettings, auditLog } from "@/db/schema";
+import { users, studentProfiles, auditLog } from "@/db/schema";
 import { encryptIdentifier, identifierLookup } from "@/lib/identifiers";
 import type { ProfileInput } from "@/lib/validation";
 import type { VerifiedUser } from "@/features/auth/session";
@@ -50,7 +50,7 @@ export async function saveStudentProfile(user: VerifiedUser, input: ProfileInput
     } else if (input.universityId) {
       await tx.insert(studentProfiles).values({ userId: user.id, ...profile, universityIdCiphertext: encryptIdentifier(input.universityId, user.id), universityIdLookupHash: identifierLookup(input.universityId) });
     }
-    await tx.insert(profileSettings).values({ userId: user.id }).onConflictDoNothing();
+    await tx.execute(sql`insert into lub.profile_settings(user_id) values(${user.id}) on conflict do nothing`);
     await tx.insert(auditLog).values({
       actorUserId: user.id, actionCode: existing ? "PROFILE_UPDATED" : "PROFILE_CREATED",
       entityType: "student_profiles", entityId: user.id,

@@ -13,6 +13,7 @@ describe("session proxy", () => {
     const second = await proxy(new NextRequest("http://localhost/me"));
     expect(first.headers.get("content-security-policy")).toContain("'nonce-");
     expect(first.headers.get("content-security-policy")).not.toContain("unsafe-eval");
+    expect(first.headers.get("content-security-policy")).toContain("img-src 'self' data: blob:");
     expect(first.headers.get("content-security-policy")).not.toEqual(second.headers.get("content-security-policy"));
     expect(first.headers.get("cache-control")).toBe("private, no-store");
   });

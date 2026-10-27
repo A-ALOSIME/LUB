@@ -2253,3 +2253,29 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 
 /* The multi-value input shares its parent combobox field, rather than nesting a second field. */
 input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:focus { min-height:0; padding:0; border:0; border-radius:0; background:transparent; outline:0; box-shadow:none; }
+
+.event-poster-frame {position:relative;display:grid;place-items:center;aspect-ratio:4/5;overflow:hidden;background:var(--muted);}
+.event-poster-backdrop {position:absolute;inset:-1rem;background-position:center;background-size:cover;filter:blur(14px) brightness(.5);}
+.event-poster-contained-image {position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+.event-poster-natural {position:relative;display:grid;place-items:center;min-height:6rem;overflow:hidden;background:var(--muted);}
+.event-poster-natural-image {position:relative;width:100%;height:auto;object-fit:contain;}
+.event-poster-open[data-slot=button] {display:block;width:100%;height:auto;padding:0;overflow:hidden;}
+.event-card:hover .event-poster-contained-image {transform:none;}
+.event-detail-fact {height:100%;}
+
+.public-event-registration {margin-block:1rem;}
+.public-event-cta {width:min(100%,28rem);}
+.public-event-cta>button {width:100%;}
+@media(max-width:767px){body:has(.public-event-cta) #main {padding-bottom:8rem;}.public-event-cta {position:fixed;inset-inline:0;bottom:0;z-index:30;width:auto;padding:.75rem 1rem max(.75rem,env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--background);}.public-event-cta>div {justify-content:center;}}
+
+.organization-status-badge--info {background:color-mix(in srgb,var(--primary) 15%,var(--card));border-color:color-mix(in srgb,var(--primary) 35%,var(--border));color:var(--primary);}
+.request-review-mobile .row-action {width:auto;min-width:2.5rem;gap:.4rem;padding-inline:.6rem;}
+.request-review-mobile .row-action-label {display:inline;}
+
+.request-review-mobile .request-review-actions {flex-wrap:wrap;}
+
+.request-review-confirmation textarea[data-slot=textarea] {min-height:6rem;height:auto;field-sizing:fixed;}
+
+@media(max-width:767px){body:has(.public-event-cta) .floating-assistant-link {bottom:calc(5rem + env(safe-area-inset-bottom));}}
+
+.event-detail-facts {grid-auto-rows:1fr;}

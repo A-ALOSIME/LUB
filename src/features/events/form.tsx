@@ -5,6 +5,7 @@ import {Button} from "@/components/ui/button";
 import {EventDraftPreview} from "./draft-preview";
 import { NativeSelect } from "@/components/ui/native-select";
 import {useId, useState, type ReactNode} from "react";
+import {Switch} from "@/components/ui/switch";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {Separator} from "@/components/ui/separator";
@@ -19,8 +20,8 @@ import {ApplicationForm} from "@/features/forms/application-form";
 import type {Event} from "./repository";
 import type {Locale} from "@/lib/preferences";
 import { FormField } from "@/components/form-field";
-export function EventForm(props:Omit<Parameters<typeof WorkflowForm>[0],"mutation">){const router=useRouter();const action=useManagementAction();return <WorkflowForm {...props} mutation={mutateEvent} onSuccess={state=>{action?.close();props.onSuccess?.(state);if(props.operation==="duplicate"&&state.eventId)router.push(`/events/${state.eventId}`);}}/>;}
-export function EventCreateForm({organization,templates,locale}:{organization:string;templates:Array<{id:string;name:string}>;locale:Locale}){const router=useRouter();const c=(ar:string,en:string)=>locale==="en"?en:ar;return <EventForm operation="save" fields={{org:organization,publish:"on"}} label={c("نشر الآن","Publish now")} locale={locale} splitBody onSuccess={state=>{if(state.eventId)router.push(`/events/${state.eventId}`);}} secondaryAction={<><Button type="submit" name="intent" value="draft" variant="outline" formNoValidate>{c("حفظ المسودة","Save draft")}</Button><EventDraftPreview locale={locale}/></>}><EventFields organization={organization} templates={templates} locale={locale}/></EventForm>;}
+export function EventForm(props:Omit<Parameters<typeof WorkflowForm>[0],"mutation">){const router=useRouter();const action=useManagementAction();return <WorkflowForm {...props} mutation={mutateEvent} onSuccess={state=>{action?.close();props.onSuccess?.(state);if(props.operation==="duplicate"&&state.eventId&&props.fields?.org)router.push(`/manage/organizations/${props.fields.org}/events/${state.eventId}`);}}/>;}
+export function EventCreateForm({organization,templates,locale}:{organization:string;templates:Array<{id:string;name:string}>;locale:Locale}){const router=useRouter();const c=(ar:string,en:string)=>locale==="en"?en:ar;return <EventForm operation="save" fields={{org:organization,publish:"on"}} label={c("نشر الآن","Publish now")} locale={locale} splitBody onSuccess={state=>{if(state.eventId)router.push(`/manage/organizations/${organization}/events/${state.eventId}`);}} secondaryAction={<><Button type="submit" name="intent" value="draft" variant="outline" formNoValidate>{c("حفظ المسودة","Save draft")}</Button><EventDraftPreview locale={locale}/></>}><EventFields organization={organization} templates={templates} locale={locale}/></EventForm>;}
 export function EventRegistrationForm(props:Parameters<typeof ApplicationForm>[0]){return <ApplicationForm {...props} mutation={mutateEvent}/>;}
 export function EventFields({value,templates=[],locale="ar",organization}:{value?:Event;templates?:Array<{id:string;name:string}>;locale?:Locale;organization:string}) {
  const frozen=value?.status_code==="Published",en=locale==="en",c=(ar:string,english:string)=>en?english:ar,id=useId();
@@ -30,7 +31,7 @@ export function EventFields({value,templates=[],locale="ar",organization}:{value
   <section><Separator/><h3>{c("الأساسيات","Basics")}</h3><FieldGroup>
    {field("title",c("عنوان الفعالية","Event title"),<Input id={`${id}-title`} name="title" required minLength={2} maxLength={120} defaultValue={value?.title}/>,true)}
    {field("description",c("الوصف","Description"),<Textarea id={`${id}-description`} name="description" maxLength={6000} rows={3} defaultValue={value?.description}/>)}
-   <EventPosterField organization={organization} locale={locale}/>
+   <EventPosterField organization={organization} locale={locale} event={value?.id} hasPoster={value?.has_poster}/>
   </FieldGroup></section>
   <section><Separator/><h3>{c("الوقت والمكان","Time and place")}</h3><FieldGroup>
    <DateRangeInput startName="starts" endName="ends" label={c("موعد الفعالية","Event dates")} startValue={value?.starts_at} endValue={value?.ends_at} required includeTime locale={locale}/>
@@ -47,6 +48,7 @@ export function EventFields({value,templates=[],locale="ar",organization}:{value
     {frozen?<input type="hidden" name="template" value={value.registration_form_template_id??""}/>:field("template",c("نموذج الأسئلة","Questions form"),<NativeSelect id={`${id}-template`} className="event-template-select" name="template" defaultValue={value?.registration_form_template_id??""}><option value="">{c("بدون أسئلة إضافية","No additional questions")}</option>{templates.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</NativeSelect>)}
    </div>
   </FieldGroup></section>
+  <FormField label={c("التسجيل يتطلب موافقة","Registration requires approval")} hint={c("عند إيقافه تُقبل التسجيلات الجديدة تلقائيًا. الحضور يُراجع بشكل منفصل.","When off, new registrations are accepted automatically. Attendance is reviewed separately.")}><input type="hidden" name="approval-present" value="on"/><Switch name="approval" value="on" defaultChecked={value?.requires_approval??false} aria-label={c("التسجيل يتطلب موافقة","Registration requires approval")}/></FormField>
   <section><Separator/><h3>{c("الساعات","Hours")}</h3>{field("hours",c("ساعات حضور أعضاء الجهة","Attendance hours for organization members"),<Input id={`${id}-hours`} name="hours" type="number" min={0} max={1000} step="0.01" required readOnly={frozen} defaultValue={value?.attendance_hours??"0"}/>,true)}</section>
  </div>;
 }

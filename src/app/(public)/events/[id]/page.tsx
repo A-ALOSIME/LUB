@@ -1,5 +1,5 @@
 import {localizedMetadata} from "@/lib/localized-metadata";
-import Link from "next/link";
+
 import {notFound} from "next/navigation";
 import {z} from "zod";
 import {getVerifiedUser} from "@/features/auth/session";
@@ -22,16 +22,14 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
  }catch{return localizedMetadata("تفاصيل الفعالية","Event details");}
 }
 
-export default async function EventPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{page?:string;action?:string}>}){
+export default async function EventPage({params}:{params:Promise<{id:string}>}){
  const {id}=await params;
  if(!z.uuid().safeParse(id).success)notFound();
- const {page:raw,action}=await searchParams;
- const page=Math.floor(Math.min(10000,Math.max(0,Number(raw)||0)));
  const [user,{locale}]=await Promise.all([getVerifiedUser(),getPreferences()]);
- const en=locale==="en";
+
  const superAdmin=user?await isSuperAdminUser(user.id):false;
- const data=await eventDetail(superAdmin?null:user?.id??null,id,page);
- if(!data)notFound();
+ const data=await eventDetail(superAdmin?null:user?.id??null,id);
+ if(!data||data.event.status_code==="Draft")notFound();
 
  const event=data.event;
  const schemaStatus:Record<string,string>={Published:"EventScheduled",Cancelled:"EventCancelled"};
@@ -52,5 +50,5 @@ export default async function EventPage({params,searchParams}:{params:Promise<{i
   ...(imageUrls.length?{image:imageUrls}:{}),
  }:null;
 
- return <>{schema&&<JsonLd data={schema}/>}<main id="main" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10"><EventContent data={data} user={Boolean(user&&!superAdmin)} superAdmin={superAdmin} locale={locale} initialAction={data.canManage&&(action==="edit"||action==="settings")?action:undefined}/><nav aria-label={en?"Registrant pages":"صفحات المسجلين"} className="mt-6 flex gap-5">{page>0&&<Link className="text-link" href={`/events/${id}?page=${page-1}`}>{en?"Previous":"السابق"}</Link>}{data.registrations.length>25&&<Link className="text-link" href={`/events/${id}?page=${page+1}`}>{en?"Next":"التالي"}</Link>}</nav></main></>;
+ return <>{schema&&<JsonLd data={schema}/>}<main id="main" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10"><EventContent data={data} user={Boolean(user&&!superAdmin)} superAdmin={superAdmin} locale={locale}/></main></>;
 }

@@ -28,7 +28,7 @@ export function ApplicationStatusFilters({ status, counts, preview, locale }: {
     options={applicationStatusTabs.map(tab => ({
       value: tab.value,
       label: en ? tab.en : tab.ar,
-      count: counts[tab.value] > 0 ? counts[tab.value] : undefined,
+      count: (counts[tab.value]??0) > 0 ? counts[tab.value] : undefined,
     }))}
     onValueChange={next => {
       const nextStatus = applicationStatusTabs.find(tab => tab.value === next)?.value;

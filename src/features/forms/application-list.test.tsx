@@ -34,10 +34,11 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
     "الجهة",
     "تاريخ التقديم",
     "الحالة",
-    "إجراءات",
+    "الإجراءات",
   ]);
   expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("5");
-  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toContain("2");
+  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toContain("1");
+  expect(screen.getByRole("tab", { name: /مقابلة/ }).textContent).toContain("1");
   expect(screen.getByRole("tab", { name: /مقبول/ }).textContent).toContain("1");
   expect(screen.getByRole("tab", { name: /مرفوض/ }).textContent).toContain("1");
   expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toContain("1");

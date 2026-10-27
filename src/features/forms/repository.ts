@@ -56,15 +56,15 @@ export async function getApplicationDetail(user: string, application: string) {
 export async function ownApplication(user: string, round: string) {
  return withUser(user, async tx => { const rows = await tx.execute(sql`select id from lub.membership_applications where applicant_user_id=${user} and registration_round_id=${round}`); return rows[0]?.id as string | undefined; });
 }
-export type Filters = { q: string; status: string; committee: string; major: string; level: string; from: string; to: string; page: number; lookup: string; activity?: string };
-export type OrganizationApplicationStatusCounts = { all: number; submitted: number; accepted: number; rejected: number; interview: number };
+export type Filters = { q: string; status: string; committee: string; major: string; level: string; from: string; to: string; page: number; lookup: string; activity?: string;round?:string };
+export type OrganizationApplicationStatusCounts = { all: number; submitted: number; accepted: number; rejected: number; interview: number;withdrawn?:number };
 export async function countOrganizationApplicationStatuses(user: string, org: string, filters: Filters): Promise<OrganizationApplicationStatusCounts> {
  return withUser(user, async tx => {
   const rows = await tx.execute(sql`select count(*)::int as "all",
    count(*) filter (where a.status_code='Submitted')::int as submitted,
    count(*) filter (where a.status_code='Accepted')::int as accepted,
    count(*) filter (where a.status_code='Rejected')::int as rejected,
-   count(*) filter (where a.status_code='Interview')::int as interview
+   count(*) filter (where a.status_code='Interview')::int as interview,count(*) filter(where a.status_code='Withdrawn')::int as withdrawn
    from lub.membership_applications a
    join lub.registration_rounds r on r.id=a.registration_round_id
    join lub.organizations o on o.id=r.organization_id
@@ -72,6 +72,7 @@ export async function countOrganizationApplicationStatuses(user: string, org: st
    where o.id=${org}
    and (lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))
    and (${filters.q}='' or position(lower(${filters.q}) in lower(p.full_name))>0)
+   and (${filters.round??""}='' or r.id::text=${filters.round??""})
    and (${filters.committee}='' or a.requested_committee_id::text=${filters.committee})
    and (${filters.major}='' or p.major=${filters.major}) and (${filters.level}='' or p.level=${filters.level})
    and (${filters.lookup}='' or p.university_lookup=${filters.lookup})
@@ -79,14 +80,14 @@ export async function countOrganizationApplicationStatuses(user: string, org: st
    and (${filters.to}='' or a.created_at<nullif(${filters.to},'')::date+interval '1 day')
    and (${filters.activity ?? ""}='' or (${filters.activity ?? ""}='prior' and exists(select 1 from lub.application_prior_member(a.id))) or (${filters.activity ?? ""}='first' and not exists(select 1 from lub.application_prior_member(a.id))))`);
   const counts = rows[0] as Record<keyof OrganizationApplicationStatusCounts, number | string>;
-  return { all: Number(counts.all ?? 0), submitted: Number(counts.submitted ?? 0), accepted: Number(counts.accepted ?? 0), rejected: Number(counts.rejected ?? 0), interview: Number(counts.interview ?? 0) };
+  return { all: Number(counts.all ?? 0), submitted: Number(counts.submitted ?? 0), accepted: Number(counts.accepted ?? 0), rejected: Number(counts.rejected ?? 0), interview: Number(counts.interview ?? 0),withdrawn:Number(counts.withdrawn??0) };
  });
 }
-export type OwnApplicationCounts = { all: number; review: number; accepted: number; rejected: number; withdrawn: number };
+export type OwnApplicationCounts = { all: number; review: number; accepted: number; rejected: number; withdrawn: number;interview?:number };
 export async function countOwnApplications(user: string): Promise<OwnApplicationCounts> {
  return withUser(user, async tx => {
   const rows = await tx.execute(sql`select count(*) as "all",
-   count(*) filter (where status_code in ('Submitted','Interview')) as review,
+   count(*) filter (where status_code='Submitted') as review,count(*) filter (where status_code='Interview') as interview,
    count(*) filter (where status_code='Accepted') as accepted,
    count(*) filter (where status_code='Rejected') as rejected,
    count(*) filter (where status_code='Withdrawn') as withdrawn
@@ -113,6 +114,7 @@ export async function listApplications(user: string, org?: string, filters?: Fil
    and ${org ? sql`(lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))` : sql`true`}
    and (${filters?.q ?? ""}='' or position(lower(${filters?.q ?? ""}) in lower(p.full_name))>0)
    and (${filters?.status ?? ""}='' or a.status_code=${filters?.status ?? ""} or (${filters?.status ?? ""}='review' and a.status_code in ('Submitted','Interview')))
+   and (${filters?.round??""}='' or r.id::text=${filters?.round??""})
    and (${filters?.committee ?? ""}='' or a.requested_committee_id::text=${filters?.committee ?? ""})
    and (${filters?.major ?? ""}='' or p.major=${filters?.major ?? ""}) and (${filters?.level ?? ""}='' or p.level=${filters?.level ?? ""})
    and (${filters?.lookup ?? ""}='' or p.university_lookup=${filters?.lookup ?? ""})

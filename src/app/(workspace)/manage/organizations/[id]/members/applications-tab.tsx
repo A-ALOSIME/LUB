@@ -46,6 +46,7 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
     to: /^\d{4}-\d{2}-\d{2}$/.test(value("to")) ? value("to") : "",
     page: Math.min(1000, Math.max(1, Math.floor(Number(value("page")) || 1))),
     lookup,
+    round:z.uuid().safeParse(value("round")).success?value("round"):"",
     activity: ["prior", "first"].includes(value("activity")) ? value("activity") : "",
   };
   const selectedId = z.uuid().safeParse(value("application")).success ? value("application") : "";
@@ -60,9 +61,9 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
   if (selectedId && (!detail || detail.organization_id !== organization || !detail.canStaff)) notFound();
 
   const query = new URLSearchParams({ section: "applications" });
-  for (const key of ["q", "status", "committee", "major", "level", "from", "to", "activity", "page"]) if (value(key)) query.set(key, value(key));
+  for (const key of ["q", "status", "round","committee", "major", "level", "from", "to", "activity", "page"]) if (value(key)) query.set(key, value(key));
   const queryString = query.toString();
-  const filterStatuses = ["", "Submitted", "Accepted", "Rejected", "Interview"];
+  const filterStatuses = ["", "Submitted","Interview", "Accepted", "Rejected", "Withdrawn"];
   const statusLink = (status: string) => {
     const next = new URLSearchParams(queryString);
     next.delete("application");
@@ -80,12 +81,12 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
     <ApplicationReviewStatusFilters value={filters.status} locale={locale} options={filterStatuses.map(status => ({
       value: status,
       label: status ? statuses[status] : c("الكل", "All"),
-      count: status === "" ? statusCounts.all : statusCounts[status.toLowerCase() as "submitted" | "accepted" | "rejected" | "interview"],
+      count: status === "" ? statusCounts.all : statusCounts[status.toLowerCase() as "submitted" | "accepted" | "rejected" | "interview" | "withdrawn"]??0,
       href: statusLink(status),
     })).map(option => ({ ...option, count: option.count > 0 ? option.count : undefined }))} />
     <div className="application-review-controls" dir={en ? "ltr" : "rtl"}>
       <LiveFilterForm action={searchApplications} className="application-review-search-form">
-        <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="page" value="1"/>
+        <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="round" value={filters.round??""}/><input type="hidden" name="page" value="1"/>
         <Input name="q" type="search" dir={en ? "ltr" : "rtl"} className={en ? "text-left" : "text-right"} maxLength={120} defaultValue={filters.q} placeholder={c("ابحث بالاسم…", "Search by name…")} aria-label={c("بحث باسم الطالب", "Search by student name")} />
       </LiveFilterForm>
       <Popover>
@@ -94,6 +95,7 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
           <div className="mb-2 font-medium">{c("فلاتر إضافية", "Additional filters")}</div>
           <LiveFilterForm action={searchApplications} className="grid gap-3">
             <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="q" value={filters.q}/><input type="hidden" name="page" value="1"/>
+            <FormField label={c("الجولة","Round")}><NativeSelect name="round" defaultValue={filters.round??""}><option value="">{c("كل الجولات","All rounds")}</option>{workspace.rounds.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</NativeSelect></FormField>
             <FormField  label={<>{c("اللجنة", "Committee")}</>}><NativeSelect name="committee" defaultValue={filters.committee}><option value="">{c("كل اللجان", "All committees")}</option>{workspace.committees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></FormField>
             <FormField  label={<>{c("المستوى", "Level")}</>}><input name="level" maxLength={20} defaultValue={filters.level}/></FormField>
             <FormField  label={<>{c("التخصص", "Major")}</>}><input name="major" dir={en ? "ltr" : "rtl"} maxLength={120} defaultValue={filters.major}/></FormField>
