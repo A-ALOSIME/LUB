@@ -3,7 +3,6 @@ import { cloneElement } from "react";
 import { RowAction } from "@/components/row-action";
 import { formatHours } from "@/lib/display";
 import { Clock3, ClipboardCheck, LayoutTemplate, Pencil, Copy, Plus } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
@@ -11,6 +10,8 @@ import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
 import { NativeSelect } from "@/components/ui/native-select";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
 import { loadManagementPageData } from "@/features/organizations/access";
+import {Badge} from "@/components/ui/badge";
+import {TaskComposer} from "@/features/tasks/task-composer";
 import { TaskFields } from "@/features/tasks/task-fields";
 import { TaskForm } from "@/features/tasks/task-form";
 import { TaskList, TaskPagination } from "@/features/tasks/task-list";
@@ -75,9 +76,9 @@ export default async function ManageTasksPage({ params, searchParams }: {
     <section className="space-y-5" aria-label={c("قوالب المهام", "Task templates")}>
 
       {workspace.templates.map(template => <article key={template.id} className="border-t border-line py-4 first:border-0">
-        <div className="flex flex-wrap items-start justify-between gap-3"><h3 className="min-w-0 break-words font-semibold"><bdi>{template.name}</bdi></h3><span className="text-sm text-muted">{template.is_active ? c("نشط", "Active") : c("مؤرشف", "Archived")}</span></div>
-        <p dir="auto" className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{template.description_template}</p>
-        <p className="mt-1 text-xs text-muted">{c("الساعات المقترحة", "Suggested hours")}: {formatHours(template.default_hours,locale)}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3"><h3 className="min-w-0 break-words font-semibold"><bdi>{template.name}</bdi></h3><Badge variant={template.is_active?"secondary":"outline"}>{template.is_active ? c("نشط", "Active") : c("موقوف", "Inactive")}</Badge></div>
+        <p dir="auto" className="mt-2 line-clamp-2 break-words text-sm leading-6">{template.description_template}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{c("الساعات المقترحة", "Suggested hours")}: {formatHours(template.default_hours,locale)}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {template.is_active && taskScopes.some(scope => template.committee_id === null || scope.id === template.committee_id) && <RowAction href={`${base}?template=${template.id}`} label={c("إنشاء مهمة من القالب","Create task from template")}><Plus/></RowAction>}
           {allowedTemplate(template.committee_id) && <ManagementActionSheet rowAction icon={<Pencil/>} label={c("تعديل", "Edit")} title={c("تعديل قالب المهمة", "Edit task template")} locale={locale}>
@@ -92,21 +93,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
     </section>
   </ManagementActionSheet>;
 
-  const taskCreateAction = taskScopes.length > 0 && workspace && <ManagementActionSheet
-    key={source?.id ?? "blank"}
-    label={source ? c("إنشاء من القالب", "Create from template") : c("مهمة جديدة", "New task")}
-    title={c("إنشاء مهمة", "Create task")}
-    locale={locale}
-    variant="default"
-    triggerSize="lg"
-    initiallyOpen={Boolean(source)}
-  >
-    {source && <p className="mb-4 text-sm text-muted">{c("من القالب", "From template")}: <bdi>{source.name}</bdi> · <Link className="text-link" href={`${base}?section=tasks`}>{c("ابدأ بدون قالب", "Start without a template")}</Link></p>}
-    <TaskForm key={source?.id ?? "blank"} operation="save-task" fields={{ org: id, ...(source ? { template: source.id } : {}) }} label={c("إنشاء مسودة المهمة", "Create task draft")} locale={locale}>
-      {scopeField(taskScopes, source?.committee_id)}
-      <TaskFields value={source ? { title: source.name, description: source.description_template, default_hours: source.default_hours } : undefined} locale={locale} rules={workspace.hourRules.filter(rule => !rule.task_template_id || rule.task_template_id === source?.id)} templates={workspace.templates} selectedTemplate={source?.id} canSaveTemplate={templateScopes.length > 0}/>
-    </TaskForm>
-  </ManagementActionSheet>;
+  const taskCreateAction = taskScopes.length > 0 && workspace && <TaskComposer org={id} workspace={workspace} source={source} locale={locale} initiallyOpen={Boolean(source)}/>;
   const settingsAction = hours && <HoursSettingsAction data={hours} org={id} filters={filters} locale={locale}/>;
   const hoursToolbarAction = hours && <HoursToolbarActions
     org={id}
@@ -135,7 +122,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
       {taskAccess && <OrganizationSectionTabPanel id="tasks">
         <section aria-label={c("قائمة مهام الجهة", "Organization task list")} className="space-y-4">
           {hasTasks && tasks ? <>
-            <TaskList items={tasks.items} mode="all" locale={locale}/>
+            <TaskList items={tasks.items} mode="all" locale={locale} workspace={workspace}/>
             <TaskPagination page={taskPage} more={tasks.more} base={base} query={{ section: "tasks" }} locale={locale}/>
           </> : <WorkspaceEmptyState icon={ClipboardCheck} title={c("لا توجد مهام بعد", "No tasks yet")} description={c("أنشئ أول مهمة للجهة.", "Create the organization's first task.")} action={taskCreateAction ? cloneElement(taskCreateAction,{initiallyOpen:false,key:"empty-task"}) : templatesAction} />}
         </section>

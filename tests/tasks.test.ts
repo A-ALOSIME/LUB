@@ -1,5 +1,10 @@
+import {PgDialect} from "drizzle-orm/pg-core";
+import type {SQL} from "drizzle-orm";
+vi.mock("server-only",()=>({}));
+vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);return operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});}}));
+import {listTasks} from "../src/features/tasks/repository";
 import { PGlite } from "@electric-sql/pglite";
-import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
 let db: PGlite;
 const leader="00000000-0000-4000-8000-000000000001", member="00000000-0000-4000-8000-000000000002", other="00000000-0000-4000-8000-000000000003";
@@ -113,4 +118,37 @@ it("never overwrites submission content or final reviews, and blocks new submiss
  await asUser(leader);await db.query("select lub.review_task_submission($1,'Approved','اعتماد',null)",[current]);await db.exec("reset role");
  await denied(()=>db.query("update lub.task_submissions set review_note='استبدال القرار' where id=$1",[current]));
  await asUser(leader);await db.query("select lub.change_task_status($1,'Completed',2)",[task]);await asUser(member);await denied(()=>submit(p,4));
+});
+
+it("includes authorized drafts in the management directory without revealing them to students",async()=>{
+ const task=await create();
+ const managed=await listTasks(leader,{org,view:"all",page:0});expect(managed.items.map(item=>item.task.id)).toContain(task);expect(managed.items[0].task.status_code).toBe("Draft");
+ expect((await listTasks(member,{org,view:"all",page:0})).items).toHaveLength(0);expect((await listTasks(member,{org,view:"available",page:0})).items).toHaveLength(0);
+});
+it("soft-deletes a task while retaining participant submissions and revision history",async()=>{
+ const task=await openTask(),p=await join(task);await submit(p);await asUser(leader);
+ await db.query("select lub.delete_task($1,2)",[task]);
+ expect((await listTasks(leader,{org,view:"all",page:0})).items).toHaveLength(0);
+ await asUser(member);expect((await listTasks(member,{org,view:"mine",page:0})).items[0].historical).toBe(true);
+ expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[p])).rows).toHaveLength(1);
+});
+it("allows a participant to withdraw without destroying submissions or changing another student's participation",async()=>{
+ const task=await openTask(),p=await join(task);await submit(p);const second=await join(task,other);await asUser(member);
+ await db.query("select lub.withdraw_task_participation($1)",[p]);
+ expect((await db.query<{status_code:string}>("select status_code from lub.task_participants where id=$1",[p])).rows[0].status_code).toBe("Closed");
+ expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[p])).rows).toHaveLength(1);
+ await denied(()=>db.query("select lub.withdraw_task_participation($1)",[second]));
+});
+
+it("guards removal and task images, preserves bound images, and exposes accurate team totals without exposing submissions",async()=>{
+ const task=await create(),asset="00000000-0000-4000-8000-000000000302",key=`${leader}/${asset}`;
+ await db.query("select lub.register_application_asset($1,$2,'task.png','image/png',100)",[asset,key]);
+ await db.query("select lub.set_task_image($1,$2,1)",[task,asset]);
+ expect((await db.query<{allowed:boolean}>("select lub.can_delete_application_object($1) as allowed",[key])).rows[0].allowed).toBe(false);
+ await db.query("select lub.change_task_status($1,'Open',2)",[task]);await join(task);
+ expect((await listTasks(member,{org,view:"mine",page:0})).items[0].summary?.participants).toBe(1);
+ expect((await db.query("select id from lub.application_assets where id=$1",[asset])).rows).toHaveLength(1);
+ await denied(()=>db.query("select lub.delete_task($1,3)",[task]));await denied(()=>db.query("select lub.set_task_image($1,$2,3)",[task,asset]));
+ await asUser(leader);await db.query("select lub.set_task_image($1,null,3)",[task]);
+ expect((await db.query<{allowed:boolean}>("select lub.can_delete_application_object($1) as allowed",[key])).rows[0].allowed).toBe(false);
 });

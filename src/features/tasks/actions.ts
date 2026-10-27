@@ -21,10 +21,12 @@ export async function readTaskNotification(notification:string):Promise<TaskStat
 export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskState>{
  const user=await requireUser();let target:string|undefined;
  try{
- const operation=z.enum(["save-task","link-event","status","template","join","start","submit","review","close","read","read-all"]).parse(f.get("operation"));
- if(["join","start","submit","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
+ const operation=z.enum(["save-task","delete","withdraw","link-event","status","template","join","start","submit","review","close","read","read-all"]).parse(f.get("operation"));
+ if(["join","start","submit","withdraw","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{
  switch(operation){
+ case "delete":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.delete_task(${id(f,"task")},${revision(f)})`;
+ case "withdraw":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.withdraw_task_participation(${id(f,"participant")})`;
  case "link-event":return sql`select lub.link_task_event(${id(f,"task")},${optionalId(f,"event")},${revision(f)})`;
  case "save-task":if(f.get("rule")){if(f.get("task"))throw new Error();return sql`select lub.save_task_with_rule(${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"title",120,2)},${text(f,"description",6000)},${date(f,"starts")}::timestamptz,${date(f,"due")}::timestamptz,${id(f,"rule")}) as id`;}return sql`select lub.save_task(${optionalId(f,"task")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"title",120,2)},${text(f,"description",6000)},${date(f,"starts")}::timestamptz,${date(f,"due")}::timestamptz,${hours(f)}::numeric,${f.get("task")?revision(f):null}::int) as id`;
  case "status":{const status=z.enum(["Open","Completed","Cancelled"]).parse(f.get("status"));if(status!=="Open"&&f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.change_task_status(${id(f,"task")},${status},${revision(f)})`;}
@@ -37,15 +39,21 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  case "read":return sql`select lub.read_task_notification(${id(f,"notification")})`;
  case "read-all":return sql`select lub.read_task_notification(n.id) from lub.notifications n where n.recipient_user_id=${user.id} and n.read_at is null`;
  }
- })();const rows=operation==="save-task"&&f.get("saveTemplate")==="on"
-  ? await withUser(user.id,async tx=>{
-    const saved=await tx.execute(query);
-    const task=z.uuid().parse(saved[0]?.id);
-    await tx.execute(sql`select lub.save_task_template(null,${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000)},${hours(f)}::numeric,true,null,null)`);
-    return [{id:task}];
-  })
-  : await withUser(user.id,tx=>tx.execute(query));
- if(operation==="save-task")target=z.uuid().parse(rows[0]?.id);
+ })();
+ const rows=await withUser(user.id,async tx=>{
+  if(operation!=="save-task")return tx.execute(query);
+  const intent=z.enum(["draft","publish","template"]).parse(f.get("intent")||"draft");
+  if(intent==="template"){
+   if(f.get("task"))throw new Error("New templates only");
+   await tx.execute(sql`select lub.save_task_template(null,${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000)},${hours(f)}::numeric,true,null,null)`);
+   return [];
+  }
+  const saved=await tx.execute(query);const task=z.uuid().parse(saved[0]?.id);
+  if(f.get("poster")||f.get("removePoster")==="true")await tx.execute(sql`select lub.set_task_image(${task},${optionalId(f,"poster")},(select revision from lub.tasks where id=${task}))`);
+  if(intent==="publish")await tx.execute(sql`select lub.change_task_status(${task},'Open',(select revision from lub.tasks where id=${task}))`);
+  return [{id:task}];
+ });
+ if(operation==="save-task"&&rows[0]?.id)target=z.uuid().parse(rows[0].id);
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيرت المهمة أو المشاركة. رفض التسليم يحتاج ملاحظة؛ اعتماد المهمة يحتاج فصلًا أكاديميًا يغطي تاريخ الاعتماد."};}
  if(!["read","read-all"].includes(String(f.get("operation"))))updateTag("public-talent");
  revalidatePath("/tasks","layout");revalidatePath("/activity");revalidatePath("/manage","layout");revalidatePath("/notifications");revalidatePath("/me");

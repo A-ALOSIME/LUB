@@ -2,7 +2,8 @@
 import React from "react";
 import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
-vi.mock("./actions",()=>({mutateTask:async()=>({error:"تعذّر حفظ التغيير"})}));
+const save=vi.hoisted(()=>vi.fn<(previous:unknown,data:FormData)=>Promise<{error:string}>>(async()=>({error:"تعذّر حفظ التغيير"})));
+vi.mock("./actions",()=>({mutateTask:save}));
 import {TaskForm} from "./task-form";
 import {DateInput} from "@/features/forms/date-input";
 afterEach(cleanup);
@@ -19,4 +20,11 @@ it("initializes editing dates in Riyadh and submits the explicit timezone",()=>{
  fireEvent.click(screen.getByLabelText("الموعد"));
  expect(screen.getByText("كل الأوقات بتوقيت الرياض")).toBeTruthy();
  expect(document.querySelector('[data-week-start="sunday"]')).toBeTruthy();
+});
+
+it("requires a confirmation and retains the chosen creation intent",async()=>{
+ save.mockClear();render(<TaskForm operation="save-task" label="حفظ" creationActions canSaveTemplate><label>العنوان<input name="title" defaultValue="تصميم منشور"/></label></TaskForm>);
+ fireEvent.click(screen.getByRole("button",{name:"حفظ كقالب"}));expect(screen.getByRole("alertdialog")).toBeTruthy();expect(save).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole("button",{name:"تأكيد"}));await waitFor(()=>expect(save).toHaveBeenCalledOnce());
+ expect(save.mock.calls[0][1].get("intent")).toBe("template");expect(save.mock.calls[0][1].get("title")).toBe("تصميم منشور");
 });

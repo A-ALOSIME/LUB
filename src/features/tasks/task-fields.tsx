@@ -11,9 +11,8 @@ import {Textarea} from "@/components/ui/textarea";
 import {Field,FieldGroup,FieldLabel,FieldDescription} from "@/components/ui/field";
 import { FormField } from "@/components/form-field";
 import {InputGroup,InputGroupInput,InputGroupAddon,InputGroupText} from "@/components/ui/input-group";
-import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
-import {ChevronDown} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {EntityImageField} from "@/features/events/event-poster-field";
 import type { Task, TaskTemplate } from "./repository";
 import type { Locale } from "@/lib/preferences";
 
@@ -34,14 +33,16 @@ export function TaskTemplatePicker({ templates, selected, locale = "ar" }: { tem
   </NativeSelect></FormField>;
 }
 
-export function TaskFields({ value, template = false, locale = "ar", rules = [], templates = [], selectedTemplate, canSaveTemplate = false }: {
+export function TaskFields({ value, template = false, locale = "ar", rules = [], templates = [], selectedTemplate, scopeField, organization, committee, templatePicker }: {
   value?: Partial<Task & TaskTemplate>;
   template?: boolean;
   locale?: Locale;
   rules?: HoursRule[];
   templates?: TaskTemplate[];
   selectedTemplate?: string;
-  canSaveTemplate?: boolean;
+  scopeField?: import("react").ReactNode;
+  templatePicker?: import("react").ReactNode;
+  organization?:string;committee?:string|null;
 }) {
   const fieldId=useId();
   const [hoursMode, setHoursMode] = useState<"manual" | "rule">("manual");
@@ -55,9 +56,9 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
     <FormField id={`${fieldId}-hours`} label={c("الساعات الافتراضية","Default hours")} required><Input id={`${fieldId}-hours`} name="hours" type="number" min={0} max={1000} step="0.01" required defaultValue={value?.default_hours??"0"}/></FormField>
     <Field><div className="flex items-center gap-3"><Switch id={`${fieldId}-active`} name="active" defaultChecked={value?.is_active??true}/><FieldLabel htmlFor={`${fieldId}-active`}>{c("قالب نشط","Active template")}</FieldLabel></div><FieldDescription>{c("يظهر القالب عند إنشاء مهمة جديدة.","Available when creating a new task.")}</FieldDescription></Field>
   </FieldGroup>;
-  return <FieldGroup className="task-fields">
-    { <TaskTemplatePicker templates={templates} selected={selectedTemplate} locale={locale} />}
-    <FormField label={c("العنوان", "Title")} required><Input name="title" required minLength={2} maxLength={120} defaultValue={value?.title ?? value?.name ?? ""}/></FormField>
+  return <FieldGroup className="task-fields grid sm:grid-cols-2 [&>div:has(textarea)]:sm:col-span-2">
+    
+    <FormField className="sm:col-span-2" label={c("العنوان", "Title")} required><Input name="title" required minLength={2} maxLength={120} defaultValue={value?.title ?? value?.name ?? ""}/></FormField>
     <FormField label={c("وصف العمل والمخرج المطلوب", "Work description and expected deliverable")} required><Textarea name="description" required maxLength={6000} rows={5} defaultValue={value?.description ?? value?.description_template ?? ""}/></FormField>
     {<>
       <FormField label={c("ساعات المهمة", "Task hours")} required>
@@ -76,13 +77,9 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
         {hoursMode === "manual" && <input type="hidden" name="rule" value=""/>}
       </FormField>
     </>}
-    {<>
-      {canSaveTemplate && <Field><div className="flex items-center gap-3"><Switch id={`${fieldId}-save-template`} name="saveTemplate"/><FieldLabel htmlFor={`${fieldId}-save-template`}>{c("احفظها كقالب", "Save as a template")}</FieldLabel></div><FieldDescription>{c("استخدم تفاصيلها لاحقًا عند إنشاء مهمة جديدة.","Reuse these details when creating another task.")}</FieldDescription></Field>}
-      <Collapsible className="task-additional-options"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="justify-start"/>}><ChevronDown/>{c("خيارات إضافية", "Additional options")}</CollapsibleTrigger>
-        <CollapsibleContent className="pt-3">
-          <DateRangeInput startName="starts" endName="due" label={c("فترة الانضمام والتسليم (اختيارية)", "Joining and due dates (optional)")} startValue={value?.starts_at ?? ""} endValue={value?.due_at ?? ""} includeTime locale={locale}/>
-        </CollapsibleContent>
-      </Collapsible>
-    </>}
+    <div><DateRangeInput startName="starts" endName="due" label={c("فترة الانضمام والتسليم", "Joining and due dates")} startValue={value?.starts_at ?? ""} endValue={value?.due_at ?? ""} includeTime locale={locale}/></div>
+    {scopeField}
+    {templatePicker??(templates.length>0?<TaskTemplatePicker templates={templates} selected={selectedTemplate} locale={locale}/>:null)}
+    {organization&&<div className="sm:col-span-2"><EntityImageField organization={organization} committee={committee} locale={locale} purpose="task-image" initialPreview={value?.image_asset_id?`/files/${value.image_asset_id}/preview`:""}/></div>}
   </FieldGroup>;
 }

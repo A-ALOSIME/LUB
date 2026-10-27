@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TaskPagination } from "./task-list";
 
+vi.mock("./actions",()=>({mutateTask:async()=>({success:"تم الحفظ"})}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));

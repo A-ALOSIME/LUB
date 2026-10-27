@@ -42,17 +42,21 @@ function posterUploadMessage(code: string | undefined, status: number, locale: L
   return fallback[en ? 1 : 0];
 }
 
-export function EventPosterField({ organization, locale, event, hasPoster=false }: { organization: string; locale: Locale; event?:string; hasPoster?:boolean }) {
+export function EventPosterField({organization,locale,event,hasPoster=false}:{organization:string;locale:Locale;event?:string;hasPoster?:boolean}) {
+ return <EntityImageField organization={organization} locale={locale} initialPreview={event&&hasPoster?`/event-posters/${event}`:""}/>;
+}
+export function EntityImageField({organization,locale,committee,initialPreview="",purpose="event-poster"}:{organization:string;locale:Locale;committee?:string|null;initialPreview?:string;purpose?:"event-poster"|"task-image"|"announcement-image"}) {
   const [asset, setAsset] = useState("");
   const [removed,setRemoved]=useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [preview, setPreview] = useState(event&&hasPoster?`/event-posters/${event}`:"");
+  const [preview, setPreview] = useState(initialPreview);
   const input = useRef<HTMLInputElement>(null);
   const [retryFile, setRetryFile] = useState<File>();
   const en = locale === "en";
   const c = (ar: string, english: string) => en ? english : ar;
 
+  useEffect(()=>{input.current?.setCustomValidity(pending?(en?"Wait for the image upload.":"انتظر اكتمال رفع الصورة."):error);},[pending,error,en]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   async function upload(file?: File) {
@@ -69,7 +73,8 @@ export function EventPosterField({ organization, locale, event, hasPoster=false 
       const body = new FormData();
       body.set("file", await compactPoster(file));
       body.set("organization", organization);
-      const response = await fetch("/files/upload?purpose=event-poster", { method: "POST", body });
+      if(committee)body.set("committee",committee);
+      const response = await fetch(`/files/upload?purpose=${purpose}`, { method: "POST", body });
       const result = await response.json().catch(() => null) as { id?: string; error?: string } | null;
       if (!response.ok || !result?.id) {
         setError(posterUploadMessage(result?.error, response.status, locale));
@@ -87,11 +92,12 @@ export function EventPosterField({ organization, locale, event, hasPoster=false 
   }
 
   function remove() {setRemoved(true);setRetryFile(undefined);setAsset("");setPreview("");setError("");if(input.current){input.current.value="";input.current.setCustomValidity("");}}
-  return <section className="event-poster-upload" aria-label={c("بوستر الفعالية","Event poster")} data-preview-url={preview}>
+  const imageLabel=purpose==="task-image"?c("صورة المهمة","Task image"):purpose==="announcement-image"?c("صورة الإعلان","Announcement image"):c("بوستر الفعالية","Event poster");
+  return <section className="event-poster-upload" aria-label={imageLabel} data-preview-url={preview}>
     <input type="hidden" name="poster" value={asset}/><input type="hidden" name="removePoster" value={String(removed)}/>
-    <span className="event-poster-label">{c("بوستر الفعالية","Event poster")}</span>
-    <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png" disabled={pending} aria-label={c("صورة بوستر الفعالية","Event poster image")} onInvalid={event=>event.preventDefault()} onChange={event=>void upload(event.target.files?.[0])}/>
-    {preview?<><div className="event-poster-preview"><Image src={preview} alt={c("معاينة بوستر الفعالية","Event poster preview")} fill unoptimized sizes="(max-width:767px) 100vw, 32rem" className="object-contain"/></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>input.current?.click()}><Pencil/>{c("تغيير","Change")}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={remove}><Trash2/>{c("حذف","Remove")}</Button></div></>:<div className="event-poster-dropzone" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();void upload(event.dataTransfer.files?.[0]);}}><Button type="button" variant="ghost" disabled={pending} onClick={()=>input.current?.click()}><Upload/><span>{pending?c("جارٍ الرفع…","Uploading…"):c("اسحب الصورة هنا أو اضغط للاختيار","Drop an image here or click to choose")}</span></Button><p><bdi>PNG</bdi> {c("أو","or")} <bdi>JPEG</bdi> · {c("حد أقصى","Maximum")} <bdi>5MB</bdi></p></div>}
+    <span className="event-poster-label">{imageLabel}</span>
+    <input ref={input} type="file" className="sr-only" accept="image/jpeg,image/png" disabled={pending} aria-label={purpose==="event-poster"?c("صورة بوستر الفعالية","Event poster image"):imageLabel} onInvalid={event=>event.preventDefault()} onChange={event=>void upload(event.target.files?.[0])}/>
+    {preview?<><div className="event-poster-preview"><Image src={preview} alt={purpose==="event-poster"?c("معاينة بوستر الفعالية","Event poster preview"):imageLabel} fill unoptimized sizes="(max-width:767px) 100vw, 32rem" className="object-contain"/></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>input.current?.click()}><Pencil/>{c("تغيير","Change")}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={remove}><Trash2/>{c("حذف","Remove")}</Button></div></>:<div className="event-poster-dropzone" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();void upload(event.dataTransfer.files?.[0]);}}><Button type="button" variant="ghost" disabled={pending} onClick={()=>input.current?.click()}><Upload/><span>{pending?c("جارٍ الرفع…","Uploading…"):c("اسحب الصورة هنا أو اضغط للاختيار","Drop an image here or click to choose")}</span></Button><p><bdi>PNG</bdi> {c("أو","or")} <bdi>JPEG</bdi> · {c("حد أقصى","Maximum")} <bdi>5MB</bdi></p></div>}
     {pending&&<p role="status">{c("جارٍ رفع الصورة…","Uploading image…")}</p>}{error&&<div className="flex flex-wrap items-center gap-2"><p role="alert" className="error-message">{error}</p>{retryFile&&<Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>void upload(retryFile)}>{c("إعادة المحاولة","Retry")}</Button>}</div>}
   </section>;
 }

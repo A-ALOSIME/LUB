@@ -2,12 +2,12 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
 export {taskLabels,formatTaskDate} from "./display";
-export type Task={id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null};
+export type Task={id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null;image_asset_id?:string|null};
 export type Participant={id:string;user_id:string;status_code:string;approved_hours_override:string|null;joined_at:string;closed_at:string|null};
 export type Submission={id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
 export type TaskTemplate={id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
-export type TaskCard={task:Task;org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
-export type TaskDetail={task:Task;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
+export type TaskCard={can_manage?:boolean;summary?:{participants:number;submitted:number}|null;task:Task;org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
+export type TaskDetail={summary?:{participants:number;submitted:number}|null;task:Task;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
 export type TaskWorkspace={name:string;scopes:Array<{id:string|null;name:string;tasks:boolean;templates:boolean}>;templates:TaskTemplate[];hourRules:Array<{id:string;name:string;default_hours:string;committee_id:string|null;task_template_id:string|null}>};
 export async function taskWorkspace(user:string,org:string){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select o.name_ar as name,coalesce((select jsonb_agg(r) from (select id,name,default_hours,committee_id,task_template_id from lub.hour_rules where organization_id=o.id and is_active and effective_from<=(statement_timestamp() at time zone 'Asia/Riyadh')::date and (effective_to is null or effective_to>=(statement_timestamp() at time zone 'Asia/Riyadh')::date) order by name,id limit 100) r),'[]') as "hourRules",
@@ -19,10 +19,10 @@ export async function taskWorkspace(user:string,org:string){return withUser(user
 export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number}){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`with visible as (
  select to_jsonb(t) as task,t.organization_id,t.created_at,to_jsonb(p) as participant,false as historical from lub.tasks t left join lub.task_participants p on p.task_id=t.id and p.user_id=${user}
- where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and (p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
+ where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and ((${options.view==='all'} and lub.can_manage_task(t.id)) or p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
  union all select r.snapshot_json,(r.snapshot_json->>'organization_id')::uuid,p.joined_at,to_jsonb(p),true from lub.task_participants p join lateral(select r.* from lub.task_revisions r where r.task_id=p.task_id order by r.revision_number desc limit 1) r on true
  where p.user_id=${user} and not exists(select 1 from lub.tasks t where t.id=p.task_id) and (${options.org??null}::uuid is null or (r.snapshot_json->>'organization_id')::uuid=${options.org??null}::uuid))
- select v.task,o.name_ar as org_name,v.participant,v.historical,
+ select v.task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
  (select jsonb_build_object('status_code',s.status_code) from lub.task_submissions s where s.task_participant_id=(v.participant->>'id')::uuid order by s.revision_number desc limit 1) as latest_submission,
  (select h.hours::text from lub.hour_records h where h.task_participant_id=(v.participant->>'id')::uuid and h.status_code='Approved' limit 1) as approved_hours
  from visible v join lub.organizations o on o.id=v.organization_id
@@ -35,7 +35,7 @@ export async function listTasks(user:string,options:{org?:string;view:"available
 export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,teamPage=0,eventPage=0){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select
  coalesce((select to_jsonb(t) from lub.tasks t where t.id=${id}),(select r.snapshot_json from lub.task_revisions r where r.task_id=${id} order by r.revision_number desc limit 1)) as task,
- lub.can_manage_task(${id}) as "canManage",lub.can_read_task(${id}) as current,
+ lub.task_summary(${id}) as summary,lub.can_manage_task(${id}) as "canManage",lub.can_read_task(${id}) as current,
  (select jsonb_build_object('id',e.id,'title',e.title,'status',e.status_code) from lub.events e where e.id=(select t.event_id from lub.tasks t where t.id=${id})) as "linkedEvent",
  case when lub.can_manage_task(${id}) then coalesce((select jsonb_agg(e) from(select e.id,e.title,e.status_code as status from lub.events e where e.organization_id=(select t.organization_id from lub.tasks t where t.id=${id}) and e.status_code<>'Cancelled' order by e.starts_at desc,e.id limit 26 offset ${eventPage*25}) e),'[]') else '[]'::jsonb end as "eventChoices",
  (select to_jsonb(p) from lub.task_participants p where p.task_id=${id} and p.user_id=${user}) as own,

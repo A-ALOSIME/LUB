@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   if (!user) return failure(401, "session_required");
 
   const purpose = request.nextUrl.searchParams.get("purpose");
-  if (purpose && purpose !== "event-poster") return failure(400, "unsupported_upload_purpose");
+  if (purpose && !["event-poster","task-image","announcement-image"].includes(purpose)) return failure(400, "unsupported_upload_purpose");
   if (!purpose && await isSuperAdminUser(user.id)) return failure(403, "upload_not_allowed");
   if (Number(request.headers.get("content-length") ?? 0) > maxFileSize + 1024 * 1024) {
     return failure(413, "file_too_large");
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!organization.success) return failure(400, "invalid_organization");
     try {
       const access = await withUser(user.id, tx => tx.execute(sql`
-        select lub.has_org_permission(${organization.data}, 'EVENTS_MANAGE') as allowed
+        select lub.has_org_permission(${organization.data}, ${purpose==="task-image"?"TASKS_MANAGE":purpose==="announcement-image"?"ORG_PROFILE_MANAGE":"EVENTS_MANAGE"},${purpose==="task-image"?z.uuid().nullable().parse(form.get("committee")||null):null}::uuid) as allowed
       `));
       if (!access[0]?.allowed) return failure(403, "organization_permission_required");
     } catch {

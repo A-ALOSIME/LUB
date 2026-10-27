@@ -5,6 +5,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { TaskCard } from "./repository";
 import { TaskBrowser } from "./task-browser";
 
+vi.mock("./actions",()=>({mutateTask:async()=>({success:"تم الحفظ"})}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));
