@@ -296,4 +296,8 @@ it("keeps pending logo bytes private and publishes the small logo only after acc
   ).toEqual({
     logo_url: `https://lub.community/organization-requests/${id}/logo`,
   });
+  await asUser(admin);await db.query("update lub.organizations set logo_url='' where id=(select organization_id from lub.organization_opening_requests where id=$1)",[id]);
+  await db.exec("reset role;select set_config('request.jwt.claim.sub','',true);set local role anon");
+  expect((await db.query<{logo:string|null}>("select lub.organization_request_logo($1) as logo",[id])).rows[0].logo).toBeNull();
+  await asUser(student);expect((await db.query<{logo:string}>("select lub.organization_request_logo($1) as logo",[id])).rows[0].logo).toBe(logo);
 });

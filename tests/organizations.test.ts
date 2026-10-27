@@ -76,12 +76,13 @@ it("lets anonymous visitors read organizations and public committees without pri
   expect((await db.query("select * from lub.public_leadership($1)", [org])).rows).toEqual([{ full_name: "طالب 1", role_code: "OL" }, { full_name: "طالب 2", role_code: "OD" }]);
   await expect(db.exec("select email from lub.users")).rejects.toThrow();
 });
-it("gives SA lifecycle powers but no daily operating powers", async () => {
+it("gives SA lifecycle and public-profile editing without student operational capabilities", async () => {
   await asUser(admin);
   expect((await db.query<{ yes: boolean }>("select lub.is_super_admin() as yes")).rows[0].yes).toBe(true);
   expect(await permission("ORG_PROFILE_MANAGE")).toBe(false);
   expect(await permission("COMMITTEE_MANAGE")).toBe(false);
-  expect((await db.query("update lub.organizations set summary='forbidden' where id=$1 returning id", [org])).rows).toHaveLength(0);
+  expect((await db.query("update lub.organizations set summary='administrative update' where id=$1 returning id", [org])).rows).toEqual([{id:org}]);
+  expect((await db.query<{allowed:boolean}>("select lub.can_edit_organization_profile($1) as allowed",[org])).rows[0].allowed).toBe(true);
 });
 it("gives leader/deputy organization scope and committee leaders only their own committee", async () => {
   await asUser(deputy);
@@ -170,9 +171,11 @@ it("does not let students assign themselves roles or grants", async () => {
   await expect(db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)", [outsider])).rejects.toThrow();
 });
 
-it("does not let SA alter public contacts as an indirect daily profile operation", async () => {
-  await asUser(admin);
-  await expect(db.query("insert into lub.organization_links(organization_id,link_type,url) values($1,'الموقع','https://example.com')", [org])).rejects.toThrow();
+it("lets SA edit public contacts while retaining the denial for unrelated accounts",async()=>{
+ await asUser(admin);
+ expect((await db.query("insert into lub.organization_links(organization_id,link_type,url) values($1,'الموقع','https://example.com') returning organization_id",[org])).rows).toEqual([{organization_id:org}]);
+ await db.exec("reset role");await asUser(outsider);
+ await expect(db.query("insert into lub.organization_links(organization_id,link_type,url) values($1,'الموقع','https://outsider.example.com')",[org])).rejects.toThrow();
 });
 it("rejects copying a committee's identity reference to a different organization", async () => {
   await expect(db.query("insert into lub.committees(organization_id,name,copied_from_committee_id) values($1,'نسخة غير صالحة',$2)", [otherOrg, hiddenCommittee])).rejects.toThrow();
@@ -182,4 +185,9 @@ it("does not show private membership history to an inactive account", async () =
   await asUser(leader);
   expect((await db.query("select id from lub.organization_memberships")).rows).toHaveLength(0);
   expect(await permission("ORG_PROFILE_MANAGE")).toBe(false);
+});
+it('checks administrator URL availability while rejecting ordinary student callers',async()=>{
+ await asUser(admin);const available=async(slug:string,except:string|null=null)=>(await db.query<{available:boolean}>('select lub.admin_organization_slug_available($1,$2) as available',[slug,except])).rows[0].available;
+ expect(await available('tech')).toBe(false);expect(await available('tech',org)).toBe(true);expect(await available('new-url')).toBe(true);expect(await available('bad/url')).toBe(false);
+ await db.exec('reset role');await asUser(leader);await expect(db.query("select lub.admin_organization_slug_available('new-url',null)")).rejects.toThrow();
 });

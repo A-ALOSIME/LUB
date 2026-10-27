@@ -1,8 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { getDb, withUser, withVisitor, type Transaction } from "@/db/client";
+import { getDb, withUser, type Transaction } from "@/db/client";
 import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships, announcements, studentProfiles, auditLog } from "@/db/schema";
 import type { CreateOrganizationInput, OrganizationProfileInput, CommitteeInput, AnnouncementInput } from "./validation";
 
@@ -119,30 +118,14 @@ async function readManagementOverview(userId: string): Promise<ManagementOvervie
     },
   };
 }
-const readAdminOrganizationDirectory = unstable_cache(async () => withVisitor(tx =>
-  tx.select({ id: organizations.id, slug: organizations.slug, nameAr: organizations.nameAr, typeCode: organizations.typeCode, statusCode: organizations.statusCode })
-    .from(organizations).orderBy(asc(organizations.nameAr), asc(organizations.id)).limit(200)
-), ["admin-organization-directory-v2"], { revalidate: 120, tags: ["public-organizations"] });
-
-export const getAdminOrganizations = cache(async (userId: string) => {
-  // Authorize the caller on every render; only this user-independent directory read is shared.
-  // Start it before the authorization query so cache misses do not add a serial round trip.
-  const directoryPromise = readAdminOrganizationDirectory().then(
-    organizations => ({ organizations }),
-    error => ({ error }),
-  );
-  const [result] = await getDb().execute<{ allowed: boolean }>(sql`
-    with verified_subject as materialized (
-      select set_config('request.jwt.claim.sub', ${userId}, true), set_config('role', 'anon', true)
-    )
-    select lub.is_super_admin() as allowed from verified_subject
-  `);
-  const allowed = Boolean(result?.allowed);
-  if (!allowed) return { allowed, organizations: [] };
-  const directory = await directoryPromise;
-  if ("error" in directory) throw directory.error;
-  return { allowed, organizations: directory.organizations };
-});
+export type AdminOrganizationRow={id:string;slug:string;nameAr:string;typeCode:string;statusCode:string;logoUrl:string;leaderName:string|null;memberCount:number};
+export type AdminOrganizationIdentity=Pick<AdminOrganizationRow,"id"|"slug"|"nameAr"|"typeCode"|"statusCode"|"leaderName">;
+export type AdminDirectoryFilters={q:string;type:string;status:string;page:number};
+export const getAdminOrganizations=cache(async(userId:string,filters:AdminDirectoryFilters={q:"",type:"",status:"",page:0})=>withUser(userId,async tx=>{
+ const [row]=await tx.execute(sql`select case when lub.is_super_admin() then lub.admin_organization_directory(${filters.q},${filters.type},${filters.status},${filters.page*25}) end as data`);
+ const data=row?.data as {organizations:AdminOrganizationRow[];total:number}|null;
+ return data?{allowed:true,organizations:data.organizations,total:data.total}:{allowed:false,organizations:[] as AdminOrganizationRow[]};
+}));
 
 // The management layout and account page reuse this RLS-checked read only
 // within the current server render; no account or permission data is shared across requests.
@@ -190,14 +173,14 @@ export async function getSuperAdmins(userId: string) {
 export async function getAssignedManagementOrganizations(userId: string) {
   return withUser(userId, tx => tx.select(manageFields).from(organizations).where(hasScopedAccess).orderBy(asc(organizations.nameAr)));
 }
-export async function getManagementOrganization(userId: string, organizationId: string) {
+export async function getManagementOrganization(userId: string, organizationId: string, administrative=false) {
   return withUser(userId, async tx => {
-    const [row] = await tx.select({ ...manageFields, canEvents: sql<boolean>`lub.has_event_access(${organizations.id})`, canReports: sql<boolean>`lub.has_reports_access(${organizations.id})`, canHours: sql<boolean>`lub.has_hours_access(${organizations.id})`, canRenewals: sql<boolean>`lub.has_org_permission(${organizations.id},'RENEWALS_MANAGE')`, canTasks: sql<boolean>`lub.has_task_access(${organizations.id})`, canApplications: sql<boolean>`lub.has_application_access(${organizations.id})`, canMembers: sql<boolean>`lub.has_org_permission(${organizations.id},'MEMBERS_VIEW') or lub.has_org_permission(${organizations.id},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizations.id} and lub.has_org_permission(${organizations.id},'MEMBERS_VIEW',c.id))`, canGrant: sql<boolean>`lub.has_org_permission(${organizations.id},'PERMISSIONS_GRANT')`, summary: organizations.summary, mission: organizations.mission, publicProfileContent: organizations.publicProfileContent, logoUrl: organizations.logoUrl, linksCustomized: organizations.linksCustomized, showLeadershipPublicly: organizations.showLeadershipPublicly,
+    const [row] = await tx.select({ ...manageFields,canEdit:sql<boolean>`lub.has_org_permission(${organizations.id},'ORG_PROFILE_MANAGE') or (${administrative} and lub.is_super_admin())`,adminIdentity:sql<{slug:string;typeCode:string;statusCode:string;leaderName:string|null}|null>`case when ${administrative} and lub.is_super_admin() then lub.admin_organization_identity(${organizations.id}) end`, canEvents: sql<boolean>`lub.has_event_access(${organizations.id})`, canReports: sql<boolean>`lub.has_reports_access(${organizations.id})`, canHours: sql<boolean>`lub.has_hours_access(${organizations.id})`, canRenewals: sql<boolean>`lub.has_org_permission(${organizations.id},'RENEWALS_MANAGE')`, canTasks: sql<boolean>`lub.has_task_access(${organizations.id})`, canApplications: sql<boolean>`lub.has_application_access(${organizations.id})`, canMembers: sql<boolean>`lub.has_org_permission(${organizations.id},'MEMBERS_VIEW') or lub.has_org_permission(${organizations.id},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizations.id} and lub.has_org_permission(${organizations.id},'MEMBERS_VIEW',c.id))`, canGrant: sql<boolean>`lub.has_org_permission(${organizations.id},'PERMISSIONS_GRANT')`, summary: organizations.summary, mission: organizations.mission, publicProfileContent: organizations.publicProfileContent, logoUrl: organizations.logoUrl, linksCustomized: organizations.linksCustomized, showLeadershipPublicly: organizations.showLeadershipPublicly,
       tagNames: sql<string[]>`coalesce((select jsonb_agg(t.name_ar order by t.name_ar) from lub.organization_tags ot inner join lub.tags t on t.id=ot.tag_id where ot.organization_id=lub.organizations.id), '[]'::jsonb)`,
       contacts: sql<Array<{ linkType: string; url: string }>>`coalesce((select jsonb_agg(jsonb_build_object('linkType',link.link_type,'url',link.url) order by link.sort_order,link.id) from lub.organization_links link where link.organization_id=lub.organizations.id), '[]'::jsonb)`,
       committees: sql<Array<{ id: string; name: string; description: string; isPublic: boolean; statusCode: string; copiedFromCommitteeId: string | null; parentCommitteeId: string | null; canEdit: boolean; memberCount: number | null; leaderName: string | null }>>`coalesce((select jsonb_agg(jsonb_build_object('id',committee.id,'name',committee.name,'description',committee.description,'isPublic',committee.is_public,'statusCode',committee.status_code,'copiedFromCommitteeId',committee.copied_from_committee_id,'parentCommitteeId',committee.parent_committee_id,'canEdit',lub.has_org_permission(lub.organizations.id,'COMMITTEE_MANAGE') or lub.has_org_permission(lub.organizations.id,'COMMITTEE_PROFILE_MANAGE',committee.id),'memberCount',case when lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW') or lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW',committee.id) then (select count(*)::int from lub.committee_memberships cm inner join lub.organization_memberships membership on membership.id=cm.organization_membership_id and membership.organization_id=cm.organization_id where cm.committee_id=committee.id and cm.organization_id=committee.organization_id and cm.status_code='Active' and cm.end_date is null and membership.status_code='Active' and membership.end_date is null) else null end,'leaderName',case when lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW') or lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW',committee.id) then (select profile.full_name_ar from lub.role_assignments role inner join lub.organization_memberships membership on membership.id=role.organization_membership_id and membership.organization_id=role.organization_id inner join lub.student_profiles profile on profile.user_id=membership.user_id where role.committee_id=committee.id and role.organization_id=committee.organization_id and role.role_code='CL' and role.end_date is null and membership.status_code='Active' and membership.end_date is null order by role.start_date desc,role.id desc limit 1) else null end) order by committee.name,committee.id) from lub.committees committee where committee.organization_id=lub.organizations.id and (lub.has_org_permission(lub.organizations.id,'COMMITTEE_MANAGE') or lub.has_org_permission(lub.organizations.id,'COMMITTEE_PROFILE_MANAGE',committee.id))), '[]'::jsonb)`,
     })
-      .from(organizations).where(and(eq(organizations.id, organizationId), hasScopedAccess)).limit(1);
+      .from(organizations).where(and(eq(organizations.id, organizationId), sql`(${hasScopedAccess} or (${administrative} and lub.is_super_admin()))`)).limit(1);
     if (!row) return undefined;
     const { tagNames, contacts, committees: scopedCommittees, ...organization } = row;
     return { organization, committees: scopedCommittees, tagNames, contacts };
@@ -262,8 +245,15 @@ export async function getMembershipHistory(userId: string) {
     .where(eq(organizationMemberships.userId, userId)).orderBy(asc(organizations.nameAr), asc(organizationMemberships.startDate)));
 }
 
-export async function createOrganization(userId: string, input: CreateOrganizationInput) {
-  return withUser(userId, async tx => { await requireSuperAdmin(tx); const [created] = await tx.insert(organizations).values(input).returning({ id: organizations.id }); return created; });
+export async function createOrganization(userId: string, input: CreateOrganizationInput, leaderEmail?:string) {
+  return withUser(userId, async tx => {
+    await requireSuperAdmin(tx);
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(lub.arabic_search_key(${input.nameAr}),0))`);
+    const [existing]=await tx.select({id:organizations.id}).from(organizations).where(sql`lub.arabic_search_key(${organizations.nameAr})=lub.arabic_search_key(${input.nameAr})`).limit(1);if(existing)throw new Error("ORGANIZATION_NAME_EXISTS");
+    const [created]=await tx.insert(organizations).values(input).returning({id:organizations.id});
+    if(leaderEmail)await tx.execute(sql`select lub.set_primary_leader(${created.id},${leaderEmail})`);
+    return created;
+  });
 }
 export async function appointPrimaryLeader(userId: string, organizationId: string, email: string) {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.set_primary_leader(${organizationId},${email})`); });
@@ -278,9 +268,12 @@ export async function endSuperAdmin(userId: string, targetUserId: string) {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.end_super_admin(${targetUserId})`); });
 }
 
+async function requireProfileEditor(tx:Transaction,organizationId:string){
+ const [row]=await tx.execute(sql`select lub.can_edit_organization_profile(${organizationId}) as allowed`);if(!row?.allowed)throw new Error("FORBIDDEN");
+}
 export async function saveOrganizationProfile(userId: string, organizationId: string, input: OrganizationProfileInput) {
   return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, "ORG_PROFILE_MANAGE");
+    await requireProfileEditor(tx,organizationId);
     await tx.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, organizationId)).for("update");
     const { tagNames, contacts, ...profile } = input;
     const changed = await tx.update(organizations).set({ ...profile, linksCustomized: true, updatedAt: new Date() }).where(eq(organizations.id, organizationId)).returning({ id: organizations.id });
@@ -299,7 +292,7 @@ export async function saveOrganizationProfile(userId: string, organizationId: st
 
 export async function saveOrganizationLogo(userId: string, organizationId: string, logoUrl: string) {
   return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, "ORG_PROFILE_MANAGE");
+    await requireProfileEditor(tx,organizationId);
     const [organization] = await tx.select({ id: organizations.id, slug: organizations.slug, logoUrl: organizations.logoUrl })
       .from(organizations).where(eq(organizations.id, organizationId)).for("update").limit(1);
     if (!organization) throw new Error("FORBIDDEN");

@@ -69,3 +69,4 @@ it("fails closed for inactive accounts and does not echo external database detai
   expect(response.error).toBeDefined();
   expect(mocks.revalidate).not.toHaveBeenCalled();
 });
+it('creates with a verified actor and optional leader, then opens the shared administrator editor',async()=>{mocks.create.mockResolvedValue({id:org});await expect(mutateOrganization({},form({operation:'create-org',nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:'',email:'leader@example.invalid',userId:'forged'}))).rejects.toThrow(`REDIRECT:/manage/organizations/${org}/edit`);expect(mocks.create).toHaveBeenCalledWith('verified-user',{nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:''},'leader@example.invalid');});
