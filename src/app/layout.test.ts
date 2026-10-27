@@ -8,6 +8,7 @@ vi.mock("@/lib/preferences", () => ({ getPreferences: async () => ({ locale: pre
 vi.mock("@/features/auth/verified-account", () => ({ getVerifiedAccountAccess: account.getVerifiedAccountAccess }));
 vi.mock("@/features/ai/chat-widget", () => ({ ChatWidget: () => null }));
 vi.mock("next/headers", () => ({ headers: async () => request.headers }));
+vi.mock("@/features/profile/completion-actions",()=>({claimProfileCompletionNotice:vi.fn().mockResolvedValue(false)}));
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "font" }) }));
 
 import {DeferredChatWidget,showAssistantLauncher} from "@/features/ai/deferred-chat-widget";

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <body style="margin:0;padding:32px 16px;background:#f6f6f2;color:#132937;font-family:Arial,sans-serif;line-height:1.8">
+    <main style="max-width:480px;margin:auto;background:#fff;border:1px solid #d6e0e5;border-radius:16px;padding:28px">
+      <h1 style="font-size:22px;margin:0 0 16px">تأكيد تغيير البريد في لُبّ</h1>
+      <p>استخدم رمز التحقق التالي لإكمال تأكيد تغيير بريد حسابك:</p>
+      <p dir="ltr" style="font-size:30px;font-weight:700;letter-spacing:8px;text-align:center">{{ .Token }}</p>
+      <p>أو افتح رابط التأكيد من نفس المتصفح الذي بدأت منه الطلب:</p>
+      <p><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#365f7d;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px">تأكيد البريد</a></p>
+      <p style="font-size:14px;color:#526779">قد يصلك تأكيد إضافي إلى بريدك الآخر. يبقى البريد الحالي فعالًا حتى اكتمال التأكيد المطلوب.</p>
+      <p style="font-size:14px;color:#526779">إذا لم تطلب هذا التغيير، تجاهل الرسالة.</p>
+    </main>
+  </body>
+</html>

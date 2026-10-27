@@ -11,19 +11,21 @@ import { saveProfile } from "./actions";
 import { AvatarPicker } from "./avatar-picker";
 import { ProfileDetailsSection } from "./profile-form-sections";
 import { useActionToast } from "@/components/action-toast";
-import type { StudentProfile } from "./repository";
+import type { AccountProfile } from "./repository";
 
 export function ProfileForm({
   profile,
   avatarUrl,
   email,
   returnTo,
+  pendingEmail,
   locale = "ar",
 }: {
-  profile?: StudentProfile;
+  profile?: AccountProfile;
   avatarUrl?: string;
   email: string;
   returnTo?: string;
+  pendingEmail?:string;
   locale?: Locale;
 }) {
   const en = locale === "en";
@@ -47,8 +49,8 @@ export function ProfileForm({
           id="account-settings-form"
           action={save}
           onReset={(event) => event.preventDefault()}
-          onInputCapture={() => setDirty(true)}
-          onChangeCapture={() => setDirty(true)}
+          onInputCapture={event=>{if((event.target as HTMLElement).closest("form")===event.currentTarget)setDirty(true);}}
+          onChangeCapture={event=>{if((event.target as HTMLElement).closest("form")===event.currentTarget)setDirty(true);}}
           className="account-settings-form"
           dir={en ? "ltr" : "rtl"}
         >
@@ -57,6 +59,7 @@ export function ProfileForm({
           <CardContent className="account-settings-content">
             {profile && <AvatarPicker name={profile.fullName} src={avatarUrl} locale={locale} onProcessing={setProcessing} onChange={file=>{setAvatar(file);setDirty(true);}} error={state.fieldErrors?.avatar?.[0]}/>}
             <ProfileDetailsSection
+              pendingEmail={pendingEmail}
               profile={profile}
               email={email}
               locale={locale}

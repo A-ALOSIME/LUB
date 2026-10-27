@@ -16,6 +16,7 @@ function signupProfileFromForm(form: FormData) {
   return {
     fullName: form.get("fullName"),
     universityId: form.get("universityId"),
+    nationalId:form.get("nationalId"),
     major: form.get("major"),
     academicLevel: form.get("academicLevel"),
     phone: form.get("phone") ?? "",

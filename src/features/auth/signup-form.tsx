@@ -1,4 +1,6 @@
 "use client";
+import {studentMajors,studentMajorsEn} from "@/lib/student-identity";
+import {academicLevel} from "@/lib/display";
 import {NativeSelect} from "@/components/ui/native-select";
 
 import { useActionState, useState } from "react";
@@ -13,6 +15,7 @@ type SignupDraft = {
   email: string;
   fullName: string;
   universityId: string;
+  nationalId:string;
   major: string;
   academicLevel: string;
   phone: string;
@@ -22,12 +25,13 @@ const emptyDraft: SignupDraft = {
   email: "",
   fullName: "",
   universityId: "",
+  nationalId:"",
   major: "",
   academicLevel: "",
   phone: "",
 };
 
-type TextField = "email" | "fullName" | "universityId" | "major" | "academicLevel" | "phone";
+type TextField = "email" | "fullName" | "universityId" | "nationalId" | "major" | "academicLevel" | "phone";
 
 export function SignupFlow({ available, returnTo, locale }: { available: boolean; returnTo: string; locale: Locale }) {
   const en = locale === "en";
@@ -66,17 +70,18 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
       <p id="university-id-help" className="mt-2 text-sm leading-7 text-muted">{en ? "Stored securely and never shown on your public profile." : "يُحفظ الرقم الجامعي بشكل آمن ولا يظهر في ملفك العام."}</p>
       {fieldError("universityId")}
     </div>
+    <div><label htmlFor="signup-national-id">{en?'National / resident ID':'رقم الهوية الوطنية أو الإقامة'}</label><input id="signup-national-id" name="nationalId" dir="ltr" inputMode="numeric" autoComplete="off" required minLength={10} maxLength={10} value={draft.nationalId} onChange={event=>updateText('nationalId',event.currentTarget.value)} {...fieldProps('nationalId')}/><p className="mt-2 text-sm text-muted-foreground">{en?'Stored encrypted and never shown publicly.':'يُحفظ مشفّرًا ولا يظهر للعامة.'}</p>{fieldError('nationalId')}</div>
     <div className="grid gap-5 sm:grid-cols-2">
       <div>
         <label htmlFor="signup-major">{en ? "Major" : "التخصص"}</label>
-        <input id="signup-major" name="major" required minLength={2} maxLength={120} value={draft.major} onChange={event => updateText("major", event.currentTarget.value)} {...fieldProps("major")} />
+        <NativeSelect id="signup-major" name="major" required value={draft.major} onChange={event=>updateText('major',event.currentTarget.value)} {...fieldProps('major')}><option value="" disabled>{en?'Select your major':'اختر التخصص'}</option>{studentMajors.map((major,index)=><option key={major} value={major}>{en?studentMajorsEn[index]:major}</option>)}</NativeSelect>
         {fieldError("major")}
       </div>
       <div>
         <label htmlFor="signup-academic-level">{en ? "Academic level" : "المستوى الدراسي"}</label>
         <NativeSelect id="signup-academic-level" name="academicLevel" required value={draft.academicLevel} onChange={event => updateText("academicLevel", event.currentTarget.value)} {...fieldProps("academicLevel")}>
           <option value="" disabled>{en ? "Select level" : "اختر المستوى"}</option>
-          {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{en ? `Level ${index + 1}` : `المستوى ${index + 1}`}</option>)}
+          {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{academicLevel(String(index+1),locale)}</option>)}
           <option value="graduate">{en ? "Graduate studies" : "دراسات عليا"}</option>
         </NativeSelect>
         {fieldError("academicLevel")}

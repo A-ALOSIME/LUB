@@ -1,3 +1,4 @@
+import {ProfileCompletionNotice} from "@/features/profile/completion-notice";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
@@ -45,7 +46,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const { locale, theme } = await getPreferences();
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={thmanyahDisplay.variable}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{locale === "ar" ? "تخطي إلى المحتوى" : "Skip to content"}</a>
-    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><Toaster timeout={3000}>{children}</Toaster>
+    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><Toaster timeout={3000}>{children}<ProfileCompletionNotice locale={locale}/></Toaster>
     <DeferredChatWidget locale={locale} /></DirectionProvider>
   </body></html>;
 }

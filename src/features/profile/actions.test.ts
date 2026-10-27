@@ -12,7 +12,7 @@ import { storeAccountAvatar } from "./avatar-storage";
 const user = { id: "verified-user", email: "student@example.com", emailVerifiedAt: "2026-09-26T10:00:00Z" };
 function input(overrides: Record<string, string> = {}) {
   const form = new FormData();
-  for (const [key, value] of Object.entries({ fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", ...overrides })) form.set(key, value);
+  for (const [key, value] of Object.entries({ fullName: "أحمد محمد",nationalId:"1000000008", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", ...overrides })) form.set(key, value);
   return form;
 }
 beforeEach(() => {
@@ -53,7 +53,7 @@ describe("profile action boundary", () => {
 
   it("authenticates before touching the database and ignores a forged form owner", async () => {
     await expect(saveProfile({}, input({ userId: "another-student" }))).rejects.toThrow("redirect:/me?notice=profile-saved");
-    expect(dependencies.saveStudentProfile).toHaveBeenCalledWith(user, expect.objectContaining({ fullName: "أحمد محمد", universityId: "202612345" }));
+    expect(dependencies.saveStudentProfile).toHaveBeenCalledWith(user, expect.objectContaining({ fullName: "أحمد محمد",nationalId:"1000000008", universityId: "202612345" }));
     expect(dependencies.updateTag).toHaveBeenCalledWith("public-organizations");
     expect(dependencies.updateTag).toHaveBeenCalledWith("public-talent");
     dependencies.requireUser.mockRejectedValue(new Error("redirect:/login"));

@@ -1,3 +1,5 @@
+import {studentMajors,studentMajorsEn,normalizeMajor} from "@/lib/student-identity";
+import {EmailChangeDialog} from "./security-dialogs";
 import { academicLevel } from "@/lib/display";
 import type { ReactNode } from "react";
 import { Mail } from "lucide-react";
@@ -17,10 +19,10 @@ import {
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
 import type { FormState } from "@/lib/validation";
-import type { StudentProfile } from "./repository";
+import type { AccountProfile } from "./repository";
 
 type FieldErrors = FormState["fieldErrors"];
-type TextFieldName = "fullName" | "universityId" | "major" | "phone";
+type TextFieldName = "fullName" | "universityId" | "nationalId" | "phone";
 
 function ProfileTextField({
   name,
@@ -84,8 +86,10 @@ export function ProfileDetailsSection({
   email,
   locale,
   errors,
+  pendingEmail,
 }: {
-  profile?: StudentProfile;
+  pendingEmail?:string;
+  profile?: AccountProfile;
   email: string;
   locale: Locale;
   errors?: FieldErrors;
@@ -144,6 +148,7 @@ export function ProfileDetailsSection({
           <span className="account-settings-verified">{en ? "Verified" : "موثّق"}</span>
         </div>
       </div>
+      {profile&&<EmailChangeDialog email={email} pendingEmail={pendingEmail} locale={locale}/>}
     </div>
   );
 
@@ -170,34 +175,20 @@ export function ProfileDetailsSection({
             maxLength={120}
             autoComplete="name"
           />
-          <ProfileTextField
-            name="major"
-            label={en ? "Major" : "التخصص"}
-            value={profile?.major}
-            locale={locale}
-            errors={errors}
-            required
-            minLength={2}
-            maxLength={120}
-          />
+          <Field className="account-settings-field">
+            <FieldLabel htmlFor="major">{en?'Major':'التخصص'}</FieldLabel>
+            <NativeSelect id="major" name="major" required defaultValue={normalizeMajor(profile?.major??'')} aria-invalid={Boolean(errors?.major?.[0])} aria-describedby={errors?.major?.[0]?'major-error':undefined}>
+              <NativeSelectOption value="" disabled>{en?'Select your major':'اختر التخصص'}</NativeSelectOption>
+              {studentMajors.map((major,index)=><NativeSelectOption key={major} value={major}>{en?studentMajorsEn[index]:major}</NativeSelectOption>)}
+            </NativeSelect>
+            {errors?.major?.[0]&&<p id="major-error" className="text-sm text-destructive">{actionFeedback(errors.major[0],locale)}</p>}
+          </Field>
         </div>
         <div className="account-settings-field-row">
-          {!profile && (
-            <ProfileTextField
-              name="universityId"
-              label={en ? "University number" : "الرقم الجامعي"}
-              locale={locale}
-              errors={errors}
-              required
-              minLength={6}
-              maxLength={15}
-              dir={en ? "ltr" : "rtl"}
-              inputMode="numeric"
-            />
-          )}
-          {academicLevelField}
-          {profile ? phoneField : null}
+          <ProfileTextField name="universityId" label={en?'University number':'الرقم الجامعي'} value={profile?.universityId} locale={locale} errors={errors} required minLength={6} maxLength={15} dir="ltr" inputMode="numeric" autoComplete="off"/>
+          <ProfileTextField name="nationalId" label={en?'National / resident ID':'رقم الهوية الوطنية أو الإقامة'} value={profile?.nationalId} locale={locale} errors={errors} required minLength={10} maxLength={10} dir="ltr" inputMode="numeric" autoComplete="off" hint={en?'Encrypted; visible only to you and authorized system administrators.':'محفوظ بتشفير، ولا يظهر إلا لك وللمشرف العام المخوّل.'}/>
         </div>
+        <div className="account-settings-field-row">{academicLevelField}{profile?phoneField:null}</div>
         {!profile ? (
           <div className="account-settings-field-row">
             {phoneField}

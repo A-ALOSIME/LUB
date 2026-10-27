@@ -38,7 +38,7 @@ function form(values: Record<string, string>) {
   return data;
 }
 function signupForm(overrides: Record<string, string> = {}) {
-  return form({ email: "student@example.com", mode: "signup", fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "", ...overrides });
+  return form({ email: "student@example.com", mode: "signup", fullName: "أحمد محمد",nationalId:"1000000008", universityId: "202612345", major: "نظم معلومات", academicLevel: "5", phone: "", ...overrides });
 }
 describe("OTP server actions", () => {
   it("does not call the provider for invalid input", async () => {
@@ -124,7 +124,7 @@ describe("OTP server actions", () => {
     expect(auth.verifyOtp).toHaveBeenCalledWith({ email: "student@example.com", token: "123456", type: "email" });
     expect(signup.completeSignup).toHaveBeenCalledWith(
       { id: "verified-user", email: "student@example.com", emailVerifiedAt: "2026-10-12T10:00:00Z" },
-      expect.objectContaining({ fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5" }),
+      expect.objectContaining({ fullName: "أحمد محمد",nationalId:"1000000008", universityId: "202612345", major: "نظم معلومات", academicLevel: "5" }),
     );
     expect(cookie.delete).toHaveBeenCalledWith("lub-signup-draft");
   });

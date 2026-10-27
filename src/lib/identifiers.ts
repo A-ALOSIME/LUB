@@ -12,26 +12,26 @@ function getKeys() {
   return { encryptionKey, lookupKey };
 }
 
-export function encryptIdentifier(value: string, userId: string) {
+export function encryptIdentifier(value: string, userId: string,kind:"university-id"|"national-id"="university-id") {
   const nonce = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", getKeys().encryptionKey, nonce);
-  cipher.setAAD(Buffer.from(`lub:university-id:${userId}`));
+  cipher.setAAD(Buffer.from(`lub:${kind}:${userId}`));
   const ciphertext = Buffer.concat([cipher.update(normalizeDigits(value), "utf8"), cipher.final()]);
   return ["v1", nonce.toString("base64"), cipher.getAuthTag().toString("base64"), ciphertext.toString("base64")].join(".");
 }
 
 // Only call from an authorized server operation which records sensitive access.
-export function decryptIdentifier(envelope: string, userId: string) {
+export function decryptIdentifier(envelope: string, userId: string,kind:"university-id"|"national-id"="university-id") {
   const [version, nonce, tag, ciphertext, extra] = envelope.split(".");
   if (version !== "v1" || !nonce || !tag || !ciphertext || extra !== undefined) throw new Error("Invalid identifier envelope.");
   const decipher = createDecipheriv("aes-256-gcm", getKeys().encryptionKey, Buffer.from(nonce, "base64"));
-  decipher.setAAD(Buffer.from(`lub:university-id:${userId}`));
+  decipher.setAAD(Buffer.from(`lub:${kind}:${userId}`));
   decipher.setAuthTag(Buffer.from(tag, "base64"));
   return Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]).toString("utf8");
 }
 
-export function identifierLookup(value: string) {
-  return createHmac("sha256", getKeys().lookupKey).update(`lub:university-id:${normalizeDigits(value)}`).digest("hex");
+export function identifierLookup(value: string,kind:"university-id"|"national-id"="university-id") {
+  return createHmac("sha256", getKeys().lookupKey).update(`lub:${kind}:${normalizeDigits(value)}`).digest("hex");
 }
 
 export function encryptSignupDraft(value: string, email: string) {

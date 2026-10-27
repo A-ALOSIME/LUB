@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+const emailSync=vi.hoisted(()=>vi.fn());
+vi.mock("@/features/profile/repository",()=>({syncVerifiedAccountEmail:emailSync}));
 const auth = vi.hoisted(() => ({ exchangeCodeForSession: vi.fn(), getUser: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ auth })) }));
 const signup = vi.hoisted(() => ({ completeSignup: vi.fn() }));
@@ -12,6 +14,7 @@ beforeEach(() => {
   vi.stubEnv("IDENTIFIER_LOOKUP_KEY", Buffer.alloc(32, 2).toString("base64"));
   auth.exchangeCodeForSession.mockReset().mockResolvedValue({ error: null });
   auth.getUser.mockReset().mockResolvedValue({ data: { user: { id: "verified-user", email: "student@example.com", email_confirmed_at: "2026-10-12T10:00:00Z" } }, error: null });
+  emailSync.mockReset().mockResolvedValue(undefined);
   signup.completeSignup.mockReset().mockResolvedValue(undefined);
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -47,7 +50,7 @@ it("returns to the validated saved application after exchange and consumes the c
 });
 
 it("completes an encrypted pending signup when the user follows the email link", async () => {
-  const profile = { fullName: "أحمد محمد", universityId: "202612345", major: "نظم المعلومات", academicLevel: "5", phone: "" };
+  const profile = { fullName: "أحمد محمد",nationalId:"1000000008", universityId: "202612345", major: "نظم معلومات", academicLevel: "5", phone: "" };
   const request = new NextRequest("http://127.0.0.1:3000/auth/callback?code=valid");
   request.cookies.set("lub-signup-draft", encryptSignupDraft(JSON.stringify(profile), "student@example.com"));
   const response = await GET(request);
@@ -55,4 +58,11 @@ it("completes an encrypted pending signup when the user follows the email link",
   expect(signup.completeSignup).toHaveBeenCalledWith({ id: "verified-user", email: "student@example.com", emailVerifiedAt: "2026-10-12T10:00:00Z" }, profile);
   expect(response.headers.get("location")).toBe("http://127.0.0.1:3000/me");
   expect(response.cookies.get("lub-signup-draft")?.value).toBe("");
+});
+
+it('preserves the current email on partial confirmation and synchronizes only the fully verified changed email',async()=>{
+ const request=new NextRequest('http://127.0.0.1:3000/auth/callback?code=valid');request.cookies.set('lub-pending-email',JSON.stringify({userId:'verified-user',email:'new@example.com',returnTo:'/account'}));
+ const partial=await GET(request);expect(emailSync).not.toHaveBeenCalled();expect(partial.headers.get('location')).toBe('http://127.0.0.1:3000/account');expect(partial.cookies.get('lub-pending-email')).toBeUndefined();
+ auth.getUser.mockResolvedValue({data:{user:{id:'verified-user',email:'new@example.com',email_confirmed_at:'2026-10-27T10:00:00Z'}},error:null});
+ const complete=await GET(request);expect(emailSync).toHaveBeenCalledWith({id:'verified-user',email:'new@example.com',emailVerifiedAt:'2026-10-27T10:00:00Z'});expect(complete.cookies.get('lub-pending-email')?.value).toBe('');
 });

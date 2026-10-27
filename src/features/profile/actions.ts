@@ -19,7 +19,7 @@ export async function saveProfile(_previous: FormState, form: FormData): Promise
   if (!isProfileStorageConfigured()) return { error: "حفظ البيانات غير متاح الآن. حاول لاحقًا." };
   const input = profileSchema.safeParse({
     fullName: form.get("fullName"), universityId: form.get("universityId") || undefined,
-    major: form.get("major"), academicLevel: form.get("academicLevel"), phone: form.get("phone") ?? "",
+    nationalId:form.get("nationalId"), major: form.get("major"), academicLevel: form.get("academicLevel"), phone: form.get("phone") ?? "",
   });
   if (!input.success) return { error: "راجع الحقول الموضحة وأكمل البيانات.", fieldErrors: z.flattenError(input.error).fieldErrors };
   const avatarAction = form.get("avatarAction");
@@ -33,7 +33,13 @@ export async function saveProfile(_previous: FormState, form: FormData): Promise
     } catch { return {error:"تعذّر حفظ صورة الحساب. اختر صورة JPG أو PNG صالحة حتى 2MB.",fieldErrors:{avatar:["تعذّر معالجة صورة الحساب."]}}; }
   }
   try { await saveStudentProfile(user, input.data); }
-  catch { return { error: "تعذّر حفظ البيانات. تأكد من صحة بياناتك وحاول بعد قليل." }; }
+  catch(error) {
+    const cause=error instanceof Error&&"cause" in error?error.cause:error;
+    const constraint=cause&&typeof cause==='object'?('constraint_name' in cause?String(cause.constraint_name):'constraint' in cause?String(cause.constraint):''):'';
+    if(constraint.includes('university_id_lookup_hash'))return {error:'الرقم الجامعي مستخدم في حساب آخر.',fieldErrors:{universityId:['الرقم الجامعي مستخدم في حساب آخر.']}};
+    if(constraint.includes('national_id_lookup_hash'))return {error:'رقم الهوية مستخدم في حساب آخر.',fieldErrors:{nationalId:['رقم الهوية مستخدم في حساب آخر.']}};
+    return {error:'تعذّر حفظ البيانات. تأكد من صحة بياناتك وحاول بعد قليل.'};
+  }
   if (avatarAction === "replace" || avatarAction === "remove") {
     try { await storeAccountAvatar(user.id,avatarAction,avatarBytes); }
     catch { revalidatePath("/account"); return {error:"تم حفظ البيانات، لكن تعذّر حفظ الصورة. أعد المحاولة.",fieldErrors:{avatar:["تعذّر حفظ الصورة. أعد المحاولة."]}}; }

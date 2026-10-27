@@ -15,13 +15,13 @@ describe("student input", () => {
     expect(otpSchema.safeParse("12345678").success).toBe(false);
   });
   it("normalizes identifiers and rejects text and oversized profile input", () => {
-    const profile = { fullName: "أحمد محمد", universityId: "٢٠٢٦١٢٣٤٥", major: "نظم المعلومات", academicLevel: "5", phone: "" };
+    const profile = { fullName: "أحمد محمد",nationalId:"1000000008", universityId: "٢٠٢٦١٢٣٤٥", major: "نظم المعلومات", academicLevel: "5", phone: "" };
     expect(profileSchema.parse(profile).universityId).toBe("202612345");
     expect(profileSchema.safeParse({ ...profile, universityId: "2026x345" }).success).toBe(false);
     expect(profileSchema.safeParse({ ...profile, fullName: "أ".repeat(121) }).success).toBe(false);
     expect(profileSchema.safeParse({ ...profile, academicLevel: "99" }).success).toBe(false);
   });
   it("allows editing without re-entering a previously saved university number", () => {
-    expect(profileSchema.parse({ fullName: "أحمد محمد", major: "نظم المعلومات", academicLevel: "5", phone: "" }).universityId).toBeUndefined();
+    expect(profileSchema.parse({ fullName: "أحمد محمد",nationalId:"1000000008", major: "نظم المعلومات", academicLevel: "5", phone: "" }).universityId).toBeUndefined();
   });
 });

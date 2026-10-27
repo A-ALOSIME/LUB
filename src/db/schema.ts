@@ -29,11 +29,16 @@ export const studentProfiles = lub.table("student_profiles", {
   createdAt: createdAt(), updatedAt: updatedAt(),
 }).enableRLS();
 
+export const privateStudentIdentifiers=lub.table("private_student_identifiers",{
+ userId:uuid("user_id").primaryKey().references(()=>users.id),nationalIdCiphertext:text("national_id_ciphertext").notNull(),nationalIdLookupHash:varchar("national_id_lookup_hash",{length:64}).notNull().unique(),updatedAt:updatedAt(),
+}).enableRLS();
+
 export const profileSettings = lub.table("profile_settings", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "restrict" }),
   publicProfileEnabled: boolean("public_profile_enabled").notNull().default(false),
   publicSlug: uuid("public_slug").notNull().defaultRandom().unique(),
   allowIndexing: boolean("allow_indexing").notNull().default(false),
+  completionPromptSeenAt:timestamp("completion_prompt_seen_at",{withTimezone:true}),
   updatedAt: updatedAt(),
 }).enableRLS();
 

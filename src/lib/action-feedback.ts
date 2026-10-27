@@ -2,6 +2,24 @@ import type { Locale } from "./preferences";
 
 // Server actions return stable Arabic copy; keep the same feedback in either UI language.
 const english: Record<string, string> = {
+  "أدخل رقم هوية وطنية أو إقامة صحيحًا من 10 أرقام.": "Enter a valid 10-digit Saudi national or resident ID.",
+  "اختر تخصصك من القائمة.": "Select your major from the list.",
+  "الرقم الجامعي مستخدم في حساب آخر.": "This university number is used by another account.",
+  "رقم الهوية مستخدم في حساب آخر.": "This identity number is used by another account.",
+  "هذا هو بريدك الحالي. أدخل بريدًا جديدًا.": "This is your current email. Enter a different address.",
+  "تعذّر إرسال التأكيد. تحقق من البريد وانتظر قليلًا قبل إعادة المحاولة.": "Could not send confirmation. Check the address and wait before trying again.",
+  "أُرسل رمز التأكيد. يبقى بريدك الحالي فعالًا حتى اكتمال التأكيد.": "Confirmation sent. Your current email remains active until confirmation is complete.",
+  "انتهت جلسة تغيير البريد. اطلب رمزًا جديدًا.": "The email-change session expired. Request a new code.",
+  "تعذّر التحقق من تغيير البريد. أعد تسجيل الدخول وحاول مجددًا.": "Could not verify the email change. Sign in again and retry.",
+  "تم تأكيد الرمز. أكمل التأكيد الإضافي المرسل إلى بريدك الآخر.": "Code confirmed. Complete the additional confirmation sent to your other inbox.",
+  "تم تحديث البريد الإلكتروني.": "Email address updated.",
+  "تعذّر تحديث البريد. راجع الحقول وأعد المحاولة.": "Could not update the email. Check the fields and retry.",
+  "اكتب كلمة مرور من 12 حرفًا على الأقل، وتأكد من تطابق التأكيد.": "Enter at least 12 characters and a matching password confirmation.",
+  "تعذّر تغيير كلمة المرور. أعد تسجيل الدخول ثم حاول مجددًا.": "Could not change the password. Sign in again and retry.",
+  "تم تغيير كلمة المرور.": "Password changed.",
+  "تعذّر تغيير كلمة المرور. أعد المحاولة.": "Could not change the password. Try again.",
+  "الرمز غير صحيح أو انتهت صلاحيته. تحقق منه وأعد المحاولة.": "The code is invalid or expired. Check it and try again.",
+
   "تم حفظ التغيير.": "Changes saved.",
   "تم حفظ الاسم.": "Name saved.",
   "تعذّر حفظ الاسم. تأكد من صلاحيتك وحاول مرة أخرى.": "Could not save the name. Check your access and try again.",

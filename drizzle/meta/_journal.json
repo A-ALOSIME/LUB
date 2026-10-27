@@ -372,6 +372,13 @@
       "when": 1793060400000,
       "tag": "0052_explicit_committee_questions",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1793073600000,
+      "tag": "0053_private_student_account",
+      "breakpoints": true
     }
   ]
 }

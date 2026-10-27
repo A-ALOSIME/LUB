@@ -8,6 +8,9 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("sensitive identifiers", () => {
+  it('separates national ID encryption and lookup from university identifiers',()=>{
+    const encrypted=encryptIdentifier('1000000008','student-1','national-id');expect(decryptIdentifier(encrypted,'student-1','national-id')).toBe('1000000008');expect(()=>decryptIdentifier(encrypted,'student-1')).toThrow();expect(identifierLookup('1000000008','national-id')).not.toBe(identifierLookup('1000000008'));
+  });
   it("encrypts without exposing the original and uses a fresh nonce", () => {
     const first = encryptIdentifier("202612345", "student-1");
     const second = encryptIdentifier("202612345", "student-1");
