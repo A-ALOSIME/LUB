@@ -3,6 +3,7 @@ import { DurableObject } from "cloudflare:workers";
 import { setHyperdriveDatabaseUrl } from "./db/runtime-url";
 import { workerLiveness } from "./worker-liveness";
 import { dispatchRender } from "./renderer-dispatch";
+import { secureSiteRequest } from "./transport-security";
 
 // SSR runs on the free SQLite-backed object CPU budget. Storage is not used.
 export class LUBRenderer extends DurableObject {
@@ -14,9 +15,10 @@ export class LUBRenderer extends DurableObject {
 
 const worker = {
   fetch(request, env) {
-    const liveness = workerLiveness(request);
-    if (liveness) return liveness;
-    return dispatchRender(request, env.RENDERER);
+    return secureSiteRequest(request, () => {
+      const liveness = workerLiveness(request);
+      return liveness ?? dispatchRender(request, env.RENDERER);
+    });
   },
 };
 
