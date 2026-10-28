@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup,fireEvent } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import { ApplicationForm } from "./application-form";
@@ -62,4 +62,14 @@ it("shows no automatic committee field and refreshes explicit question options f
   expect(document.querySelector("select")?.textContent).not.toContain(
     "الأنشطة / الفعاليات",
   );
+});
+it.each(["Answered","Equals"] as const)("reveals and hides the committee follow-up immediately for %s conditions",operator=>{
+ const followup={...field,id:"00000000-0000-4000-8000-000000000003",type:"LongText" as const,label:"لماذا اخترت اللجنة؟",required:true,condition:{fieldId:field.id,operator,value:"true"}};
+ const definition:FormDefinition={...initialDefinition,sections:[{...initialDefinition.sections[0],fields:[field,followup]}]};
+ render(<ApplicationForm round="round" version="version" definition={definition} committees={[committee]}/>);
+ expect(screen.queryByRole("textbox",{name:"لماذا اخترت اللجنة؟ *"})).toBeNull();
+ fireEvent.change(document.querySelector("select")!,{target:{value:committee.id}});
+ expect(screen.getByRole("textbox",{name:"لماذا اخترت اللجنة؟ *"})).toBeTruthy();
+ fireEvent.change(document.querySelector("select")!,{target:{value:""}});
+ expect(screen.queryByRole("textbox",{name:"لماذا اخترت اللجنة؟ *"})).toBeNull();
 });

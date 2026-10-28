@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { UserRound, UserRoundMinus, Power, Building2 } from "lucide-react";
+import { UserRound, UserRoundMinus, Power, Building2, Archive } from "lucide-react";
 import { RowAction } from "@/components/row-action";
 import {
   Table,
@@ -29,7 +29,7 @@ export function AdminOrganizationTable({
     c = (ar: string, english: string) => (en ? english : ar),
     [decision, setDecision] = useState<{
       organization: AdminOrganizationRow;
-      kind: "leader" | "status" | "remove-leader";
+      kind: "leader" | "status" | "remove-leader" | "archive";
     } | null>(null);
   function status(item: AdminOrganizationRow) {
     return (
@@ -57,6 +57,7 @@ export function AdminOrganizationTable({
     return <div className="inline-flex flex-wrap items-center gap-2">
       <RowAction label={item.leaderName ? c("تغيير القائد","Change leader") : c("تعيين قائد","Assign leader")} onClick={()=>setDecision({organization:item,kind:"leader"})}><UserRound /></RowAction>
       <RowAction label={item.statusCode === "Active" ? c("إيقاف الجهة","Deactivate organization") : c("تفعيل الجهة","Activate organization")} onClick={()=>setDecision({organization:item,kind:"status"})}><Power /></RowAction>
+      <RowAction label={c("أرشفة الجهة","Archive organization")} disabled={item.statusCode==="Archived"} onClick={()=>setDecision({organization:item,kind:"archive"})}><Archive /></RowAction>
       <RowAction label={c("حذف القائد","Remove leader")} danger disabled={!item.leaderName} onClick={()=>setDecision({organization:item,kind:"remove-leader"})}><UserRoundMinus /></RowAction>
     </div>;
   }

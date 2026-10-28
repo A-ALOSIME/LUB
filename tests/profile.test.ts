@@ -66,6 +66,14 @@ describe("actual profile persistence", () => {
     expect((await engine.query("select email from lub.users")).rows).toEqual([{ email: alice.email }]);
     expect((await engine.query("select id from lub.audit_log")).rows).toHaveLength(1);
   });
+  it("accepts a format-valid ID without a checksum while rejecting reuse by another account", async () => {
+    const identity=profileSchema.parse({...profile(),nationalId:"1234567890"});
+    await saveStudentProfile(alice,identity);
+    expect((await getAccountProfile(alice))?.nationalId).toBe("1234567890");
+    await expect(saveStudentProfile(bob,{...identity,universityId:"202699999"})).rejects.toThrow();
+    expect((await engine.query("select email from lub.users")).rows).toEqual([{email:alice.email}]);
+    expect((await engine.query("select national_id_lookup_hash from lub.private_student_identifiers")).rows).toHaveLength(1);
+  });
   it("requires onboarding identifiers and audits authorized university number corrections", async () => {
     await expect(saveStudentProfile(alice, { ...profile(), universityId: undefined })).rejects.toThrow();
     expect((await engine.query("select id from lub.users")).rows).toHaveLength(0);

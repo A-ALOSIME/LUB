@@ -29,3 +29,12 @@ it("confirms leader removal by name and sends only the validated operation to th
  const form=mocks.mutate.mock.calls[0][1] as FormData;
  expect(form.get("operation")).toBe("remove-leader");expect(form.get("organizationId")).toBe("org");expect(form.get("confirmed")).toBe("on");
 });
+it("archives only after a named confirmation and preserves the organization instead of deleting it",async()=>{
+ render(<AdminOrganizationDecision organization={{id:"org",nameAr:"نادي التقنية",slug:"tech",typeCode:"Club",statusCode:"Active",leaderName:"سارة"}} kind="archive" locale="ar" onClose={()=>{}}/>);
+ expect(screen.getByRole("alertdialog").textContent).toContain("أرشفة نادي التقنية؟");
+ expect(screen.getByText(/مع الاحتفاظ بصفحتها/)).toBeTruthy();expect(mocks.mutate).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole("button",{name:"تأكيد"}));
+ await waitFor(()=>expect(mocks.mutate).toHaveBeenCalledOnce());
+ const form=mocks.mutate.mock.calls[0][1] as FormData;
+ expect(form.get("operation")).toBe("org-status");expect(form.get("status")).toBe("Archived");expect(form.get("confirmed")).toBe("on");
+});

@@ -136,6 +136,13 @@ it("keeps an archived historical page but disables organization operations", asy
   await db.exec("reset role; set local role anon");
   expect((await db.query("select slug,status_code,archived_at is not null as archived from lub.organizations where id=$1", [org])).rows).toEqual([{ slug: "tech", status_code: "Archived", archived: true }]);
 });
+it("does not let an organization leader archive an organization through the status endpoint",async()=>{
+ await asUser(leader);
+ await db.exec("savepoint unauthorized_archive");
+ await expect(db.query("select lub.set_organization_status($1,'Archived')",[org])).rejects.toThrow();
+ await db.exec("rollback to savepoint unauthorized_archive");
+ expect((await db.query("select status_code from lub.organizations where id=$1",[org])).rows[0]).toEqual({status_code:"Active"});
+});
 it("appoints a verified existing student atomically while preserving old membership and role history", async () => {
   await asUser(admin);
   await db.query("select lub.set_primary_leader($1,$2)", [org, "student4@example.invalid"]);

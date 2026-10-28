@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { definitionSchema, validateAnswers } from "./definition";
+import { definitionSchema, validateAnswers,visibleFields } from "./definition";
 const first = "00000000-0000-4000-8000-000000000001";
 const second = "00000000-0000-4000-8000-000000000002";
 const section = "00000000-0000-4000-8000-000000000003";
@@ -37,4 +37,12 @@ it("supports explicit dynamic committee questions without stored options and val
  expect(()=>validateAnswers(schema,{})).toThrow();
  expect(()=>validateAnswers(schema,{[first]:'forged'})).toThrow();
  expect(definitionSchema.safeParse({...schema,sections:[{...schema.sections[0],fields:[{...schema.sections[0].fields[0],options:[{value:'fake',label:'مزور'}]}]}]}).success).toBe(false);
+});
+it.each(["Answered","Equals"])("shows the follow-up after any committee choice, including legacy %s/true rules",operator=>{
+ const schema=definitionSchema.parse({layout:"SinglePage",sections:[{id:section,title:"اللجنة",description:"",fields:[{id:first,type:"Committee",label:"اللجنة",help:"",required:false,options:[],maxLength:300},{id:second,type:"LongText",label:"لماذا اخترت اللجنة؟",help:"",required:true,options:[],maxLength:500,condition:{fieldId:first,operator,value:"true"}}]}]});
+ expect(visibleFields(schema,{}).has(second)).toBe(false);
+ expect(visibleFields(schema,{[first]:section}).has(second)).toBe(true);
+ expect(()=>validateAnswers(schema,{[first]:section})).toThrow();
+ expect(validateAnswers(schema,{[first]:section,[second]:"أرغب بالمشاركة"})).toEqual({[first]:section,[second]:"أرغب بالمشاركة"});
+ expect(validateAnswers(schema,{[first]:"",[second]:"إجابة مخفية قديمة"})).toEqual({});
 });

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { FormField } from "@/components/form-field";
 import {
   Combobox,
@@ -26,6 +26,7 @@ export function LeaderEmailSearch({
     [items, setItems] = useState<Array<{ name: string; email: string; major?: string }>>([]),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(false);
+  const emails=useMemo(()=>items.map(item=>item.email),[items]);
   useEffect(() => {
     let active = true;
     const timer = setTimeout(() => {
@@ -67,30 +68,32 @@ export function LeaderEmailSearch({
       required={required}
       hint={
         en
-          ? "Search for an active, verified student account."
-          : "ابحث عن حساب طالب نشط ومتحقق من بريده."
+          ? "Search by name or email for an active, verified student account."
+          : "ابحث بالاسم أو البريد عن حساب طالب نشط ومتحقق من بريده."
       }
     >
       <input type="hidden" name="email" value={query} />
       <Combobox
         open={open}
         onOpenChange={setOpen}
-        items={items.map((item) => item.email)}
+        items={emails}
         filter={null}
         value={selected}
         inputValue={query}
         onInputValueChange={(value, details) => {
-          setQuery(value);
-          if (details.reason === "input-change") {
+          // Async result updates may request a selected-label reset; preserve the search draft.
+          if (details.reason === "input-change" || details.reason === "input-clear") {
+            setQuery(value);
+            setError(false);
+            setSelected(null);
             setItems([]);
             setLoading(value.trim().length >= 3);
-            setOpen(value.trim().length >= 3);
+            setOpen(value.length > 0);
           }
         }}
         onValueChange={(value) => {
           setSelected(value);
-          setOpen(false);
-          setQuery(value ?? "");
+          if(value!==null){setOpen(false);setQuery(value);}
         }}
       >
         <ComboboxInput
@@ -98,7 +101,7 @@ export function LeaderEmailSearch({
           aria-label={en ? "Leader email" : "بريد القائد"}
           className="w-full"
           dir="ltr"
-          type="email"
+          type="text"
           required={required}
           maxLength={254}
           placeholder="student@example.com"

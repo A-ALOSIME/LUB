@@ -170,7 +170,7 @@ export function FormEditor({
               .some(
                 (previous) =>
                   previous.id === f.condition?.fieldId &&
-                  (!previous.options.length ||
+                  (f.condition?.operator === "Answered" || !previous.options.length ||
                     previous.options.some(
                       (o) => o.value === f.condition?.value,
                     )),
@@ -339,6 +339,8 @@ export function FormEditor({
                     i < si ? s.fields : i === si ? s.fields.slice(0, fi) : [],
                   )
                   .filter((f) => f.type !== "File");
+                const conditionSource=earlier.find(previous=>previous.id===field.condition?.fieldId);
+                const answeredCondition=field.condition?.operator==="Answered" || (conditionSource?.type==="Committee" && field.condition?.operator==="Equals" && field.condition.value==="true");
                 return (
                   <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} {fi+1} · {field.label}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
                     onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
@@ -568,7 +570,7 @@ export function FormEditor({
                                     condition: previous
                                       ? {
                                           fieldId: previous.id,
-                                          operator: "Equals",
+                                          operator: previous.type==="Committee"?"Answered":"Equals",
                                           value:
                                             previous.options[0]?.value ??
                                             "true",
@@ -594,26 +596,22 @@ export function FormEditor({
                                   </>}>
                                   <NativeSelect
                                     id={`${field.id}-comparison`}
-                                    value={field.condition.operator}
+                                    value={answeredCondition?"Answered":field.condition.operator}
                                     onChange={(e) =>
                                       update(si, fi, {
                                         condition: {
                                           ...field.condition!,
-                                          operator: e.target.value as
-                                            "Equals" | "NotEquals",
+                                          operator: e.target.value as NonNullable<QuestionField["condition"]>["operator"],
+                                          value:e.target.value==="Answered"?"true":conditionSource?.options[0]?.value??"true",
                                         },
                                       })
                                     }
                                   >
-                                    <option value="Equals">
-                                      {c("يساوي", "Equals")}
-                                    </option>
-                                    <option value="NotEquals">
-                                      {c("لا يساوي", "Does not equal")}
-                                    </option>
+                                    <option value="Answered">{c("تمت الإجابة", "Has an answer")}</option>
+                                    {(conditionSource?.type!=="Committee" || !answeredCondition)&&<><option value="Equals">{c("يساوي", "Equals")}</option><option value="NotEquals">{c("لا يساوي", "Does not equal")}</option></>}
                                   </NativeSelect>
                                 </FormField>
-                                <Field>
+                                {!answeredCondition&&<Field>
                                   <FieldLabel htmlFor={`${field.id}-value`}>
                                     {c("قيمة الإجابة", "Answer value")}
                                   </FieldLabel>
@@ -674,7 +672,8 @@ export function FormEditor({
                                       />
                                     );
                                   })()}
-                                </Field>
+                                </Field>}
+                                {answeredCondition&&<FieldDescription>{c("يظهر هذا السؤال بعد الإجابة عن السؤال المحدد.","Show this question after the selected question has an answer.")}</FieldDescription>}
                               </div>
                             )}
                           </FieldGroup>

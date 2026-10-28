@@ -55,7 +55,7 @@ const field = z
     condition: z
       .object({
         fieldId: z.uuid().regex(/^[0-9a-f-]+$/),
-        operator: z.enum(["Equals", "NotEquals"]),
+        operator: z.enum(["Equals", "NotEquals", "Answered"]),
         value: z.string().min(1).max(120),
       })
       .strict()
@@ -112,11 +112,11 @@ export const definitionSchema = z
           if (
             !previous ||
             previous.type === "File" ||
-            (previous.options.length &&
+            (entry.condition.operator !== "Answered" && previous.options.length &&
               !previous.options.some(
                 (o) => o.value === entry.condition?.value,
               )) ||
-            (previous.type === "Checkbox" &&
+            (entry.condition.operator !== "Answered" && previous.type === "Checkbox" &&
               !["true", "false"].includes(entry.condition.value))
           )
             ctx.addIssue({
@@ -136,27 +136,34 @@ export type Answers = Record<string, string | number | boolean | string[]>;
 
 export function visibleFields(definition: FormDefinition, answers: Answers) {
   const visible = new Set<string>();
-  for (const section of definition.sections)
-    for (const entry of section.fields) {
-      if (!entry.condition) {
-        visible.add(entry.id);
-        continue;
-      }
-      const condition = entry.condition;
-      const value = answers[condition.fieldId];
-      if (
-        !visible.has(condition.fieldId) ||
-        value === undefined ||
-        value === "" ||
-        (Array.isArray(value) && !value.length)
-      )
-        continue;
-      const equal = Array.isArray(value)
-        ? value.includes(condition.value)
-        : String(value) === condition.value;
-      if (condition.operator === "Equals" ? equal : !equal)
-        visible.add(entry.id);
+  const fields=definition.sections.flatMap(section=>section.fields);
+  const byId=new Map(fields.map(field=>[field.id,field]));
+  for (const entry of fields) {
+    if (!entry.condition) {
+      visible.add(entry.id);
+      continue;
     }
+    const condition = entry.condition;
+    const value = answers[condition.fieldId];
+    if (
+      !visible.has(condition.fieldId) ||
+      value === undefined ||
+      value === "" ||
+      (Array.isArray(value) && !value.length)
+    )
+      continue;
+    const source = byId.get(condition.fieldId);
+    // Published committee rules created by the old editor used Equals/true for any choice.
+    if(condition.operator === "Answered" || (source?.type === "Committee" && condition.operator === "Equals" && condition.value === "true")){
+      visible.add(entry.id);
+      continue;
+    }
+    const equal = Array.isArray(value)
+      ? value.includes(condition.value)
+      : String(value) === condition.value;
+    if (condition.operator === "Equals" ? equal : !equal)
+      visible.add(entry.id);
+  }
   return visible;
 }
 

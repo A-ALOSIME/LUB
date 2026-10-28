@@ -55,13 +55,7 @@ export function normalizeMajor(value: string) {
   return "";
 }
 
-// Saudi Health Council, IS0001 Appendix B: ten digits, type 1/2, check digit.
-// This validates format/checksum; it does not claim to verify a person's identity.
+// Format only; uniqueness is enforced separately on the encrypted identifier lookup.
 export function validNationalId(value: string) {
-  if (!/^[12][0-9]{9}$/.test(value)) return false;
-  const sum = Array.from(value).reduce((total, digit, index) => {
-    const n = Number(digit) * (index % 2 === 0 ? 2 : 1);
-    return total + (n > 9 ? n - 9 : n);
-  }, 0);
-  return sum % 10 === 0;
+  return /^[12][0-9]{9}$/.test(value);
 }

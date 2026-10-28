@@ -16,6 +16,19 @@ afterEach(() => {
   cleanup();
   vi.resetAllMocks();
 });
+it("retains every typed character in Arabic and English, and permits editing a selected email", async () => {
+  lookup.mockResolvedValue([{name:"طالب",email:"leader@example.invalid"}]);
+  render(<form><LeaderEmailSearch locale="ar" required/></form>);
+  const input=screen.getByRole("combobox",{name:"بريد القائد"}) as HTMLInputElement;
+  for(const text of ["l","le","lea","lead","ق","قا","قائ","قائد"]){
+    fireEvent.change(input,{target:{value:text}});
+    expect(input.value).toBe(text);
+  }
+  fireEvent.change(input,{target:{value:"leader@"}});
+  fireEvent.click(await screen.findByRole("option",{name:/leader@example.invalid/}));
+  fireEvent.change(input,{target:{value:"new"}});
+  expect(input.value).toBe("new");
+});
 it("finds an eligible leader and submits the selected email without exposing internal IDs", async () => {
   lookup.mockResolvedValue([
     { name: "طالب تجريبي", email: "leader@example.invalid" },

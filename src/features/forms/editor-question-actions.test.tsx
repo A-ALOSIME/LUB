@@ -30,3 +30,15 @@ it("requires a named confirmation before deleting a question",()=>{
  fireEvent.click(screen.getByRole("button",{name:"إلغاء"}));
  expect(screen.getByRole("button",{name:/السؤال 2 · السؤال الثاني/})).toBeTruthy();
 });
+it("uses an explicit answered condition for dynamic committees without requesting a raw answer value",()=>{
+ const definition=structuredClone(initial);definition.sections[0].fields[0].type="Committee";
+ render(<FormEditor version="version" revision={1} initial={definition}/>);
+ fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));
+ fireEvent.click(screen.getByRole("button",{name:/السؤال 2 · السؤال الثاني/}));
+ fireEvent.click(screen.getByRole("button",{name:"خيارات متقدمة"}));
+ fireEvent.change(document.querySelector('select[id$="-condition-form-value"]')!,{target:{value:definition.sections[0].fields[0].id}});
+ expect(screen.getByRole("combobox",{name:"المقارنة"}).textContent).toContain("تمت الإجابة");
+ expect(screen.queryByRole("textbox",{name:"قيمة الإجابة"})).toBeNull();
+ const payload=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as FormDefinition;
+ expect(payload.sections[0].fields[1].condition).toEqual({fieldId:definition.sections[0].fields[0].id,operator:"Answered",value:"true"});
+});

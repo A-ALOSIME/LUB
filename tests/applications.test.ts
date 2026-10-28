@@ -47,6 +47,21 @@ async function submit(id = student) {
   await asUser(id);
   return (await db.query<{ id: string }>("select lub.submit_application($1,$2,$3::jsonb,$4,null,null) as id", [round, version, JSON.stringify({ [initialDefinition.sections[0].fields[0].id]: "أرغب بالمشاركة",[committeeQuestion]:committee }), committee])).rows[0].id;
 }
+it.each(["Answered","Equals"])("validates committee follow-ups consistently in PostgreSQL for %s rules",async operator=>{
+ const followup="00000000-0000-4000-8000-000000000203";
+ const definition={layout:"SinglePage",sections:[{id:org,title:"اللجنة",description:"",fields:[{id:committeeQuestion,type:"Committee",label:"اللجنة",help:"",required:false,options:[],maxLength:300},{id:followup,type:"LongText",label:"السبب",help:"",required:true,options:[],maxLength:500,condition:{fieldId:committeeQuestion,operator,value:"true"}}]}]};
+ const draft=(await db.query<{id:string}>("select lub.start_form_draft($1) as id",[template])).rows[0].id;
+ await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[draft,JSON.stringify(definition)]);
+ await db.query("select lub.publish_form_version($1)",[draft]);
+ await asUser(student);
+ await denied(()=>db.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,draft,JSON.stringify({[committeeQuestion]:committee})]));
+ const answers={[committeeQuestion]:committee,[followup]:"أرغب بالمشاركة"};
+ await db.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,draft,JSON.stringify(answers)]);
+ expect((await db.query<{answers:unknown}>("select answers from lub.form_responses where respondent_user_id=$1",[student])).rows[0].answers).toEqual(answers);
+ await asUser(other);
+ await db.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,draft,JSON.stringify({[committeeQuestion]:"",[followup]:"stale"})]);
+ expect((await db.query<{answers:unknown}>("select answers from lub.form_responses where respondent_user_id=$1",[other])).rows[0].answers).toEqual({});
+});
 it("keeps published versions immutable, creates independent copies, and denies unaffiliated template writes", async () => {
   await denied(() => db.query("select lub.save_form_draft($1,$2::jsonb,2)", [version, JSON.stringify(initialDefinition)]));
   const draft = (await db.query<{ id: string }>("select lub.start_form_draft($1) as id", [template])).rows[0].id;
