@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb, withUser, type Transaction } from "@/db/client";
-import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships, announcements, studentProfiles, auditLog } from "@/db/schema";
+import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships, studentProfiles, auditLog } from "@/db/schema";
+import {announcementSchema} from "./validation";
 import type { CreateOrganizationInput, OrganizationProfileInput, CommitteeInput, AnnouncementInput } from "./validation";
 
 async function requireSuperAdmin(tx: Transaction) {
@@ -304,27 +305,20 @@ export async function saveOrganizationLogo(userId: string, organizationId: strin
   });
 }
 export async function saveAnnouncement(userId: string, organizationId: string, input: AnnouncementInput, announcementId?: string) {
-  return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, "ORG_PROFILE_MANAGE");
-    await tx.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, organizationId)).for("update");
-    const existing = announcementId ? (await tx.select({ id: announcements.id, publishedAt: announcements.publishedAt }).from(announcements)
-      .where(and(eq(announcements.id, announcementId), eq(announcements.organizationId, organizationId), sql`${announcements.archivedAt} is null`)).for("update").limit(1))[0] : undefined;
-    if (announcementId && !existing) throw new Error("FORBIDDEN");
-    if (input.pinned) await tx.update(announcements).set({ pinnedAt: null }).where(and(eq(announcements.organizationId, organizationId), sql`${announcements.pinnedAt} is not null`));
-    const values = { title: input.title, body: input.body, publishedAt: input.published ? existing?.publishedAt ?? new Date() : null, pinnedAt: input.pinned ? new Date() : null, updatedAt: new Date() };
-    const [saved] = existing ? await tx.update(announcements).set(values).where(eq(announcements.id, existing.id)).returning({ id: announcements.id })
-      : await tx.insert(announcements).values({ organizationId, ...values }).returning({ id: announcements.id });
-    return saved.id;
-  });
+ const value=announcementSchema.parse(input);
+ return withUser(userId,async tx=>{
+  const rows=await tx.execute(sql`select lub.save_announcement(${announcementId??null}::uuid,${organizationId},${value.title},${value.body},${value.externalUrl||null},${value.published},${value.pinned},${value.imageAssetId??null}::uuid,${value.replaceImage}) as id`);
+  return String(rows[0]?.id);
+ });
 }
-export async function archiveAnnouncement(userId: string, organizationId: string, announcementId: string) {
-  return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, "ORG_PROFILE_MANAGE");
-    const [saved] = await tx.update(announcements).set({ archivedAt: new Date(), pinnedAt: null, updatedAt: new Date() })
-      .where(and(eq(announcements.id, announcementId), eq(announcements.organizationId, organizationId), sql`${announcements.archivedAt} is null`)).returning({ id: announcements.id });
-    if (!saved) throw new Error("FORBIDDEN");
-  });
+export async function changeAnnouncementState(userId:string,organizationId:string,announcementId:string,operation:"pin"|"archive"|"delete",pinned=false){
+ return withUser(userId,async tx=>{
+  await requirePermission(tx,organizationId,"ORG_PROFILE_MANAGE");
+  const rows=await tx.execute(sql`select id from lub.announcements where id=${announcementId} and organization_id=${organizationId}`);if(!rows.length)throw new Error("FORBIDDEN");
+  await tx.execute(sql`select lub.change_announcement_state(${announcementId},${operation},${pinned})`);
+ });
 }
+export async function archiveAnnouncement(userId:string,organizationId:string,announcementId:string){return changeAnnouncementState(userId,organizationId,announcementId,"archive");}
 export async function saveCommittee(userId: string, organizationId: string, input: CommitteeInput, committeeId?: string) {
   return withUser(userId, async tx => {
     await requirePermission(tx, organizationId, committeeId ? "COMMITTEE_PROFILE_MANAGE" : "COMMITTEE_MANAGE", committeeId ?? null);

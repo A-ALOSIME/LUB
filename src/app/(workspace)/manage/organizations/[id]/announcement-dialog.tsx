@@ -1,87 +1,33 @@
 "use client";
-
-import { useCallback, useState } from "react";
-import { Megaphone,Pencil } from "lucide-react";
-import { ManagementActionSheet } from "@/components/management-action-sheet";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { MutationForm } from "@/features/organizations/mutation-form";
-import type { Locale } from "@/lib/preferences";
-import { FormField } from "@/components/form-field";
-
-type Announcement = { id: string; title: string; body: string; published: boolean; pinned: boolean };
-
-export function AnnouncementDialog({ organizationId, announcement, locale, open: controlledOpen, onOpenChange, showTrigger = true, triggerLabel }: {
-  organizationId: string;
-  announcement?: Announcement;
-  locale: Locale;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  showTrigger?: boolean;
-  triggerLabel?: string;
-}) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const [saved, setSaved] = useState(false);
-  const [published, setPublished] = useState(announcement?.published ?? false);
-  const [pinned, setPinned] = useState(announcement?.pinned ?? false);
-  const setOpen = useCallback((next: boolean) => {
-    if (next) {
-      setPublished(announcement?.published ?? false);
-      setPinned(announcement?.pinned ?? false);
-    }
-    if (controlledOpen === undefined) setInternalOpen(next);
-    onOpenChange?.(next);
-  }, [announcement?.pinned, announcement?.published, controlledOpen, onOpenChange]);
-  const closeAfterSave = useCallback(() => { setOpen(false); setSaved(true); }, [setOpen]);
-  const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
-  const title = announcement ? c("تعديل الإعلان", "Edit announcement") : c("إعلان جديد", "New announcement");
-
-  return <>
-    <ManagementActionSheet
-      label={triggerLabel ?? (announcement ? c("تعديل", "Edit") : c("إضافة إعلان", "Add announcement"))}
-      title={title}
-      locale={locale}
-      rowAction={Boolean(announcement)}
-      icon={announcement?<Pencil/>:<Megaphone aria-hidden="true"/>}
-      variant={announcement ? "outline" : "default"}
-      open={open}
-      onOpenChange={setOpen}
-      hideTrigger={!showTrigger}
-    >
-      <MutationForm
-        operation="save-announcement"
-        fields={{ organizationId, ...(announcement ? { announcementId: announcement.id } : {}) }}
-        submitLabel={announcement ? c("حفظ التعديل", "Save changes") : c("حفظ الإعلان", "Save announcement")}
-        locale={locale}
-        onSuccess={closeAfterSave}
-      >
-        <FormField className="grid gap-2" id={`announcement-title-${announcement?.id ?? "new"}`} label={<>{c("العنوان", "Title")}</>}>
-          <Input id={`announcement-title-${announcement?.id ?? "new"}`} name="title" dir={locale === "en" ? "ltr" : "rtl"} minLength={2} maxLength={120} defaultValue={announcement?.title} required />
-        </FormField>
-        <FormField className="grid gap-2" id={`announcement-body-${announcement?.id ?? "new"}`} label={<>{c("النص", "Text")}</>}>
-          <Textarea id={`announcement-body-${announcement?.id ?? "new"}`} name="body" dir={locale === "en" ? "ltr" : "rtl"} rows={7} maxLength={5000} defaultValue={announcement?.body} required />
-        </FormField>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="published" checked={published} onChange={event => { setPublished(event.target.checked); if (!event.target.checked) setPinned(false); }} />{c("نشر للعامة", "Publish publicly")}</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="pinned" checked={pinned} disabled={!published} onChange={event => setPinned(event.target.checked)} />{c("تثبيت الإعلان", "Pin announcement")}</label>
-        </div>
-      </MutationForm>
-      {announcement && <div className="border-t border-line pt-4">
-        <MutationForm
-          operation="archive-announcement"
-          fields={{ organizationId, announcementId: announcement.id }}
-          submitLabel={c("أرشفة الإعلان", "Archive announcement")}
-          confirmLabel={c("أؤكد أرشفة الإعلان وإخفاءه عن الصفحة العامة", "I confirm archiving this announcement")}
-          locale={locale}
-          onSuccess={closeAfterSave}
-          buttonClassName="button button-secondary button-compact w-fit"
-          cancelInModal={false}
-          inlineFooter
-        />
-      </div>}
-    </ManagementActionSheet>
-    {saved && <span role="status" className="text-sm text-action">{c("تم الحفظ", "Saved")}</span>}
-  </>;
+import {useState,useActionState} from "react";
+import {Megaphone,Pencil,Link as LinkIcon} from "lucide-react";
+import {ManagementActionSheet} from "@/components/management-action-sheet";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea";
+import {Button} from "@/components/ui/button";
+import {Switch} from "@/components/ui/switch";
+import {Field,FieldGroup,FieldLabel} from "@/components/ui/field";
+import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
+import {FormField} from "@/components/form-field";
+import {EntityImageField} from "@/features/events/event-poster-field";
+import {useActionToast} from "@/components/action-toast";
+import {mutateOrganization} from "@/features/organizations/actions";
+import type {ManagedAnnouncement} from "@/features/organizations/announcement-types";
+import type {MutationState} from "@/features/organizations/validation";
+import type {Locale} from "@/lib/preferences";
+export function AnnouncementDialog({organizationId,announcement,locale,open:controlledOpen,onOpenChange,showTrigger=true,triggerLabel}:{organizationId:string;announcement?:ManagedAnnouncement;locale:Locale;open?:boolean;onOpenChange?:(open:boolean)=>void;showTrigger?:boolean;triggerLabel?:string}){
+ const [localOpen,setLocalOpen]=useState(false),open=controlledOpen??localOpen,setOpen=onOpenChange??setLocalOpen,en=locale==="en",c=(ar:string,english:string)=>en?english:ar;
+ const [state,action,pending]=useActionState<MutationState,FormData>(async(previous,form)=>{const result=await mutateOrganization(previous,form);if(result.success)setOpen(false);return result;},{});useActionToast(state,locale);
+ return <ManagementActionSheet width="wide" locale={locale} title={announcement?c("تعديل الإعلان","Edit announcement"):c("إعلان جديد","New announcement")} label={triggerLabel??c("إعلان جديد","New announcement")} rowAction={Boolean(announcement)} icon={announcement?<Pencil/>:<Megaphone/>} variant={announcement?"outline":"default"} open={open} onOpenChange={setOpen} hideTrigger={!showTrigger}>
+ <form action={action} onReset={event=>event.preventDefault()} className="workflow-split-form"><input type="hidden" name="operation" value="save-announcement"/><input type="hidden" name="organizationId" value={organizationId}/>{announcement&&<input type="hidden" name="announcementId" value={announcement.id}/>}
+ <div className="workflow-form-body"><fieldset disabled={pending}><FieldGroup>
+ <FormField label={c("العنوان","Title")} error={state.fieldErrors?.title?.[0]} required><Input name="title" required minLength={2} maxLength={120} defaultValue={announcement?.title}/></FormField>
+ <FormField label={c("النص","Text")} error={state.fieldErrors?.body?.[0]} required><Textarea name="body" required rows={7} maxLength={5000} defaultValue={announcement?.body}/></FormField>
+ <FormField label={c("رابط خارجي (اختياري)","External URL (optional)")} error={state.fieldErrors?.externalUrl?.[0]}><InputGroup><InputGroupInput name="externalUrl" type="url" dir="ltr" className="text-end" maxLength={2000} placeholder="https://" defaultValue={announcement?.externalUrl??""}/><InputGroupAddon><LinkIcon/></InputGroupAddon></InputGroup></FormField>
+ <EntityImageField key={`${announcement?.id??"new"}-${open}`} organization={organizationId} locale={locale} purpose="announcement-image" initialPreview={announcement?.imageAssetId?`/files/${announcement.imageAssetId}/preview`:""}/>
+ <Field orientation="horizontal"><Switch id={`pin-${announcement?.id??"new"}`} name="pinned" defaultChecked={announcement?.pinned??false}/><FieldLabel htmlFor={`pin-${announcement?.id??"new"}`}>{c("تثبيت الإعلان","Pin announcement")}</FieldLabel></Field>
+ </FieldGroup></fieldset>
+ {state.error&&<p role="alert" className="error-message">{state.error}</p>}</div>
+ <div className="management-action-footer is-modal-footer flex-wrap"><Button type="submit" name="intent" value="publish" disabled={pending}>{pending?c("جارٍ الحفظ…","Saving…"):c("نشر الإعلان","Publish announcement")}</Button><Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending}>{c("حفظ كمسودة","Save draft")}</Button><Button type="button" variant="ghost" className="sm:ms-auto" disabled={pending} onClick={()=>setOpen(false)}>{c("إلغاء","Cancel")}</Button></div>
+ </form></ManagementActionSheet>;
 }

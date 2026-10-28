@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/features/auth/session";
 import { getAccountStatus } from "@/features/profile/repository";
 import { createOrganizationSchema, organizationProfileSchema, organizationPublicProfileContentJsonSchema, committeeSchema, announcementSchema, mutationOperationSchema, type MutationOperation, type MutationState } from "./validation";
-import { createOrganization, saveOrganizationProfile, appointPrimaryLeader, removePrimaryLeader, setOrganizationStatus, grantSuperAdmin, endSuperAdmin, saveCommittee, copyCommittee, setCommitteeStatus, saveAnnouncement, archiveAnnouncement } from "./management-repository";
+import { createOrganization, saveOrganizationProfile, appointPrimaryLeader, removePrimaryLeader, setOrganizationStatus, grantSuperAdmin, endSuperAdmin, saveCommittee, copyCommittee, setCommitteeStatus, saveAnnouncement, archiveAnnouncement, changeAnnouncementState } from "./management-repository";
 import { getAuthConfig } from "@/lib/env";
 import { isOrganizationImageUrl } from "./logo-file";
 
@@ -77,9 +77,13 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
         success = "تم تحديث حالة اللجنة.";
         break;
       case "save-announcement":
-        await saveAnnouncement(user.id, organizationId(), announcementSchema.parse({ title: form.get("title"), body: form.get("body"), published: form.get("published") === "on", pinned: form.get("pinned") === "on" }), form.get("announcementId") ? z.uuid().parse(form.get("announcementId")) : undefined);
+        await saveAnnouncement(user.id, organizationId(), announcementSchema.parse({ title: form.get("title"), body: form.get("body"), published: form.get("intent")==="publish"||form.get("published") === "on", pinned: form.get("intent")!=="draft"&&form.get("pinned") === "on",externalUrl:form.get("externalUrl")??"",imageAssetId:form.get("poster")||null,replaceImage:Boolean(form.get("poster"))||form.get("removePoster")==="true" }), form.get("announcementId") ? z.uuid().parse(form.get("announcementId")) : undefined);
         success = "تم حفظ الإعلان.";
         break;
+      case "pin-announcement":
+        await changeAnnouncementState(user.id,organizationId(),z.uuid().parse(form.get("announcementId")),"pin",form.get("pinned")==="on");success="تم تحديث تثبيت الإعلان.";break;
+      case "delete-announcement":
+        confirmation.parse(form.get("confirmed"));await changeAnnouncementState(user.id,organizationId(),z.uuid().parse(form.get("announcementId")),"delete");success="تم حذف الإعلان.";break;
       case "archive-announcement":
         confirmation.parse(form.get("confirmed"));
         await archiveAnnouncement(user.id, organizationId(), z.uuid().parse(form.get("announcementId")));

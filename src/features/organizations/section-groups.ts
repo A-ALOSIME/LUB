@@ -75,7 +75,7 @@ function groupLabel(kind: OrganizationProfileGroupKind): string {
   }
 }
 
-export const organizationTabOrder = ["about", "fields", "programs", "impact", "activities", "membership", "applications", "partnerships", "structure"] as const;
+export const organizationTabOrder = ["about", "fields", "programs", "impact", "activities", "announcements", "membership", "applications", "partnerships", "structure"] as const;
 
 export function orderOrganizationTabs<T extends { id: string }>(tabs: readonly T[]): T[] {
   const rank = (id: string) => organizationTabOrder.findIndex(key => key === id);

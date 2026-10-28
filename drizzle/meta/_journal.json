@@ -414,6 +414,13 @@
       "when": 1793121600000,
       "tag": "0058_task_workspace_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793125200000,
+      "tag": "0059_announcement_media_and_actions",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,7 @@ type EventWorkspace = {
   canManageAnnouncements: boolean;
   events: Array<Pick<Event, "id" | "organization_id" | "title" | "starts_at" | "ends_at" | "status_code" | "has_poster" | "revision" | "location_text" | "location_type_code"> & { registrant_count: number }>;
   templates: Array<{ id: string; name: string }>;
-  announcements: Array<{ id: string; title: string; body: string; published: boolean; pinned: boolean; createdAt: string }>;
+  announcements: import("@/features/organizations/announcement-types").ManagedAnnouncement[];
 };
 
 export async function eventWorkspaceOverview(user: string, org: string, page: number) {
@@ -45,9 +45,9 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
         case when lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE') then coalesce((
           select jsonb_agg(a) from (
             select a.id, a.title, a.body, a.published_at is not null as published,
-              a.pinned_at is not null as pinned, a.created_at as "createdAt"
-            from lub.announcements a where a.organization_id=o.id and a.archived_at is null
-            order by a.pinned_at desc nulls last, a.created_at desc, a.id limit 30
+              a.pinned_at is not null as pinned, a.created_at as "createdAt",a.published_at as "publishedAt",a.archived_at is not null as archived,a.external_url as "externalUrl",a.image_asset_id as "imageAssetId"
+            from lub.announcements a where a.organization_id=o.id and a.deleted_at is null
+            order by a.pinned_at desc nulls last, a.created_at desc, a.id limit 100
           ) a
         ), '[]'::jsonb) else '[]'::jsonb end as announcements
       from lub.organizations o

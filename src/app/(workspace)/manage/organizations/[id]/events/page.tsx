@@ -1,17 +1,15 @@
 import {EventRegistrantPanel} from "@/features/events/registrant-panel";
 import {EventListActions} from "@/features/events/list-actions";
-import { CalendarDays, Megaphone, Plus, UsersRound } from "lucide-react";
+import { CalendarDays, Megaphone, UsersRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { eventDate, eventDateEn, eventLabels, eventLabelsEn } from "@/features/events/display";
 import { EventCreateForm } from "@/features/events/form";
 import { eventWorkspaceOverview } from "@/features/events/workspace";
 import { loadManagementPageData } from "@/features/organizations/access";
-import { AnnouncementDialog } from "@/app/(workspace)/manage/organizations/[id]/announcement-dialog";
+import {AnnouncementList} from "@/features/organizations/announcement-list";
 import { EventsAnnouncementsActions } from "@/features/organizations/events-announcements-actions";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
@@ -19,7 +17,6 @@ import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
 import { getPreferences } from "@/lib/preferences";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import {formatCount} from "@/lib/display";
-import { formatRiyadhDateTime } from "@/lib/datetime";
 
 export async function generateMetadata() {
   return localizedMetadata("الفعاليات والإعلانات", "Events and announcements");
@@ -61,7 +58,7 @@ export default async function ManageEvents({
       dir={en ? "ltr" : "rtl"}
       legacyHashSections={{ "#new-event": "events", "#new-announcement": "announcements" }}
       actionHiddenSections={[
-        ...(data.announcements.length === 0 ? ["announcements"] : []),
+        "announcements",
       ]}
       action={<div id="new-event" className="organization-events-actions"><span id="new-announcement" />{actions}</div>}
     >
@@ -75,22 +72,7 @@ export default async function ManageEvents({
 
       <OrganizationSectionTabPanel id="registrants">{data.canViewEvents&&<EventRegistrantPanel user={user.id} organization={id} search={search} locale={locale}/>}</OrganizationSectionTabPanel>
       <OrganizationSectionTabPanel id="announcements">
-        <section aria-label={c("إعلانات الجهة", "Organization announcements")} className="organization-announcements-section">
-          {!data.canManageAnnouncements ? <p className="workspace-empty">{c("لا تملك صلاحية إدارة إعلانات الجهة.", "You do not have permission to manage organization announcements.")}</p>
-            : data.announcements.length ? <ul className="organization-announcement-list">
-              {data.announcements.map(announcement => <li key={announcement.id} className="organization-announcement-row">
-                <div className="organization-announcement-copy">
-                  <h2 dir="auto">{announcement.title}</h2>
-                  <div className="organization-announcement-meta">
-                    <time dateTime={announcement.createdAt}>{formatRiyadhDateTime(announcement.createdAt, locale)}</time>
-                    <OrganizationStatusBadge status={announcement.published ? "published" : "draft"}>{announcement.published ? c("منشور", "Published") : c("مسودة", "Draft")}</OrganizationStatusBadge>
-                    {announcement.pinned && <Badge variant="outline">{c("مثبّت", "Pinned")}</Badge>}
-                  </div>
-                </div>
-                <AnnouncementDialog organizationId={id} announcement={announcement} locale={locale} triggerLabel={c("تعديل", "Edit")} />
-              </li>)}
-            </ul> : <WorkspaceEmptyState icon={Megaphone} title={c("لا توجد إعلانات بعد", "No announcements yet")} description={c("أنشئ أول إعلان للجهة.", "Create the organization's first announcement.")} action={data.canManageAnnouncements ? <a href="#new-announcement" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إعلان جديد", "New announcement")}</a> : undefined} />}
-        </section>
+        {data.canManageAnnouncements?<AnnouncementList items={data.announcements} org={id} locale={locale}/>:<p className="workspace-empty">{c("لا تملك صلاحية إدارة إعلانات الجهة.","You do not have permission to manage organization announcements.")}</p>}
       </OrganizationSectionTabPanel>
     </OrganizationSectionTabs>
   </div>;

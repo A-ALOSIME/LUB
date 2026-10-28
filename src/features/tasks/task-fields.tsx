@@ -57,7 +57,7 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
     <Field><div className="flex items-center gap-3"><Switch id={`${fieldId}-active`} name="active" defaultChecked={value?.is_active??true}/><FieldLabel htmlFor={`${fieldId}-active`}>{c("قالب نشط","Active template")}</FieldLabel></div><FieldDescription>{c("يظهر القالب عند إنشاء مهمة جديدة.","Available when creating a new task.")}</FieldDescription></Field>
   </FieldGroup>;
   return <FieldGroup className="task-fields grid sm:grid-cols-2 [&>div:has(textarea)]:sm:col-span-2">
-    
+
     <FormField className="sm:col-span-2" label={c("العنوان", "Title")} required><Input name="title" required minLength={2} maxLength={120} defaultValue={value?.title ?? value?.name ?? ""}/></FormField>
     <FormField label={c("وصف العمل والمخرج المطلوب", "Work description and expected deliverable")} required><Textarea name="description" required maxLength={6000} rows={5} defaultValue={value?.description ?? value?.description_template ?? ""}/></FormField>
     {<>

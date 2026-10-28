@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ user: vi.fn(), status: vi.fn(), create: vi.fn(), save: vi.fn(), appoint: vi.fn(), remove: vi.fn(), lifecycle: vi.fn(), grant: vi.fn(), end: vi.fn(), committee: vi.fn(), copy: vi.fn(), committeeStatus: vi.fn(), announcement: vi.fn(), archiveAnnouncement: vi.fn(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), status: vi.fn(), create: vi.fn(), save: vi.fn(), appoint: vi.fn(), remove: vi.fn(), lifecycle: vi.fn(), grant: vi.fn(), end: vi.fn(), committee: vi.fn(), copy: vi.fn(), committeeStatus: vi.fn(), announcement: vi.fn(), archiveAnnouncement: vi.fn(), announcementState:vi.fn(), revalidate: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/features/auth/session", () => ({ requireUser: mocks.user }));
 vi.mock("@/features/profile/repository", () => ({ getAccountStatus: mocks.status }));
-vi.mock("./management-repository", () => ({ createOrganization: mocks.create, saveOrganizationProfile: mocks.save, appointPrimaryLeader: mocks.appoint, removePrimaryLeader: mocks.remove, setOrganizationStatus: mocks.lifecycle, grantSuperAdmin: mocks.grant, endSuperAdmin: mocks.end, saveCommittee: mocks.committee, copyCommittee: mocks.copy, setCommitteeStatus: mocks.committeeStatus, saveAnnouncement: mocks.announcement, archiveAnnouncement: mocks.archiveAnnouncement }));
+vi.mock("./management-repository", () => ({ createOrganization: mocks.create, saveOrganizationProfile: mocks.save, appointPrimaryLeader: mocks.appoint, removePrimaryLeader: mocks.remove, setOrganizationStatus: mocks.lifecycle, grantSuperAdmin: mocks.grant, endSuperAdmin: mocks.end, saveCommittee: mocks.committee, copyCommittee: mocks.copy, setCommitteeStatus: mocks.committeeStatus, saveAnnouncement: mocks.announcement, archiveAnnouncement: mocks.archiveAnnouncement,changeAnnouncementState:mocks.announcementState }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate, updateTag: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
 import { mutateOrganization } from "./actions";
@@ -50,7 +50,7 @@ it("validates publication and pinning before saving an announcement as the verif
   expect(mocks.announcement).not.toHaveBeenCalled();
   const saved = await mutateOrganization({}, form({ operation: "save-announcement", organizationId: org, title: " إعلان ", body: " نص عام ", published: "on", pinned: "on", userId: "forged" }));
   expect(saved.success).toBeDefined();
-  expect(mocks.announcement).toHaveBeenCalledWith("verified-user", org, { title: "إعلان", body: "نص عام", published: true, pinned: true }, undefined);
+  expect(mocks.announcement).toHaveBeenCalledWith("verified-user", org, { title: "إعلان", body: "نص عام", published: true, pinned: true,externalUrl:"",imageAssetId:null,replaceImage:false }, undefined);
 });
 it("requires confirmation to archive an announcement", async () => {
   const announcementId = "00000000-0000-4000-8000-000000000202";
@@ -74,4 +74,12 @@ it('creates with a verified actor and optional leader, then opens the shared adm
 it("requires confirmation for leader removal and derives its actor from the session",async()=>{
  expect((await mutateOrganization({},form({operation:"remove-leader",organizationId:org}))).error).toBeDefined();expect(mocks.remove).not.toHaveBeenCalled();
  expect((await mutateOrganization({},form({operation:"remove-leader",organizationId:org,confirmed:"on",userId:"forged"}))).success).toBeDefined();expect(mocks.remove).toHaveBeenCalledWith("verified-user",org);
+});
+
+it("saves the explicit draft intent without leaving a public pin and validates destructive confirmations",async()=>{
+ const announcementId="00000000-0000-4000-8000-000000000202";
+ await mutateOrganization({},form({operation:"save-announcement",organizationId:org,title:"عنوان الإعلان",body:"محتوى الإعلان",intent:"draft",pinned:"on",externalUrl:"https://example.com/news"}));
+ expect(mocks.announcement).toHaveBeenCalledWith("verified-user",org,{title:"عنوان الإعلان",body:"محتوى الإعلان",published:false,pinned:false,externalUrl:"https://example.com/news",imageAssetId:null,replaceImage:false},undefined);
+ expect((await mutateOrganization({},form({operation:"delete-announcement",organizationId:org,announcementId}))).error).toBeDefined();expect(mocks.announcementState).not.toHaveBeenCalled();
+ await mutateOrganization({},form({operation:"delete-announcement",organizationId:org,announcementId,confirmed:"on"}));expect(mocks.announcementState).toHaveBeenCalledWith("verified-user",org,announcementId,"delete");
 });

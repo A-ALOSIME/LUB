@@ -1,0 +1,32 @@
+"use client";
+import {useState,useActionState,startTransition} from "react";
+import Image from "next/image";
+import {Megaphone,Pin,PinOff,Archive,Trash2,Pencil} from "lucide-react";
+import {RowAction} from "@/components/row-action";
+import {Button} from "@/components/ui/button";
+import {Badge} from "@/components/ui/badge";
+import {FilterTabs} from "@/components/ui/filter-tabs";
+import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel} from "@/components/ui/alert-dialog";
+import {WorkspaceEmptyState} from "@/components/workspace-empty-state";
+import {AnnouncementDialog} from "@/app/(workspace)/manage/organizations/[id]/announcement-dialog";
+import {useActionToast} from "@/components/action-toast";
+import {mutateOrganization} from "./actions";
+import {OrganizationStatusBadge} from "./organization-status-badge";
+import {formatRiyadhDate} from "@/lib/datetime";
+import type {ManagedAnnouncement} from "./announcement-types";
+import type {MutationState} from "./validation";
+import type {Locale} from "@/lib/preferences";
+function AnnouncementDecision({item,org,kind,locale}:{item:ManagedAnnouncement;org:string;kind:"pin"|"archive"|"delete";locale:Locale}){
+ const [open,setOpen]=useState(false),[state,action,pending]=useActionState<MutationState,FormData>(async(previous,form)=>{const result=await mutateOrganization(previous,form);if(result.success)setOpen(false);return result;},{});useActionToast(state,locale);
+ const en=locale==="en",label=kind==="pin"?(item.pinned?(en?"Unpin":"فك التثبيت"):(en?"Pin":"تثبيت الإعلان")):kind==="archive"?(en?"Archive announcement":"أرشفة الإعلان"):(en?"Delete announcement":"حذف الإعلان"),Icon=kind==="pin"?(item.pinned?PinOff:Pin):kind==="archive"?Archive:Trash2;
+ const data=()=>{const f=new FormData();f.set("operation",`${kind}-announcement`);f.set("organizationId",org);f.set("announcementId",item.id);f.set("confirmed","on");f.set("pinned",item.pinned?"":"on");return f;};
+ return <><RowAction label={label} danger={kind==="delete"} disabled={pending||(kind==="pin"&&(!item.published||item.archived))||(kind==="archive"&&item.archived)} onClick={()=>kind==="pin"?startTransition(()=>action(data())):setOpen(true)}><Icon/></RowAction><AlertDialog open={open} onOpenChange={setOpen}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{label}: {item.title}؟</AlertDialogTitle><AlertDialogDescription>{kind==="delete"?(en?"The announcement will be removed from management and the public page.":"سيُحذف الإعلان من القائمة ومن الصفحة العامة."):(en?"The announcement will be archived and hidden from the public page.":"سيُنقل الإعلان إلى الأرشيف ويختفي من الصفحة العامة.")}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button variant={kind==="delete"?"destructive":"default"} disabled={pending} onClick={()=>startTransition(()=>action(data()))}>{label}</Button><AlertDialogCancel disabled={pending}>{en?"Cancel":"إلغاء"}</AlertDialogCancel></AlertDialogFooter>{state.error&&<p role="alert" className="error-message">{state.error}</p>}</AlertDialogContent></AlertDialog></>;
+}
+export function AnnouncementList({items,org,locale="ar"}:{items:ManagedAnnouncement[];org:string;locale?:Locale}){
+ const [filter,setFilter]=useState("all"),en=locale==="en",c=(ar:string,english:string)=>en?english:ar;
+ const matches=(item:ManagedAnnouncement,key:string)=>key==="all"||key==="archived"&&item.archived||!item.archived&&(key==="published"&&item.published||key==="draft"&&!item.published||key==="pinned"&&item.pinned);
+ const visible=items.filter(item=>matches(item,filter));
+ return <section className="flex min-w-0 flex-col gap-5" aria-label={c("إعلانات الجهة","Organization announcements")}><div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><FilterTabs value={filter} onValueChange={setFilter} ariaLabel={c("حالة الإعلان","Announcement status")} dir={en?"ltr":"rtl"} options={[{value:"all",label:c("الكل","All")},{value:"published",label:c("منشور","Published")},{value:"draft",label:c("مسودة","Draft")},{value:"pinned",label:c("مثبّت","Pinned")},{value:"archived",label:c("مؤرشف","Archived")}].map(option=>({...option,count:items.filter(item=>matches(item,option.value)).length}))}/><AnnouncementDialog organizationId={org} locale={locale}/></div>
+ {items.length===0?<WorkspaceEmptyState icon={Megaphone} title={c("لا توجد إعلانات بعد","No announcements yet")} description={c("أنشئ أول إعلان للجهة.","Create the organization's first announcement.")}/>:visible.length===0?<p role="status" className="py-6 text-muted-foreground">{c("لا توجد إعلانات بهذه الحالة.","No announcements match this status.")}</p>:<ul className="divide-y divide-border">{visible.map(item=><li key={item.id} className="flex min-w-0 flex-wrap items-center gap-4 py-4"><div className="relative grid h-16 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-muted">{item.imageAssetId?<Image src={`/files/${item.imageAssetId}/preview`} alt="" fill unoptimized sizes="96px" className="object-contain"/>:<Megaphone aria-hidden="true" className="text-muted-foreground"/>}</div><div className="min-w-0 flex-1"><h3 dir="auto" className="break-words font-semibold">{item.title}</h3><p dir="auto" className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-muted-foreground">{item.body}</p><div className="mt-2 flex flex-wrap items-center gap-2"><time className="text-sm text-muted-foreground">{formatRiyadhDate(item.publishedAt??item.createdAt??"",locale)}</time><OrganizationStatusBadge status={item.archived?"archived":item.published?"published":"draft"}>{item.archived?c("مؤرشف","Archived"):item.published?c("منشور","Published"):c("مسودة","Draft")}</OrganizationStatusBadge>{item.pinned&&<Badge variant="outline">{c("مثبّت","Pinned")}</Badge>}</div></div><div className="flex shrink-0 flex-wrap items-center gap-1 max-sm:w-full">{item.archived?<RowAction label={c("تعديل الإعلان","Edit announcement")} hint={c("الإعلان المؤرشف للعرض فقط.","Archived announcements are read-only.")} disabled><Pencil/></RowAction>:<AnnouncementDialog organizationId={org} announcement={item} locale={locale} triggerLabel={c("تعديل الإعلان","Edit announcement")}/>}<AnnouncementDecision item={item} org={org} kind="pin" locale={locale}/><AnnouncementDecision item={item} org={org} kind="archive" locale={locale}/><AnnouncementDecision item={item} org={org} kind="delete" locale={locale}/></div></li>)}</ul>}
+ </section>;
+}

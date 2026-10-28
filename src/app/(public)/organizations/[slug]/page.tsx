@@ -4,7 +4,8 @@ import Image from "next/image";
 import {Button} from "@/components/ui/button";
 import {PublicRegistration,RegistrationCallToAction} from "@/features/forms/public-registration";
 import {getRound} from "@/features/forms/repository";
-import { ArrowRight, Settings2 } from "lucide-react";
+import {PublicAnnouncements} from "@/features/organizations/public-announcements";
+import { ArrowRight, Settings2, Megaphone } from "lucide-react";
 import { notFound } from "next/navigation";
 import { eventDate } from "@/features/events/display";
 import { readPublicOrganization as getPublicOrganization } from "@/features/organizations/public-data";
@@ -97,12 +98,10 @@ export default async function OrganizationPage({ params, searchParams }: {
   const presentation = buildOrganizationProfilePresentation({ curated: profile, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
   const savedSocialLinks = contacts.map(contact => ({ label: organizationContactLabel(contact.kind, en), value: contact.value, href: contact.url }));
   const socialLinks = organization.linksCustomized ? savedSocialLinks : savedSocialLinks.length ? savedSocialLinks : (profile?.links ?? []);
-  const pinnedAnnouncement = announcements.find(item => item.pinned);
   const eventHighlights = selectOrganizationEventHighlights(upcomingEvents);
   const featuredEvent = eventHighlights.find(item => item.featured);
   const otherEventHighlights = eventHighlights.filter(item => item.id !== featuredEvent?.id);
-  const otherAnnouncements = announcements.filter(item => !item.pinned);
-  const hasActivity = Boolean(pinnedAnnouncement || featuredEvent || otherAnnouncements.length || otherEventHighlights.length);
+  const hasActivity = Boolean(featuredEvent || otherEventHighlights.length);
   const profileSectionGroups = groupOrganizationProfileSections(presentation.sections);
   const namedLeadershipDetails = leadership.map(person => `${en
     ? person.roleCode === "OL" ? "Leader" : "Deputy leader"
@@ -138,6 +137,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     sectionNavItems.push({ id: "activities", label: en ? "Events" : "الفعاليات", icon: "events", profileSectionIndexes: [] });
   }
   sectionNavItems.push({ id: "applications", label: en ? "Applications" : "التقديم", icon: "membership", profileSectionIndexes: [] });
+  if(announcements.length)sectionNavItems.push({id:"announcements",label:en?"Announcements":"الإعلانات",icon:"events",profileSectionIndexes:[]});
   const requestedSection = Array.isArray(query.section) ? query.section[0] : query.section;
   const orderedNavItems = orderOrganizationTabs(sectionNavItems);
   const activeSection = orderedNavItems.find(item => item.id === requestedSection) ?? orderedNavItems[0];
@@ -192,7 +192,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     </header>
 
     {activeSection && <OrganizationSectionTabs
-      items={orderedNavItems.map(item => ({ ...item, icon: <OrganizationProfileIcon name={item.icon} /> }))}
+      items={orderedNavItems.map(item => ({ ...item, icon: item.id==="announcements"?<Megaphone/>:<OrganizationProfileIcon name={item.icon} /> }))}
       initialSection={activeSection.id}
       label={en ? `${organization.nameAr} sections` : `أقسام ${organization.nameAr}`}
       dir={en ? "ltr" : "rtl"}
@@ -205,11 +205,11 @@ export default async function OrganizationPage({ params, searchParams }: {
         {item.id === "activities" && hasActivity && <section className="organization-section-nav-target mt-8" aria-labelledby="organization-updates-title">
           <h2 id="organization-updates-title" className="text-xl font-bold">{en ? "Activities and updates" : "الفعاليات والمستجدات"}</h2>
           <div className="organization-update-list">
-            {(pinnedAnnouncement || featuredEvent) && <section className="panel p-6 sm:p-8" aria-label={en ? "Featured content" : "المميز في الجهة"}><h3 className="text-lg font-bold">{en ? "Featured" : "المميز في الجهة"}</h3>{pinnedAnnouncement && <article className="mt-5"><p className="text-sm text-action">{en ? "Pinned announcement" : "إعلان مثبّت"}</p><h4 dir="auto" className="mt-2 text-lg font-bold">{pinnedAnnouncement.title}</h4><p dir="auto" className="mt-3 whitespace-pre-line leading-8 text-muted">{pinnedAnnouncement.body}</p></article>}{featuredEvent && <article className="mt-5 border-t border-line pt-5"><p className="text-sm text-action">{en ? "Featured event" : "فعالية مميزة"}</p><h4 dir="auto" className="mt-2 text-lg font-bold"><Link className="text-link" href={`/events/${featuredEvent.id}`}>{featuredEvent.title}</Link></h4><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></article>}</section>}
-            {otherAnnouncements.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{en ? "Announcements" : "إعلانات الجهة"}</h3><ul className="mt-5 divide-y divide-line">{otherAnnouncements.map(announcement => <li key={announcement.id} className="py-5 first:pt-0 last:pb-0"><h4 dir="auto" className="font-bold">{announcement.title}</h4><p dir="auto" className="mt-3 whitespace-pre-line leading-8 text-muted">{announcement.body}</p></li>)}</ul></section>}
+            {featuredEvent&&<section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{en?"Featured event":"فعالية مميزة"}</h3><Link className="text-link" href={`/events/${featuredEvent.id}`}>{featuredEvent.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></section>}
             {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{en ? "Selected events" : "فعاليات مختارة"}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}>{event.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{en ? "All organization events" : "كل فعاليات الجهة"}</Link>}</section>}
           </div>
         </section>}
+        {item.id==="announcements"&&<PublicAnnouncements items={announcements} locale={preferences.locale}/>}
         {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></section>}
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={en ? "Organization structure" : "هيكل الجهة"}>
           <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{en ? "Committees" : "اللجان"}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={en ? "No public committees yet." : "لا توجد لجان عامة حالياً."} /></section>

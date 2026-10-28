@@ -52,8 +52,8 @@ export const organizationPublicProfileContentJsonSchema = z.string().max(40_000)
   }
 }).pipe(organizationPublicProfileContentSchema);
 export const organizationProfileSchema = z.object({ nameAr, summary, mission, showLeadershipPublicly: z.boolean(), tagNames, contacts, publicProfileContent: organizationPublicProfileContentSchema.default(emptyPublicProfileContent) });
-export const announcementSchema = z.object({ title: z.string().trim().min(2).max(120), body: z.string().trim().min(1).max(5000), published: z.boolean(), pinned: z.boolean() }).refine(value => !value.pinned || value.published, { path: ["pinned"], message: "انشر الإعلان قبل تثبيته." });
-export type AnnouncementInput = z.infer<typeof announcementSchema>;
+export const announcementSchema = z.object({ title: z.string().trim().min(2).max(120), body: z.string().trim().min(1).max(5000), published: z.boolean(), pinned: z.boolean(), externalUrl:z.union([z.literal(""),z.url().max(2000).refine(value=>["https:","http:"].includes(new URL(value).protocol)&&!new URL(value).username&&!new URL(value).password,"استخدم رابطًا يبدأ بـ https أو http.")]).default(""),imageAssetId:z.uuid().nullable().optional(),replaceImage:z.boolean().default(false) }).refine(value => !value.pinned || value.published, { path: ["pinned"], message: "انشر الإعلان قبل تثبيته." });
+export type AnnouncementInput = z.input<typeof announcementSchema>;
 export const committeeSchema = z.object({ name: nameAr, description: z.string().trim().max(2000), isPublic: z.boolean(), parentCommitteeId: z.union([z.literal(""), z.uuid()]).default("").transform(value => value || null) });
 export const discoverySchema = z.object({
   q: z.string().trim().max(80).default(""),
@@ -70,5 +70,5 @@ export type OrganizationProfileInput = z.infer<typeof organizationProfileSchema>
 export type OrganizationPublicProfileContentInput = z.infer<typeof organizationPublicProfileContentSchema>;
 export type CommitteeInput = z.infer<typeof committeeSchema>;
 export type MutationState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> };
-export const mutationOperationSchema = z.enum(["create-org", "org-profile", "org-status", "appoint-leader", "remove-leader", "grant-admin", "end-admin", "save-committee", "copy-committee", "committee-status", "save-announcement", "archive-announcement"]);
+export const mutationOperationSchema = z.enum(["create-org", "org-profile", "org-status", "appoint-leader", "remove-leader", "grant-admin", "end-admin", "save-committee", "copy-committee", "committee-status", "save-announcement", "archive-announcement", "pin-announcement", "delete-announcement"]);
 export type MutationOperation = z.infer<typeof mutationOperationSchema>;
