@@ -20,7 +20,7 @@ function SheetClose({ ...props }: DialogPrimitive.Close.Props) {
 
 function SheetContent({
   className,
-  side = "right",
+  side = "left",
   showCloseButton = true,
   closeLabel = "Close",
   children,

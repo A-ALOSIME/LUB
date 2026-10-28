@@ -559,8 +559,8 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
 .event-example-detail--ieee { --event-example-accent: #1680b0; }
 .event-example-detail--oss { --event-example-accent: #8971c0; }
 .event-example-detail-art { grid-area: poster; display: flex; min-width: 0; align-items: stretch; justify-content: stretch; align-self: stretch; margin: 0; border-inline-start: 1px solid var(--color-line); }
-.event-example-detail-art-frame { display: block; width: 100%; flex: none; overflow: hidden; background: transparent; }
-.event-example-detail-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.event-example-detail-art-frame { display: block; width: 100%; flex: none; background: transparent; }
+.event-example-detail-art img { display: block; width: 100%; height: auto; }
 .event-example-detail-copy { grid-area: copy; display: flex; min-width: 0; flex-direction: column; align-self: stretch; padding: clamp(1.35rem, 3vw, 2.75rem); }
 .event-example-detail-back { display: inline-flex; min-height: 2.5rem; align-items: center; color: var(--color-action); font-size: .9rem; font-weight: 650; text-underline-offset: .25em; }
 .event-example-detail-back:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; border-radius: .25rem; }
@@ -940,8 +940,7 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
 .event-detail-title { margin: 0; font-size: clamp(1.8rem, 3.7vw, 3rem); font-weight: 800; line-height: 1.35; text-align: start; overflow-wrap: anywhere; }
 .event-detail-status { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; color: var(--color-subtle); font-size: .84rem; }
 .event-detail-registration-link { min-height: 3.4rem; margin-block-start: .4rem; font-size: 1rem; }
-.event-detail-poster { position: relative; display: block; min-height: 20rem; aspect-ratio: 4 / 5; overflow: hidden; background: var(--color-mist); }
-.event-detail-poster img { object-fit: cover; object-position: center; }
+.event-detail-poster { position: relative; display: block; overflow: visible; background: var(--color-mist); }
 .event-detail-poster-placeholder { display: grid; min-height: 20rem; place-items: center; background: color-mix(in srgb, var(--color-action) 8%, var(--surface)); color: var(--color-action); }
 .event-detail-poster-placeholder svg { width: 4rem; height: 4rem; }
 .event-detail-information, .event-detail-registration, .event-detail-section { min-width: 0; padding: clamp(1.1rem, 2vw, 1.7rem); }
@@ -980,7 +979,7 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
   .workspace-route-content fieldset.space-y-5 { grid-template-columns: minmax(0, 1fr); }
   .workspace-route-content form.space-y-4, .workspace-route-content form.space-y-5 { grid-template-columns: minmax(0, 1fr); }
   .event-detail-hero { grid-template-columns: minmax(0, 1fr); }
-  .event-detail-poster { grid-row: 1; min-height: 0; max-height: 38rem; aspect-ratio: 4 / 5; }
+  .event-detail-poster { grid-row: 1; }
   .event-detail-copy { grid-row: 2; }
   .event-detail-facts, .event-detail-sections { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2245,7 +2244,7 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .event-card-organization-logo img {padding:0;}
 .event-detail-hero {grid-template-columns:minmax(0,1fr) minmax(16rem,.6fr);align-items:start;}
 .event-detail-poster {min-height:0;max-height:none;aspect-ratio:auto;width:100%;max-width:none;align-self:center;justify-self:center;overflow:visible;}
-.event-detail-poster img {display:block;width:100%;height:auto;object-fit:contain;}
+.event-detail-poster img {display:block;width:100%;height:auto;}
 .event-detail-poster-placeholder {min-height:0;aspect-ratio:16/9;width:100%;}
 .event-detail-facts {width:100%;margin:0;gap:.5rem;}
 .event-detail-fact {padding:.65rem;}
@@ -2257,13 +2256,12 @@ input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:f
 .event-poster-frame {position:relative;display:grid;place-items:center;aspect-ratio:4/5;overflow:hidden;background:var(--muted);}
 .event-poster-backdrop {position:absolute;inset:-1rem;background-position:center;background-size:cover;filter:blur(14px) brightness(.5);}
 .event-poster-contained-image {position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
-.event-poster-natural {position:relative;display:grid;place-items:center;min-height:6rem;overflow:hidden;background:var(--muted);}
-.event-poster-natural-image {position:relative;width:100%;height:auto;object-fit:contain;}
-.event-poster-open[data-slot=button] {display:block;width:100%;height:auto;padding:0;overflow:hidden;}
+.event-poster-natural {position:relative;display:block;width:100%;overflow:visible;background:var(--muted);}
+.event-poster-natural-image {position:relative;display:block;width:100%;height:auto;}
+.event-poster-open {display:block;width:100%;height:auto;padding:0;overflow:visible;}
 .event-card:hover .event-poster-contained-image {transform:none;}
 .event-detail-fact {height:100%;}
 .event-detail-facts {grid-auto-rows:1fr;}
-.event-poster-natural[data-orientation=portrait]:not([data-expanded]) {max-width:24rem;margin-inline:auto;}
 
 .public-event-registration {margin-block:.5rem;}
 .public-event-cta [data-slot=button] {min-height:3rem;}
@@ -2293,3 +2291,16 @@ input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:f
 .lub-chat-embedded .lub-chat-thread-content {padding:1rem .75rem;gap:1rem;}
 .lub-chat-embedded .lub-chat-welcome {padding-block:1rem;}
 .lub-chat-embedded .lub-chat-composer {padding:.75rem;}
+
+/* Keep question summaries compact beside their always-visible tools. */
+@media (min-width: 768px) {
+  .editor-question .editor-section-header { flex-wrap: nowrap; }
+  .editor-question .editor-heading-summary { flex-wrap: nowrap; }
+  .editor-question .editor-heading-summary > [data-slot="badge"] { flex-shrink: 0; }
+}
+
+.form-editor .editor-question .row-action-label { display: none; }
+.form-editor .editor-question .row-action { width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: .5rem; }
+
+.task-card-actions .row-action-label { display: none; }
+.task-card-actions .row-action { width: 2.5rem; height: 2.5rem; min-height: 2.5rem; padding: .5rem; }

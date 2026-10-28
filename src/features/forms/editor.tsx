@@ -340,9 +340,9 @@ export function FormEditor({
                   )
                   .filter((f) => f.type !== "File");
                 return (
-                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span>{c("السؤال","Question")} {fi+1} · {field.label}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
+                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} {fi+1} · {field.label}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
                     onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
-                    tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات السؤال","Question actions")} ${fi+1}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
+                    tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${fi+1}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
                     <FieldGroup>
                       <FormField  id={`${field.id}-label`} label={<>
@@ -358,10 +358,27 @@ export function FormEditor({
                           }
                         />
                       </FormField>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField  id={`${field.id}-type`} label={<>
-                            {c("نوع الإجابة", "Answer type")}
-                          </>}>
+                      <div className="grid items-end gap-4 sm:grid-cols-2">
+                        <Field>
+                          <div className="flex flex-wrap items-center justify-between gap-2"><FieldLabel htmlFor={`${field.id}-type`}>{c("نوع الإجابة", "Answer type")}</FieldLabel>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <Switch
+                                id={`${field.id}-required`}
+                                checked={field.required}
+                                onCheckedChange={(required) =>
+                                  update(si, fi, { required })
+                                }
+                              />
+                              <FieldLabel htmlFor={`${field.id}-required`}>
+                                {c("إجابة مطلوبة", "Required answer")}
+                              </FieldLabel>
+                              {field.condition && (
+                                <FieldDescription>
+                                  {c("يظهر بشرط", "Conditional")}
+                                </FieldDescription>
+                              )}
+                            </div>
+                          </div>
                           <NativeSelect
                             id={`${field.id}-type`}
                             value={field.type}
@@ -404,7 +421,7 @@ export function FormEditor({
                               </option>
                             ))}
                           </NativeSelect>
-                        </FormField>
+                        </Field>
                         {["ShortText", "LongText"].includes(field.type) && (
                           <FormField  id={`${field.id}-max`} label={<>
                               {c("الحد الأقصى للأحرف", "Maximum characters")}
@@ -424,23 +441,6 @@ export function FormEditor({
                           </FormField>
                         )}
                       </div>
-                      <Field orientation="horizontal">
-                        <Switch
-                          id={`${field.id}-required`}
-                          checked={field.required}
-                          onCheckedChange={(required) =>
-                            update(si, fi, { required })
-                          }
-                        />
-                        <FieldLabel htmlFor={`${field.id}-required`}>
-                          {c("إجابة مطلوبة", "Required answer")}
-                        </FieldLabel>
-                        {field.condition && (
-                          <FieldDescription>
-                            {c("يظهر بشرط", "Conditional")}
-                          </FieldDescription>
-                        )}
-                      </Field>
                       {field.type === "Committee" && <FieldDescription>{c("تُحدّث الخيارات تلقائيًا من لجان الجهة الرئيسية والفرعية المتاحة للمتقدمين.","Choices stay in sync with the organization’s public committees and subcommittees.")}</FieldDescription>}
                       {field.options.length > 0 && (
                         <FieldGroup>
@@ -532,10 +532,8 @@ export function FormEditor({
                         </div>
                       )}
                       <Collapsible>
-                        <CollapsibleTrigger
-                          render={<Button type="button" variant="ghost" />}
-                        >
-                          <ChevronDown />
+                        <CollapsibleTrigger className="group flex w-full items-center gap-2 py-2 text-start text-sm font-medium">
+                          <ChevronDown className="size-4 transition-transform group-data-panel-open:rotate-180" />
                           {c("خيارات متقدمة", "Advanced options")}
                         </CollapsibleTrigger>
                         <CollapsibleContent className="pt-4">
@@ -816,4 +814,14 @@ function EditorSection({title,tools,children,defaultOpen=false,kind="section",on
 function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {
  const en=locale==="en";
  return <DropdownMenu><DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label}/>}><Ellipsis/></DropdownMenuTrigger><DropdownMenuContent align="end" className="form-editor-menu"><DropdownMenuGroup><DropdownMenuItem disabled={upDisabled} onClick={onUp}><ArrowUp/>{en?"Move up":"تحريك لأعلى"}</DropdownMenuItem><DropdownMenuItem disabled={downDisabled} onClick={onDown}><ArrowDown/>{en?"Move down":"تحريك لأسفل"}</DropdownMenuItem><DropdownMenuItem disabled={copyDisabled} onClick={onCopy}><Copy/>{en?"Duplicate":"نسخ"}</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator/><DropdownMenuGroup><DropdownMenuItem variant="destructive" disabled={deleteDisabled} onClick={onDelete}><Trash2/>{en?"Delete":"حذف"}</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>;
+}
+
+function QuestionActions({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}){
+ const en=locale==="en";
+ return <>{[
+  {name:en?"Move up":"تحريك لأعلى",Icon:ArrowUp,disabled:upDisabled,run:onUp},
+  {name:en?"Move down":"تحريك لأسفل",Icon:ArrowDown,disabled:downDisabled,run:onDown},
+  {name:en?"Duplicate question":"نسخ السؤال",Icon:Copy,disabled:copyDisabled,run:onCopy},
+  {name:en?"Delete question":"حذف السؤال",Icon:Trash2,disabled:deleteDisabled,run:onDelete,danger:true},
+ ].map(({name,Icon,disabled,run,danger})=><RowAction key={name} label={`${name} · ${label}`} hint={name} disabled={disabled} danger={danger} onClick={run}><Icon/></RowAction>)}</>;
 }

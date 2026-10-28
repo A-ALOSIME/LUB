@@ -18,16 +18,16 @@ export function TaskForm({operation,fields={},label,children,disabled=false,loca
   <Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending||disabled}>{en?"Save draft":"حفظ كمسودة"}</Button>
   {canSaveTemplate&&<Button type="submit" name="intent" value="template" variant="outline" disabled={pending||disabled}>{en?"Save template":"حفظ كقالب"}</Button>}
   {management&&<Button type="button" variant="ghost" className="sm:ms-auto" onClick={management.close}>{en?"Cancel":"إلغاء"}</Button>}
- </div>:<ManagementActionFooter label={pending?(en?"Saving…":"جارٍ الحفظ…"):label} pending={pending} disabled={disabled}/>;
+ </div>:<ManagementActionFooter label={pending?(en?"Saving…":"جارٍ الحفظ…"):label} pending={pending} disabled={disabled} sticky={!management?.inlineForms} showCancel={!management?.inlineForms}/>;
  const description=confirmDescription||(staged?.data.get("intent")==="publish"?(en?"The task will become available to members in its selected scope.":"ستُنشر المهمة وتصبح متاحة للأعضاء ضمن نطاقها."):staged?.data.get("intent")==="template"?(en?"Save these details as a reusable template without creating a task.":"ستُحفظ التفاصيل كقالب لاستخدامه لاحقًا، دون إنشاء مهمة."):(en?"Save a private draft visible to authorized task managers.":"ستُحفظ مسودة تظهر للمخوّلين بإدارة المهام فقط."));
  return <><form action={action} onSubmit={event=>{
   if(!creationActions&&!confirmDescription)return;
   event.preventDefault();const submitter=(event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement|null;
   const data=new FormData(event.currentTarget);if(submitter?.name)data.set(submitter.name,submitter.value);
   setStaged({data,label:submitter?.textContent||label});
- }} onReset={event=>event.preventDefault()} className={management?"workflow-split-form":"flex flex-col gap-4"}>
+ }} onReset={event=>event.preventDefault()} className={management&&!management.inlineForms?"workflow-split-form":"flex flex-col gap-4"}>
  <input type="hidden" name="operation" value={operation}/>{Object.entries(fields).map(([key,value])=><input key={key} type="hidden" name={key} value={value}/>)}
- <div className={management?"workflow-form-body":"flex flex-col gap-4"}><fieldset disabled={pending||disabled} className="flex min-w-0 flex-col gap-4">{children}</fieldset>
+ <div className={management&&!management.inlineForms?"workflow-form-body":"flex flex-col gap-4"}><fieldset disabled={pending||disabled} className="flex min-w-0 flex-col gap-4">{children}</fieldset>
  {state.error&&<p ref={alert} role="alert" tabIndex={-1} className="error-message">{actionFeedback(state.error,locale)}</p>}
  {state.success&&<p role="status" className="text-action">{actionFeedback(state.success,locale)}{state.task&&<> <Link className="text-link" href={`/tasks/${state.task}`}>{en?"Open task":"فتح المهمة"}</Link></>}</p>}
  </div>{footer}</form>

@@ -173,7 +173,7 @@ export function EventExampleDetail({example, locale}: {example: EventExample; lo
 
   return <article className={`panel event-example-detail event-example-detail--${example.theme}`} dir={en ? "ltr" : "rtl"}>
     <figure className={`event-example-detail-art event-example-detail-art--${example.theme}`}>
-      <div className="event-example-detail-art-frame" style={{aspectRatio: `${example.imageWidth} / ${example.imageHeight}`}}>
+      <div className="event-example-detail-art-frame">
         <Image src={example.image} alt={text(example.imageAlt)} width={example.imageWidth} height={example.imageHeight} sizes="(min-width: 72rem) 34rem, (min-width: 48rem) 45vw, 100vw" unoptimized loading="eager"/>
       </div>
     </figure>

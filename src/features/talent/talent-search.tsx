@@ -163,7 +163,7 @@ export function TalentSearch({
                 <Badge variant="secondary">{chips.length}</Badge>
               )}
             </SheetTrigger>
-            <SheetContent side={en ? "left" : "right"}
+            <SheetContent side="left"
                 closeLabel={c("إغلاق الفلاتر","Close filters")} dir={en ? "ltr" : "rtl"}>
               <SheetHeader>
                 <SheetTitle>{c("تصفية المواهب", "Talent filters")}</SheetTitle>

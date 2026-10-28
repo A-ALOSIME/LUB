@@ -202,7 +202,6 @@ export function OpeningRequestList({
         title={detail?.name_ar ?? c("تفاصيل الطلب", "Request details")}
         hideTrigger
         presentation="sheet"
-        sheetSide="start"
         sheetClassName="sm:m-3 sm:h-[calc(100dvh-1.5rem)] sm:max-w-[calc(100vw-1.5rem)] sm:rounded-xl"
         locale={locale}
         open={!!detail}

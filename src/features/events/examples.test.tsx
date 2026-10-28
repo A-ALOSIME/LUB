@@ -20,14 +20,14 @@ describe("event example details", () => {
     }
   });
 
-  it("sizes each poster frame to its artwork and keeps the club lockup above the shared title", () => {
+  it("lets each poster determine its own height and keeps the club lockup above the shared title", () => {
     for (const example of eventExamples) {
       const {container, unmount} = render(<EventExampleDetail example={example} locale="ar"/>);
       const heading = container.querySelector(".event-example-detail-heading");
       const organization = heading?.querySelector(".event-example-detail-organization");
       const title = heading?.querySelector(":scope > h1");
 
-      expect(container.querySelector(".event-example-detail-art-frame")?.getAttribute("style")).toContain(`aspect-ratio: ${example.imageWidth} / ${example.imageHeight}`);
+      expect(container.querySelector(".event-example-detail-art-frame")?.getAttribute("style")).toBeNull();
       expect(organization?.querySelector(".event-example-detail-organization-mark")).toBeTruthy();
       expect(organization?.contains(title ?? null)).toBe(false);
       expect(title?.classList.contains("event-example-detail-title")).toBe(true);

@@ -17,11 +17,10 @@ it("keeps typed answers and focuses failure feedback after a rejected submission
  await waitFor(()=>expect(screen.getByRole("alert").textContent).toBe("راجع الإجابات."));
  expect((input as HTMLTextAreaElement).value).toBe("أرغب بالمشاركة");await waitFor(()=>expect(document.activeElement).toBe(screen.getByRole("alert")));
 });
-it("reorders stable questions by keyboard menu without losing labels or identifiers",async()=>{
+it("reorders stable questions with visible arrow actions without losing labels or identifiers",async()=>{
  render(<FormEditor version="version" revision={1} initial={initialDefinition}/>);
  fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
- fireEvent.click(screen.getByRole("button",{name:"أدوات السؤال 1"}));
- fireEvent.click(await screen.findByRole("menuitem",{name:"تحريك لأسفل"}));
+ fireEvent.click(screen.getByRole("button",{name:"تحريك لأسفل · السؤال 1"}));
  const payload=screen.getByRole("button",{name:"حفظ المسودة"}).closest("form")!.querySelector<HTMLInputElement>('input[name="definition"]')!;
  const saved=JSON.parse(payload.value) as typeof initialDefinition;
  expect(saved.sections[0].fields.map(f=>f.id)).toEqual(initialDefinition.sections[0].fields.map(f=>f.id).reverse());
@@ -67,8 +66,7 @@ it("collapses existing questions, opens new ones and duplicates with fresh ident
  expect(screen.queryByRole("textbox",{name:"السؤال"})).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:"إضافة سؤال"}));
  expect((screen.getByRole("textbox",{name:"السؤال"}) as HTMLInputElement).value).toBe("سؤال جديد");
- fireEvent.click(screen.getByRole("button",{name:"أدوات السؤال 1"}));
- fireEvent.click(await screen.findByRole("menuitem",{name:"نسخ"}));
+ fireEvent.click(screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"}));
  const definition=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as typeof initialDefinition;
  expect(new Set(definition.sections[0].fields.map(field=>field.id)).size).toBe(4);
  expect(definition.sections[0].fields[1].label).toBe(initialDefinition.sections[0].fields[0].label);

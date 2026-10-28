@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TaskPagination } from "./task-list";
 
+vi.mock("./task-panel-actions",()=>({loadTaskPanel:vi.fn()}));
 vi.mock("./actions",()=>({mutateTask:async()=>({success:"تم الحفظ"})}));
 
 vi.mock("next/link", () => ({
