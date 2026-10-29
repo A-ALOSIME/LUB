@@ -1,5 +1,6 @@
 "use client";
 
+import {formatNumber} from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "cn";
@@ -67,7 +68,7 @@ export function FilterTabs({
                 active && activeTone === "secondary" && "border-transparent bg-secondary-foreground/10 text-secondary-foreground"
               )}
             >
-              {new Intl.NumberFormat("en-US").format(option.count)}
+              {formatNumber(option.count,dir==="ltr"?"en":"ar")}
             </Badge>}
           </TabsTrigger>;
         })}

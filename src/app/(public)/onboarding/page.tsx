@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { AccountHeader } from "@/components/account-header";
 import { StorageUnavailable } from "@/components/storage-unavailable";
 import { requireStudentUser as requireUser } from "@/features/auth/authorization";
@@ -39,12 +40,10 @@ export default async function Onboarding({
       <AccountHeader />
       <main id="main" className="mx-auto max-w-2xl px-5 py-10 sm:py-14">
         <h1 className="text-3xl font-bold">
-          {en ? "Let's get to know you once." : "نتعرّف عليك مرة واحدة."}
+          {translateUi((en) ? "en" : "ar", "نتعرّف عليك مرة واحدة.", "Let's get to know you once.")}
         </h1>
         <p className="mt-4 mb-8 leading-8 text-muted">
-          {en
-            ? "Complete your basic details once. We use them for applications and participation records."
-            : "أكمل بياناتك الأساسية؛ نستخدمها في طلباتك وسجلات مشاركتك، بدل ما تعيدها كل مرة."}
+          {translateUi((en) ? "en" : "ar", "أكمل بياناتك الأساسية؛ نستخدمها في طلباتك وسجلات مشاركتك، بدل ما تعيدها كل مرة.", "Complete your basic details once. We use them for applications and participation records.")}
         </p>
         <ProfileForm returnTo={returnTo} email={user.email} locale={locale} />
       </main>

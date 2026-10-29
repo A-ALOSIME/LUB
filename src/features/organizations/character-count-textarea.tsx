@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import type { Locale } from "@/lib/preferences";
@@ -34,6 +35,6 @@ function CharacterCountTextarea({ id, name, defaultValue, maxLength, locale, row
 
   return <div className="organization-character-count">
     <Textarea id={id} name={name} dir={en ? "ltr" : "rtl"} rows={rows} maxLength={maxLength} placeholder={placeholder} value={value} onChange={event => setValue(event.target.value)} />
-    <span>{en ? `${value.length} of ${maxLength}` : `${value.length} من ${maxLength}`}</span>
+    <span>{translateUi((en) ? "en" : "ar", `${value.length} من ${maxLength}`, `${value.length} of ${maxLength}`)}</span>
   </div>;
 }

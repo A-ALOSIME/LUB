@@ -1,3 +1,4 @@
+import {formatNumber,t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { CalendarDays, ClipboardList, Info, Plus } from "lucide-react";
 import {RequestStatusBadge} from "./request-status-badge";
@@ -18,9 +19,7 @@ function formatApplicationDate(value: string, locale: Locale) {
   return formatRiyadhDateTime(value, locale);
 }
 
-function formatCount(value: number) {
-  return new Intl.NumberFormat("en-US").format(value);
-}
+
 
 function applicationsHref({ status, preview, page = 1 }: {
   status: ApplicationStatusFilter;
@@ -53,13 +52,13 @@ function ApplicationTable({ rows, locale, preview }: { rows: Application[]; loca
 
   return <div className="hidden lg:block">
     <Table className="min-w-[38rem]">
-      <TableCaption className="sr-only">{en ? "Your membership applications" : "طلبات الانضمام الخاصة بك"}</TableCaption>
+      <TableCaption className="sr-only">{translateUi((en) ? "en" : "ar", "طلبات الانضمام الخاصة بك", "Your membership applications")}</TableCaption>
       <TableHeader>
         <TableRow className="border-border/60 bg-card hover:bg-card">
-          <TableHead className="w-[42%] px-4">{en ? "Organization" : "الجهة"}</TableHead>
-          <TableHead className="w-[24%] px-4">{en ? "Applied on" : "تاريخ التقديم"}</TableHead>
-          <TableHead className="w-[22%] px-4">{en ? "Status" : "الحالة"}</TableHead>
-          <TableHead className="w-12 px-2 text-center">{en ? "Actions" : "الإجراءات"}</TableHead>
+          <TableHead className="w-[42%] px-4">{translateUi((en) ? "en" : "ar", "الجهة", "Organization")}</TableHead>
+          <TableHead className="w-[24%] px-4">{translateUi((en) ? "en" : "ar", "تاريخ التقديم", "Applied on")}</TableHead>
+          <TableHead className="w-[22%] px-4">{translateUi((en) ? "en" : "ar", "الحالة", "Status")}</TableHead>
+          <TableHead className="w-12 px-2 text-center">{translateUi((en) ? "en" : "ar", "الإجراءات", "Actions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -79,7 +78,7 @@ function ApplicationTable({ rows, locale, preview }: { rows: Application[]; loca
           </TableCell>
         </TableRow>) : <TableRow>
           <TableCell colSpan={4} className="whitespace-normal px-4 py-3">
-            <WorkspaceEmptyState icon={ClipboardList} title={en ? "No matching applications" : "لا توجد طلبات مطابقة"} description={en ? "Try changing the selected status." : "جرّب تغيير حالة الطلب."} />
+            <WorkspaceEmptyState icon={ClipboardList} title={translateUi((en) ? "en" : "ar", "لا توجد طلبات مطابقة", "No matching applications")} description={translateUi((en) ? "en" : "ar", "جرّب تغيير حالة الطلب.", "Try changing the selected status.")} />
           </TableCell>
         </TableRow>}
       </TableBody>
@@ -106,7 +105,7 @@ function ApplicationCards({ rows, locale, preview }: { rows: Application[]; loca
           {formatApplicationDate(application.created_at, locale)}
         </time>
       </div>
-    </article>) : <WorkspaceEmptyState icon={ClipboardList} title={en ? "No matching applications" : "لا توجد طلبات مطابقة"} description={en ? "Try changing the selected status." : "جرّب تغيير حالة الطلب."} />}
+    </article>) : <WorkspaceEmptyState icon={ClipboardList} title={translateUi((en) ? "en" : "ar", "لا توجد طلبات مطابقة", "No matching applications")} description={translateUi((en) ? "en" : "ar", "جرّب تغيير حالة الطلب.", "Try changing the selected status.")} />}
   </div>;
 }
 
@@ -125,20 +124,20 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
   return <div className="flex min-w-0 flex-col gap-4">
     {noApplications ? <WorkspaceEmptyState
       icon={ClipboardList}
-      title={en ? "No applications yet" : "ما قدمت على أي جهة حتى الآن"}
-      description={en ? "Browse clubs and councils to find a community to join." : "تصفح الأندية والمجالس واختر الجهة التي تناسبك."}
-      action={<Link href="/organizations" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{en ? "Browse clubs and councils" : "تصفح الأندية والمجالس"}</Link>}
+      title={translateUi((en) ? "en" : "ar", "ما قدمت على أي جهة حتى الآن", "No applications yet")}
+      description={translateUi((en) ? "en" : "ar", "تصفح الأندية والمجالس واختر الجهة التي تناسبك.", "Browse clubs and councils to find a community to join.")}
+      action={<Link href="/organizations" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تصفح الأندية والمجالس", "Browse clubs and councils")}</Link>}
     /> : <>
     {preview && <div role="note" className="flex items-start gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3.5 text-sm">
       <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
-      <p>{en ? "Sample data for preview only. No applications are stored; row actions are disabled." : "بيانات تجريبية للمعاينة فقط. لا يتم حفظ أي طلبات، وإجراءات الصفوف معطّلة."}</p>
+      <p>{translateUi((en) ? "en" : "ar", "بيانات تجريبية للمعاينة فقط. لا يتم حفظ أي طلبات، وإجراءات الصفوف معطّلة.", "Sample data for preview only. No applications are stored; row actions are disabled.")}</p>
     </div>}
 
     <Card className="min-w-0 gap-0 py-0">
       <CardHeader className="gap-3 px-4 pt-4 pb-0 sm:px-5 sm:pt-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <ApplicationStatusFilters status={status} counts={counts} preview={preview} locale={locale} />
-          <Link href="/organizations" className={buttonVariants({ size: "sm", className: "w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{en ? "Start a new application" : "تقديم طلب جديد"}</Link>
+          <Link href="/organizations" className={buttonVariants({ size: "sm", className: "w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تقديم طلب جديد", "Start a new application")}</Link>
         </div>
       </CardHeader>
 
@@ -148,13 +147,13 @@ export function ApplicationList({ rows, counts, locale = "ar", preview = false, 
       </CardContent>
 
       {(page > 1 || hasNext) && <CardFooter className="justify-between gap-3 border-t px-4 py-3 sm:px-5">
-        <span className="text-xs text-muted-foreground">{en ? `Page ${formatCount(page)}` : `الصفحة ${formatCount(page)}`}</span>
-        <nav aria-label={en ? "Application pages" : "صفحات الطلبات"} className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">{translateUi((en) ? "en" : "ar", `الصفحة ${formatNumber(page,locale)}`, `Page ${formatNumber(page,locale)}`)}</span>
+        <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات الطلبات", "Application pages")} className="flex items-center gap-2">
           {page > 1 && <Link href={applicationsHref({ status, preview, page: page - 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {en ? "Previous" : "السابق"}
+            {translateUi((en) ? "en" : "ar", "السابق", "Previous")}
           </Link>}
           {hasNext && <Link href={applicationsHref({ status, preview, page: page + 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {en ? "Next" : "التالي"}
+            {translateUi((en) ? "en" : "ar", "التالي", "Next")}
           </Link>}
         </nav>
       </CardFooter>}

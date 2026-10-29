@@ -17,7 +17,7 @@ describe("organization interest editor", () => {
     expect(screen.getByText("أمن سيبراني")).toBeTruthy();
     expect(document.querySelector<HTMLInputElement>('input[name="tagNames"]')?.value).toBe("تقنية,أمن سيبراني");
     const helper = screen.getByText("أضف المجال بالضغط على Enter");
-    const count = screen.getByText("2 من 10");
+    const count = screen.getByText("٢ من ١٠");
     expect(helper.parentElement).toBe(count.parentElement);
     expect(helper.parentElement?.classList.contains("organization-interest-meta")).toBe(true);
     expect(helper.parentElement?.getAttribute("dir")).toBe("rtl");

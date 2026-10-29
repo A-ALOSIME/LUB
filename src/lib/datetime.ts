@@ -1,7 +1,8 @@
+import {t as translateUi} from "@/lib/i18n";
 import type { Locale } from "./preferences";
 
 const TIME_ZONE = "Asia/Riyadh";
-const AR_LOCALE = "ar-SA-u-nu-latn";
+const AR_LOCALE = "ar-SA-u-nu-arab";
 const EN_LOCALE = "en-GB-u-nu-latn";
 // Six immutable locale/format combinations; never cache dates or user data.
 const formatters = new Map<string, Intl.DateTimeFormat>();
@@ -39,20 +40,20 @@ function parseRiyadhValue(value: string | Date | null | undefined) {
 
 export function formatRiyadhDate(value: string | Date | null | undefined, locale: Locale = "ar", includeWeekday = false) {
   const date = parseRiyadhValue(value);
-  if (!date) return locale === "en" ? "Not set" : "غير محدد";
+  if (!date) return translateUi((locale === "en") ? "en" : "ar", "غير محدد", "Not set");
   return dateFormatter(locale, includeWeekday).format(date);
 }
 
 export function formatRiyadhTime(value: string | Date | null | undefined, locale: Locale = "ar") {
   const date = parseRiyadhValue(value);
-  if (!date) return locale === "en" ? "Not set" : "غير محدد";
+  if (!date) return translateUi((locale === "en") ? "en" : "ar", "غير محدد", "Not set");
   return timeFormatter(locale).format(date);
 }
 
 export function formatRiyadhDateTime(value: string | Date | null | undefined, locale: Locale = "ar", includeWeekday = false) {
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return formatRiyadhDate(value, locale, includeWeekday);
   const date = parseRiyadhValue(value);
-  if (!date) return locale === "en" ? "Not set" : "غير محدد";
+  if (!date) return translateUi((locale === "en") ? "en" : "ar", "غير محدد", "Not set");
   const formattedDate = dateFormatter(locale, includeWeekday).format(date);
-  return `${formattedDate}${locale === "en" ? ", " : "، "}${formatRiyadhTime(date, locale)}`;
+  return `${formattedDate}${translateUi((locale === "en") ? "en" : "ar", "، ", ", ")}${formatRiyadhTime(date, locale)}`;
 }

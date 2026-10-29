@@ -1,7 +1,29 @@
+import {localizeDigits} from "./i18n";
 import type { Locale } from "./preferences";
 
 // Server actions return stable Arabic copy; keep the same feedback in either UI language.
 const english: Record<string, string> = {
+  "أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر.": "Complete the round title, published form and registration period before publishing.",
+  "توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى.": "This organization already has an open or scheduled registration round. Pause it before publishing another.",
+  "انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح.": "This round has expired. Extend its closing date before reopening it.",
+  "لا يمكن استبدال النموذج بعد استقبال طلبات. يمكنك تعديل أسئلته في نسخة جديدة.": "A form cannot be replaced after applications arrive. Publish a new version to update its questions.",
+  "تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه.": "This form cannot be deleted while a round or event uses it. Deleting also requires club or council leadership.",
+  "تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة.": "A new version could not be created. Check your form management permission and try again.",
+  "تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. لا يمكن أن تقل الساعات عن صفر. الرفض يحتاج سببًا.": "The change could not be saved. Check the fields, academic term and permissions, then refresh if the record changed. Hours cannot fall below zero. Rejection requires a reason.",
+  "صورة الشركاء يجب أن تكون مرفوعة إلى مساحة الجهة.": "The partner image must be uploaded to this organization's storage.",
+  "لا يمكنك سحب صلاحيتك أنت.": "You cannot revoke your own access.",
+  "أكّد إنهاء التفويض قبل المتابعة.": "Confirm ending this delegation before continuing.",
+  "أكّد إنهاء العضوية قبل المتابعة.": "Confirm ending this membership before continuing.",
+  "تعذّر حفظ التغيير. راجع الصلاحية والنطاق والعضوية النشطة.": "The change could not be saved. Check your permissions, scope and active membership.",
+  "تعذّر حفظ صورة الحساب.": "Your account picture could not be saved.",
+  "تعذّر حفظ صورة الحساب. اختر صورة JPG أو PNG صالحة حتى 2MB.": "Your account picture could not be saved. Choose a valid JPG or PNG image up to 2 MB.",
+  "تم حفظ البيانات، لكن تعذّر حفظ الصورة. أعد المحاولة.": "Your details were saved, but the picture could not be saved. Please try again.",
+  "تم حفظ الملف المهاري والخصوصية.": "Your talent profile and privacy settings were saved.",
+  "تعذّر تحديث الإشعار. حدّث الصفحة وحاول مرة ثانية.": "This notification could not be updated. Refresh and try again.",
+  "تم تحديد الإشعار كمقروء.": "The notification was marked as read.",
+  "تعذّر عرض المهمة. حدّث الصفحة وحاول مرة ثانية.": "This task could not be loaded. Refresh and try again.",
+  "المهمة غير متاحة أو لا تملك صلاحية عرضها.": "This task is unavailable or you do not have access to it.",
+
   "يجب أن تكون نهاية الفصل في تاريخ البداية أو بعده.": "The end date must be on or after the start date.",
   "تتداخل هذه الفترة مع فصل محفوظ. اختر تواريخ لا تتداخل مع الفصول الحالية.": "These dates overlap a saved term. Choose dates outside existing terms.",
   "تعذّر إضافة الفصل. راجع الحقول وتأكد من عدم تكرار السنة ورمز الفصل ومن صلاحيتك.": "Could not add the term. Check your fields, access, and that the year and term code are not duplicated.",
@@ -96,6 +118,7 @@ const english: Record<string, string> = {
 };
 
 export function actionFeedback(message: string | undefined, locale: Locale): string | undefined {
-  if (!message || locale === "ar") return message;
-  return english[message] ?? message;
+  if (!message) return message;
+  if (locale === "ar") return localizeDigits(message,locale);
+  return english[message] ?? (/[\u0600-\u06ff]/u.test(message) ? "Please review the details and try again." : message);
 }

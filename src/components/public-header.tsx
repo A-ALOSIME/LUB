@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { DisplayControls } from "./display-controls";
 import { SiteHeader } from "./site-header";
@@ -14,7 +15,7 @@ export async function PublicHeader() {
   return <SiteHeader en={en} accountActions={<>
     <DisplayControls {...preferences} />
     {user
-      ? <><IntentPrefetchLink href={superAdmin ? "/manage" : "/me"} className="button button-compact whitespace-nowrap">{en ? "My workspace" : "مساحتي"}</IntentPrefetchLink><form action={signOut}><button className="header-link whitespace-nowrap">{en ? "Log out" : <><span className="sm:hidden">خروج</span><span className="hidden sm:inline">تسجيل الخروج</span></>}</button></form></>
-      : <><Link href="/login" prefetch={false} className="header-link whitespace-nowrap"><span className="sm:hidden">{en ? "Log in" : "دخول"}</span><span className="hidden sm:inline">{en ? "Log in" : "تسجيل الدخول"}</span></Link><Link href="/signup" prefetch={false} className="button button-compact whitespace-nowrap"><span className="sm:hidden">{en ? "Sign up" : "حساب"}</span><span className="hidden sm:inline">{en ? "Sign up" : "إنشاء حساب"}</span></Link></>}
+      ? <><IntentPrefetchLink href={superAdmin ? "/manage" : "/me"} className="button button-compact whitespace-nowrap">{translateUi((en) ? "en" : "ar", "مساحتي", "My workspace")}</IntentPrefetchLink><form action={signOut}><button className="header-link whitespace-nowrap">{en ? "Log out" : <><span className="sm:hidden">خروج</span><span className="hidden sm:inline">تسجيل الخروج</span></>}</button></form></>
+      : <><Link href="/login" prefetch={false} className="header-link whitespace-nowrap"><span className="sm:hidden">{translateUi((en) ? "en" : "ar", "دخول", "Log in")}</span><span className="hidden sm:inline">{translateUi((en) ? "en" : "ar", "تسجيل الدخول", "Log in")}</span></Link><Link href="/signup" prefetch={false} className="button button-compact whitespace-nowrap"><span className="sm:hidden">{translateUi((en) ? "en" : "ar", "حساب", "Sign up")}</span><span className="hidden sm:inline">{translateUi((en) ? "en" : "ar", "إنشاء حساب", "Sign up")}</span></Link></>}
   </>} />;
 }

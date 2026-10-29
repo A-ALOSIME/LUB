@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -25,7 +26,7 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
   search: Record<string, string | string[] | undefined>;
 }) {
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const value = (key: string) => typeof search[key] === "string" ? search[key] as string : "";
   let lookup = "";
   try {

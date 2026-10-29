@@ -1,3 +1,5 @@
+import {t as translateUi} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import type { Locale } from "@/lib/preferences";
 
 type Summary = {
@@ -23,20 +25,20 @@ export function SuperAdminDashboard({ locale, summary, notice }: {
 }) {
   const en = locale === "en";
   const stats = [
-    { label: en ? "Active organizations" : "الجهات النشطة", value: summary.activeOrganizations, name: "organizations" as const },
-    { label: en ? "Archived organizations" : "الجهات المؤرشفة", value: summary.archivedOrganizations, name: "organizations" as const },
-    { label: en ? "System administrators" : "مشرفو النظام", value: summary.administrators, name: "admins" as const },
+    { label: translateUi((en) ? "en" : "ar", "الجهات النشطة", "Active organizations"), value: summary.activeOrganizations, name: "organizations" as const },
+    { label: translateUi((en) ? "en" : "ar", "الجهات المؤرشفة", "Archived organizations"), value: summary.archivedOrganizations, name: "organizations" as const },
+    { label: translateUi((en) ? "en" : "ar", "مشرفو النظام", "System administrators"), value: summary.administrators, name: "admins" as const },
   ];
 
   return <div className="workspace-content workspace-admin-overview">
     <header id="overview" className="workspace-page-header">
-      <h1>{en ? "System overview" : "نظرة عامة"}</h1>
+      <h1>{translateUi((en) ? "en" : "ar", "نظرة عامة", "System overview")}</h1>
     </header>
-    {notice === "organization-created" && <p role="status" className="panel p-4 text-action">{en ? "Organization created. You can now appoint its primary leader." : "تم إنشاء الجهة. يمكنك الآن تعيين قائدها الأساسي."}</p>}
-    <section aria-label={en ? "System summary" : "ملخص النظام"} className="workspace-summary-grid">
+    {notice === "organization-created" && <p role="status" className="panel p-4 text-action">{translateUi((en) ? "en" : "ar", "تم إنشاء الجهة. يمكنك الآن تعيين قائدها الأساسي.", "Organization created. You can now appoint its primary leader.")}</p>}
+    <section aria-label={translateUi((en) ? "en" : "ar", "ملخص النظام", "System summary")} className="workspace-summary-grid">
       {stats.map(stat => <div key={stat.label} className="workspace-summary-item">
         <span aria-hidden="true" className="workspace-summary-icon"><SectionIcon name={stat.name} /></span>
-        <span className="min-w-0"><span className="workspace-summary-label">{stat.label}</span><strong className="workspace-summary-value">{stat.value}</strong></span>
+        <span className="min-w-0"><span className="workspace-summary-label">{stat.label}</span><strong className="workspace-summary-value"><NumberText value={stat.value}/></strong></span>
       </div>)}
     </section>
   </div>;

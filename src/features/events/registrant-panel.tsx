@@ -1,7 +1,8 @@
+import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { z } from "zod";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LiveFilterForm } from "@/components/live-filter-form";
 import { ApplicationReviewStatusFilters } from "@/features/forms/application-review-status-filters";
@@ -22,7 +23,7 @@ export async function EventRegistrantPanel({
   search: Record<string, string | undefined>;
   locale: Locale;
 }) {
-  const c = (ar: string, en: string) => (locale === "en" ? en : ar),
+  const c = createTranslator((locale === "en") ? "en" : "ar"),
     q = (search.q ?? "").slice(0, 120),
     selectedEvent =
       event ??
@@ -55,18 +56,17 @@ export async function EventRegistrantPanel({
       <LiveFilterForm className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="section" value={section} />
         <input type="hidden" name="review" value={status} />
-        <div className="relative min-w-48 flex-1">
-          <Search className="pointer-events-none absolute start-3 top-3 size-4 text-muted-foreground" />
-          <Input
+        <InputGroup className="min-w-48 flex-1">
+          <InputGroupAddon><Search/></InputGroupAddon>
+          <InputGroupInput
             name="q"
             type="search"
             defaultValue={q}
             maxLength={120}
-            className="ps-9"
             placeholder={c("ابحث باسم الطالب", "Search student name")}
             aria-label={c("البحث باسم الطالب", "Search by student name")}
           />
-        </div>
+        </InputGroup>
         {!event && (
           <NativeSelect
             name="eventFilter"

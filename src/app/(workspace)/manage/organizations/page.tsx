@@ -1,3 +1,5 @@
+import {t as translateUi} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -66,20 +68,20 @@ export default async function AdminOrganizationsPage({
       dir={en ? "ltr" : "rtl"}
     >
       <header className="workspace-page-header">
-        <h1>{en ? "Organizations" : "الجهات"}</h1>
+        <h1>{translateUi((en) ? "en" : "ar", "الجهات", "Organizations")}</h1>
       </header>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <AdminOrganizationFilters value={filters.status} locale={locale}/>
-        <Button nativeButton={false} render={<Link href="/manage/organizations/new" />}><Plus />{en ? "Add organization" : "إضافة جهة"}</Button>
+        <Button nativeButton={false} render={<Link href="/manage/organizations/new" />}><Plus />{translateUi((en) ? "en" : "ar", "إضافة جهة", "Add organization")}</Button>
       </div>
       <p className="text-sm text-muted-foreground">
-        {en ? "Results:" : "النتائج:"} <bdi>{data.total ?? 0}</bdi>
+        {translateUi((en) ? "en" : "ar", "النتائج:", "Results:")} <bdi><NumberText value={data.total ?? 0}/></bdi>
       </p>
       <AdminOrganizationTable organizations={rows} locale={locale} />
       {(filters.page > 0 || (filters.page + 1) * 25 < (data.total ?? 0)) && (
         <nav
           className="flex items-center justify-between"
-          aria-label={en ? "Organization pages" : "صفحات الجهات"}
+          aria-label={translateUi((en) ? "en" : "ar", "صفحات الجهات", "Organization pages")}
         >
           {filters.page > 0 ? (
             <Button
@@ -87,7 +89,7 @@ export default async function AdminOrganizationsPage({
               nativeButton={false}
               render={<Link href={href(filters.page - 1)} />}
             >
-              {en ? "Previous" : "السابق"}
+              {translateUi((en) ? "en" : "ar", "السابق", "Previous")}
             </Button>
           ) : (
             <span />
@@ -98,7 +100,7 @@ export default async function AdminOrganizationsPage({
               nativeButton={false}
               render={<Link href={href(filters.page + 1)} />}
             >
-              {en ? "Next" : "التالي"}
+              {translateUi((en) ? "en" : "ar", "التالي", "Next")}
             </Button>
           )}
         </nav>

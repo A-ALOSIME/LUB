@@ -1,4 +1,5 @@
 "use client";
+import {formatNumber,t as translateUi} from "@/lib/i18n";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { visibleFields, type Answers, type FormDefinition } from "./definition";
@@ -62,9 +63,7 @@ export function ApplicationForm({
       set(id, result.id);
     } catch {
       setError(
-        en
-          ? "Could not upload the file. Choose a PDF, JPEG, or PNG up to 5 MB."
-          : "تعذّر رفع المرفق. اختر PDF أو JPEG أو PNG حتى 5 ميجابايت.",
+        translateUi((en) ? "en" : "ar", "تعذّر رفع المرفق. اختر PDF أو JPEG أو PNG حتى 5 ميجابايت.", "Could not upload the file. Choose a PDF, JPEG, or PNG up to 5 MB."),
       );
     } finally {
       setUploading(null);
@@ -122,7 +121,7 @@ export function ApplicationForm({
               <div key={f.id}>
                 <label htmlFor={f.id} dir={en ? "ltr" : "rtl"}>
                   {f.label}
-                  {f.required ? " *" : en ? " (optional)" : " (اختياري)"}
+                  {f.required ? " *" : translateUi((en) ? "en" : "ar", " (اختياري)", " (optional)")}
                 </label>
                 {f.help && (
                   <p
@@ -158,7 +157,7 @@ export function ApplicationForm({
                     onChange={(e) => set(f.id, e.target.value)}
                   >
                     <option value="">
-                      {en ? "Choose a committee" : "اختر اللجنة"}
+                      {translateUi((en) ? "en" : "ar", "اختر اللجنة", "Choose a committee")}
                     </option>
                     {committees.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -173,7 +172,7 @@ export function ApplicationForm({
                     onChange={(e) => set(f.id, e.target.value)}
                   >
                     <option value="">
-                      {en ? "Choose an answer" : "اختر الإجابة"}
+                      {translateUi((en) ? "en" : "ar", "اختر الإجابة", "Choose an answer")}
                     </option>
                     {f.options.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -238,9 +237,7 @@ export function ApplicationForm({
                     </p>
                     {answers[f.id] && (
                       <a className="text-link" href={`/files/${answers[f.id]}`}>
-                        {en
-                          ? "Download current attachment"
-                          : "تنزيل المرفق الحالي"}
+                        {translateUi((en) ? "en" : "ar", "تنزيل المرفق الحالي", "Download current attachment")}
                       </a>
                     )}
                   </>
@@ -277,12 +274,10 @@ export function ApplicationForm({
             disabled={!step}
             onClick={() => setStep(step - 1)}
           >
-            {en ? "Previous" : "السابق"}
+            {translateUi((en) ? "en" : "ar", "السابق", "Previous")}
           </button>
           <p>
-            {en
-              ? `Section ${step + 1} of ${definition.sections.length}`
-              : `القسم ${step + 1} من ${definition.sections.length}`}
+            {translateUi((en) ? "en" : "ar", `القسم ${formatNumber(step + 1,locale)} من ${formatNumber(definition.sections.length,locale)}`, `Section ${step + 1} of ${definition.sections.length}`)}
           </p>
           <button
             type="button"
@@ -290,7 +285,7 @@ export function ApplicationForm({
             disabled={step === definition.sections.length - 1}
             onClick={() => setStep(step + 1)}
           >
-            {en ? "Next" : "التالي"}
+            {translateUi((en) ? "en" : "ar", "التالي", "Next")}
           </button>
         </div>
       )}
@@ -302,9 +297,7 @@ export function ApplicationForm({
       )}
       {definition.sections.some((s) => s.fields.length > 0) && (
         <p className="text-sm leading-7 text-muted">
-          {en
-            ? "Questions marked * are required. "
-            : "الأسئلة ذات العلامة * مطلوبة. "}
+          {translateUi((en) ? "en" : "ar", "الأسئلة ذات العلامة * مطلوبة. ", "Questions marked * are required. ")}
           {en
             ? event
               ? "You can edit your answers until registration closes."
@@ -312,9 +305,7 @@ export function ApplicationForm({
             : event
               ? "تقدر تعدّل إجاباتك قبل إغلاق التسجيل."
               : "تقدر تعدّل طلبك وهو قيد المراجعة أو المقابلة إذا الجولة مفتوحة."}{" "}
-          {en
-            ? "Wait for uploads to finish before submitting."
-            : "انتظر اكتمال رفع الملفات قبل الإرسال."}
+          {translateUi((en) ? "en" : "ar", "انتظر اكتمال رفع الملفات قبل الإرسال.", "Wait for uploads to finish before submitting.")}
         </p>
       )}
     </WorkflowForm>

@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { createContext, useContext, type ReactNode } from "react";
 import { Menu, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ export function WorkspaceSidebarLayout({
 
 export function WorkspaceSidebarTrigger({ locale }: { locale: "ar" | "en" }) {
   const { openMobile } = useWorkspaceSidebar();
-  const label = locale === "en" ? "Open navigation" : "فتح القائمة";
+  const label = translateUi((locale === "en") ? "en" : "ar", "فتح القائمة", "Open navigation");
 
   return <Button
     type="button"

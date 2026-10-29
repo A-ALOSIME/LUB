@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -16,7 +17,7 @@ export function ContactChannelAddMenu({ locale, onSelect, disabled = false, kind
   const en = locale === "en";
   return <DropdownMenu>
     <DropdownMenuTrigger render={<Button type="button" variant="outline" size="sm" disabled={disabled} className="organization-contact-add" />}>
-      <Plus aria-hidden="true" />{en ? "Add channel" : "إضافة قناة"}
+      <Plus aria-hidden="true" />{translateUi((en) ? "en" : "ar", "إضافة قناة", "Add channel")}
     </DropdownMenuTrigger>
     <DropdownMenuContent align={en ? "end" : "start"} className="min-w-40">
       <DropdownMenuGroup>{kinds.map(kind => <DropdownMenuItem key={kind} onClick={() => onSelect(kind)}>

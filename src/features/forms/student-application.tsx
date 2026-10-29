@@ -1,4 +1,5 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,7 @@ export function StudentApplication({
   locale: Locale;
 }) {
   const [editing, setEditing] = useState(false),
-    c = (ar: string, en: string) => (locale === "en" ? en : ar);
+    c = createTranslator((locale === "en") ? "en" : "ar");
   return (
     <Card>
       <CardHeader>

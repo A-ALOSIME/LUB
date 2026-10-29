@@ -1,3 +1,4 @@
+import {majorLabel} from "@/lib/display";
 import Link from "next/link";
 import { LubBrandName } from "@/components/lub-brand-name";
 import { BadgeCheck, CalendarDays, Clock, Building2, Calendar, Clock3, UsersRound } from "lucide-react";
@@ -36,6 +37,7 @@ import {
 import { TalentContactLinks } from "./contact-links";
 import { displaySkills, skillKey } from "./skill-normalization";
 import type { PublicTalent, TalentCard, TalentPages } from "./repository";
+import {formatNumber,t as translateUi,createTranslator} from "@/lib/i18n";
 import { Separator } from "@/components/ui/separator";
 import { OrganizationAvatars } from "./organization-avatars";
 import { MembershipHistory } from "./membership-history";
@@ -60,15 +62,15 @@ export function TalentPagination({
   return (
     <Pagination
       className="mt-4"
-      aria-label={locale === "en" ? "Profile pages" : "صفحات الملف"}
+      aria-label={translateUi((locale === "en") ? "en" : "ar", "صفحات الملف", "Profile pages")}
     >
       <PaginationContent>
         {pages[keyName] > 0 && (
           <PaginationItem>
             <PaginationPrevious
               href={href(pages[keyName] - 1)}
-              text={locale === "en" ? "Previous" : "السابق"}
-              aria-label={locale === "en" ? "Previous page" : "الصفحة السابقة"}
+              text={translateUi((locale === "en") ? "en" : "ar", "السابق", "Previous")}
+              aria-label={translateUi((locale === "en") ? "en" : "ar", "الصفحة السابقة", "Previous page")}
             />
           </PaginationItem>
         )}
@@ -76,8 +78,8 @@ export function TalentPagination({
           <PaginationItem>
             <PaginationNext
               href={href(pages[keyName] + 1)}
-              text={locale === "en" ? "Next" : "التالي"}
-              aria-label={locale === "en" ? "Next page" : "الصفحة التالية"}
+              text={translateUi((locale === "en") ? "en" : "ar", "التالي", "Next")}
+              aria-label={translateUi((locale === "en") ? "en" : "ar", "الصفحة التالية", "Next page")}
             />
           </PaginationItem>
         )}
@@ -152,7 +154,7 @@ export function TalentCards({
                       <bdi>{t.name}</bdi>
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      <bdi>{t.major}</bdi> · {academicLevel(t.level, locale)}
+                      <bdi>{majorLabel(t.major,locale)}</bdi> · {academicLevel(t.level, locale)}
                     </p>
                   </div>
                 </CardHeader>
@@ -177,7 +179,7 @@ export function TalentCards({
                       </Badge>
                     ))}
                     {skills.length > 3 && (
-                      <span className="text-sm text-muted-foreground">{locale === "en" ? `${skills.length - 3} more` : `و ${skills.length - 3} أخرى`}</span>
+                      <span className="text-sm text-muted-foreground">{translateUi((locale === "en") ? "en" : "ar", `و ${formatNumber(skills.length - 3,locale)} أخرى`, `${skills.length - 3} more`)}</span>
                     )}
                   </div>
                 </CardContent>
@@ -231,7 +233,7 @@ export function TalentEmpty({
             variant="outline"
             render={<Link href="/talent" />}
           >
-            {en ? "Clear search" : "مسح البحث"}
+            {translateUi((en) ? "en" : "ar", "مسح البحث", "Clear search")}
           </Button>
         </EmptyContent>
       )}
@@ -270,7 +272,7 @@ export function PublicTalentView({
   from?: string;
 }) {
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     skills = displaySkills(p.skills);
   return (
     <div
@@ -278,7 +280,7 @@ export function PublicTalentView({
     >
       <aside className="min-w-0">
         <Card>
-          <CardHeader className="flex flex-row items-center gap-4">
+          <CardHeader className="flex flex-row items-start gap-4">
             <Avatar className="size-24 shrink-0 sm:size-28">
               {p.avatar_version && (
                 <AvatarImage
@@ -286,17 +288,14 @@ export function PublicTalentView({
                   alt=""
                 />
               )}
-              <AvatarFallback>{p.name.trim().slice(0, 1)}</AvatarFallback>
+              <AvatarFallback className="text-3xl">{p.name.trim().slice(0, 1)}</AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
             <div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-2xl font-semibold"><bdi>{p.name}</bdi></h1><OrganizationAvatars items={p.organizations.filter(o=>!o.archived && o.memberships.some(m=>m.status_code==="Active"&&!m.end_date))} locale={locale}/></div>
             <p className="text-muted-foreground">
-              <bdi>{p.major}</bdi> · {academicLevel(p.level, locale)}
+              <bdi>{majorLabel(p.major,locale)}</bdi> · {academicLevel(p.level, locale)}
             </p>
             <ApprovedHours value={p.total ?? 0} locale={locale} />
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
             {skills.length > 0 ? (
               <div
                 className="flex flex-wrap gap-2"
@@ -324,10 +323,14 @@ export function PublicTalentView({
             {p.links.length > 0 && (
               <TalentContactLinks links={p.links} en={en} />
             )}
+
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <Separator/><section className="flex flex-col gap-2"><h2 className="font-semibold">{c("نبذة", "About")}</h2>{p.bio?<p className="whitespace-pre-wrap break-words leading-relaxed" dir="auto">{p.bio}</p>:owner?<OwnerPrompt>{c("أضف نبذة", "Add a bio")}</OwnerPrompt>:<p className="text-sm text-muted-foreground">{c("لم تُضف نبذة بعد", "No bio added yet")}</p>}</section>
           </CardContent>
           <CardFooter className="grid grid-cols-3 items-center gap-3 border-t border-border pt-4 text-center">
-            {[{value:p.total??0,unit:"hours",Icon:Clock},{value:p.stats?.organizations??p.organizations.length,unit:"organizations",Icon:Building2},{value:p.stats?.events??p.events.length,unit:"events",Icon:Calendar}].map(({value,unit,Icon})=><p key={unit} className="flex flex-wrap items-center justify-center gap-2 text-sm"><Icon className="size-4 text-muted-foreground" aria-hidden="true"/><span className="font-semibold">{formatCount(value,unit as "hours"|"organizations"|"events",locale,"nominative","number")}</span></p>)}
+            {[{value:p.total??0,unit:"hours",Icon:Clock},{value:p.stats?.organizations??p.organizations.length,unit:"organizations",Icon:Building2},{value:p.stats?.events??p.events.length,unit:"events",Icon:Calendar}].map(({value,unit,Icon})=><p key={unit} className="flex flex-wrap items-center justify-center gap-2 text-sm"><Icon className="size-4 text-muted-foreground" aria-hidden="true"/><CountStatistic value={value} unit={unit as "hours"|"organizations"|"events"} locale={locale}/></p>)}
           </CardFooter>
         </Card>
       </aside>
@@ -437,4 +440,9 @@ export function PublicTalentView({
       </div>
     </div>
   );
+}
+
+function CountStatistic({value,unit,locale}:{value:string|number;unit:"hours"|"organizations"|"events";locale:Locale}){
+ const text=formatCount(value,unit,locale,"nominative","number");const parts=text.match(/^([0-9٠-٩][0-9٠-٩.,٬٫]*)\s+(.+)$/u);
+ return parts?<><strong className="font-semibold tabular-nums">{parts[1]}</strong><span>{parts[2]}</span></>:<strong className="font-semibold">{text}</strong>;
 }

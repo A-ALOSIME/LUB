@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import { HoursAdvancedFilters } from "@/features/hours/hours-advanced-filters";
 import { cloneElement } from "react";
 import { RowAction } from "@/components/row-action";
@@ -37,7 +38,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
 }) {
   const [{ locale }, { id }, query] = await Promise.all([getPreferences(), params, searchParams]);
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   if (!z.uuid().safeParse(id).success) notFound();
 
   const number = (value?: string) => z.coerce.number().int().min(0).max(10000).catch(0).parse(value ?? "0");

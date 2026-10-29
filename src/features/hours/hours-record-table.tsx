@@ -1,5 +1,7 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import { useState } from "react";
 import { Check, Eye, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +72,7 @@ function RecordActions({
       "adjust" | "details" | "approve" | "reject" | null
     >(null),
     en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar);
+    c = createTranslator((en) ? "en" : "ar");
   const editable =
     record.canReview && ["Pending", "Approved"].includes(record.status_code);
   return (
@@ -214,7 +216,7 @@ function RecordActions({
                           {c("تعديل", "Adjustment")}{" "}
                           <bdi dir="ltr">
                             {delta > 0 ? "+" : "−"}
-                            {Math.abs(delta)}{" "}
+                            <NumberText value={Math.abs(delta)}/>{" "}
                             {en
                               ? "hours"
                               : Math.abs(delta) >= 3 && Math.abs(delta) <= 10
@@ -312,7 +314,7 @@ export function HoursRecordTable({
   personal?: boolean;
 }) {
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     records = items.slice(0, 25);
   const source = (record: HourRecord) =>
     `${labels[record.source_code]?.[en ? 1 : 0] ?? record.source_code}${!personal && record.context?.added_by ? ` ${c("بواسطة", "by")} ${record.context.added_by}` : ""}`;

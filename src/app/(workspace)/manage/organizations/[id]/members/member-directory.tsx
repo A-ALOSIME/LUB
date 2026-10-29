@@ -1,4 +1,7 @@
 "use client";
+import {majorLabel} from "@/lib/display";
+import {NumberText} from "@/components/number-text";
+import {createTranslator} from "@/lib/i18n";
 import {useRouter} from "next/navigation";
 import {Alert,AlertDescription} from "@/components/ui/alert";
 import {Checkbox} from "@/components/ui/checkbox";
@@ -16,7 +19,7 @@ import { mutateOrganizationMembers } from "@/features/organizations/members-acti
 import { Badge } from "@/components/ui/badge";
 import { RowAction } from "@/components/row-action";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
 import { FilterTabs } from "@/components/ui/filter-tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateInput } from "@/features/forms/date-input";
@@ -35,7 +38,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const members = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     return workspace.members.filter(member => {
@@ -47,10 +50,10 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
 
   return <>
     <div className="member-directory-toolbar mb-6" dir={en ? "ltr" : "rtl"}>
-      <div className="member-directory-search-wrap">
-        <Search aria-hidden="true" className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input type="text" role="searchbox" dir={en ? "ltr" : "rtl"} value={query} onChange={event => setQuery(event.target.value)} placeholder={c("الاسم أو التخصص أو اللجنة","Name, major or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search ps-9" />
-      </div>
+      <InputGroup className="member-directory-search-wrap">
+        <InputGroupAddon><Search/></InputGroupAddon>
+        <InputGroupInput type="text" role="searchbox" dir={en ? "ltr" : "rtl"} value={query} onChange={event => setQuery(event.target.value)} placeholder={c("الاسم أو التخصص أو اللجنة","Name, major or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search" />
+      </InputGroup>
       <FilterTabs value={status} ariaLabel={c("تصفية الأعضاء حسب الحالة", "Filter members by status")} dir={en ? "ltr" : "rtl"} size="sm" activeTone="primary" onValueChange={setStatus} options={[
         { value: "all", label: c("الكل", "All") },
         { value: "Active", label: c("نشطة", "Active") },
@@ -62,7 +65,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
     {members.length ? <>
       <div className="hidden overflow-hidden rounded-2xl border border-line bg-[var(--surface)] lg:block">
         <div className="overflow-x-auto"><table className="member-directory-table w-full min-w-[1200px] text-start"><thead><tr><th>{c("الطالب","Student")}</th><th>{c("العضوية","Membership")}</th><th>{c("الدور واللجان","Role and committees")}</th><th>{c("الساعات المعتمدة","Approved hours")}</th><th>{c("الإجراءات","Actions")}</th></tr></thead><tbody>{members.map(member => <tr key={member.id}>
-          <td><div className="member-directory-identity"><div className="min-w-0"><p className="font-semibold"><bdi>{member.name}</bdi></p><p className="mt-1 text-sm text-muted"><bdi>{member.major}</bdi> · {academicLevel(member.level,locale)}</p></div></div></td>
+          <td><div className="member-directory-identity"><div className="min-w-0"><p className="font-semibold"><bdi>{member.name}</bdi></p><p className="mt-1 text-sm text-muted"><bdi>{majorLabel(member.major,locale)}</bdi> · {academicLevel(member.level,locale)}</p></div></div></td>
           <td><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge><p className="mt-1 text-sm text-muted">{c("منذ", "Since")} {date(member.startDate, locale)}</p></td>
           <td><div className="member-directory-tags">{member.roles.length ? member.roles.map((role, i) => <Badge key={i} variant="secondary">{roleNames[role.code]?.[en ? 1 : 0] ?? role.code}{role.committee && <> · <bdi>{role.committee}</bdi></>}</Badge>) : <span className="text-sm text-muted">{c("عضو","Member")}</span>}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(committee => <Badge key={committee.id} variant="outline"><bdi>{committee.name}</bdi></Badge>)}{permissions?.grants.filter(grant => grant.membership === member.id).map(grant => <Badge key={grant.id} variant="secondary">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code}</Badge>)}</div></td>
           <td className="whitespace-nowrap">{formatHours(member.hours,locale)}</td>
@@ -70,7 +73,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
         </tr>)}</tbody></table></div>
       </div>
       <ul className="grid gap-3 lg:hidden">{members.map(member => <li key={member.id} className="member-directory-card panel min-w-0 p-4">
-        <div className="flex items-start justify-between gap-3"><div className="member-directory-identity min-w-0"><div className="min-w-0"><h3 className="break-words font-bold"><bdi>{member.name}</bdi></h3><p className="mt-1 text-sm text-muted"><bdi>{member.major}</bdi> · {academicLevel(member.level,locale)}</p></div></div><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge></div>
+        <div className="flex items-start justify-between gap-3"><div className="member-directory-identity min-w-0"><div className="min-w-0"><h3 className="break-words font-bold"><bdi>{member.name}</bdi></h3><p className="mt-1 text-sm text-muted"><bdi>{majorLabel(member.major,locale)}</bdi> · {academicLevel(member.level,locale)}</p></div></div><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge></div>
         <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm"><div><dt className="text-muted">{c("تاريخ الانضمام","Joined")}</dt><dd className="mt-1 font-medium">{c("منذ", "Since")} {date(member.startDate, locale)}</dd></div><div><dt className="text-muted">{c("الساعات","Hours")}</dt><dd className="mt-1">{formatHours(member.hours,locale)}</dd></div></dl>
         <div className="mt-3 flex flex-wrap gap-2">{member.roles.map((role,i)=><Badge key={i} variant="secondary">{roleNames[role.code]?.[en?1:0]??role.code}{role.committee?` · ${role.committee}`:""}</Badge>)}{permissions?.grants.filter(grant => grant.membership === member.id).map(grant => <Badge key={grant.id} variant="secondary">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code}</Badge>)}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(committee=><Badge key={committee.id} variant="outline"><bdi>{committee.name}</bdi></Badge>)}</div>
         <div className="mt-4 lg:hidden"><MemberActions organization={organization} member={member} workspace={workspace} committees={permissions?.committees ?? []} locale={locale} mobile /></div>
@@ -81,7 +84,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
 
 function MemberActions({ organization, member, workspace, committees, locale, mobile = false }: { organization: string; member: OrganizationMemberWorkspace["members"][number]; workspace: OrganizationMemberWorkspace; committees: OrganizationPermissionWorkspace["committees"]; locale: Locale; mobile?: boolean }) {
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const canAddHours = workspace.canAddHours || member.hourScopes.length > 0;
   const [action, setAction] = useState<"hours" | "grant" | "move" | "end" | null>(null);
   const router=useRouter();
@@ -111,7 +114,7 @@ function MemberActions({ organization, member, workspace, committees, locale, mo
 
 function PermissionGrantDialog({ organization, member, committees, locale, open, onOpenChange, hideTrigger = false }: { organization: string; member: OrganizationMemberWorkspace["members"][number]; committees: OrganizationPermissionWorkspace["committees"]; locale: Locale; open?: boolean; onOpenChange?: (open: boolean) => void; hideTrigger?: boolean }) {
   const [capability, setCapability] = useState("MEMBERS_VIEW");
-  const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   return <ManagementActionSheet label={c("منح صلاحية", "Grant access")} title={c(`تفويض ${member.name}`, `Grant access to ${member.name}`)} locale={locale} icon={<ShieldPlus aria-hidden="true" />} open={open} onOpenChange={onOpenChange} hideTrigger={hideTrigger}>
     <WorkflowForm operation="grant" fields={{ org: organization, member: member.id }} label={c("حفظ التفويض", "Save permission")} mutation={mutateOrganizationMembers} locale={locale}>
       <FormField  label={<>{c("الصلاحية", "Permission")}</>}><NativeSelect name="capability" value={capability} onChange={event => setCapability(event.target.value)}>{Object.entries(permissionLabels).map(([code, labels]) => <option key={code} value={code}>{labels[en ? 1 : 0]}</option>)}</NativeSelect></FormField>
@@ -122,11 +125,11 @@ function PermissionGrantDialog({ organization, member, committees, locale, open,
 }
 
 function ActiveDelegations({ organization, data, locale }: { organization: string; data: OrganizationPermissionWorkspace; locale: Locale }) {
-  const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   const date = (value: string) => formatRiyadhDate(value, locale);
   return <Popover>
     <Tooltip><TooltipTrigger render={<span className="inline-flex" tabIndex={0}/>}>
-    <PopoverTrigger render={<Button type="button" variant="outline" size="default"><ShieldCheck aria-hidden="true" />{c("عرض التفويضات النشطة", "View active permissions")} {data.grants.length>0&&<Badge variant="secondary">{data.grants.length}</Badge>}</Button>} /></TooltipTrigger><TooltipContent>{c("التفويض يمنح عضوًا صلاحية محددة لفترة أو نطاق معين.","Delegation grants a member a specific permission for a scope or period.")}</TooltipContent></Tooltip>
+    <PopoverTrigger render={<Button type="button" variant="outline" size="default"><ShieldCheck aria-hidden="true" />{c("عرض التفويضات النشطة", "View active permissions")} {data.grants.length>0&&<Badge variant="secondary"><NumberText value={data.grants.length}/></Badge>}</Button>} /></TooltipTrigger><TooltipContent>{c("التفويض يمنح عضوًا صلاحية محددة لفترة أو نطاق معين.","Delegation grants a member a specific permission for a scope or period.")}</TooltipContent></Tooltip>
     <PopoverContent align={en ? "end" : "start"} className="max-h-[min(70vh,32rem)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto">
       {data.grants.length ? <ul className="divide-y divide-border">{data.grants.map(grant => <li key={grant.id} className="grid gap-1 py-3 first:pt-0">
         <p className="font-medium"><bdi>{grant.member}</bdi></p>

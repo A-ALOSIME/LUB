@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 export default function TalentError({ reset }: { reset: () => void }) {
@@ -8,12 +9,12 @@ export default function TalentError({ reset }: { reset: () => void }) {
     <main id="main" className="mx-auto max-w-6xl px-4 py-8">
       <Alert variant="destructive">
         <AlertTitle>
-          {en ? "Unable to load talent" : "تعذّر تحميل المواهب"}
+          {translateUi((en) ? "en" : "ar", "تعذّر تحميل المواهب", "Unable to load talent")}
         </AlertTitle>
         <AlertDescription>
-          {en ? "Please try again shortly." : "حاول مرة أخرى بعد قليل."}
+          {translateUi((en) ? "en" : "ar", "حاول مرة أخرى بعد قليل.", "Please try again shortly.")}
           <Button variant="outline" onClick={reset}>
-            {en ? "Try again" : "إعادة المحاولة"}
+            {translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Try again")}
           </Button>
         </AlertDescription>
       </Alert>

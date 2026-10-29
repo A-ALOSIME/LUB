@@ -7,9 +7,9 @@ import {AnnouncementList} from "./announcement-list";
 const items=[{id:"first",title:"الإعلان المنشور",body:"تفاصيل الإعلان",published:true,pinned:true,createdAt:"2026-10-27T12:00:00Z"},{id:"second",title:"مسودة جديدة",body:"محتوى المسودة",published:false,pinned:false,createdAt:"2026-10-27T12:00:00Z"}];
 beforeEach(()=>mutation.mockClear());afterEach(cleanup);
 it("filters drafts without claiming the organization has no announcements",()=>{
- render(<AnnouncementList org="org" items={items}/>);fireEvent.click(screen.getByRole("tab",{name:/مسودة\s*1/}));
+ render(<AnnouncementList org="org" items={items}/>);fireEvent.click(screen.getByRole("tab",{name:/مسودة\s*١/}));
  expect(screen.getByRole("heading",{name:"مسودة جديدة"})).toBeTruthy();expect(screen.queryByRole("heading",{name:"الإعلان المنشور"})).toBeNull();
- fireEvent.click(screen.getByRole("tab",{name:/مؤرشف\s*0/}));expect(screen.getByRole("status").textContent).toContain("بهذه الحالة");expect(screen.queryByText("لا توجد إعلانات بعد")).toBeNull();
+ fireEvent.click(screen.getByRole("tab",{name:/مؤرشف\s*٠/}));expect(screen.getByRole("status").textContent).toContain("بهذه الحالة");expect(screen.queryByText("لا توجد إعلانات بعد")).toBeNull();
 });
 it("requires named confirmation before archiving",async()=>{
  render(<AnnouncementList org="org" items={[items[0]]}/>);fireEvent.click(screen.getByRole("button",{name:"أرشفة الإعلان"}));

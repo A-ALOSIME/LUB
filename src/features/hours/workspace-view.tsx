@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { formatHours,recordCount } from "@/lib/display";
 import { LiveFilterForm } from "@/components/live-filter-form";
@@ -16,7 +17,7 @@ import { HoursStatusSummary } from "./hours-status-summary";
 export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; rulePage: number; q?:string };
 
 export function HoursWorkspaceView({ data, org, filters, locale = "ar" }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale?: Locale }) {
-  const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   const base = `/manage/organizations/${org}/tasks`;
   const membersHref = `/manage/organizations/${org}/members`;
   const { term, committee, page, memberPage, rulePage } = filters;

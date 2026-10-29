@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { mutateWorkflow, type WorkflowState } from "./actions";
 import type {Locale} from "@/lib/preferences";
@@ -13,10 +14,10 @@ export function WorkflowForm({ operation, fields = {}, label, children, secondar
  <input type="hidden" name="operation" value={operation} />{Object.entries(fields).map(([key,value]) => <input key={key} type="hidden" name={key} value={value} />)}
  {splitBody ? <div className="workflow-form-body"> {children}{state.error && <p ref={alert} tabIndex={-1} role="alert" className="error-message">{actionFeedback(state.error,locale)}</p>}
  {state.success && <p role="status" className="text-action">{actionFeedback(state.success,locale)}</p>}
- {state.bulk && <button formAction={action} name="undoBulk" value={state.bulk} className="button button-secondary" disabled={pending}>{locale==="en"?"Undo action":"تراجع عن العملية"}</button>}
+ {state.bulk && <button formAction={action} name="undoBulk" value={state.bulk} className="button button-secondary" disabled={pending}>{translateUi((locale==="en") ? "en" : "ar", "تراجع عن العملية", "Undo action")}</button>}
 </div> : <> {children}{state.error && <p ref={alert} tabIndex={-1} role="alert" className="error-message">{actionFeedback(state.error,locale)}</p>}
  {state.success && <p role="status" className="text-action">{actionFeedback(state.success,locale)}</p>}
- {state.bulk && <button formAction={action} name="undoBulk" value={state.bulk} className="button button-secondary" disabled={pending}>{locale==="en"?"Undo action":"تراجع عن العملية"}</button>}
+ {state.bulk && <button formAction={action} name="undoBulk" value={state.bulk} className="button button-secondary" disabled={pending}>{translateUi((locale==="en") ? "en" : "ar", "تراجع عن العملية", "Undo action")}</button>}
 </>}
- <ManagementActionFooter label={pending ? locale==="en"?"Saving…":"جارٍ الحفظ…" : label} pending={pending} disabled={disabled} secondaryAction={secondaryAction} buttonClassName={buttonClassName} cancelVariant={cancelVariant}/></form>;
+ <ManagementActionFooter label={pending ? translateUi((locale==="en") ? "en" : "ar", "جارٍ الحفظ…", "Saving…") : label} pending={pending} disabled={disabled} secondaryAction={secondaryAction} buttonClassName={buttonClassName} cancelVariant={cancelVariant}/></form>;
 }

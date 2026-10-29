@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ export function MemberSearchSelect({ members, locale = "ar" }: { members: Array<
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<{ id: string; name: string }>();
   const [open, setOpen] = useState(false);
-  const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   const filtered = members.filter(member => member.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 30);
   return <FormField id="hours-member-search" label={c("العضو", "Member")} className="relative">
     <div className="relative">

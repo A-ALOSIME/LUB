@@ -1,6 +1,8 @@
+import {t as translateUi} from "@/lib/i18n";
+import {normalizeMajor,studentMajors,studentMajorsEn} from "./student-identity";
 import type { Locale } from "./preferences";
 
-const countFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits:2 });
+import {formatNumber} from "./i18n";
 
 const countForms = {
   organizations:{one:"جهة واحدة",two:"جهتان",oblique:"جهتين",plural:"جهات",singular:"جهة",zero:"لا جهات",en:"organization"},
@@ -16,7 +18,7 @@ const countForms = {
 
 export function formatCount(value: number | string, unit: keyof typeof countForms, locale: Locale = "ar", grammaticalCase: "nominative" | "oblique" = "nominative", zeroStyle: "words" | "number" = "words") {
   const count = Number(value), forms = countForms[unit];
-  const number = countFormatter.format(count);
+  const number = formatNumber(count,locale);
   if (locale === "en") return `${number} ${forms.en}${count === 1 ? "" : "s"}`;
   if (count === 0) return zeroStyle === "number" ? `${number} ${unit === "hours" ? forms.singular : forms.plural}` : forms.zero;
   if (count === 1) return forms.one;
@@ -32,8 +34,8 @@ export function academicLevel(
   value: string | null | undefined,
   locale: Locale = "ar",
 ) {
-  if (!value) return locale === "en" ? "Level not set" : "المستوى غير محدد";
-  if (value === "graduate") return locale === "en" ? "Graduate" : "دراسات عليا";
+  if (!value) return translateUi((locale === "en") ? "en" : "ar", "المستوى غير محدد", "Level not set");
+  if (value === "graduate") return translateUi((locale === "en") ? "en" : "ar", "دراسات عليا", "Graduate");
   const levels = [
     "الأول",
     "الثاني",
@@ -49,12 +51,10 @@ export function academicLevel(
     "الثاني عشر",
   ];
   const wordIndex=levels.indexOf(value.replace(/^المستوى\s*/,""));
-  if(wordIndex>=0)return locale==="en"?`Level ${wordIndex+1}`:`المستوى ${levels[wordIndex]}`;
+  if(wordIndex>=0)return translateUi((locale==="en") ? "en" : "ar", `المستوى ${levels[wordIndex]}`, `Level ${wordIndex+1}`);
   const n = Number(value.replace(/^المستوى\s*/, ""));
   return levels[n - 1]
-    ? locale === "en"
-      ? `Level ${n}`
-      : `المستوى ${levels[n - 1]}`
+    ? translateUi((locale === "en") ? "en" : "ar", `المستوى ${levels[n - 1]}`, `Level ${n}`)
     : value;
 }
 
@@ -77,4 +77,9 @@ export function academicTerm(value: string, locale: Locale = "ar") {
 
 export function recordCount(count: number, locale: Locale = "ar") {
   return formatCount(count, "records", locale);
+}
+
+export function majorLabel(value:string,locale:Locale="ar"){
+ const index=studentMajors.indexOf(normalizeMajor(value) as typeof studentMajors[number]);
+ return locale==="en"&&index>=0?studentMajorsEn[index]:value;
 }

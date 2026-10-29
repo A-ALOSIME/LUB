@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -40,7 +41,7 @@ export default async function AdminEditOrganization({
         nativeButton={false}
         render={<Link href="/manage/organizations" />}
       >
-        {locale === "en" ? "Back to organizations" : "رجوع للجهات"}
+        {translateUi((locale === "en") ? "en" : "ar", "رجوع للجهات", "Back to organizations")}
       </Button>
       <OrganizationProfileEditor
         managed={managed}

@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import type {Locale} from "@/lib/preferences";
@@ -5,5 +6,5 @@ export function TaskPagination({page,more,base,query={},locale="ar",pageParam="p
  const en=locale==="en";
  const url=(next:number)=>`${base}?${new URLSearchParams({...query,[pageParam]:String(next)})}`;
  if(page===0&&!more)return null;
- return <nav aria-label={en?"Record pages":"صفحات السجلات"} className="mt-6 flex flex-wrap items-center gap-4">{page>0&&(onPageChange?<Button variant="outline" onClick={()=>onPageChange(page-1)}>{en?"Previous":"السابق"}</Button>:<Link className="button button-secondary" href={url(page-1)}>{en?"Previous":"السابق"}</Link>)}<span>{en?`Page ${page+1}`:`الصفحة ${page+1}`}</span>{more&&(onPageChange?<Button variant="outline" onClick={()=>onPageChange(page+1)}>{en?"Next":"التالي"}</Button>:<Link className="button button-secondary" href={url(page+1)}>{en?"Next":"التالي"}</Link>)}</nav>;
+ return <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات السجلات", "Record pages")} className="mt-6 flex flex-wrap items-center gap-4">{page>0&&(onPageChange?<Button variant="outline" onClick={()=>onPageChange(page-1)}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Button>:<Link className="button button-secondary" href={url(page-1)}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Link>)}<span>{translateUi((en) ? "en" : "ar", `الصفحة ${page+1}`, `Page ${page+1}`)}</span>{more&&(onPageChange?<Button variant="outline" onClick={()=>onPageChange(page+1)}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Button>:<Link className="button button-secondary" href={url(page+1)}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Link>)}</nav>;
 }

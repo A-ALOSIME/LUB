@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -44,14 +45,12 @@ export function OrganizationSlugField({
   }, [value, organizationId]);
   return (
     <FormField
-      label={en ? "URL name" : "اسم الرابط"}
+      label={translateUi((en) ? "en" : "ar", "اسم الرابط", "URL name")}
       required
       hint={
         <span className="flex flex-col gap-1">
           <span>
-            {en
-              ? "Used in the public page address."
-              : "يظهر في رابط الصفحة العامة."}
+            {translateUi((en) ? "en" : "ar", "يظهر في رابط الصفحة العامة.", "Used in the public page address.")}
           </span>
           <bdi dir="ltr" className="break-all">
             https://lub.community/organizations/{value || "…"}
@@ -60,25 +59,25 @@ export function OrganizationSlugField({
             {state === "checking" ? (
               <>
                 <Spinner className="size-3" />
-                {en ? "Checking…" : "جاري التحقق…"}
+                {translateUi((en) ? "en" : "ar", "جاري التحقق…", "Checking…")}
               </>
             ) : state === "available" ? (
               <>
                 <Check className="size-3" />
-                {en ? "Available" : "متاح"}
+                {translateUi((en) ? "en" : "ar", "متاح", "Available")}
               </>
             ) : state === "unavailable" ? (
-              en ? (
-                "Unavailable or invalid URL name"
-              ) : (
+              translateUi((en) ? "en" : "ar", (
                 "اسم الرابط غير متاح أو صيغته غير صالحة"
-              )
+              ), (
+                "Unavailable or invalid URL name"
+              ))
             ) : state === "error" ? (
-              en ? (
-                "Could not check availability."
-              ) : (
+              translateUi((en) ? "en" : "ar", (
                 "تعذّر التحقق من التوفر."
-              )
+              ), (
+                "Could not check availability."
+              ))
             ) : (
               " "
             )}
@@ -87,9 +86,7 @@ export function OrganizationSlugField({
       }
       error={
         state === "unavailable"
-          ? en
-            ? "Choose another valid URL name."
-            : "اختر اسم رابط آخر بصيغة صحيحة."
+          ? translateUi((en) ? "en" : "ar", "اختر اسم رابط آخر بصيغة صحيحة.", "Choose another valid URL name.")
           : undefined
       }
     >

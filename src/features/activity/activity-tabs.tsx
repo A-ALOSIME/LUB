@@ -1,5 +1,6 @@
 "use client"
 
+import {t as translateUi} from "@/lib/i18n";
 import { useRouter, useSearchParams } from "next/navigation"
 import { CalendarDays, ClipboardCheck, Clock3 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,13 +38,13 @@ export function ActivityTabs({
   >
     <TabsList className="workspace-segmented-control group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
       <TabsTrigger value="tasks" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
-        <ClipboardCheck aria-hidden="true" />{en ? "Tasks" : "المهام"}
+        <ClipboardCheck aria-hidden="true" />{translateUi((en) ? "en" : "ar", "المهام", "Tasks")}
       </TabsTrigger>
       <TabsTrigger value="events" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
-        <CalendarDays aria-hidden="true" />{en ? "Events" : "الفعاليات"}
+        <CalendarDays aria-hidden="true" />{translateUi((en) ? "en" : "ar", "الفعاليات", "Events")}
       </TabsTrigger>
       <TabsTrigger value="hours" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
-        <Clock3 aria-hidden="true" />{en ? "Hours" : "الساعات"}
+        <Clock3 aria-hidden="true" />{translateUi((en) ? "en" : "ar", "الساعات", "Hours")}
       </TabsTrigger>
     </TabsList>
     <TabsContent value="tasks" className="min-w-0">{tasks}</TabsContent>

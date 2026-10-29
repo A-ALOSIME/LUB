@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import {
   useActionState,
   useEffect,
@@ -78,14 +79,14 @@ export function HoursForm({
           {children}
           <ManagementActionFooter
             label={
-              pending ? (locale === "en" ? "Saving…" : "جارٍ الحفظ…") : label
+              pending ? (translateUi((locale === "en") ? "en" : "ar", "جارٍ الحفظ…", "Saving…")) : label
             }
             pending={pending}
             disabled={disabled}
             buttonClassName={buttonClassName}
             sticky={!policyFooter}
             showCancel={!policyFooter}
-            secondaryAction={policyFooter?<Button type="reset" variant="ghost" disabled={pending}>{locale==="en"?"Cancel":"إلغاء"}</Button>:undefined}
+            secondaryAction={policyFooter?<Button type="reset" variant="ghost" disabled={pending}>{translateUi((locale==="en") ? "en" : "ar", "إلغاء", "Cancel")}</Button>:undefined}
           />
         </fieldset>
         {state.error && (
@@ -108,14 +109,10 @@ export function HoursForm({
         <AlertDialogContent dir={locale === "en" ? "ltr" : "rtl"}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {locale === "en"
-                ? "Add a duplicate hours record?"
-                : "إضافة سجل ساعات مكرر؟"}
+              {translateUi((locale === "en") ? "en" : "ar", "إضافة سجل ساعات مكرر؟", "Add a duplicate hours record?")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {locale === "en"
-                ? "A matching record exists for this member, date, reason and hours. Is another entry intentional?"
-                : "يوجد سجل للعضو نفسه بالتاريخ والسبب وعدد الساعات نفسها. هل تقصد إضافة سجل آخر؟"}
+              {translateUi((locale === "en") ? "en" : "ar", "يوجد سجل للعضو نفسه بالتاريخ والسبب وعدد الساعات نفسها. هل تقصد إضافة سجل آخر؟", "A matching record exists for this member, date, reason and hours. Is another entry intentional?")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -131,10 +128,10 @@ export function HoursForm({
                 }
               }}
             >
-              {locale === "en" ? "Add another record" : "إضافة سجل آخر"}
+              {translateUi((locale === "en") ? "en" : "ar", "إضافة سجل آخر", "Add another record")}
             </AlertDialogAction>
             <AlertDialogCancel>
-              {locale === "en" ? "Cancel" : "إلغاء"}
+              {translateUi((locale === "en") ? "en" : "ar", "إلغاء", "Cancel")}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

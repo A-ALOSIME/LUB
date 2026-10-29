@@ -1,4 +1,5 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {Pencil,SlidersHorizontal,Copy,Upload,EyeOff} from "lucide-react";
@@ -8,7 +9,7 @@ import {toast} from "@/components/ui/toast";
 import {mutateEvent} from "./actions";
 import type {Locale} from "@/lib/preferences";
 export function EventListActions({event,locale}:{event:{id:string;title:string;revision:number;status_code:string;organization_id:string};locale:Locale}){
- const [confirm,setConfirm]=useState(false),[pending,start]=useTransition();const router=useRouter();const c=(ar:string,en:string)=>locale==="en"?en:ar;const published=event.status_code==="Published";
+ const [confirm,setConfirm]=useState(false),[pending,start]=useTransition();const router=useRouter();const c=createTranslator((locale==="en") ? "en" : "ar");const published=event.status_code==="Published";
  function act(operation:"status"|"duplicate"){start(async()=>{try{const form=new FormData();form.set("operation",operation);form.set("event",event.id);form.set("revision",String(event.revision));form.set("status",published?"Draft":"Published");form.set("confirm","on");const result=await mutateEvent({},form);if(result.error){toast.add({title:result.error,type:"error",timeout:0});return;}setConfirm(false);router.refresh();if(result.eventId&&operation==="duplicate")router.push(`/manage/organizations/${event.organization_id}/events/${result.eventId}`);toast.add({title:c("تم حفظ التغيير","Change saved"),type:"success",timeout:3000});}catch{toast.add({title:c("تعذّر تنفيذ الإجراء. أعد المحاولة.","Action failed. Try again."),type:"error",timeout:0});}});}
  return <div className="relative flex shrink-0 flex-wrap items-center gap-2" onClick={event=>event.stopPropagation()}>
   <RowAction href={`/manage/organizations/${event.organization_id}/events/${event.id}?action=edit`} label={c("تعديل","Edit")}><Pencil/></RowAction>

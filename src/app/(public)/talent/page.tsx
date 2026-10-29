@@ -1,4 +1,5 @@
 import { TalentSearch } from "@/features/talent/talent-search";
+import {formatNumber,t as translateUi} from "@/lib/i18n";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { searchTalent } from "@/features/talent/repository";
 import { TalentCards, TalentEmpty } from "@/features/talent/view";
@@ -51,12 +52,10 @@ export default async function TalentDirectory({
     >
       <header className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold">
-          {en ? "Discover talent" : "اكتشاف المواهب"}
+          {translateUi((en) ? "en" : "ar", "اكتشاف المواهب", "Discover talent")}
         </h1>
         <p className="leading-relaxed text-muted-foreground">
-          {en
-            ? "Student skills, backed by approved activity in clubs, councils and events."
-            : "مهارات طلابية تدعمها مشاركة موثّقة في الأندية والمجالس والفعاليات."}
+          {translateUi((en) ? "en" : "ar", "مهارات طلابية تدعمها مشاركة موثّقة في الأندية والمجالس والفعاليات.", "Student skills, backed by approved activity in clubs, councils and events.")}
         </p>
       </header>
       <TalentSearch initial={filters} options={result.options} en={en} />
@@ -65,8 +64,8 @@ export default async function TalentDirectory({
         aria-live="polite"
         className="text-sm text-muted-foreground"
       >
-        {new Intl.NumberFormat("en-US").format(result.total)}{" "}
-        {en ? "results" : "نتيجة"}
+        {formatNumber(result.total,locale)}{" "}
+        {translateUi((en) ? "en" : "ar", "نتيجة", "results")}
       </p>
       {result.items.length ? (
         <TalentCards items={result.items} locale={locale} returnTo={from} />
@@ -74,14 +73,14 @@ export default async function TalentDirectory({
         <TalentEmpty en={en} filtered={result.available > 0} />
       )}
       {(filters.page > 0 || (filters.page + 1) * 24 < result.total) && (
-        <Pagination aria-label={en ? "Talent pages" : "صفحات المواهب"}>
+        <Pagination aria-label={translateUi((en) ? "en" : "ar", "صفحات المواهب", "Talent pages")}>
           <PaginationContent>
             {filters.page > 0 && (
               <PaginationItem>
                 <PaginationPrevious
                   href={talentHref({ ...filters, page: filters.page - 1 })}
-                  text={en ? "Previous" : "السابق"}
-                  aria-label={en ? "Previous page" : "الصفحة السابقة"}
+                  text={translateUi((en) ? "en" : "ar", "السابق", "Previous")}
+                  aria-label={translateUi((en) ? "en" : "ar", "الصفحة السابقة", "Previous page")}
                 />
               </PaginationItem>
             )}
@@ -89,8 +88,8 @@ export default async function TalentDirectory({
               <PaginationItem>
                 <PaginationNext
                   href={talentHref({ ...filters, page: filters.page + 1 })}
-                  text={en ? "Next" : "التالي"}
-                  aria-label={en ? "Next page" : "الصفحة التالية"}
+                  text={translateUi((en) ? "en" : "ar", "التالي", "Next")}
+                  aria-label={translateUi((en) ? "en" : "ar", "الصفحة التالية", "Next page")}
                 />
               </PaginationItem>
             )}

@@ -1,5 +1,7 @@
 "use client";
 
+import {formatNumber,t as translateUi,createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import {useRouter} from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import {
@@ -77,7 +79,7 @@ export function FormEditor({
 }) {
   const router=useRouter();
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     id = useId(),
     formRef = useRef<HTMLFormElement>(null),
     expected = useRef(revision);
@@ -286,10 +288,10 @@ export function FormEditor({
         {definition.sections.map((section, si) => (
           <EditorSection
             key={section.id}
-            title={`${c("القسم", "Section")} ${si + 1}: ${section.title}`}
+            title={`${c("القسم", "Section")} ${formatNumber(si + 1,locale)}: ${section.title}`}
             defaultOpen={openedSections.includes(section.id)}
             onDrop={event=>{event.preventDefault();if(drag&&drag.field===undefined)moveSection(drag.section,si);setDrag(null);}}
-            tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب القسم","Drag to reorder section")} onDragStart={event=>{setDrag({section:si});event.dataTransfer.setData("text/plain",section.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات القسم","Section actions")} ${si+1}`} locale={locale} upDisabled={!si} downDisabled={si===definition.sections.length-1} copyDisabled={definition.sections.length>=12} deleteDisabled={definition.sections.length===1} onUp={()=>moveSection(si,si-1)} onDown={()=>moveSection(si,si+1)} onCopy={()=>copySection(si)} onDelete={()=>setRemoval({title:section.title,section:si})}/></>}
+            tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب القسم","Drag to reorder section")} onDragStart={event=>{setDrag({section:si});event.dataTransfer.setData("text/plain",section.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات القسم","Section actions")} ${formatNumber(si+1,locale)}`} locale={locale} upDisabled={!si} downDisabled={si===definition.sections.length-1} copyDisabled={definition.sections.length>=12} deleteDisabled={definition.sections.length===1} onUp={()=>moveSection(si,si-1)} onDown={()=>moveSection(si,si+1)} onCopy={()=>copySection(si)} onDelete={()=>setRemoval({title:section.title,section:si})}/></>}
           >
             <FieldGroup>
               <FormField  id={`${section.id}-title`} label={<>
@@ -340,9 +342,9 @@ export function FormEditor({
                 const conditionSource=earlier.find(previous=>previous.id===field.condition?.fieldId);
                 const answeredCondition=field.condition?.operator==="Answered" || (conditionSource?.type==="Committee" && field.condition?.operator==="Equals" && field.condition.value==="true");
                 return (
-                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} {fi+1} · {field.label}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
+                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · {field.label}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
                     onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
-                    tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${fi+1}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
+                    tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${formatNumber(fi+1,locale)}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
                     <FieldGroup>
                       <FormField  id={`${field.id}-label`} label={<>
@@ -447,7 +449,7 @@ export function FormEditor({
                           {field.options.map((option, oi) => (
                             <Field key={option.value}>
                               <FieldLabel htmlFor={`${field.id}-option-${oi}`}>
-                                {c("الخيار", "Option")} {oi + 1}
+                                {c("الخيار", "Option")} <NumberText value={oi + 1}/>
                               </FieldLabel>
                               <div className="flex items-center gap-2">
                                 <Input
@@ -811,19 +813,19 @@ function EditorSection({title,tools,children,defaultOpen=false,kind="section",on
 function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {
  const en=locale==="en";
  return <div className="flex flex-wrap items-center gap-1" aria-label={label}>{[
- {name:en?"Move up":"تحريك لأعلى",Icon:ArrowUp,disabled:upDisabled,run:onUp},
- {name:en?"Move down":"تحريك لأسفل",Icon:ArrowDown,disabled:downDisabled,run:onDown},
- {name:en?"Duplicate section":"نسخ القسم",Icon:Copy,disabled:copyDisabled,run:onCopy},
- {name:en?"Delete section":"حذف القسم",Icon:Trash2,disabled:deleteDisabled,run:onDelete,danger:true},
+ {name:translateUi((en) ? "en" : "ar", "تحريك لأعلى", "Move up"),Icon:ArrowUp,disabled:upDisabled,run:onUp},
+ {name:translateUi((en) ? "en" : "ar", "تحريك لأسفل", "Move down"),Icon:ArrowDown,disabled:downDisabled,run:onDown},
+ {name:translateUi((en) ? "en" : "ar", "نسخ القسم", "Duplicate section"),Icon:Copy,disabled:copyDisabled,run:onCopy},
+ {name:translateUi((en) ? "en" : "ar", "حذف القسم", "Delete section"),Icon:Trash2,disabled:deleteDisabled,run:onDelete,danger:true},
  ].map(({name,Icon,disabled,run,danger})=><RowAction key={name} label={`${name} · ${label}`} hint={name} disabled={disabled} danger={danger} onClick={run}><Icon/></RowAction>)}</div>;
 }
 
 function QuestionActions({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}){
  const en=locale==="en";
  return <>{[
-  {name:en?"Move up":"تحريك لأعلى",Icon:ArrowUp,disabled:upDisabled,run:onUp},
-  {name:en?"Move down":"تحريك لأسفل",Icon:ArrowDown,disabled:downDisabled,run:onDown},
-  {name:en?"Duplicate question":"نسخ السؤال",Icon:Copy,disabled:copyDisabled,run:onCopy},
-  {name:en?"Delete question":"حذف السؤال",Icon:Trash2,disabled:deleteDisabled,run:onDelete,danger:true},
+  {name:translateUi((en) ? "en" : "ar", "تحريك لأعلى", "Move up"),Icon:ArrowUp,disabled:upDisabled,run:onUp},
+  {name:translateUi((en) ? "en" : "ar", "تحريك لأسفل", "Move down"),Icon:ArrowDown,disabled:downDisabled,run:onDown},
+  {name:translateUi((en) ? "en" : "ar", "نسخ السؤال", "Duplicate question"),Icon:Copy,disabled:copyDisabled,run:onCopy},
+  {name:translateUi((en) ? "en" : "ar", "حذف السؤال", "Delete question"),Icon:Trash2,disabled:deleteDisabled,run:onDelete,danger:true},
  ].map(({name,Icon,disabled,run,danger})=><RowAction key={name} label={`${name} · ${label}`} hint={name} disabled={disabled} danger={danger} onClick={run}><Icon/></RowAction>)}</>;
 }

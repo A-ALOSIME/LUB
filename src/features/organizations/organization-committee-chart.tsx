@@ -1,5 +1,7 @@
 "use client";
 
+import {NumberText} from "@/components/number-text";
+import {createTranslator,t as translateUi} from "@/lib/i18n";
 import {formatCount} from "@/lib/display";
 import { useEffect, useMemo, useState } from "react";
 import { Handle, Panel, Position, ReactFlow, useReactFlow, useStore, type Node, type NodeProps } from "@xyflow/react";
@@ -32,7 +34,7 @@ type ChartNode = Node<{
 function CommitteeNode({ data }: NodeProps<ChartNode>) {
   const { committee, name, locale, readOnly, canManage, hasChildren, expanded, onToggle, onAction, rootDetails } = data;
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const meta = committee ? [committee.leaderName?.trim(), committee.memberCount !== null && committee.memberCount > 0 ? formatCount(committee.memberCount,"members",locale) : undefined].filter(Boolean) : rootDetails;
   return <>
     {committee && <Handle type="target" position={Position.Top} isConnectable={false} />}
@@ -68,10 +70,10 @@ function ChartControls({ en }: { en: boolean }) {
   useEffect(() => {
     if (width > 0 && height > 0) void fitView({ padding: .15, minZoom: .55, maxZoom: 1 });
   }, [fitView, width, height]);
-  return <Panel position="bottom-left" className="committee-flow-controls"><div role="group" aria-label={en ? "Chart controls" : "التحكم بالمخطط"}>
-    <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom in" : "تكبير المخطط"} onClick={() => void zoomIn()}><Plus aria-hidden="true" /></Button>
-    <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Zoom out" : "تصغير المخطط"} onClick={() => void zoomOut()}><Minus aria-hidden="true" /></Button>
-    <Button type="button" variant="outline" size="icon-sm" aria-label={en ? "Fit chart" : "عرض المخطط كاملًا"} onClick={() => void fitView({ padding: .15, maxZoom: 1 })}><Maximize aria-hidden="true" /></Button>
+  return <Panel position="bottom-left" className="committee-flow-controls"><div role="group" aria-label={translateUi((en) ? "en" : "ar", "التحكم بالمخطط", "Chart controls")}>
+    <Button type="button" variant="outline" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "تكبير المخطط", "Zoom in")} onClick={() => void zoomIn()}><Plus aria-hidden="true" /></Button>
+    <Button type="button" variant="outline" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "تصغير المخطط", "Zoom out")} onClick={() => void zoomOut()}><Minus aria-hidden="true" /></Button>
+    <Button type="button" variant="outline" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "عرض المخطط كاملًا", "Fit chart")} onClick={() => void fitView({ padding: .15, maxZoom: 1 })}><Maximize aria-hidden="true" /></Button>
   </div></Panel>;
 }
 
@@ -90,7 +92,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     return () => window.removeEventListener("resize", measure);
   }, []);
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const graph = useMemo(() => {
     const toBranch = (items: CommitteeTreeNode<Committee>[]): Branch[] => items.map(committee => ({ id: committee.id, name: committee.name, committee, children: toBranch(committee.children) }));
     const root: Branch = { id: `organization-${organizationId}`, name: organizationName, children: toBranch(committees) };
@@ -129,7 +131,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     <Dialog open={action?.kind === "details"} onOpenChange={open => { if (!open) setAction(null); }}>
       <DialogContent dir={en ? "ltr" : "rtl"}><DialogHeader><DialogTitle>{action?.committee.name}</DialogTitle><DialogDescription className="whitespace-pre-line">{action?.committee.description.trim() || c("لا توجد تفاصيل إضافية متاحة.", "No additional details are available.")}</DialogDescription></DialogHeader>
         {action?.committee.leaderName?.trim() && <p>{c("القائد", "Leader")}: <bdi>{action.committee.leaderName}</bdi></p>}
-        {action?.committee.memberCount != null && action.committee.memberCount > 0 && <p>{c("الأعضاء", "Members")}: {action.committee.memberCount}</p>}
+        {action?.committee.memberCount != null && action.committee.memberCount > 0 && <p>{c("الأعضاء", "Members")}: <NumberText value={action.committee.memberCount}/></p>}
       </DialogContent>
     </Dialog>
     <AlertDialog open={action?.kind === "delete" && !readOnly} onOpenChange={open => { if (!open) setAction(null); }}>

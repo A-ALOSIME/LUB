@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { actionFeedback } from "@/lib/action-feedback";
@@ -15,7 +16,7 @@ export function KnowledgeSearch({ locale = "ar" }: { locale?: Locale }) {
   const [state, action, pending] = useActionState(searchKnowledge, initial);
   const error = useRef<HTMLParagraphElement>(null);
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
   useEffect(() => { if (state.error) error.current?.focus(); }, [state]);
 

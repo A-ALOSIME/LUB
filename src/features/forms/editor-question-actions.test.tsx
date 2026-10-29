@@ -10,11 +10,11 @@ const initial:FormDefinition={layout:"SinglePage",sections:[{id:"00000000-0000-4
 function open(){render(<FormEditor version="version" revision={1} initial={initial}/>);fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));}
 it("keeps question actions visible and reorders the actual questions with the arrows",()=>{
  open();
- expect(screen.queryByRole("button",{name:"أدوات السؤال 1"})).toBeNull();
- expect((screen.getByRole("button",{name:"تحريك لأعلى · السؤال 1"}) as HTMLButtonElement).disabled).toBe(true);
- fireEvent.click(screen.getByRole("button",{name:"تحريك لأسفل · السؤال 1"}));
- expect(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/})).toBeTruthy();
- expect(screen.getByRole("button",{name:/السؤال 2 · السؤال الأول/})).toBeTruthy();
+ expect(screen.queryByRole("button",{name:"أدوات السؤال ١"})).toBeNull();
+ expect((screen.getByRole("button",{name:"تحريك لأعلى · السؤال ١"}) as HTMLButtonElement).disabled).toBe(true);
+ fireEvent.click(screen.getByRole("button",{name:"تحريك لأسفل · السؤال ١"}));
+ expect(screen.getByRole("button",{name:/السؤال ١ · السؤال الثاني/})).toBeTruthy();
+ expect(screen.getByRole("button",{name:/السؤال ٢ · السؤال الأول/})).toBeTruthy();
 });
 it("opens a newly added question and keeps optional help empty until typed",()=>{
  open();fireEvent.click(screen.getByRole("button",{name:"إضافة سؤال"}));
@@ -25,16 +25,16 @@ it("opens a newly added question and keeps optional help empty until typed",()=>
  expect(within(question as HTMLElement).getByRole("switch",{name:"إجابة مطلوبة"})).toBeTruthy();
 });
 it("requires a named confirmation before deleting a question",()=>{
- open();fireEvent.click(screen.getByRole("button",{name:"حذف السؤال · السؤال 2"}));
+ open();fireEvent.click(screen.getByRole("button",{name:"حذف السؤال · السؤال ٢"}));
  expect(screen.getByRole("alertdialog").textContent).toContain("حذف «السؤال الثاني»؟");
  fireEvent.click(screen.getByRole("button",{name:"إلغاء"}));
- expect(screen.getByRole("button",{name:/السؤال 2 · السؤال الثاني/})).toBeTruthy();
+ expect(screen.getByRole("button",{name:/السؤال ٢ · السؤال الثاني/})).toBeTruthy();
 });
 it("uses an explicit answered condition for dynamic committees without requesting a raw answer value",()=>{
  const definition=structuredClone(initial);definition.sections[0].fields[0].type="Committee";
  render(<FormEditor version="version" revision={1} initial={definition}/>);
  fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));
- fireEvent.click(screen.getByRole("button",{name:/السؤال 2 · السؤال الثاني/}));
+ fireEvent.click(screen.getByRole("button",{name:/السؤال ٢ · السؤال الثاني/}));
  fireEvent.click(screen.getByRole("button",{name:"خيارات متقدمة"}));
  fireEvent.change(document.querySelector('select[id$="-condition-form-value"]')!,{target:{value:definition.sections[0].fields[0].id}});
  expect(screen.getByRole("combobox",{name:"المقارنة"}).textContent).toContain("تمت الإجابة");

@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useActionState, useState } from "react";
 import { LoaderCircle, RotateCcw, Save, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,8 @@ export function ProfileForm({
   useActionToast(state, locale);
   const [dirty, setDirty] = useState(false);
   const saveLabel = profile
-    ? en ? "Save changes" : "حفظ التعديلات"
-    : en ? "Save details" : "حفظ البيانات";
+    ? translateUi((en) ? "en" : "ar", "حفظ التعديلات", "Save changes")
+    : translateUi((en) ? "en" : "ar", "حفظ البيانات", "Save details");
 
   // Prevent React's post-action reset from clearing entries after validation errors.
   return (
@@ -74,7 +75,7 @@ export function ProfileForm({
           <CardFooter className="account-settings-footer">
             {dirty && (
               <span className="account-settings-footer-status" role="status" aria-live="polite">
-                {en ? "You have unsaved changes" : "لديك تغييرات غير محفوظة"}
+                {translateUi((en) ? "en" : "ar", "لديك تغييرات غير محفوظة", "You have unsaved changes")}
               </span>
             )}
             <div className="account-settings-footer-actions">
@@ -88,7 +89,7 @@ export function ProfileForm({
                 ) : (
                   <Save data-icon="inline-start" aria-hidden="true" />
                 )}
-                {pending ? en ? "Saving…" : "جارٍ الحفظ…" : saveLabel}
+                {pending ? translateUi((en) ? "en" : "ar", "جارٍ الحفظ…", "Saving…") : saveLabel}
               </Button>
               <Button
                 type="button"
@@ -98,7 +99,7 @@ export function ProfileForm({
                 onClick={() => window.location.reload()}
               >
                 <RotateCcw data-icon="inline-start" aria-hidden="true" />
-                {en ? "Undo" : "تراجع"}
+                {translateUi((en) ? "en" : "ar", "تراجع", "Undo")}
               </Button>
             </div>
           </CardFooter>
@@ -107,10 +108,10 @@ export function ProfileForm({
 
       <Card className="account-settings-privacy-card" dir={en ? "ltr" : "rtl"}>
         <CardContent className="account-settings-privacy-content">
-          <h2 className="account-settings-privacy-title">{en ? "Privacy" : "الخصوصية"}</h2>
+          <h2 className="account-settings-privacy-title">{translateUi((en) ? "en" : "ar", "الخصوصية", "Privacy")}</h2>
           <p className="account-settings-footer-note">
             <ShieldCheck aria-hidden="true" />
-            <span>{en ? "Your university number and account email are never public." : "رقمك الجامعي وبريد حسابك لا يظهران للعامة."}</span>
+            <span>{translateUi((en) ? "en" : "ar", "رقمك الجامعي وبريد حسابك لا يظهران للعامة.", "Your university number and account email are never public.")}</span>
           </p>
         </CardContent>
       </Card>

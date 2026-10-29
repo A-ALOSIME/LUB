@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { Fragment, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -123,7 +124,7 @@ export function MyPageNavigation({
   const pathname = normalizedPath(usePathname() ?? "/");
   const { collapsed, closeMobile } = useWorkspaceSidebar();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const inferredOpenGroup = activeGroupFor(pathname, organizations, superAdmin);
   const [groupState, setGroupState] = useState(() => ({
     pathname,

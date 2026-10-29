@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { LoaderCircle, RotateCcw, Save } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,14 +41,14 @@ export function WorkspaceStickySaveBar({
   const en = locale === "en";
   return <div className="workspace-sticky-save-bar" style={bounds ? { left: bounds.left, width: bounds.width, right: "auto" } : undefined} data-ignore-dirty role="status" aria-live="polite">
     <div className="workspace-sticky-save-bar-inner" dir={en ? "ltr" : "rtl"}>
-      <span className="workspace-sticky-save-message">{message !== undefined ? message : en ? "You have unsaved changes" : "لديك تغييرات غير محفوظة"}</span>
+      <span className="workspace-sticky-save-message">{message !== undefined ? message : translateUi((en) ? "en" : "ar", "لديك تغييرات غير محفوظة", "You have unsaved changes")}</span>
       <div className="workspace-sticky-save-actions">
         {actions ?? <><Button type="submit" form={formId} disabled={pending}>
           {pending ? <LoaderCircle className="animate-spin" data-icon="inline-start" aria-hidden="true" /> : <Save data-icon="inline-start" aria-hidden="true" />}
-          {pending ? en ? "Saving…" : "جاري الحفظ" : en ? "Save" : "حفظ"}
+          {pending ? translateUi((en) ? "en" : "ar", "جاري الحفظ", "Saving…") : translateUi((en) ? "en" : "ar", "حفظ", "Save")}
         </Button>
         <Button type="button" variant="outline" disabled={pending} onClick={onUndo}>
-          <RotateCcw data-icon="inline-start" aria-hidden="true" />{en ? "Undo" : "تراجع"}
+          <RotateCcw data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تراجع", "Undo")}
         </Button></>}
       </div>
     </div>

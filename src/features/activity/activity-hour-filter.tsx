@@ -1,5 +1,6 @@
 "use client"
 
+import {t as translateUi} from "@/lib/i18n";
 import { useRouter } from "next/navigation"
 import { FilterTabs } from "@/components/ui/filter-tabs"
 import type { Locale } from "@/lib/preferences"
@@ -12,13 +13,13 @@ export function ActivityHourFilter({ value, locale }: { value: ActivityHourStatu
 
   return <FilterTabs
     value={value}
-    ariaLabel={en ? "Hour record status" : "حالة سجل الساعات"}
+    ariaLabel={translateUi((en) ? "en" : "ar", "حالة سجل الساعات", "Hour record status")}
     dir={en ? "ltr" : "rtl"}
     options={[
-      { value: "all", label: en ? "All" : "الكل" },
-      { value: "approved", label: en ? "Approved" : "معتمدة" },
-      { value: "pending", label: en ? "Pending approval" : "بانتظار الاعتماد" },
-      { value: "rejected", label: en ? "Rejected" : "مرفوضة" },
+      { value: "all", label: translateUi((en) ? "en" : "ar", "الكل", "All") },
+      { value: "approved", label: translateUi((en) ? "en" : "ar", "معتمدة", "Approved") },
+      { value: "pending", label: translateUi((en) ? "en" : "ar", "بانتظار الاعتماد", "Pending approval") },
+      { value: "rejected", label: translateUi((en) ? "en" : "ar", "مرفوضة", "Rejected") },
     ]}
     onValueChange={next => {
       if (next !== "all" && next !== "approved" && next !== "pending" && next !== "rejected") return

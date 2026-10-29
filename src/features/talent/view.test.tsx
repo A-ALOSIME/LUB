@@ -33,8 +33,8 @@ it("formats membership dates and keeps zero-hour totals", () => {
   render(<PublicTalentView profile={profile} pages={pages} />);
   expect(screen.getByRole("heading", { name: "أحمد فهد العصيّمي" })).toBeTruthy();
   expect(screen.getAllByText("أ").length).toBeGreaterThan(0);
-  expect(screen.getByText(/12 أكتوبر 2026/)).toBeTruthy();
-  expect(screen.getByText("0 ساعة معتمدة")).toBeTruthy();
+  expect(screen.getByText(/١٢ أكتوبر ٢٠٢٦/)).toBeTruthy();
+  expect(screen.getByText("٠ ساعة معتمدة")).toBeTruthy();
 });
 
 it("renders icon-only LinkedIn and GitHub links without exposing their URLs", () => {
@@ -56,13 +56,13 @@ it("renders icon-only LinkedIn and GitHub links without exposing their URLs", ()
   expect(document.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);
 });
 
-it("shows numeric zero statistics and shows organization avatar fallbacks in memberships",()=>{render(<PublicTalentView profile={profile} pages={pages}/>);expect(screen.getByText("0 فعاليات")).toBeTruthy();expect(screen.getByText("0 ساعة")).toBeTruthy();expect(screen.getAllByText("ن")[0]).toBeTruthy();});
+it("shows numeric zero statistics and shows organization avatar fallbacks in memberships",()=>{render(<PublicTalentView profile={profile} pages={pages}/>);expect(screen.getByText("فعاليات")).toBeTruthy();expect(screen.getAllByText("ساعة")[0]).toBeTruthy();expect(screen.getAllByText("ن")[0]).toBeTruthy();});
 
 it("limits card skills and organizations, keeps zero hours, and centers a single result", () => {
  render(<TalentCards items={[{...profile, skills:["Python","SQL","React","Figma","JavaScript"], organizations:Array.from({length:4},(_,i)=>({slug:String(i),name:`جهة ${i}`,logo:null}))}]} />);
- expect(screen.getByText("و 2 أخرى")).toBeTruthy();
- expect(screen.getByText("+1")).toBeTruthy();
- expect(screen.getByText("0 ساعة معتمدة")).toBeTruthy();
+ expect(screen.getByText("و ٢ أخرى")).toBeTruthy();
+ expect(screen.getByText("+١")).toBeTruthy();
+ expect(screen.getByText("٠ ساعة معتمدة")).toBeTruthy();
  expect(screen.getByRole("list").className).toContain("justify-center");
  expect(document.querySelectorAll('[data-slot="card-footer"] [data-size="default"]').length).toBe(4);
 });

@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {Button} from "@/components/ui/button";
 import {Plus} from "lucide-react";
 import {localizedMetadata} from "@/lib/localized-metadata";
@@ -20,20 +21,20 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
   try { directory = await readPublicDirectory(filters); }
   catch { /* Show a retry state without leaking service details. */ }
   const groups = directory && [
-    { code: "Council", title: en ? "Councils" : "المجالس", items: directory.organizations.filter(item => item.typeCode === "Council") },
-    { code: "Club", title: en ? "Clubs" : "الأندية", items: directory.organizations.filter(item => item.typeCode === "Club") },
+    { code: "Council", title: translateUi((en) ? "en" : "ar", "المجالس", "Councils"), items: directory.organizations.filter(item => item.typeCode === "Council") },
+    { code: "Club", title: translateUi((en) ? "en" : "ar", "الأندية", "Clubs"), items: directory.organizations.filter(item => item.typeCode === "Club") },
   ];
 
   return <><main id="main" className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
     <header className="directory-heading">
-      <div><p className="mb-2 text-sm font-medium text-action">{en ? "College of Computer and Information Sciences" : "كلية علوم الحاسب والمعلومات"}</p><h1 className="text-4xl leading-normal sm:text-5xl">{en ? "Clubs and councils" : "الأندية والمجالس"}</h1></div>
-      <div className="flex flex-wrap items-center gap-3"><Button render={<Link href="/organization-requests/new"/>}><Plus/>{en?"Request a club or council":"طلب فتح نادي أو مجلس"}</Button>
-      {groups && groups.some(group => group.items.length > 0) && <nav aria-label={en ? "Organization types" : "أنواع الجهات"} className="directory-shortcuts">
+      <div><p className="mb-2 text-sm font-medium text-action">{translateUi((en) ? "en" : "ar", "كلية علوم الحاسب والمعلومات", "College of Computer and Information Sciences")}</p><h1 className="text-4xl leading-normal sm:text-5xl">{translateUi((en) ? "en" : "ar", "الأندية والمجالس", "Clubs and councils")}</h1></div>
+      <div className="flex flex-wrap items-center gap-3"><Button render={<Link href="/organization-requests/new"/>}><Plus/>{translateUi((en) ? "en" : "ar", "طلب فتح نادي أو مجلس", "Request a club or council")}</Button>
+      {groups && groups.some(group => group.items.length > 0) && <nav aria-label={translateUi((en) ? "en" : "ar", "أنواع الجهات", "Organization types")} className="directory-shortcuts">
         {groups.filter(group => group.items.length > 0).map(group => <a key={group.code} href={`#group-${group.code}`} className="button button-secondary">{group.title}</a>)}
       </nav>}</div>
     </header>
-    {!directory && <section className="panel p-8" role="alert"><h2 className="text-xl font-semibold">{en ? "Could not load organizations" : "تعذّر تحميل الجهات"}</h2><p className="mt-3 leading-7 text-muted">{en ? "Please refresh the page in a moment." : "حاول تحديث الصفحة بعد قليل."}</p><Link href="/organizations" className="button button-secondary mt-5">{en ? "Try again" : "إعادة المحاولة"}</Link></section>}
-    {directory && (directory.organizations.length === 0 ? <section className="panel px-6 py-12 text-center"><h2 className="text-xl font-semibold">{en ? "No organizations to show yet" : "لا توجد جهات لعرضها الآن"}</h2><p className="mt-3 leading-8 text-muted">{en ? "Clubs and councils will appear here when they are added to LUB." : "تظهر الأندية والمجالس هنا عندما تُضاف إلى لُبّ."}</p></section> : <>
+    {!directory && <section className="panel p-8" role="alert"><h2 className="text-xl font-semibold">{translateUi((en) ? "en" : "ar", "تعذّر تحميل الجهات", "Could not load organizations")}</h2><p className="mt-3 leading-7 text-muted">{translateUi((en) ? "en" : "ar", "حاول تحديث الصفحة بعد قليل.", "Please refresh the page in a moment.")}</p><Link href="/organizations" className="button button-secondary mt-5">{translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Try again")}</Link></section>}
+    {directory && (directory.organizations.length === 0 ? <section className="panel px-6 py-12 text-center"><h2 className="text-xl font-semibold">{translateUi((en) ? "en" : "ar", "لا توجد جهات لعرضها الآن", "No organizations to show yet")}</h2><p className="mt-3 leading-8 text-muted">{translateUi((en) ? "en" : "ar", "تظهر الأندية والمجالس هنا عندما تُضاف إلى لُبّ.", "Clubs and councils will appear here when they are added to LUB.")}</p></section> : <>
       {groups?.map(group => group.items.length > 0 && <section key={group.code} aria-labelledby={`group-${group.code}`} className="directory-group">
         <h2 id={`group-${group.code}`} className="directory-divider">{group.title}</h2>
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
@@ -50,9 +51,9 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
               ? { transform: "scale(1.22)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
             : { objectFit: "contain" as const, objectPosition: "center" };
           return <li key={organization.id} className="organization-card">
-            <IntentPrefetchLink href={`/organizations/${organization.slug}`} className="directory-link" aria-label={en ? `View ${organization.nameAr}` : `عرض ${organization.nameAr}`}>
+            <IntentPrefetchLink href={`/organizations/${organization.slug}`} className="directory-link" aria-label={translateUi((en) ? "en" : "ar", `عرض ${organization.nameAr}`, `View ${organization.nameAr}`)}>
               <span className={`organization-card-art organization-card-art--${profile?.imageTheme ?? "default"}`} aria-hidden="true">
-                {imageSrc ? <Image src={imageSrc} alt="" fill sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw" unoptimized className="organization-card-image" style={imageStyle} /> : <span className="organization-card-placeholder">{organization.typeCode === "Council" ? en ? "Student council" : "مجلس طلابي" : en ? "Student club" : "نادي طلابي"}</span>}
+                {imageSrc ? <Image src={imageSrc} alt="" fill sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw" unoptimized className="organization-card-image" style={imageStyle} /> : <span className="organization-card-placeholder">{organization.typeCode === "Council" ? translateUi((en) ? "en" : "ar", "مجلس طلابي", "Student council") : translateUi((en) ? "en" : "ar", "نادي طلابي", "Student club")}</span>}
               </span>
               <span className="organization-card-copy">
                 {organization.statusCode !== "Active" && <span className="mb-2 block text-sm text-muted">{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>}
@@ -63,7 +64,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
           </li>;
         })}</ul>
       </section>)}
-      {(page > 1 || directory.hasNext) && <nav aria-label={en ? "Organization pages" : "صفحات الجهات"} className="mt-8 flex flex-wrap items-center justify-between gap-4">{page > 1 ? <Link className="button button-secondary" href={`/organizations?page=${page - 1}`}>{en ? "Previous" : "السابق"}</Link> : <span />}<span className="text-sm text-muted">{en ? `Page ${page}` : `الصفحة ${page}`}</span>{directory.hasNext && <Link className="button button-secondary" href={`/organizations?page=${page + 1}`}>{en ? "Next" : "التالي"}</Link>}</nav>}
+      {(page > 1 || directory.hasNext) && <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات الجهات", "Organization pages")} className="mt-8 flex flex-wrap items-center justify-between gap-4">{page > 1 ? <Link className="button button-secondary" href={`/organizations?page=${page - 1}`}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Link> : <span />}<span className="text-sm text-muted">{translateUi((en) ? "en" : "ar", `الصفحة ${page}`, `Page ${page}`)}</span>{directory.hasNext && <Link className="button button-secondary" href={`/organizations?page=${page + 1}`}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Link>}</nav>}
     </>)}
   </main></>;
 }

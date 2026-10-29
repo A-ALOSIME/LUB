@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,8 @@ export function ContactVisibilityButton({ name, label, visible, locale, hideLabe
   const [isVisible, setIsVisible] = useState(visible);
   const en = locale === "en";
   const actionLabel = isVisible
-    ? hideLabel ?? (en ? `Hide ${label} from the public profile` : `إخفاء ${label} من الملف العام`)
-    : showLabel ?? (en ? `Show ${label} on the public profile` : `إظهار ${label} للعامة`);
+    ? hideLabel ?? (translateUi((en) ? "en" : "ar", `إخفاء ${label} من الملف العام`, `Hide ${label} from the public profile`))
+    : showLabel ?? (translateUi((en) ? "en" : "ar", `إظهار ${label} للعامة`, `Show ${label} on the public profile`));
 
   return <>
     <input type="hidden" name={name} value={isVisible ? "true" : "false"} readOnly />
@@ -40,7 +41,7 @@ export function ContactVisibilityButton({ name, label, visible, locale, hideLabe
       {isVisible
         ? <Eye aria-hidden="true" />
         : <EyeOff aria-hidden="true" />}
-      <span>{isVisible ? visibleText ?? (en ? "Public" : "عام") : hiddenText ?? (en ? "Private" : "خاص")}</span>
+      <span>{isVisible ? visibleText ?? (translateUi((en) ? "en" : "ar", "عام", "Public")) : hiddenText ?? (translateUi((en) ? "en" : "ar", "خاص", "Private"))}</span>
     </Button>
   </>;
 }

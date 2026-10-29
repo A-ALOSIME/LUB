@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import {EventRegistrantPanel} from "@/features/events/registrant-panel";
 import {EventListActions} from "@/features/events/list-actions";
 import { CalendarDays, Megaphone, UsersRound } from "lucide-react";
@@ -33,7 +34,7 @@ export default async function ManageEvents({
   const en = locale === "en";
   const labels = en ? eventLabelsEn : eventLabels;
   const date = en ? eventDateEn : eventDate;
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   if (!z.uuid().safeParse(id).success) notFound();
 
   const page = Math.floor(Math.min(10000, Math.max(0, Number(search.page) || 0)));

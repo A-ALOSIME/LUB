@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useState, type ReactNode } from "react";
 import { CalendarPlus, Plus, RefreshCw } from "lucide-react";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
@@ -18,7 +19,7 @@ export function RenewalCreationActions({ locale, mode, canCreateRound, canCreate
   const [roundOpen, setRoundOpen] = useState(false);
   const [campaignOpen, setCampaignOpen] = useState(false);
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
   const cards = <div className={`grid w-full gap-4 ${canCreateRound && canCreateCampaign ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
     {canCreateRound && <Button type="button" variant="outline" size="lg" className="renewal-create-card h-auto min-h-44 w-full flex-col items-start justify-start gap-4 whitespace-normal p-5 text-start" onClick={() => setRoundOpen(true)}>

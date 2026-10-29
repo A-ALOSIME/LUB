@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import {notFound} from "next/navigation";
 import {requireVerifiedProxyIdentity} from "@/features/auth/session";
@@ -16,8 +17,8 @@ export default async function TermsPage(){
  if(!data?.canManage)notFound();
  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
  return <div className="flex flex-col gap-8">
-  <div><h1 className="text-3xl font-bold">{en?"Academic terms":"الفصول الأكاديمية"}</h1><p className="mt-3 leading-8 text-muted-foreground">{en?"Define official terms and dates before approving task hours. Saved terms are fixed and their dates cannot overlap.":"عرّف الفصول الرسمية وتواريخها قبل اعتماد ساعات المهام. الفصل المحفوظ ثابت، ولا تتداخل تواريخ الفصول."}</p></div>
-  <Card><CardHeader><CardTitle>{en?"Add term":"إضافة فصل"}</CardTitle></CardHeader><CardContent><TermForm locale={locale}/></CardContent></Card>
+  <div><h1 className="text-3xl font-bold">{translateUi((en) ? "en" : "ar", "الفصول الأكاديمية", "Academic terms")}</h1><p className="mt-3 leading-8 text-muted-foreground">{translateUi((en) ? "en" : "ar", "عرّف الفصول الرسمية وتواريخها قبل اعتماد ساعات المهام. الفصل المحفوظ ثابت، ولا تتداخل تواريخ الفصول.", "Define official terms and dates before approving task hours. Saved terms are fixed and their dates cannot overlap.")}</p></div>
+  <Card><CardHeader><CardTitle>{translateUi((en) ? "en" : "ar", "إضافة فصل", "Add term")}</CardTitle></CardHeader><CardContent><TermForm locale={locale}/></CardContent></Card>
   <TermList terms={data.terms} locale={locale} today={today}/>
  </div>;
 }

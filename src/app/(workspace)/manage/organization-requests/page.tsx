@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/features/auth/session";
@@ -39,7 +40,7 @@ export default async function OrganizationRequests({
     >
       <header className="workspace-page-header">
         <h1>
-          {locale === "en" ? "Organization requests" : "طلبات فتح الأندية"}
+          {translateUi((locale === "en") ? "en" : "ar", "طلبات فتح الأندية", "Organization requests")}
         </h1>
       </header>
       <OpeningRequestList

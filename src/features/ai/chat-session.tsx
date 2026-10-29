@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from "react";
 import {readChatStream,type ChatSource} from "./chat-stream";
 
@@ -44,7 +45,7 @@ function useConversation(locale:"ar"|"en") {
     } catch {
       if(request.current!==abort)return;
       setMessages(previous=>previous.filter(item=>item.id!==answerId));setFailedQuestion({text:message,userId});
-      setError(locale==="en"?"The assistant is unavailable. Your question is saved; try again.":"المساعد غير متاح حاليًا. سؤالك محفوظ؛ حاول مرة ثانية.");
+      setError(translateUi((locale==="en") ? "en" : "ar", "المساعد غير متاح حاليًا. سؤالك محفوظ؛ حاول مرة ثانية.", "The assistant is unavailable. Your question is saved; try again."));
     } finally {
       if(request.current===abort){setBusy(false);setSearching(false);request.current=null;}
     }

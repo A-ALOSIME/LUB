@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
@@ -15,7 +16,7 @@ import { FormField } from "@/components/form-field";
 
 export function HoursSettingsAction({ data, org, filters, locale }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale: Locale }) {
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const ruleScopes = data.scopes.filter(scope => scope.rules);
   const canManageRules = ruleScopes.length > 0;
   if (!data.canPolicy && !canManageRules) return null;

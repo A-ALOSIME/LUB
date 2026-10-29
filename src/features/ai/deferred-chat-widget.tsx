@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import {useState} from "react";
 import Link from "next/link";
 import {MessageCircle,ExternalLink,X} from "lucide-react";
@@ -13,10 +14,10 @@ import {ChatWidget} from "./chat-widget";
 export function DeferredChatWidget({locale}:{locale:"ar"|"en"}) {
   const [open,setOpen]=useState(false),mobile=useIsMobile(),en=locale==="en";
   const title=<><LubSymbol className="size-6 shrink-0"/>{en?"LUB":<LubBrandName/>}</>;
-  const launcher=<Button className="floating-assistant-link rounded-full" aria-label={en?"Ask LUB":"اسأل لُبّ"}><MessageCircle/><span className="hidden sm:inline">{en?"Ask LUB":<>اسأل <LubBrandName/></>}</span></Button>;
+  const launcher=<Button className="floating-assistant-link rounded-full" aria-label={translateUi((en) ? "en" : "ar", "اسأل لُبّ", "Ask LUB")}><MessageCircle/><span className="hidden sm:inline">{en?"Ask LUB":<>اسأل <LubBrandName/></>}</span></Button>;
   const actions=<div className="flex shrink-0 items-center gap-1">
-    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon-sm" nativeButton={false} role="link" render={<Link href="/ai" onClick={()=>setOpen(false)}/>} aria-label={en?"Open full page":"افتح في صفحة كاملة"}/>}><ExternalLink/></TooltipTrigger><TooltipContent>{en?"Open full page":"افتح في صفحة كاملة"}</TooltipContent></Tooltip>
-    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label={en?"Close chat":"إغلاق المحادثة"} onClick={()=>setOpen(false)}/>}><X/></TooltipTrigger><TooltipContent>{en?"Close chat":"إغلاق المحادثة"}</TooltipContent></Tooltip>
+    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon-sm" nativeButton={false} role="link" render={<Link href="/ai" onClick={()=>setOpen(false)}/>} aria-label={translateUi((en) ? "en" : "ar", "افتح في صفحة كاملة", "Open full page")}/>}><ExternalLink/></TooltipTrigger><TooltipContent>{translateUi((en) ? "en" : "ar", "افتح في صفحة كاملة", "Open full page")}</TooltipContent></Tooltip>
+    <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "إغلاق المحادثة", "Close chat")} onClick={()=>setOpen(false)}/>}><X/></TooltipTrigger><TooltipContent>{translateUi((en) ? "en" : "ar", "إغلاق المحادثة", "Close chat")}</TooltipContent></Tooltip>
   </div>;
   const body=<div className="min-h-0 flex-1"><ChatWidget locale={locale} inline embedded/></div>;
   if(mobile)return <Sheet open={open} onOpenChange={setOpen}>

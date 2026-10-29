@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { localizedMetadata } from "@/lib/localized-metadata"
 import { z } from "zod"
 import { requireStudentUser } from "@/features/auth/authorization"
@@ -51,7 +52,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   const en = locale === "en"
   return <main id="main" dir={en ? "ltr" : "rtl"} className="flex min-w-0 flex-col gap-4 pb-20 lg:pb-0">
     <header className="workspace-page-header">
-      <h1>{en ? "My activity" : "نشاطي"}</h1>
+      <h1>{translateUi((en) ? "en" : "ar", "نشاطي", "My activity")}</h1>
     </header>
     <ActivityTabs
       initialTab={initialTab}

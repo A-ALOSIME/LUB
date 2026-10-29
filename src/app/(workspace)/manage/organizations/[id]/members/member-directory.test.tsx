@@ -35,12 +35,12 @@ it("uses a compact unlabeled search and filters members by status", () => {
   expect(document.querySelector("[data-slot=avatar],img")).toBeNull();
   const search = screen.getByRole("searchbox", { name: "بحث الأعضاء" });
   expect(search.getAttribute("dir")).toBe("rtl");
-  expect(search.className).toContain("ps-9");
-  expect(document.querySelector(".member-directory-search-wrap > svg")?.getAttribute("class")).toContain("start-3");
-  expect(document.querySelector(".member-directory-search-wrap > svg")?.getAttribute("class")).not.toContain("end-3");
+  expect(search.closest('[data-slot="input-group"]')?.querySelector('[data-slot="input-group-addon"]')).toBeTruthy();
+  expect(document.querySelector('.member-directory-search-wrap [data-slot="input-group-addon"] svg')).toBeTruthy();
+  expect(document.querySelector('.member-directory-search-wrap [data-slot="input-group-addon"]')?.className).not.toContain("absolute");
   expect(screen.getAllByText("أحمد محمد").length).toBeGreaterThan(0);
   expect(screen.getAllByText("سارة علي").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("منذ 12 أكتوبر 2026")).toHaveLength(2);
+  expect(screen.getAllByText("منذ ١٢ أكتوبر ٢٠٢٦")).toHaveLength(2);
 
   fireEvent.click(screen.getByRole("tab", { name: "منتهية" }));
 

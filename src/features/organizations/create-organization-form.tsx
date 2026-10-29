@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import { useState } from "react";
@@ -26,13 +27,13 @@ export function CreateOrganizationForm({ locale }: { locale: Locale }) {
       operation="create-org"
       inlineFooter
       formClassName="flex flex-col gap-6"
-      footerAction={<Button variant="ghost" nativeButton={false} render={<Link href="/manage/organizations"/>}>{en?"Cancel":"إلغاء"}</Button>}
+      footerAction={<Button variant="ghost" nativeButton={false} render={<Link href="/manage/organizations"/>}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</Button>}
       locale={locale}
       fields={{ summary: "", mission: "" }}
-      submitLabel={en ? "Create organization" : "إنشاء الجهة"}
+      submitLabel={translateUi((en) ? "en" : "ar", "إنشاء الجهة", "Create organization")}
     >
       <FieldGroup className="grid gap-5 sm:grid-cols-2">
-        <FormField label={en ? "Organization name" : "اسم الجهة"} required>
+        <FormField label={translateUi((en) ? "en" : "ar", "اسم الجهة", "Organization name")} required>
           <Input
             name="nameAr"
             required
@@ -44,21 +45,21 @@ export function CreateOrganizationForm({ locale }: { locale: Locale }) {
             }}
           />
         </FormField>
-        <FormField label={en ? "Type" : "النوع"} required>
+        <FormField label={translateUi((en) ? "en" : "ar", "النوع", "Type")} required>
           <Select
             name="typeCode"
             defaultValue="Club"
             items={{
-              Club: en ? "Club" : "نادي",
-              Council: en ? "Council" : "مجلس",
+              Club: translateUi((en) ? "en" : "ar", "نادي", "Club"),
+              Council: translateUi((en) ? "en" : "ar", "مجلس", "Council"),
             }}
           >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Club">{en ? "Club" : "نادي"}</SelectItem>
-              <SelectItem value="Council">{en ? "Council" : "مجلس"}</SelectItem>
+              <SelectItem value="Club">{translateUi((en) ? "en" : "ar", "نادي", "Club")}</SelectItem>
+              <SelectItem value="Council">{translateUi((en) ? "en" : "ar", "مجلس", "Council")}</SelectItem>
             </SelectContent>
           </Select>
         </FormField>

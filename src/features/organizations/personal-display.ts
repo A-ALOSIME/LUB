@@ -1,3 +1,4 @@
+import {formatNumber} from "@/lib/i18n";
 import type { Locale } from "@/lib/preferences";
 import { formatRiyadhDate } from "@/lib/datetime";
 
@@ -6,8 +7,5 @@ export function formatPersonalDate(value: string, locale: Locale) {
 }
 
 export function formatPersonalNumber(value: number | string, locale: Locale) {
-  return new Intl.NumberFormat(locale === "en" ? "en-US" : "ar-SA", {
-    numberingSystem: "latn",
-    maximumFractionDigits: 2,
-  }).format(Number(value));
+  return formatNumber(value,locale);
 }

@@ -1,4 +1,6 @@
 "use client";
+import {t as translateUi,createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
 import { actionFeedback } from "@/lib/action-feedback";
 import { useActionState, useState } from "react";
@@ -50,7 +52,7 @@ export function OpeningRequestList({
   page?: number;
 }) {
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     router = useRouter();
   const [selected, setSelected] = useState<OpeningRequest | null>(null),
     [decision, setDecision] = useState<
@@ -380,7 +382,7 @@ export function OpeningRequestList({
                   onChange={(e) => setNote(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  <bdi>{note.length} / 1000</bdi>
+                  <bdi><NumberText value={note.length}/> / 1000</bdi>
                 </p>
               </FormField>
             )}
@@ -419,5 +421,5 @@ export function OpeningRequestList({
 function RequestLongText({value,en}:{value:string;en:boolean}) {
  const [open,setOpen]=useState(false);
  if(value.length<=240)return <p className="mt-2 whitespace-pre-wrap break-words">{value}</p>;
- return <Collapsible open={open} onOpenChange={setOpen} className="mt-2"><p className="whitespace-pre-wrap break-words">{value.slice(0,240)}{!open&&"…"}</p><CollapsibleContent className="whitespace-pre-wrap break-words">{value.slice(240)}</CollapsibleContent><CollapsibleTrigger render={<Button variant="ghost" size="sm"/>}>{open?(en?"Show less":"عرض أقل"):(en?"Show more":"عرض المزيد")}<ChevronDown className={open?"rotate-180":""}/></CollapsibleTrigger></Collapsible>;
+ return <Collapsible open={open} onOpenChange={setOpen} className="mt-2"><p className="whitespace-pre-wrap break-words">{value.slice(0,240)}{!open&&"…"}</p><CollapsibleContent className="whitespace-pre-wrap break-words">{value.slice(240)}</CollapsibleContent><CollapsibleTrigger render={<Button variant="ghost" size="sm"/>}>{open?(translateUi((en) ? "en" : "ar", "عرض أقل", "Show less")):(translateUi((en) ? "en" : "ar", "عرض المزيد", "Show more"))}<ChevronDown className={open?"rotate-180":""}/></CollapsibleTrigger></Collapsible>;
 }

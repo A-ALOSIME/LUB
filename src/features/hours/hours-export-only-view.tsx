@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import { FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -13,7 +14,7 @@ export function HoursExportOnlyView({ data, org, term, committee, locale = "ar" 
   locale?: Locale;
 }) {
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
   return <section className="space-y-4">
     <h2 className="text-lg font-semibold">{c("تنزيل سجل الساعات", "Download hours CSV")}</h2>

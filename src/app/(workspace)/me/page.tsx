@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { Building2, ClipboardList, Clock } from "lucide-react";
 import { MembershipHistory } from "@/features/talent/membership-history";
@@ -31,22 +32,22 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
   const activeMemberships = memberships.filter(membership => membership.statusCode === "Active").length;
 
   return <main id="main" className="workspace-content my-page-content min-w-0">
-      {notice === "profile-saved" && <p role="status" className="notice-success mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-action">{en ? "Your details were saved." : "تم حفظ بياناتك."}</p>}
-      {notice === "signout-failed" && <p role="alert" className="error-message mb-6">{en ? "Could not sign out. Please try again." : "تعذّر تسجيل الخروج. حاول مرة ثانية."}</p>}
+      {notice === "profile-saved" && <p role="status" className="notice-success mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-action">{translateUi((en) ? "en" : "ar", "تم حفظ بياناتك.", "Your details were saved.")}</p>}
+      {notice === "signout-failed" && <p role="alert" className="error-message mb-6">{translateUi((en) ? "en" : "ar", "تعذّر تسجيل الخروج. حاول مرة ثانية.", "Could not sign out. Please try again.")}</p>}
 
           <header id="overview" className="workspace-page-header scroll-mt-6">
-            <h1>{en ? "Hello, " : "أهلًا، "}<bdi>{profile.fullName}</bdi></h1>
+            <h1>{translateUi((en) ? "en" : "ar", "أهلًا، ", "Hello, ")}<bdi>{profile.fullName}</bdi></h1>
           </header>
 
-          <section aria-label={en ? "Account summary" : "ملخص الحساب"} className="workspace-summary-grid">
-            <SummaryItem icon="memberships" label={en ? "Active memberships" : "عضويات نشطة"} value={formatNumber(activeMemberships)} />
-            <SummaryItem icon="tasks" label={en ? "Current tasks" : "مشاركات حالية"} value={formatNumber(tasks.length)} />
-            <SummaryItem icon="hours" label={en ? "Approved hours" : "ساعات معتمدة"} value={formatNumber(hours)} />
+          <section aria-label={translateUi((en) ? "en" : "ar", "ملخص الحساب", "Account summary")} className="workspace-summary-grid">
+            <SummaryItem icon="memberships" label={translateUi((en) ? "en" : "ar", "عضويات نشطة", "Active memberships")} value={formatNumber(activeMemberships)} />
+            <SummaryItem icon="tasks" label={translateUi((en) ? "en" : "ar", "مشاركات حالية", "Current tasks")} value={formatNumber(tasks.length)} />
+            <SummaryItem icon="hours" label={translateUi((en) ? "en" : "ar", "ساعات معتمدة", "Approved hours")} value={formatNumber(hours)} />
           </section>
 
           <section id="memberships" aria-labelledby="memberships-title" className="workspace-panel workspace-my-page-section workspace-my-page-section--memberships scroll-mt-6">
-            <SectionHeading id="memberships-title" title={en ? "Memberships and role history" : "عضوياتي وسجل أدواري"} />
-            {memberships.length ? <div className="mt-5"><MembershipHistory organizations={[...grouped.values()]} locale={locale}/></div> : <p className="workspace-empty">{en ? "No memberships yet." : "لا توجد عضويات."}</p>}
+            <SectionHeading id="memberships-title" title={translateUi((en) ? "en" : "ar", "عضوياتي وسجل أدواري", "Memberships and role history")} />
+            {memberships.length ? <div className="mt-5"><MembershipHistory organizations={[...grouped.values()]} locale={locale}/></div> : <p className="workspace-empty">{translateUi((en) ? "en" : "ar", "لا توجد عضويات.", "No memberships yet.")}</p>}
           </section>
   </main>;
 }

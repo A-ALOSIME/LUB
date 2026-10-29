@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
@@ -15,12 +16,10 @@ export function ProfileCompletionNotice({ locale }: { locale: Locale }) {
       if (active && show)
         toast.add({
           title:
-            locale === "en"
-              ? "Complete your ID and major in account details."
-              : "أكمل الهوية والتخصص من بيانات الحساب متى ما ناسبك.",
+            translateUi((locale === "en") ? "en" : "ar", "أكمل الهوية والتخصص من بيانات الحساب متى ما ناسبك.", "Complete your ID and major in account details."),
           timeout: 8000,
           actionProps: {
-            children: locale === "en" ? "Account details" : "بيانات الحساب",
+            children: translateUi((locale === "en") ? "en" : "ar", "بيانات الحساب", "Account details"),
             onClick: () => router.push("/account"),
           },
         });

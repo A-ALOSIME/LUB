@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import {useActionState,useEffect,useRef,useState,startTransition,type ReactNode} from "react";
 import {mutateTask,type TaskState} from "./actions";
@@ -14,12 +15,12 @@ export function TaskForm({operation,fields={},label,children,disabled=false,loca
  const alert=useRef<HTMLParagraphElement>(null),[staged,setStaged]=useState<{data:FormData;label:string}|null>(null);
  useActionToast(state,locale);useEffect(()=>{if(state.error)alert.current?.focus();},[state]);
  const footer=creationActions?<div className="management-action-footer is-modal-footer flex-wrap">
-  <Button type="submit" name="intent" value="publish" disabled={pending||disabled}>{en?"Publish task":"نشر المهمة"}</Button>
-  <Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending||disabled}>{en?"Save draft":"حفظ كمسودة"}</Button>
-  {canSaveTemplate&&<Button type="submit" name="intent" value="template" variant="outline" disabled={pending||disabled}>{en?"Save template":"حفظ كقالب"}</Button>}
-  {management&&<Button type="button" variant="ghost" className="sm:ms-auto" onClick={management.close}>{en?"Cancel":"إلغاء"}</Button>}
- </div>:<ManagementActionFooter label={pending?(en?"Saving…":"جارٍ الحفظ…"):label} pending={pending} disabled={disabled} sticky={!management?.inlineForms} showCancel={!management?.inlineForms}/>;
- const description=confirmDescription||(staged?.data.get("intent")==="publish"?(en?"The task will become available to members in its selected scope.":"ستُنشر المهمة وتصبح متاحة للأعضاء ضمن نطاقها."):staged?.data.get("intent")==="template"?(en?"Save these details as a reusable template without creating a task.":"ستُحفظ التفاصيل كقالب لاستخدامه لاحقًا، دون إنشاء مهمة."):(en?"Save a private draft visible to authorized task managers.":"ستُحفظ مسودة تظهر للمخوّلين بإدارة المهام فقط."));
+  <Button type="submit" name="intent" value="publish" disabled={pending||disabled}>{translateUi((en) ? "en" : "ar", "نشر المهمة", "Publish task")}</Button>
+  <Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending||disabled}>{translateUi((en) ? "en" : "ar", "حفظ كمسودة", "Save draft")}</Button>
+  {canSaveTemplate&&<Button type="submit" name="intent" value="template" variant="outline" disabled={pending||disabled}>{translateUi((en) ? "en" : "ar", "حفظ كقالب", "Save template")}</Button>}
+  {management&&<Button type="button" variant="ghost" className="sm:ms-auto" onClick={management.close}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</Button>}
+ </div>:<ManagementActionFooter label={pending?(translateUi((en) ? "en" : "ar", "جارٍ الحفظ…", "Saving…")):label} pending={pending} disabled={disabled} sticky={!management?.inlineForms} showCancel={!management?.inlineForms}/>;
+ const description=confirmDescription||(staged?.data.get("intent")==="publish"?(translateUi((en) ? "en" : "ar", "ستُنشر المهمة وتصبح متاحة للأعضاء ضمن نطاقها.", "The task will become available to members in its selected scope.")):staged?.data.get("intent")==="template"?(translateUi((en) ? "en" : "ar", "ستُحفظ التفاصيل كقالب لاستخدامه لاحقًا، دون إنشاء مهمة.", "Save these details as a reusable template without creating a task.")):(translateUi((en) ? "en" : "ar", "ستُحفظ مسودة تظهر للمخوّلين بإدارة المهام فقط.", "Save a private draft visible to authorized task managers.")));
  return <><form action={action} onSubmit={event=>{
   if(!creationActions&&!confirmDescription)return;
   event.preventDefault();const submitter=(event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement|null;
@@ -29,7 +30,7 @@ export function TaskForm({operation,fields={},label,children,disabled=false,loca
  <input type="hidden" name="operation" value={operation}/>{Object.entries(fields).map(([key,value])=><input key={key} type="hidden" name={key} value={value}/>)}
  <div className={management&&!management.inlineForms?"workflow-form-body":"flex flex-col gap-4"}><fieldset disabled={pending||disabled} className="flex min-w-0 flex-col gap-4">{children}</fieldset>
  {state.error&&<p ref={alert} role="alert" tabIndex={-1} className="error-message">{actionFeedback(state.error,locale)}</p>}
- {state.success&&<p role="status" className="text-action">{actionFeedback(state.success,locale)}{state.task&&<> <Link className="text-link" href={`/tasks/${state.task}`}>{en?"Open task":"فتح المهمة"}</Link></>}</p>}
+ {state.success&&<p role="status" className="text-action">{actionFeedback(state.success,locale)}{state.task&&<> <Link className="text-link" href={`/tasks/${state.task}`}>{translateUi((en) ? "en" : "ar", "فتح المهمة", "Open task")}</Link></>}</p>}
  </div>{footer}</form>
- <AlertDialog open={Boolean(staged)} onOpenChange={open=>{if(!open)setStaged(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{staged?.label}؟</AlertDialogTitle><AlertDialogDescription>{description}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button disabled={pending} onClick={()=>{if(staged){startTransition(()=>action(staged.data));setStaged(null);}}}>{en?"Confirm":"تأكيد"}</Button><AlertDialogCancel>{en?"Cancel":"إلغاء"}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
+ <AlertDialog open={Boolean(staged)} onOpenChange={open=>{if(!open)setStaged(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{staged?.label}{translateUi((en) ? "en" : "ar", "؟", "?")}</AlertDialogTitle><AlertDialogDescription>{description}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button disabled={pending} onClick={()=>{if(staged){startTransition(()=>action(staged.data));setStaged(null);}}}>{translateUi((en) ? "en" : "ar", "تأكيد", "Confirm")}</Button><AlertDialogCancel>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
 }

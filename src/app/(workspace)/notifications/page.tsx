@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { requireStudentManagementUser as requireManagementUser } from "@/features/organizations/access";
 import { taskNotificationCounts, taskNotifications } from "@/features/tasks/repository";
@@ -34,8 +35,8 @@ export default async function NotificationsPage({ searchParams }: {
 
   return <main id="main" dir={en ? "ltr" : "rtl"} className="min-w-0 space-y-5">
     <header className="workspace-page-header">
-      <h1>{en ? "Notifications" : "الإشعارات"}</h1>
-      {!preview && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/notifications?preview=1">{en ? "Sample notifications" : "إشعارات نموذجية"}</Link>}
+      <h1>{translateUi((en) ? "en" : "ar", "الإشعارات", "Notifications")}</h1>
+      {!preview && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/notifications?preview=1">{translateUi((en) ? "en" : "ar", "إشعارات نموذجية", "Sample notifications")}</Link>}
     </header>
 
     <NotificationInbox

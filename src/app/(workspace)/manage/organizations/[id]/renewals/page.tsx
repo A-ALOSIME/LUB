@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import {RoundForm} from "@/features/forms/round-actions";
 import { FilePlus2, CalendarRange, ClipboardList } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
@@ -45,7 +46,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const registrationAllowed = !!registration?.allowed.some(code => ["FORMS_MANAGE", "REGISTRATION_ROUNDS_MANAGE"].includes(code));
   if (!renewals && !registrationAllowed) notFound();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const templates = registration?.templates.filter(item => item.organization_id === id) ?? [];
   const publishedTemplates = templates.filter(item => item.versions.some(version => version.status_code === "Published"));
   const rounds = registration?.rounds ?? [];

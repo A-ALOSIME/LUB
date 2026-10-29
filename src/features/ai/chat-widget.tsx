@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import {useContext, useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type ComponentProps} from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -24,9 +25,9 @@ function ChatAction({label, children, ...props}: {label: string; children: React
   return <Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label} {...props}/>}>{children}</TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>;
 }
 
-function ChatLogo({className}: {className?:string}) {
-  return <span className={cn("lub-chat-logo",className)} role="img" aria-label="لُبّ">
-    <span className="lub-chat-logo-text">لُبّ</span>
+function ChatLogo({className,en}: {className?:string;en:boolean}) {
+  return <span className={cn("lub-chat-logo",className)} role="img" aria-label={translateUi((en) ? "en" : "ar", "لُبّ", "LUB")}>
+    <span className="lub-chat-logo-text">{en?"LUB":<LubBrandName/>}</span>
     <Image src="/brand/logo.d904bc5ef68d.svg" alt="" width={315} height={150} className="brand-light"/>
     <Image src="/brand/logo-reversed.4c09d1c07d25.svg" alt="" width={315} height={150} className="brand-dark"/>
   </span>;
@@ -80,55 +81,55 @@ function ChatView({locale,inline=false,initiallyOpen=false,embedded=false}:ChatW
 
   if (!inline && pathname === "/ai") return null;
   return <TooltipProvider><div className={cn("lub-chat", inline && "lub-chat-inline",embedded&&"lub-chat-embedded")} dir={en ? "ltr" : "rtl"}>
-    {open && <section id={panelId} className={cn("lub-chat-panel", started && "has-messages")} role={inline ? "region" : "dialog"} aria-label={inline?(en?"Ask LUB":"اسأل لُبّ"):undefined} aria-labelledby={inline?undefined:titleId} onKeyDown={event => {if (!inline && event.key === "Escape") close();}}>
+    {open && <section id={panelId} className={cn("lub-chat-panel", started && "has-messages")} role={inline ? "region" : "dialog"} aria-label={inline?(translateUi((en) ? "en" : "ar", "اسأل لُبّ", "Ask LUB")):undefined} aria-labelledby={inline?undefined:titleId} onKeyDown={event => {if (!inline && event.key === "Escape") close();}}>
       {!embedded && (started || !inline) && <header className="lub-chat-header">
-        {!inline && <h2 id={titleId}>{en ? "Ask LUB" : "اسأل لُب"}</h2>}
+        {!inline && <h2 id={titleId}>{translateUi((en) ? "en" : "ar", "اسأل لُب", "Ask LUB")}</h2>}
         <div className="lub-chat-header-actions">
-          {started && <ChatAction label={en?"New chat":"محادثة جديدة"} onClick={newConversation}><Plus/></ChatAction>}
-          {!inline && <ChatAction label={en ? "Close chat" : "إغلاق المحادثة"} onClick={close}><X/></ChatAction>}
+          {started && <ChatAction label={translateUi((en) ? "en" : "ar", "محادثة جديدة", "New chat")} onClick={newConversation}><Plus/></ChatAction>}
+          {!inline && <ChatAction label={translateUi((en) ? "en" : "ar", "إغلاق المحادثة", "Close chat")} onClick={close}><X/></ChatAction>}
         </div>
       </header>}
       <div className="lub-chat-thread">
         <ScrollArea className="lub-chat-messages" viewportRef={viewport} viewportProps={{"aria-busy":busy,onScroll:event=>{const element=event.currentTarget;const away=element.scrollHeight-element.scrollTop-element.clientHeight>64;follow.current=!away;setScrolledUp(away);}}}>
             <div className="lub-chat-thread-content">
               {!started && <div className="lub-chat-welcome">
-                {embedded?<p>{en?"How can I help you?":"كيف أقدر أساعدك؟"}</p>:inline && <><ChatLogo className="lub-chat-welcome-logo"/><h1>{en ? "How can I help you?" : "كيف أقدر أساعدك؟"}</h1></>}
+                {embedded?<p>{translateUi((en) ? "en" : "ar", "كيف أقدر أساعدك؟", "How can I help you?")}</p>:inline && <><ChatLogo en={en} className="lub-chat-welcome-logo"/><h1>{translateUi((en) ? "en" : "ar", "كيف أقدر أساعدك؟", "How can I help you?")}</h1></>}
               </div>}
               {messages.map(message => <div key={message.id}>
-                <Message align={message.role === "user" ? "end" : "start"} role="article" aria-label={message.role === "user" ? (en ? "Your question" : "سؤالك") : (en ? "Answer" : "الإجابة")} className={cn("lub-chat-message", "lub-chat-" + message.role)}>
+                <Message align={message.role === "user" ? "end" : "start"} role="article" aria-label={message.role === "user" ? (translateUi((en) ? "en" : "ar", "سؤالك", "Your question")) : (translateUi((en) ? "en" : "ar", "الإجابة", "Answer"))} className={cn("lub-chat-message", "lub-chat-" + message.role)}>
                   {message.role === "assistant" && <AssistantAvatar inline={inline}/>}
                   <MessageContent>
                     <Bubble variant={message.role === "user" ? "default" : "secondary"} align={message.role === "user" ? "end" : "start"}>
-                      <BubbleContent dir={en ? "ltr" : "rtl"}>{message.text?<p dir="auto">{brandText(message.text)}</p>:<div className="flex items-center gap-2 text-muted-foreground" role="status">{embedded?<><span aria-hidden="true" className="flex items-center gap-1"><Skeleton className="size-1.5 rounded-full"/><Skeleton className="size-1.5 rounded-full"/><Skeleton className="size-1.5 rounded-full"/></span><span className="sr-only">{en?"Thinking…":"يفكّر…"}</span></>:<><Spinner/>{searching?(en?"Searching…":"يبحث…"):(en?"Thinking…":"يفكّر…")}</>}</div>}
+                      <BubbleContent dir={en ? "ltr" : "rtl"}>{message.text?<p dir="auto">{brandText(message.text)}</p>:<div className="flex items-center gap-2 text-muted-foreground" role="status">{embedded?<><span aria-hidden="true" className="flex items-center gap-1"><Skeleton className="size-1.5 rounded-full"/><Skeleton className="size-1.5 rounded-full"/><Skeleton className="size-1.5 rounded-full"/></span><span className="sr-only">{translateUi((en) ? "en" : "ar", "يفكّر…", "Thinking…")}</span></>:<><Spinner/>{searching?(translateUi((en) ? "en" : "ar", "يبحث…", "Searching…")):(translateUi((en) ? "en" : "ar", "يفكّر…", "Thinking…"))}</>}</div>}
                         {message.sources.length > 0 && <div className="lub-chat-sources">{message.sources.map(source => <Link key={source.url} href={source.url} onClick={inline ? undefined : close}>{inline?brandText(source.label):source.label}</Link>)}</div>}
                       </BubbleContent>
                     </Bubble>
                     {message.role === "assistant" && !!message.text && <MessageFooter className="lub-chat-actions">
-                      <ChatAction label={en ? "Copy answer" : "نسخ الإجابة"} onClick={() => void copyAnswer(message)}>{copyStatus?.messageId === message.id && copyStatus.status === "copied" ? <Check data-copied="true"/> : <Copy/>}</ChatAction>
-                      <ChatAction label={en ? "Like answer" : "إعجاب بالإجابة"} aria-pressed={feedback[message.id] === "up"} onClick={() => setFeedback(previous => ({...previous, [message.id]: previous[message.id] === "up" ? undefined : "up"}))}><ThumbsUp/></ChatAction>
-                      <ChatAction label={en ? "Dislike answer" : "عدم إعجاب بالإجابة"} aria-pressed={feedback[message.id] === "down"} onClick={() => setFeedback(previous => ({...previous, [message.id]: previous[message.id] === "down" ? undefined : "down"}))}><ThumbsDown/></ChatAction>
-                      {copyStatus?.messageId === message.id && <span role="status" className="sr-only">{copyStatus.status === "copied" ? (en ? "Answer copied." : "نُسخت الإجابة.") : (en ? "Copy failed. Select and copy the answer." : "تعذّر النسخ. حدّد الإجابة وانسخها.")}</span>}
+                      <ChatAction label={translateUi((en) ? "en" : "ar", "نسخ الإجابة", "Copy answer")} onClick={() => void copyAnswer(message)}>{copyStatus?.messageId === message.id && copyStatus.status === "copied" ? <Check data-copied="true"/> : <Copy/>}</ChatAction>
+                      <ChatAction label={translateUi((en) ? "en" : "ar", "إعجاب بالإجابة", "Like answer")} aria-pressed={feedback[message.id] === "up"} onClick={() => setFeedback(previous => ({...previous, [message.id]: previous[message.id] === "up" ? undefined : "up"}))}><ThumbsUp/></ChatAction>
+                      <ChatAction label={translateUi((en) ? "en" : "ar", "عدم إعجاب بالإجابة", "Dislike answer")} aria-pressed={feedback[message.id] === "down"} onClick={() => setFeedback(previous => ({...previous, [message.id]: previous[message.id] === "down" ? undefined : "down"}))}><ThumbsDown/></ChatAction>
+                      {copyStatus?.messageId === message.id && <span role="status" className="sr-only">{copyStatus.status === "copied" ? (translateUi((en) ? "en" : "ar", "نُسخت الإجابة.", "Answer copied.")) : (translateUi((en) ? "en" : "ar", "تعذّر النسخ. حدّد الإجابة وانسخها.", "Copy failed. Select and copy the answer."))}</span>}
                     </MessageFooter>}
                   </MessageContent>
                 </Message>
               </div>)}
 
-              {error && <div><Message align="start" className="lub-chat-message lub-chat-assistant"><AssistantAvatar inline={inline}/><MessageContent><Alert variant="destructive" className="lub-chat-error" dir={en?"ltr":"rtl"}><AlertDescription>{error}</AlertDescription><Button type="button" variant="outline" size="sm" disabled={busy||!failedQuestion} onClick={()=>void send(undefined,failedQuestion??undefined)}><RotateCcw data-icon="inline-start"/>{en?"Retry":"إعادة المحاولة"}</Button></Alert></MessageContent></Message></div>}
+              {error && <div><Message align="start" className="lub-chat-message lub-chat-assistant"><AssistantAvatar inline={inline}/><MessageContent><Alert variant="destructive" className="lub-chat-error" dir={en?"ltr":"rtl"}><AlertDescription>{error}</AlertDescription><Button type="button" variant="outline" size="sm" disabled={busy||!failedQuestion} onClick={()=>void send(undefined,failedQuestion??undefined)}><RotateCcw data-icon="inline-start"/>{translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Retry")}</Button></Alert></MessageContent></Message></div>}
             </div>
         </ScrollArea>
-        {scrolledUp&&<Button type="button" variant="outline" size="icon" className="lub-chat-scroll-latest" aria-label={en?"Scroll to latest message":"نزّل لآخر المحادثة"} onClick={scrollToLatest}><ArrowDown/></Button>}
+        {scrolledUp&&<Button type="button" variant="outline" size="icon" className="lub-chat-scroll-latest" aria-label={translateUi((en) ? "en" : "ar", "نزّل لآخر المحادثة", "Scroll to latest message")} onClick={scrollToLatest}><ArrowDown/></Button>}
       </div>
       <footer className="lub-chat-composer">
         <form onSubmit={event => void send(event)}>
-          <label className="sr-only" htmlFor={inputId}>{inline?(en?"Your question":"سؤالك"):en ? "Your question about LUB" : "سؤالك عن لُبّ"}</label>
+          <label className="sr-only" htmlFor={inputId}>{inline?(translateUi((en) ? "en" : "ar", "سؤالك", "Your question")):translateUi((en) ? "en" : "ar", "سؤالك عن لُبّ", "Your question about LUB")}</label>
           <div className="lub-chat-form">
-            <Textarea ref={input} id={inputId} rows={1} maxLength={2000} value={draft} onChange={event => setDraft(event.target.value)} placeholder={inline?(en?"Type your question here...":"اكتب سؤالك هنا..."):en ? "Ask about LUB…" : "اكتب سؤالك عن لُبّ…"} onKeyDown={event => {if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send();}}}/>
-            <Button type={busy ? "button" : "submit"} size="icon" variant={busy || draft.trim() ? "default" : "secondary"} aria-label={busy ? (en ? "Stop response" : "إيقاف الرد") : (en ? "Send question" : "إرسال السؤال")} disabled={!busy && !draft.trim()} onClick={busy ? stop : undefined}>{busy ? <Square/> : <ArrowUp/>}</Button>
+            <Textarea ref={input} id={inputId} rows={1} maxLength={2000} value={draft} onChange={event => setDraft(event.target.value)} placeholder={inline?(translateUi((en) ? "en" : "ar", "اكتب سؤالك هنا...", "Type your question here...")):translateUi((en) ? "en" : "ar", "اكتب سؤالك عن لُبّ…", "Ask about LUB…")} onKeyDown={event => {if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send();}}}/>
+            <Button type={busy ? "button" : "submit"} size="icon" variant={busy || draft.trim() ? "default" : "secondary"} aria-label={busy ? (translateUi((en) ? "en" : "ar", "إيقاف الرد", "Stop response")) : (translateUi((en) ? "en" : "ar", "إرسال السؤال", "Send question"))} disabled={!busy && !draft.trim()} onClick={busy ? stop : undefined}>{busy ? <Square/> : <ArrowUp/>}</Button>
           </div>
         </form>
-        <p className="lub-chat-disclaimer">{inline?(en?"The assistant can make mistakes. Check important information.":"قد يخطئ المساعد، تأكد من المعلومات المهمة"):en ? "LUB can make mistakes. Check important information." : "لُب قد يخطئ، تأكد من المعلومات المهمة"}</p>
+        <p className="lub-chat-disclaimer">{inline?(translateUi((en) ? "en" : "ar", "قد يخطئ المساعد، تأكد من المعلومات المهمة", "The assistant can make mistakes. Check important information.")):translateUi((en) ? "en" : "ar", "لُب قد يخطئ، تأكد من المعلومات المهمة", "LUB can make mistakes. Check important information.")}</p>
       </footer>
     </section>}
-    {!inline && <Button ref={launcher} className="lub-chat-launcher" type="button" aria-expanded={open} aria-controls={panelId} aria-label={en ? "Open LUB assistant" : "فتح مساعد لُبّ"} onClick={() => open ? close() : setOpen(true)}><MessageCircle/>{en ? "Ask LUB" : "اسأل لُبّ"}</Button>}
+    {!inline && <Button ref={launcher} className="lub-chat-launcher" type="button" aria-expanded={open} aria-controls={panelId} aria-label={translateUi((en) ? "en" : "ar", "فتح مساعد لُبّ", "Open LUB assistant")} onClick={() => open ? close() : setOpen(true)}><MessageCircle/>{translateUi((en) ? "en" : "ar", "اسأل لُبّ", "Ask LUB")}</Button>}
   </div></TooltipProvider>;
 }

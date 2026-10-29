@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useActionState } from "react";
 import Link from "next/link";
@@ -12,7 +13,7 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { Empty, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {Switch} from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
+import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
 import type { TalentPages, TalentWorkspace } from "./repository";
@@ -52,23 +53,23 @@ function DeleteConfirmation({ id, operation, item, locale }: { id: string; opera
   const close = useCallback(() => setOpen(false), []);
   const en = locale === "en";
   return <AlertDialog open={open} onOpenChange={setOpen}>
-    <AlertDialogTrigger render={<Button type="button" size="icon-sm" variant="ghost" aria-label={en ? `Delete ${item}` : `حذف ${item}`} /> }>
+    <AlertDialogTrigger render={<Button type="button" size="icon-sm" variant="ghost" aria-label={translateUi((en) ? "en" : "ar", `حذف ${item}`, `Delete ${item}`)} /> }>
       <Trash2 aria-hidden="true" />
     </AlertDialogTrigger>
     <AlertDialogContent dir={en ? "ltr" : "rtl"} className="font-sans">
       <AlertDialogHeader>
-        <AlertDialogTitle>{en ? "Delete this item?" : "حذف هذا العنصر؟"}</AlertDialogTitle>
-        <AlertDialogDescription>{en ? `This will remove ${item} from your profile.` : `سيُحذف ${item} من ملفك.`}</AlertDialogDescription>
+        <AlertDialogTitle>{translateUi((en) ? "en" : "ar", "حذف هذا العنصر؟", "Delete this item?")}</AlertDialogTitle>
+        <AlertDialogDescription>{translateUi((en) ? "en" : "ar", `سيُحذف ${item} من ملفك.`, `This will remove ${item} from your profile.`)}</AlertDialogDescription>
       </AlertDialogHeader>
       <TalentForm
         operation={operation}
         fields={operation === "remove-link" ? { link: id } : { name: id }}
-        label={en ? "Delete" : "حذف"}
+        label={translateUi((en) ? "en" : "ar", "حذف", "Delete")}
         buttonClassName="button button-compact bg-destructive text-destructive-foreground hover:bg-destructive/90"
         formClassName="flex flex-col gap-0"
         locale={locale}
         onSuccess={close}
-        secondaryAction={<AlertDialogCancel>{en ? "Cancel" : "إلغاء"}</AlertDialogCancel>}
+        secondaryAction={<AlertDialogCancel>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</AlertDialogCancel>}
       />
     </AlertDialogContent>
   </AlertDialog>;
@@ -87,36 +88,21 @@ function AddContactDialog({ locale, disabled }: { locale: Locale; disabled: bool
     <Dialog open={open} onOpenChange={setOpen}>
     <DialogContent dir={en ? "ltr" : "rtl"} className="talent-form-dialog font-sans sm:max-w-lg" showCloseButton={false}>
       <DialogHeader className="text-start">
-        <DialogTitle>{en ? "Add a contact channel" : "إضافة قناة تواصل"}</DialogTitle>
+        <DialogTitle>{translateUi((en) ? "en" : "ar", "إضافة قناة تواصل", "Add a contact channel")}</DialogTitle>
       </DialogHeader>
-      <TalentForm operation="link" label={en ? "Add channel" : "إضافة القناة"} buttonClassName="button button-compact w-fit" formClassName="flex flex-col gap-4" locale={locale} onSuccess={close}>
+      <TalentForm operation="link" label={translateUi((en) ? "en" : "ar", "إضافة القناة", "Add channel")} buttonClassName="button button-compact w-fit" formClassName="flex flex-col gap-4" locale={locale} onSuccess={close}>
         <input type="hidden" name="kind" value={kind} readOnly />
         <FieldGroup className="gap-4">
         <Field>
           <FieldLabel htmlFor={valueId}>{en ? talentChannelLabel(kind, true) : talentChannelLabel(kind, false)}</FieldLabel>
-          <div className="relative">
-            {kind !== "Phone" && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted-foreground">
-              <TalentChannelIcon kind={kind} className="size-4" />
-            </span>}
-            {kind === "Phone" ? <PhoneInput id={valueId} name="value" locale={locale} required /> : <Input
-              id={valueId}
-              name="value"
-              type={kind === "Email" ? "email" : "text"}
-              inputMode={kind === "Email" ? "email" : "url"}
-              placeholder={selected.placeholder}
-              dir="ltr"
-              className="ps-9 text-right font-sans"
-              required
-              maxLength={2048}
-              autoComplete="off"
-            />}
-          </div>
+          {kind === "Phone" ? <PhoneInput id={valueId} name="value" locale={locale} required /> : <InputGroup><InputGroupAddon><TalentChannelIcon kind={kind}/></InputGroupAddon><InputGroupInput id={valueId} name="value" type={kind==="Email"?"email":"text"} inputMode={kind==="Email"?"email":"url"} placeholder={selected.placeholder} dir="ltr" className={en?"text-left":"text-right"} required maxLength={2048} autoComplete="off"/></InputGroup>}
+
         </Field>
 
         </FieldGroup>
       </TalentForm>
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>{en ? "Cancel" : "إلغاء"}</DialogClose>
+        <DialogClose render={<Button type="button" variant="outline" />}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</DialogClose>
       </DialogFooter>
     </DialogContent>
     </Dialog>
@@ -131,17 +117,17 @@ function EditContactDialog({ link, locale }: { link: TalentWorkspace["links"][nu
   const label = talentChannelLabel(link.link_type, en);
   const valueId = useId();
   return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={en ? "Edit contact" : "تعديل القناة"} title={en ? "Edit" : "تعديل"} />}>
+    <DialogTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "تعديل القناة", "Edit contact")} title={translateUi((en) ? "en" : "ar", "تعديل", "Edit")} />}>
       <Pencil aria-hidden="true" />
     </DialogTrigger>
     <DialogContent dir={en ? "ltr" : "rtl"} className="talent-form-dialog font-sans" showCloseButton={false}>
       <DialogHeader className="text-start">
-        <DialogTitle>{en ? "Edit contact channel" : "تعديل قناة التواصل"}</DialogTitle>
+        <DialogTitle>{translateUi((en) ? "en" : "ar", "تعديل قناة التواصل", "Edit contact channel")}</DialogTitle>
       </DialogHeader>
       <TalentForm
         operation="update-link"
         fields={{ link: link.id, kind: link.link_type, label: link.label }}
-        label={en ? "Save changes" : "حفظ التعديلات"}
+        label={translateUi((en) ? "en" : "ar", "حفظ التعديلات", "Save changes")}
         buttonClassName="button button-compact w-fit"
         formClassName="flex flex-col gap-4"
         locale={locale}
@@ -149,15 +135,13 @@ function EditContactDialog({ link, locale }: { link: TalentWorkspace["links"][nu
       >
         <Field>
           <FieldLabel htmlFor={valueId}>{label}</FieldLabel>
-          <div className="relative">
-            {link.link_type === "Phone" ? <PhoneInput id={valueId} name="value" defaultValue={link.url_or_value} locale={locale} required /> : <><span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted-foreground"><TalentChannelIcon kind={link.link_type} className="size-4" /></span>
-            <Input id={valueId} name="value" defaultValue={link.url_or_value} type={link.link_type === "Email" ? "email" : "text"} inputMode={link.link_type === "Email" ? "email" : "url"} dir="ltr" className="ps-9 text-right font-sans" required maxLength={2048} autoComplete="off" /></>}
-          </div>
+          {link.link_type === "Phone" ? <PhoneInput id={valueId} name="value" defaultValue={link.url_or_value} locale={locale} required /> : <InputGroup><InputGroupAddon><TalentChannelIcon kind={link.link_type}/></InputGroupAddon><InputGroupInput id={valueId} name="value" defaultValue={link.url_or_value} type={link.link_type==="Email"?"email":"text"} inputMode={link.link_type==="Email"?"email":"url"} dir="ltr" className={en?"text-left":"text-right"} required maxLength={2048} autoComplete="off"/></InputGroup>}
+
         </Field>
 
       </TalentForm>
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>{en ? "Cancel" : "إلغاء"}</DialogClose>
+        <DialogClose render={<Button type="button" variant="outline" />}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</DialogClose>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -169,20 +153,20 @@ function AddSkillDialog({ locale, disabled }: { locale: Locale; disabled: boolea
   const en = locale === "en";
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger render={<Button type="button" variant="outline" size="sm" disabled={disabled} className="gap-2" />}>
-      <Plus aria-hidden="true" />{en ? "Add skill" : "إضافة مهارة"}
+      <Plus aria-hidden="true" />{translateUi((en) ? "en" : "ar", "إضافة مهارة", "Add skill")}
     </DialogTrigger>
     <DialogContent dir={en ? "ltr" : "rtl"} className="talent-form-dialog font-sans" showCloseButton={false}>
       <DialogHeader className="text-start">
-        <DialogTitle>{en ? "Add a skill" : "إضافة مهارة"}</DialogTitle>
+        <DialogTitle>{translateUi((en) ? "en" : "ar", "إضافة مهارة", "Add a skill")}</DialogTitle>
       </DialogHeader>
-      <TalentForm operation="skill" label={en ? "Add skill" : "إضافة المهارة"} buttonClassName="button button-compact w-fit" formClassName="flex flex-col gap-4" locale={locale} onSuccess={close}>
+      <TalentForm operation="skill" label={translateUi((en) ? "en" : "ar", "إضافة المهارة", "Add skill")} buttonClassName="button button-compact w-fit" formClassName="flex flex-col gap-4" locale={locale} onSuccess={close}>
         <FieldGroup className="gap-4">
           <SkillCombobox locale={locale}/>
 
         </FieldGroup>
       </TalentForm>
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>{en ? "Cancel" : "إلغاء"}</DialogClose>
+        <DialogClose render={<Button type="button" variant="outline" />}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</DialogClose>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -194,15 +178,15 @@ function AddProjectDialog({ sources, locale }: { sources: TalentWorkspace["sourc
   const en = locale === "en";
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger render={<Button type="button" variant="outline" size="sm" className="gap-2" />}>
-      <Plus aria-hidden="true" />{en ? "Add achievement" : "إضافة إنجاز"}
+      <Plus aria-hidden="true" />{translateUi((en) ? "en" : "ar", "إضافة إنجاز", "Add achievement")}
     </DialogTrigger>
     <DialogContent dir={en ? "ltr" : "rtl"} className="talent-form-dialog font-sans sm:max-w-lg" showCloseButton={false}>
       <DialogHeader className="text-start">
-        <DialogTitle>{en ? "Add a verified achievement" : "إضافة إنجاز موثق"}</DialogTitle>
+        <DialogTitle>{translateUi((en) ? "en" : "ar", "إضافة إنجاز موثق", "Add a verified achievement")}</DialogTitle>
       </DialogHeader>
       <NewProject sources={sources.slice(0, 25)} locale={locale} onSuccess={close} />
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>{en ? "Cancel" : "إلغاء"}</DialogClose>
+        <DialogClose render={<Button type="button" variant="outline" />}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</DialogClose>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -223,7 +207,7 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
   const [state, action, pending] = useActionState<WorkflowState, FormData>(submit, {});
   useActionToast(state, locale);
   const en = locale === "en";
-  const publishLabel = en ? "Publish my profile in talent discovery" : "نشر ملفي في اكتشاف المواهب";
+  const publishLabel = translateUi((en) ? "en" : "ar", "نشر ملفي في اكتشاف المواهب", "Publish my profile in talent discovery");
   const markDirty = useCallback(() => { setDirty(true); setShowSuccess(false); }, []);
 
   useEffect(() => {
@@ -235,15 +219,15 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
       <CardContent className="flex flex-col gap-5 p-4 pt-3">
             <FieldGroup className="gap-4">
               <Field>
-                <FieldLabel htmlFor="talent-bio">{en ? "About me" : "نبذة عني"}</FieldLabel>
-                <Textarea id="talent-bio" name="bio" rows={4} maxLength={1000} defaultValue={data.bio} placeholder={en ? "A short introduction…" : "اكتب نبذة قصيرة عنك…"} />
+                <FieldLabel htmlFor="talent-bio">{translateUi((en) ? "en" : "ar", "نبذة عني", "About me")}</FieldLabel>
+                <Textarea id="talent-bio" name="bio" rows={4} maxLength={1000} defaultValue={data.bio} placeholder={translateUi((en) ? "en" : "ar", "اكتب نبذة قصيرة عنك…", "A short introduction…")} />
               </Field>
             </FieldGroup>
 
             <section aria-labelledby="talent-contact-heading" className="flex flex-col gap-3 border-t border-border/60 pt-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 id="talent-contact-heading" className="text-sm font-semibold">{en ? "Contact channels" : "قنوات التواصل"}</h3>
+                  <h3 id="talent-contact-heading" className="text-sm font-semibold">{translateUi((en) ? "en" : "ar", "قنوات التواصل", "Contact channels")}</h3>
                 </div>
                 <AddContactDialog locale={locale} disabled={data.links.length >= 10} />
               </div>
@@ -262,13 +246,13 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
                     <DeleteConfirmation id={link.id} operation="remove-link" item={label} locale={locale} />
                   </li>;
                 })}
-              </ul> : <InlineEmpty>{en ? "No contact channels have been added." : "لم تتم إضافة قنوات تواصل بعد."}</InlineEmpty>}
+              </ul> : <InlineEmpty>{translateUi((en) ? "en" : "ar", "لم تتم إضافة قنوات تواصل بعد.", "No contact channels have been added.")}</InlineEmpty>}
             </section>
 
             <section className="flex flex-col gap-3 border-t border-border/60 pt-4" aria-labelledby="talent-skills-heading">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 id="talent-skills-heading" className="text-sm font-semibold">{en ? "Skills" : "المهارات"}</h3>
+                  <h3 id="talent-skills-heading" className="text-sm font-semibold">{translateUi((en) ? "en" : "ar", "المهارات", "Skills")}</h3>
                 </div>
                 <AddSkillDialog locale={locale} disabled={data.skills.length >= 30} />
               </div>
@@ -283,13 +267,13 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
                   </li>;
                 })}
                 </ul>
-              </> : <InlineEmpty>{en ? "No skills have been added." : "لم تتم إضافة مهارات بعد."}</InlineEmpty>}
+              </> : <InlineEmpty>{translateUi((en) ? "en" : "ar", "لم تتم إضافة مهارات بعد.", "No skills have been added.")}</InlineEmpty>}
             </section>
 
             <section className="flex flex-col gap-3 border-t border-border pt-4" aria-labelledby="talent-achievements-heading">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 id="talent-achievements-heading" className="text-sm font-semibold">{en ? "Achievements" : "الإنجازات"}</h3>
+                  <h3 id="talent-achievements-heading" className="text-sm font-semibold">{translateUi((en) ? "en" : "ar", "الإنجازات", "Achievements")}</h3>
                 </div>
                 {data.sources.length > 0 && <AddProjectDialog sources={data.sources} locale={locale} />}
               </div>
@@ -298,7 +282,7 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
                 {data.projects.slice(0, 25).map((project, index) => <details key={project.id} className="group rounded-lg border border-border bg-background">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 marker:hidden [&::-webkit-details-marker]:hidden">
                     <span dir="auto" className="min-w-0 break-words text-sm font-medium">{project.display_title}</span>
-                    <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"><span>{project.is_featured ? en ? "Featured" : "مثبت" : en ? "Verified" : "موثق"}</span><ChevronDown aria-hidden="true" className="size-3.5 transition-transform group-open:rotate-180" /></span>
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"><span>{project.is_featured ? translateUi((en) ? "en" : "ar", "مثبت", "Featured") : translateUi((en) ? "en" : "ar", "موثق", "Verified")}</span><ChevronDown aria-hidden="true" className="size-3.5 transition-transform group-open:rotate-180" /></span>
                   </summary>
                   <div className="flex flex-col gap-3 border-t border-border p-3">
                     <input type="hidden" name={`project_${index}_id`} value={project.id} />
@@ -307,7 +291,7 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
                     <ProjectFields locale={locale} namePrefix={`project_${index}_`} value={project} />
                   </div>
                 </details>)}
-              </div> : <InlineEmpty>{en ? "No achievements have been added." : "لم تتم إضافة إنجازات بعد."}</InlineEmpty>}
+              </div> : <InlineEmpty>{translateUi((en) ? "en" : "ar", "لم تتم إضافة إنجازات بعد.", "No achievements have been added.")}</InlineEmpty>}
               <TalentPagination pages={pages} keyName="projects" more={data.projects.length > 25} locale={locale} />
               <TalentPagination pages={pages} keyName="sources" more={data.sources.length > 25} locale={locale} />
             </section>
@@ -316,20 +300,20 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
       {showSuccess && state.success && <p role="status" className="mx-4 mb-3 text-sm text-action">{actionFeedback(state.success, locale)}</p>}
       <CardFooter className="flex-wrap items-center justify-start gap-3 border-t border-border bg-card p-4">
         <div className="flex w-fit min-w-fit shrink-0 items-center gap-2">
-          <span className="whitespace-nowrap text-sm font-medium">{en ? "Publish my profile" : "نشر ملفي"}</span>
+          <span className="whitespace-nowrap text-sm font-medium">{translateUi((en) ? "en" : "ar", "نشر ملفي", "Publish my profile")}</span>
           <ContactVisibilityButton
             name="enabled"
             label={publishLabel}
             visible={data.settings.public_profile_enabled}
             locale={locale}
-            hideLabel={en ? "Unpublish my talent profile" : "إيقاف نشر ملفي المهاري"}
-            showLabel={en ? "Publish my talent profile" : "نشر ملفي المهاري"}
+            hideLabel={translateUi((en) ? "en" : "ar", "إيقاف نشر ملفي المهاري", "Unpublish my talent profile")}
+            showLabel={translateUi((en) ? "en" : "ar", "نشر ملفي المهاري", "Publish my talent profile")}
             onVisibilityChange={markDirty}
           />
         </div>
-        <Field orientation="horizontal"><FieldLabel htmlFor="talent-indexing">{en?"Allow search engines to index my public profile":"السماح لمحركات البحث بفهرسة ملفي العام"}</FieldLabel><Switch id="talent-indexing" name="indexable" value="true" defaultChecked={data.settings.allow_indexing??false} onCheckedChange={markDirty}/></Field>
-        {data.settings.public_profile_enabled && data.settings.public_slug && <Button render={<Link href={`/talent/${data.settings.public_slug}`} />} variant="outline" size="sm" className="w-fit shrink-0 gap-1.5 no-underline" aria-label={en ? "View public profile" : "عرض الملف العام"}>
-          <Eye aria-hidden="true" data-icon="inline-start" /><span>{en ? "View profile" : "عرض الملف العام"}</span>
+        <Field orientation="horizontal"><FieldLabel htmlFor="talent-indexing">{translateUi((en) ? "en" : "ar", "السماح لمحركات البحث بفهرسة ملفي العام", "Allow search engines to index my public profile")}</FieldLabel><Switch id="talent-indexing" name="indexable" value="true" defaultChecked={data.settings.allow_indexing??false} onCheckedChange={markDirty}/></Field>
+        {data.settings.public_profile_enabled && data.settings.public_slug && <Button render={<Link href={`/talent/${data.settings.public_slug}`} />} variant="outline" size="sm" className="w-fit shrink-0 gap-1.5 no-underline" aria-label={translateUi((en) ? "en" : "ar", "عرض الملف العام", "View public profile")}>
+          <Eye aria-hidden="true" data-icon="inline-start" /><span>{translateUi((en) ? "en" : "ar", "عرض الملف العام", "View profile")}</span>
         </Button>}
       </CardFooter>
     </Card>
@@ -341,7 +325,7 @@ export function TalentWorkspaceEditor({ data, user, pages, locale = "ar" }: { da
   const en = locale === "en";
   return <main id="main" dir={en ? "ltr" : "rtl"} className="workspace-content talent-settings-page flex min-w-0 flex-col gap-4">
     <header className="workspace-page-header">
-      <h1>{en ? "My talent profile" : "ملفي المهاري"}</h1>
+      <h1>{translateUi((en) ? "en" : "ar", "ملفي المهاري", "My talent profile")}</h1>
     </header>
     <ProfileSettingsForm data={data} user={user} pages={pages} locale={locale} />
   </main>;

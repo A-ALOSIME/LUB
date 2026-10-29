@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,7 @@ export function EventsAnnouncementsActions({ organizationId, locale, canCreateEv
   const legacyAnnouncementOpen = useSyncExternalStore(subscribeLegacyAnnouncementDialog, getLegacyAnnouncementDialogSnapshot, () => false);
   const section = useOrganizationSection();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   if (!canCreateEvent && !canCreateAnnouncement) return null;
   const showEventAction = section === "events" && canCreateEvent;
   const showAnnouncementAction = section === "announcements" && canCreateAnnouncement;

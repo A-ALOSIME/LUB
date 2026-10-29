@@ -1,8 +1,10 @@
 import "server-only";
+import {localOrganizationContent} from "@/features/organizations/local-content";
 import { sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { withUser, withVisitor } from "@/db/client";
 import type { TalentFilters } from "./filters";
+export function talentOrganizationLogo(name:string,logo:string|null|undefined){return logo??(localOrganizationContent(name,"Club")??localOrganizationContent(name,"Council"))?.logoSrc??null;}
 export type TalentOrganization = {
   name: string;
   slug: string;
@@ -121,7 +123,8 @@ async function queryPublicTalent(id: string, pages: TalentPages) {
     const rows = await tx.execute(
       sql`select lub.public_talent(${id},${pages.organizations * 25},${pages.events * 25},${pages.projects * 25}) as profile`,
     );
-    return rows[0]?.profile as PublicTalent | null;
+    const profile=rows[0]?.profile as PublicTalent|null;
+    return profile?{...profile,organizations:profile.organizations.map(o=>({...o,logo:talentOrganizationLogo(o.name,o.logo)}))}:null;
   });
 }
 const readPublicTalent = unstable_cache(
@@ -136,7 +139,7 @@ const readPublicTalent = unstable_cache(
     if (!profile) throw new PublicTalentNotFound();
     return profile;
   },
-  ["public-talent-profile-first-page-v4"],
+  ["public-talent-profile-first-page-v5"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export async function publicTalent(id: string, pages: TalentPages) {
@@ -189,7 +192,8 @@ async function search(filters: TalentFilters) {
     const rows = await tx.execute(
       sql`select lub.search_talent(${JSON.stringify(filters)}::jsonb) as result`,
     );
-    return rows[0].result as TalentResults;
+    const result=rows[0].result as TalentResults;
+    return {...result,items:result.items.map(item=>({...item,organizations:item.organizations?.map(o=>({...o,logo:talentOrganizationLogo(o.name,o.logo)}))}))};
   });
 }
 const popular = unstable_cache(
@@ -203,7 +207,7 @@ const popular = unstable_cache(
       sort: "relevance",
       page: 0,
     }),
-  ["public-talent-search-v4"],
+  ["public-talent-search-v5"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export function searchTalent(filters: TalentFilters) {

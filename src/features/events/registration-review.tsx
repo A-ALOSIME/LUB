@@ -1,4 +1,6 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
+import {majorLabel} from "@/lib/display";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -36,7 +38,7 @@ export function EventRegistrationReview({
 }) {
   const [selected, setSelected] = useState<string | null>(null),
     router = useRouter(),
-    c = (ar: string, en: string) => (locale === "en" ? en : ar);
+    c = createTranslator((locale === "en") ? "en" : "ar");
   const detail = items.find((r) => r.id === selected);
   async function decide(
     ids: string[],
@@ -98,7 +100,7 @@ export function EventRegistrationReview({
               <SheetHeader className="management-action-header">
                 <SheetTitle>{detail.name}</SheetTitle>
                 <p className="text-sm text-muted-foreground">
-                  <bdi>{detail.major}</bdi> ·{" "}
+                  <bdi>{majorLabel(detail.major,locale)}</bdi> ·{" "}
                   {academicLevel(detail.level, locale)}
                 </p>
                 <RequestStatusBadge

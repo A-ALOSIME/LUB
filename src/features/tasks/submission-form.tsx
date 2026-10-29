@@ -1,11 +1,12 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import {useEffect,useRef,useState} from "react";
 import {TaskForm} from "./task-form";
 import {FilePickerInput} from "@/components/file-picker-input";
 import type {Locale} from "@/lib/preferences";
 import { FormField } from "@/components/form-field";
 export function SubmissionForm({participant,revision,lastRevision,locale="ar"}:{participant:string;revision:number;lastRevision:number;locale?:Locale}){
- const en=locale==="en",c=(ar:string,english:string)=>en?english:ar;
+ const en=locale==="en",c=createTranslator(en ? "en" : "ar");
  const [assets,setAssets]=useState<Array<{id:string;name:string}>>([]);const [uploading,setUploading]=useState(false);const [error,setError]=useState("");const alert=useRef<HTMLParagraphElement>(null);
  useEffect(()=>{if(error)alert.current?.focus();},[error]);
  async function upload(file?:File){if(!file)return;setError("");setUploading(true);try{

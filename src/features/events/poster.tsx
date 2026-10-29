@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useState } from "react";
 import Image from "next/image";
 import { CalendarDays, X } from "lucide-react";
@@ -89,7 +90,7 @@ export function EventPoster({
             variant="ghost"
             className="event-poster-open"
             aria-label={
-              en ? `Enlarge poster: ${title}` : `تكبير بوستر ${title}`
+              translateUi((en) ? "en" : "ar", `تكبير بوستر ${title}`, `Enlarge poster: ${title}`)
             }
           />
         }
@@ -108,7 +109,7 @@ export function EventPoster({
                 variant="ghost"
                 size="icon-sm"
                 className="absolute end-3 top-3"
-                aria-label={en ? "Close poster" : "إغلاق البوستر"}
+                aria-label={translateUi((en) ? "en" : "ar", "إغلاق البوستر", "Close poster")}
               />
             }
           >

@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import type { OrganizationProfileLink } from "./local-content";
 import { SiGithub,SiBehance } from "react-icons/si";
 
@@ -54,12 +55,12 @@ export function SocialLinkIcons({ links, en }: { links: readonly OrganizationPro
   const items = [...uniqueLinks.values()];
   if (items.length === 0) return null;
 
-  return <ul className="organization-social-list" aria-label={en ? "Contact and social links" : "روابط التواصل والحسابات الاجتماعية"}>
+  return <ul className="organization-social-list" aria-label={translateUi((en) ? "en" : "ar", "روابط التواصل والحسابات الاجتماعية", "Contact and social links")}>
     {items.map(link => {
       const href = link.href!;
       const accessibleName = link.value && link.value !== href ? `${link.label}: ${link.value}` : link.label;
       const external = href.startsWith("https:");
-      const linkName = external ? `${accessibleName} (${en ? "opens in a new window" : "يفتح في نافذة جديدة"})` : accessibleName;
+      const linkName = external ? `${accessibleName} (${translateUi((en) ? "en" : "ar", "يفتح في نافذة جديدة", "opens in a new window")})` : accessibleName;
       return <li key={href}><a className="organization-social-link" href={href} aria-label={linkName} title={accessibleName} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>
         <SocialIcon name={iconName(link)} />
       </a></li>;

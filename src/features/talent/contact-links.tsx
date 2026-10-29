@@ -1,10 +1,11 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TalentChannelIcon, talentChannelLabel } from "./contact-channel";
 import type { PublicTalent } from "./repository";
 export function TalentContactLinks({links, en}: {links: PublicTalent["links"]; en: boolean}) {
-  return <TooltipProvider><nav className="mt-4 flex flex-wrap gap-2" aria-label={en ? "Published contact channels" : "قنوات التواصل المنشورة"}>
+  return <TooltipProvider><nav className="mt-4 flex flex-wrap gap-2" aria-label={translateUi((en) ? "en" : "ar", "قنوات التواصل المنشورة", "Published contact channels")}>
     {links.map((link, index) => {
       const href = link.kind === "Email" ? `mailto:${link.value}` : link.kind === "Phone" ? `tel:${link.value}` : link.value;
       const label = talentChannelLabel(link.kind, en);

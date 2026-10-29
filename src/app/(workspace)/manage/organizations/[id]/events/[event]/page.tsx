@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { z } from "zod";
@@ -38,7 +39,7 @@ export default async function ManagedEvent({
         className="self-start"
         render={<Link href={`/manage/organizations/${id}/events`} />}
       >
-        {locale === "en" ? "Back to events" : "العودة للفعاليات"}
+        {translateUi((locale === "en") ? "en" : "ar", "العودة للفعاليات", "Back to events")}
       </Button>
       <EventContent
         data={data}

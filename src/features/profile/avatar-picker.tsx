@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import {useEffect, useRef, useState} from "react";
 import {Pencil, Trash2} from "lucide-react";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
@@ -32,13 +33,13 @@ export function AvatarPicker({name,src,locale,onChange,onProcessing,error:server
   async function choose(file?:File) {
     if(!file)return;setError("");setBusy(true);onProcessing(true);
     try {const converted=await prepareAvatar(file),url=URL.createObjectURL(converted);setLocalUrl(url);setPreview(url);input.current?.setCustomValidity("");onChange(converted);}
-    catch {const message=en?"Choose a valid JPG or PNG up to 2 MB.":"اختر صورة JPG أو PNG صالحة بحجم لا يتجاوز 2MB.";setError(message);input.current?.setCustomValidity(message);}
+    catch {const message=translateUi((en) ? "en" : "ar", "اختر صورة JPG أو PNG صالحة بحجم لا يتجاوز 2MB.", "Choose a valid JPG or PNG up to 2 MB.");setError(message);input.current?.setCustomValidity(message);}
     finally {setBusy(false);onProcessing(false);}
   }
   return <div className="account-avatar-picker">
-    <Avatar className="account-avatar-large"><AvatarImage src={preview} alt={en?"Your account photo":"صورة حسابك"}/><AvatarFallback>{name.trim().charAt(0)||"ل"}</AvatarFallback></Avatar>
-    <div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>input.current?.click()}><Pencil data-icon="inline-start"/>{en?"Change photo":"تغيير الصورة"}</Button>{preview&&<Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setPreview(undefined);setError("");setLocalUrl("");input.current?.setCustomValidity("");onChange(null);}}><Trash2 data-icon="inline-start"/>{en?"Remove photo":"حذف الصورة"}</Button>}</div>
-    <input ref={input} disabled={busy} type="file" accept="image/jpeg,image/png" aria-label={en?"Choose account photo":"اختيار صورة الحساب"} className="sr-only" onInvalid={event=>event.preventDefault()} onChange={event=>{const file=event.target.files?.[0];event.target.value="";void choose(file);}}/>
+    <Avatar className="account-avatar-large"><AvatarImage src={preview} alt={translateUi((en) ? "en" : "ar", "صورة حسابك", "Your account photo")}/><AvatarFallback>{name.trim().charAt(0)||"ل"}</AvatarFallback></Avatar>
+    <div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>input.current?.click()}><Pencil data-icon="inline-start"/>{translateUi((en) ? "en" : "ar", "تغيير الصورة", "Change photo")}</Button>{preview&&<Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setPreview(undefined);setError("");setLocalUrl("");input.current?.setCustomValidity("");onChange(null);}}><Trash2 data-icon="inline-start"/>{translateUi((en) ? "en" : "ar", "حذف الصورة", "Remove photo")}</Button>}</div>
+    <input ref={input} disabled={busy} type="file" accept="image/jpeg,image/png" aria-label={translateUi((en) ? "en" : "ar", "اختيار صورة الحساب", "Choose account photo")} className="sr-only" onInvalid={event=>event.preventDefault()} onChange={event=>{const file=event.target.files?.[0];event.target.value="";void choose(file);}}/>
     {(error||serverError)&&<p role="alert" className="text-sm text-destructive">{error||serverError}</p>}
   </div>;
 }

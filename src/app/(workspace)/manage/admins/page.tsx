@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { notFound } from "next/navigation";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { requireVerifiedProxyIdentity } from "@/features/auth/session";
@@ -18,7 +19,7 @@ export default async function AdminsPage() {
   return <div className="workspace-content">
     <header className="workspace-page-header">
       <div>
-        <h1>{en ? "System administrators" : "المشرفون العامون"}</h1>
+        <h1>{translateUi((en) ? "en" : "ar", "المشرفون العامون", "System administrators")}</h1>
       </div>
     </header>
 

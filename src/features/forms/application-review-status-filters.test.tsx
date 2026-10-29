@@ -16,8 +16,8 @@ it("shows only nonzero status counts and navigates when a filter changes", () =>
     { value: "Accepted", label: "مقبول", count: 2, href: "?status=Accepted" },
   ]} />);
 
-  expect(screen.getByText("8")).toBeTruthy();
-  expect(screen.getByText("2")).toBeTruthy();
+  expect(screen.getByText("٨")).toBeTruthy();
+  expect(screen.getByText("٢")).toBeTruthy();
   expect(screen.queryByText("0")).toBeNull();
   fireEvent.click(screen.getByRole("tab", { name: /مقبول/ }));
   expect(push).toHaveBeenCalledWith("?status=Accepted");

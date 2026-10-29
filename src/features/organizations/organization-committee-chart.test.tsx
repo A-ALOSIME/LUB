@@ -92,7 +92,7 @@ it('retains public description and populated leader and member details', () => {
   fireEvent.click(screen.getByRole('button', { name: 'عرض تفاصيل أ' }));
   const dialog = screen.getByRole('dialog');
   expect(dialog.textContent).toContain('أحمد العتيبي');
-  expect(dialog.textContent).toContain('12');
+  expect(dialog.textContent).toContain('١٢');
 });
 it('keeps every one of six parent departments linked to its two children', () => {
   render(<OrganizationCommitteeChart {...props} committees={Array.from({ length: 6 }, (_, i) => committee('إدارة ' + i, [committee('أ ' + i), committee('ب ' + i)]))} readOnly />);

@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import {
   FileText,
@@ -49,7 +50,7 @@ export function OrganizationProfileEditor({
   const id = managed.organization.id;
   const { organization, committees, contacts } = managed;
   const en = locale === "en";
-  const c = (ar: string, english: string) => (en ? english : ar);
+  const c = createTranslator((en) ? "en" : "ar");
   const curatedProfile = localOrganizationContent(
     organization.nameAr,
     organization.typeCode,

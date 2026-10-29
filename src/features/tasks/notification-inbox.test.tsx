@@ -39,7 +39,7 @@ it("shows sample notifications and lets the user inspect unread and read states 
   fireEvent.click(screen.getByRole("tab", { name: /غير مقروءة/ }));
 
   expect(screen.getByText("ما عندك إشعارات غير مقروءة.")).toBeTruthy();
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("0");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("٠");
 });
 
 it("filters the preview list while keeping English digit counts", () => {
@@ -52,8 +52,8 @@ it("filters the preview list while keeping English digit counts", () => {
   />);
 
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(4);
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).toContain("6");
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("4");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).toContain("٦");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("٤");
 });
 
 it("uses the shared segmented filter and keeps unread filtering in the URL", () => {

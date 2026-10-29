@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -56,7 +57,7 @@ export function PublicEventRegistration({
     [withdraw, setWithdraw] = useState(false),
     [error, setError] = useState("");
   const router = useRouter();
-  const c = (ar: string, en: string) => (locale === "en" ? en : ar);
+  const c = createTranslator((locale === "en") ? "en" : "ar");
   function submit(operation: "register" | "cancel") {
     start(async () => {
       const fields = new FormData();

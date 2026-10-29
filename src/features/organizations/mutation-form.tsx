@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useActionState, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { mutateOrganization } from "./actions";
 import type { MutationOperation, MutationState } from "./validation";
@@ -82,7 +83,7 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
   const [leaveOpen, setLeaveOpen] = useState(false);
   const departure = useRef<(() => void) | null>(null);
   const bypassDeparture = useRef(false);
-  useActionToast(state, locale, stickySaveBar ? locale === "en" ? "Saved" : "تم الحفظ" : undefined);
+  useActionToast(state, locale, stickySaveBar ? translateUi((locale === "en") ? "en" : "ar", "تم الحفظ", "Saved") : undefined);
 
   useEffect(() => {
     if (!stickySaveBar || !formRef.current) return;
@@ -201,7 +202,7 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
       <fieldset disabled={pending} aria-describedby={state.error ? errorId : undefined} className="space-y-5">
         {children}
         {confirmLabel && <label className="mb-0 flex items-start gap-3 text-sm leading-7"><input type="checkbox" name="confirmed" required className="mt-1 size-5 shrink-0 accent-action" /><span>{confirmLabel}</span></label>}
-        {!stickySaveBar && <ManagementActionFooter label={pending ? locale==="en"?"Working…":"جارٍ التنفيذ…" : submitLabel} pending={pending} buttonClassName={buttonClassName} showCancel={cancelInModal} secondaryAction={footerAction} sticky={!inlineFooter}/>}
+        {!stickySaveBar && <ManagementActionFooter label={pending ? translateUi((locale==="en") ? "en" : "ar", "جارٍ التنفيذ…", "Working…") : submitLabel} pending={pending} buttonClassName={buttonClassName} showCancel={cancelInModal} secondaryAction={footerAction} sticky={!inlineFooter}/>}
       </fieldset>
     </ProfileFormContext.Provider>
     {state.error && <div id={errorId} ref={errorRef} tabIndex={-1} role="alert" className={stickySaveBar ? "sr-only" : "error-message"}>{actionFeedback(state.error,locale)}{state.fieldErrors && <ul className="mt-3 space-y-2">{Object.entries(state.fieldErrors).filter(([key]) => labels[key]).map(([key, messages]) => <li key={key}>{labels[key]}: {messages?.map(message=>actionFeedback(message,locale)).join(" ")}</li>)}</ul>}</div>}
@@ -209,13 +210,13 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
     {stickySaveBar && <AlertDialog open={leaveOpen} onOpenChange={open => { if (!pending) { setLeaveOpen(open); if (!open) departure.current = null; } }}>
       <AlertDialogContent dir={locale === "en" ? "ltr" : "rtl"} data-ignore-dirty>
         <AlertDialogHeader>
-          <AlertDialogTitle>{locale === "en" ? "Unsaved changes" : "لديك تغييرات غير محفوظة"}</AlertDialogTitle>
-          <AlertDialogDescription>{locale === "en" ? "Save your changes before leaving?" : "هل تريد حفظ التغييرات قبل المتابعة؟"}</AlertDialogDescription>
+          <AlertDialogTitle>{translateUi((locale === "en") ? "en" : "ar", "لديك تغييرات غير محفوظة", "Unsaved changes")}</AlertDialogTitle>
+          <AlertDialogDescription>{translateUi((locale === "en") ? "en" : "ar", "هل تريد حفظ التغييرات قبل المتابعة؟", "Save your changes before leaving?")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <Button type="button" disabled={pending} onClick={() => formRef.current?.requestSubmit()}>{pending ? locale === "en" ? "Saving…" : "جاري الحفظ" : locale === "en" ? "Save" : "حفظ"}</Button>
-          <Button type="button" variant="danger-outline" disabled={pending} onClick={() => { const next = departure.current; departure.current = null; undoChanges(); setLeaveOpen(false); next?.(); }}>{locale === "en" ? "Discard changes" : "تجاهل التغييرات"}</Button>
-          <Button type="button" variant="outline" disabled={pending} onClick={() => { departure.current = null; setLeaveOpen(false); }}>{locale === "en" ? "Stay" : "البقاء"}</Button>
+          <Button type="button" disabled={pending} onClick={() => formRef.current?.requestSubmit()}>{pending ? translateUi((locale === "en") ? "en" : "ar", "جاري الحفظ", "Saving…") : translateUi((locale === "en") ? "en" : "ar", "حفظ", "Save")}</Button>
+          <Button type="button" variant="danger-outline" disabled={pending} onClick={() => { const next = departure.current; departure.current = null; undoChanges(); setLeaveOpen(false); next?.(); }}>{translateUi((locale === "en") ? "en" : "ar", "تجاهل التغييرات", "Discard changes")}</Button>
+          <Button type="button" variant="outline" disabled={pending} onClick={() => { departure.current = null; setLeaveOpen(false); }}>{translateUi((locale === "en") ? "en" : "ar", "البقاء", "Stay")}</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>}

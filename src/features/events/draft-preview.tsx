@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -35,21 +36,21 @@ export function EventDraftPreview({ locale }: { locale: Locale }) {
   }
 
   return <>
-    <Button type="button" variant="outline" onClick={event => showPreview(event.currentTarget)}>{en ? "Preview draft" : "معاينة المسودة"}</Button>
+    <Button type="button" variant="outline" onClick={event => showPreview(event.currentTarget)}>{translateUi((en) ? "en" : "ar", "معاينة المسودة", "Preview draft")}</Button>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent dir={en ? "ltr" : "rtl"} showCloseButton={false} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader className="relative pe-9 text-start">
-          <DialogTitle>{en ? "Draft preview" : "معاينة المسودة"}</DialogTitle>
-          <DialogClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-0 top-0" aria-label={en ? "Close preview" : "إغلاق المعاينة"} title={en ? "Close" : "إغلاق"}><X aria-hidden="true" /></Button>} />
+          <DialogTitle>{translateUi((en) ? "en" : "ar", "معاينة المسودة", "Draft preview")}</DialogTitle>
+          <DialogClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-0 top-0" aria-label={translateUi((en) ? "en" : "ar", "إغلاق المعاينة", "Close preview")} title={translateUi((en) ? "en" : "ar", "إغلاق", "Close")}><X aria-hidden="true" /></Button>} />
         </DialogHeader>
         {preview?.poster && <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-mist"><Image src={preview.poster} alt="" fill unoptimized sizes="(max-width: 640px) 100vw, 36rem" className="object-contain" /></div>}
         <div className="space-y-3">
-          <h3 dir="auto" className="text-2xl font-bold">{preview?.title || (en ? "Untitled event" : "فعالية بلا عنوان")}</h3>
+          <h3 dir="auto" className="text-2xl font-bold">{preview?.title || (translateUi((en) ? "en" : "ar", "فعالية بلا عنوان", "Untitled event"))}</h3>
           {preview?.description && <p dir="auto" className="whitespace-pre-line leading-7 text-muted">{preview.description}</p>}
           {preview?.starts && <p className="text-sm text-muted">{preview.ends
             ? en ? <>{"From "}<bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi>{" to "}<bdi>{formatRiyadhDateTime(preview.ends, locale)}</bdi></> : <>من <bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi> إلى <bdi>{formatRiyadhDateTime(preview.ends, locale)}</bdi></>
-            : <>{en ? "Starts: " : "تبدأ: "}<bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi></>}</p>}
-          {preview?.location && <p dir="auto" className="text-sm text-muted">{en ? "Location:" : "المكان:"} {preview.location}</p>}
+            : <>{translateUi((en) ? "en" : "ar", "تبدأ: ", "Starts: ")}<bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi></>}</p>}
+          {preview?.location && <p dir="auto" className="text-sm text-muted">{translateUi((en) ? "en" : "ar", "المكان:", "Location:")} {preview.location}</p>}
         </div>
       </DialogContent>
     </Dialog>

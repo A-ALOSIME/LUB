@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPreferences } from "@/lib/preferences";
 export default async function Loading() {
@@ -6,7 +7,7 @@ export default async function Loading() {
     <main
       id="main"
       aria-busy="true"
-      aria-label={locale === "en" ? "Loading profile" : "جارٍ تحميل الملف"}
+      aria-label={translateUi((locale === "en") ? "en" : "ar", "جارٍ تحميل الملف", "Loading profile")}
       className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 sm:px-8"
     >
       <Skeleton className="h-10 w-48" />

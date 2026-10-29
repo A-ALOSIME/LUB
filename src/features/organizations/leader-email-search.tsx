@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { useEffect, useId, useMemo, useState } from "react";
 import { FormField } from "@/components/form-field";
 import {
@@ -57,19 +58,17 @@ export function LeaderEmailSearch({
       id={id}
       label={
         <>
-          {en ? "Leader email" : "بريد القائد"}
+          {translateUi((en) ? "en" : "ar", "بريد القائد", "Leader email")}
           {!required && (
             <span className="text-muted-foreground">
-              {en ? " (optional)" : " (اختياري)"}
+              {translateUi((en) ? "en" : "ar", " (اختياري)", " (optional)")}
             </span>
           )}
         </>
       }
       required={required}
       hint={
-        en
-          ? "Search by name or email for an active, verified student account."
-          : "ابحث بالاسم أو البريد عن حساب طالب نشط ومتحقق من بريده."
+        translateUi((en) ? "en" : "ar", "ابحث بالاسم أو البريد عن حساب طالب نشط ومتحقق من بريده.", "Search by name or email for an active, verified student account.")
       }
     >
       <input type="hidden" name="email" value={query} />
@@ -98,7 +97,7 @@ export function LeaderEmailSearch({
       >
         <ComboboxInput
           id={id}
-          aria-label={en ? "Leader email" : "بريد القائد"}
+          aria-label={translateUi((en) ? "en" : "ar", "بريد القائد", "Leader email")}
           className="w-full"
           dir="ltr"
           type="text"
@@ -110,20 +109,12 @@ export function LeaderEmailSearch({
         <ComboboxContent className="min-w-0">
           <ComboboxEmpty>
             {loading
-              ? en
-                ? "Searching…"
-                : "جاري البحث…"
+              ? translateUi((en) ? "en" : "ar", "جاري البحث…", "Searching…")
               : error
-                ? en
-                  ? "Could not search. Try again."
-                  : "تعذّر البحث. حاول مجددًا."
+                ? translateUi((en) ? "en" : "ar", "تعذّر البحث. حاول مجددًا.", "Could not search. Try again.")
                 : query.length < 3
-                  ? en
-                    ? "Type at least three characters"
-                    : "اكتب ثلاثة أحرف على الأقل"
-                  : en
-                    ? "No matching account"
-                    : "لا يوجد حساب مطابق"}
+                  ? translateUi((en) ? "en" : "ar", "اكتب ثلاثة أحرف على الأقل", "Type at least three characters")
+                  : translateUi((en) ? "en" : "ar", "لا يوجد حساب مطابق", "No matching account")}
           </ComboboxEmpty>
           <ComboboxList>
             {(email: string) => (

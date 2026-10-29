@@ -1,3 +1,5 @@
+"use client";
+import {useI18n} from "@/components/i18n-provider";
 import * as React from "react"
 import { cn } from "cn"
 
@@ -5,10 +7,11 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  const {t}=useI18n();
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      aria-label={t("صفحات النتائج","Pagination")}
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -64,35 +67,37 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Previous",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const {t}=useI18n();
   return (
     <PaginationLink
-      aria-label="Go to previous page"
+      aria-label={t("الصفحة السابقة","Go to previous page")}
       size="default"
       className={cn("ps-1.5!", className)}
       {...props}
     >
       <ChevronLeftIcon data-icon="inline-start" className="rtl:rotate-180" />
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text??t("السابق","Previous")}</span>
     </PaginationLink>
   )
 }
 
 function PaginationNext({
   className,
-  text = "Next",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const {t}=useI18n();
   return (
     <PaginationLink
-      aria-label="Go to next page"
+      aria-label={t("الصفحة التالية","Go to next page")}
       size="default"
       className={cn("pe-1.5!", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text??t("التالي","Next")}</span>
       <ChevronRightIcon data-icon="inline-end" className="rtl:rotate-180" />
     </PaginationLink>
   )
@@ -102,6 +107,7 @@ function PaginationEllipsis({
   className,
   ...props
 }: React.ComponentProps<"span">) {
+  const {t}=useI18n();
   return (
     <span
       aria-hidden
@@ -114,7 +120,7 @@ function PaginationEllipsis({
     >
       <MoreHorizontalIcon
       />
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">{t("صفحات أخرى","More pages")}</span>
     </span>
   )
 }

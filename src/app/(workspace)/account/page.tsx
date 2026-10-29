@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import { StorageUnavailable } from "@/components/storage-unavailable";
 import { requireStudentUser as requireUser } from "@/features/auth/authorization";
 import { getAccountStatus, getAccountProfile,syncVerifiedAccountEmail } from "@/features/profile/repository";
@@ -28,7 +29,7 @@ export default async function Account() {
   return (
     <main id="main" className="workspace-content account-settings-page" dir={en ? "ltr" : "rtl"}>
       <header className="workspace-page-header">
-        <h1>{en ? "Account details" : "بيانات الحساب"}</h1>
+        <h1>{translateUi((en) ? "en" : "ar", "بيانات الحساب", "Account details")}</h1>
       </header>
 
       <ProfileForm pendingEmail={pendingEmail} avatarUrl={avatarUrl} profile={profile} email={user.email} locale={locale} />

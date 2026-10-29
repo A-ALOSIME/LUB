@@ -1,5 +1,7 @@
 "use client"
 
+import {actionFeedback} from "@/lib/action-feedback";
+import {useI18n} from "@/components/i18n-provider";
 import * as React from "react"
 import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 import { cn } from "cn"
@@ -18,10 +20,11 @@ function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
 }
 
 function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
+  const {t}=useI18n();
   return (
     <ToastPrimitive.Viewport
       data-slot="toast-viewport"
-      aria-label="الإشعارات"
+      aria-label={t("الإشعارات","Notifications")}
       className={cn(
         "pointer-events-none fixed inset-x-4 top-16 z-50 mx-auto w-auto max-w-sm outline-none",
         className
@@ -182,9 +185,10 @@ function ToastIcon({ type }: { type: string | undefined }) {
 
 function ToastList() {
   const { toasts } = ToastPrimitive.useToastManager()
+  const {t,dir,locale}=useI18n();
 
   return toasts.map((toastItem) => (
-    <Toast key={toastItem.id} toast={toastItem} dir="rtl" className="site-toast" swipeDirection="up">
+    <Toast key={toastItem.id} toast={{...toastItem,title:typeof toastItem.title==="string"?actionFeedback(toastItem.title,locale):toastItem.title}} dir={dir} className="site-toast" swipeDirection="up">
       <ToastContent>
         <ToastIcon type={toastItem.type} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -192,7 +196,7 @@ function ToastList() {
           <ToastDescription />
         </div>
         <ToastAction />
-        <ToastClose aria-label="إغلاق الإشعار" aria-hidden={false} />
+        <ToastClose aria-label={t("إغلاق الإشعار","Dismiss notification")} aria-hidden={false} />
       </ToastContent>
     </Toast>
   ))

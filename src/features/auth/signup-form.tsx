@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import {studentMajors,studentMajorsEn} from "@/lib/student-identity";
 import {academicLevel} from "@/lib/display";
 import {NativeSelect} from "@/components/ui/native-select";
@@ -46,49 +47,49 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
   const fieldProps = (field: string) => ({ "aria-invalid": Boolean(error(field)), "aria-describedby": error(field) ? `${field}-error` : undefined });
 
   return emailToVerify ? <div className="space-y-5">
-    <p role="status" className="leading-8 text-muted">{en ? "If this email is eligible for sign-up, a 6-digit verification code will arrive at " : "إذا كان البريد مؤهلًا للتسجيل، سيصلك رمز تحقق من 6 أرقام على "}<bdi className="font-medium text-ink">{emailToVerify}</bdi>{en ? ". Enter it below, or follow the confirmation link in the same email to complete your account." : ". أدخله أدناه، أو استخدم رابط التأكيد في نفس الرسالة لإكمال حسابك."}</p>
-    <p className="text-sm leading-7 text-muted">{en ? "If the code does not arrive within a minute, check your spam folder or your university email quarantine, then choose “Change details or request a new code” to try again." : "إذا لم يصلك الرمز خلال دقيقة، تحقّق من مجلد البريد العشوائي (Spam) أو الرسائل المحجوزة في بريد الجامعة، ثم اضغط «تعديل البيانات أو طلب رمز جديد» للمحاولة مرة أخرى."}</p>
+    <p role="status" className="leading-8 text-muted">{translateUi((en) ? "en" : "ar", "إذا كان البريد مؤهلًا للتسجيل، سيصلك رمز تحقق من 6 أرقام على ", "If this email is eligible for sign-up, a 6-digit verification code will arrive at ")}<bdi className="font-medium text-ink">{emailToVerify}</bdi>{translateUi((en) ? "en" : "ar", ". أدخله أدناه، أو استخدم رابط التأكيد في نفس الرسالة لإكمال حسابك.", ". Enter it below, or follow the confirmation link in the same email to complete your account.")}</p>
+    <p className="text-sm leading-7 text-muted">{translateUi((en) ? "en" : "ar", "إذا لم يصلك الرمز خلال دقيقة، تحقّق من مجلد البريد العشوائي (Spam) أو الرسائل المحجوزة في بريد الجامعة، ثم اضغط «تعديل البيانات أو طلب رمز جديد» للمحاولة مرة أخرى.", "If the code does not arrive within a minute, check your spam folder or your university email quarantine, then choose “Change details or request a new code” to try again.")}</p>
     <SignupOtpForm email={emailToVerify} returnTo={returnTo} locale={locale} />
-    <button type="button" onClick={() => setChangeDetails(true)} className="text-link">{en ? "Change details or request a new code" : "تعديل البيانات أو طلب رمز جديد"}</button>
+    <button type="button" onClick={() => setChangeDetails(true)} className="text-link">{translateUi((en) ? "en" : "ar", "تعديل البيانات أو طلب رمز جديد", "Change details or request a new code")}</button>
   </div> : <form action={send} onSubmit={() => setChangeDetails(false)} className="space-y-5">
     <input type="hidden" name="returnTo" value={returnTo} />
     <input type="hidden" name="mode" value="signup" />
     <div>
-      <label htmlFor="signup-email">{en ? "Email address" : "البريد الإلكتروني"}</label>
+      <label htmlFor="signup-email">{translateUi((en) ? "en" : "ar", "البريد الإلكتروني", "Email address")}</label>
       <input id="signup-email" name="email" type="email" dir="ltr" autoComplete="email" placeholder="you@example.com" required maxLength={254} value={draft.email} onChange={event => updateText("email", event.currentTarget.value)} aria-invalid={Boolean(error("email"))} aria-describedby={error("email") ? "email-error" : "email-help"} />
-      <p id="email-help" className="mt-2 text-sm leading-7 text-muted">{en ? "After you send your details, we will email a 6-digit verification code." : "بعد إرسال بياناتك، نرسل لك رمز تحقق من 6 أرقام إلى بريدك."}</p>
+      <p id="email-help" className="mt-2 text-sm leading-7 text-muted">{translateUi((en) ? "en" : "ar", "بعد إرسال بياناتك، نرسل لك رمز تحقق من 6 أرقام إلى بريدك.", "After you send your details, we will email a 6-digit verification code.")}</p>
       {fieldError("email")}
     </div>
     <div>
-      <label htmlFor="signup-full-name">{en ? "Full name in Arabic" : "الاسم الكامل بالعربية"}</label>
+      <label htmlFor="signup-full-name">{translateUi((en) ? "en" : "ar", "الاسم الكامل بالعربية", "Full name in Arabic")}</label>
       <input id="signup-full-name" name="fullName" autoComplete="name" required minLength={3} maxLength={120} value={draft.fullName} onChange={event => updateText("fullName", event.currentTarget.value)} {...fieldProps("fullName")} />
       {fieldError("fullName")}
     </div>
     <div>
-      <label htmlFor="signup-university-id">{en ? "University number" : "الرقم الجامعي"}</label>
+      <label htmlFor="signup-university-id">{translateUi((en) ? "en" : "ar", "الرقم الجامعي", "University number")}</label>
       <input id="signup-university-id" name="universityId" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="off" required minLength={6} maxLength={15} value={draft.universityId} onChange={event => updateText("universityId", event.currentTarget.value)} aria-invalid={Boolean(error("universityId"))} aria-describedby={error("universityId") ? "universityId-error university-id-help" : "university-id-help"} />
-      <p id="university-id-help" className="mt-2 text-sm leading-7 text-muted">{en ? "Stored securely and never shown on your public profile." : "يُحفظ الرقم الجامعي بشكل آمن ولا يظهر في ملفك العام."}</p>
+      <p id="university-id-help" className="mt-2 text-sm leading-7 text-muted">{translateUi((en) ? "en" : "ar", "يُحفظ الرقم الجامعي بشكل آمن ولا يظهر في ملفك العام.", "Stored securely and never shown on your public profile.")}</p>
       {fieldError("universityId")}
     </div>
-    <div><label htmlFor="signup-national-id">{en?'National / resident ID':'رقم الهوية الوطنية أو الإقامة'}</label><input id="signup-national-id" name="nationalId" dir="ltr" inputMode="numeric" autoComplete="off" required minLength={10} maxLength={10} value={draft.nationalId} onChange={event=>updateText('nationalId',event.currentTarget.value)} {...fieldProps('nationalId')}/><p className="mt-2 text-sm text-muted-foreground">{en?'Stored encrypted and never shown publicly.':'يُحفظ مشفّرًا ولا يظهر للعامة.'}</p>{fieldError('nationalId')}</div>
+    <div><label htmlFor="signup-national-id">{translateUi((en) ? "en" : "ar", 'رقم الهوية الوطنية أو الإقامة', 'National / resident ID')}</label><input id="signup-national-id" name="nationalId" dir="ltr" inputMode="numeric" autoComplete="off" required minLength={10} maxLength={10} value={draft.nationalId} onChange={event=>updateText('nationalId',event.currentTarget.value)} {...fieldProps('nationalId')}/><p className="mt-2 text-sm text-muted-foreground">{translateUi((en) ? "en" : "ar", 'يُحفظ مشفّرًا ولا يظهر للعامة.', 'Stored encrypted and never shown publicly.')}</p>{fieldError('nationalId')}</div>
     <div className="grid gap-5 sm:grid-cols-2">
       <div>
-        <label htmlFor="signup-major">{en ? "Major" : "التخصص"}</label>
-        <NativeSelect id="signup-major" name="major" required value={draft.major} onChange={event=>updateText('major',event.currentTarget.value)} {...fieldProps('major')}><option value="" disabled>{en?'Select your major':'اختر التخصص'}</option>{studentMajors.map((major,index)=><option key={major} value={major}>{en?studentMajorsEn[index]:major}</option>)}</NativeSelect>
+        <label htmlFor="signup-major">{translateUi((en) ? "en" : "ar", "التخصص", "Major")}</label>
+        <NativeSelect id="signup-major" name="major" required value={draft.major} onChange={event=>updateText('major',event.currentTarget.value)} {...fieldProps('major')}><option value="" disabled>{translateUi((en) ? "en" : "ar", 'اختر التخصص', 'Select your major')}</option>{studentMajors.map((major,index)=><option key={major} value={major}>{en?studentMajorsEn[index]:major}</option>)}</NativeSelect>
         {fieldError("major")}
       </div>
       <div>
-        <label htmlFor="signup-academic-level">{en ? "Academic level" : "المستوى الدراسي"}</label>
+        <label htmlFor="signup-academic-level">{translateUi((en) ? "en" : "ar", "المستوى الدراسي", "Academic level")}</label>
         <NativeSelect id="signup-academic-level" name="academicLevel" required value={draft.academicLevel} onChange={event => updateText("academicLevel", event.currentTarget.value)} {...fieldProps("academicLevel")}>
-          <option value="" disabled>{en ? "Select level" : "اختر المستوى"}</option>
+          <option value="" disabled>{translateUi((en) ? "en" : "ar", "اختر المستوى", "Select level")}</option>
           {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{academicLevel(String(index+1),locale)}</option>)}
-          <option value="graduate">{en ? "Graduate studies" : "دراسات عليا"}</option>
+          <option value="graduate">{translateUi((en) ? "en" : "ar", "دراسات عليا", "Graduate studies")}</option>
         </NativeSelect>
         {fieldError("academicLevel")}
       </div>
     </div>
     <div>
-      <label htmlFor="signup-phone">{en ? "Phone number" : "رقم الهاتف"} <span className="text-sm font-normal text-muted">{en ? "(optional)" : "(اختياري)"}</span></label>
+      <label htmlFor="signup-phone">{translateUi((en) ? "en" : "ar", "رقم الهاتف", "Phone number")} <span className="text-sm font-normal text-muted">{translateUi((en) ? "en" : "ar", "(اختياري)", "(optional)")}</span></label>
       <PhoneInput id="signup-phone" name="phone" locale={locale} value={draft.phone} onChange={value => updateText("phone", value)} {...fieldProps("phone")} />
       {fieldError("phone")}
     </div>
@@ -105,7 +106,7 @@ function SignupOtpForm({ email, returnTo, locale }: { email: string; returnTo: s
     <input type="hidden" name="returnTo" value={returnTo} />
     <input type="hidden" name="mode" value="signup" />
     <input type="hidden" name="email" value={email} />
-    <div><label htmlFor="signup-token">{en ? "Verification code" : "رمز التحقق"}</label><input id="signup-token" name="token" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "signup-verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>
+    <div><label htmlFor="signup-token">{translateUi((en) ? "en" : "ar", "رمز التحقق", "Verification code")}</label><input id="signup-token" name="token" dir={en ? "ltr" : "rtl"} inputMode="numeric" autoComplete="one-time-code" required maxLength={6} minLength={6} aria-invalid={Boolean(state.error)} aria-describedby={state.error ? "signup-verification-error" : undefined} className="text-center text-xl tracking-[.4em]" /></div>
     {state.error && <p className="error-message" id="signup-verification-error" role="alert">{actionFeedback(state.error, locale)}</p>}
     <button disabled={pending} className="button w-full">{en ? pending ? "Verifying…" : "Verify and create account" : pending ? "جارٍ التحقق…" : "تحقق وأنشئ الحساب"}</button>
   </form>;

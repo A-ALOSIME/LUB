@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it} from "vitest";
 import {cleanup,fireEvent,render,screen} from "@testing-library/react";
+import {I18nProvider} from "./i18n-provider";
 import {FormField} from "./form-field";
 import {Input} from "./ui/input";
 afterEach(cleanup);
@@ -14,3 +15,5 @@ it("associates a generated id with native controls and shows server field errors
  render(<FormField label="النموذج" error="اختر نموذجًا"><select name="template" defaultValue=""><option value="">اختر</option></select></FormField>);
  const input=screen.getByLabelText("النموذج");expect(input.getAttribute("aria-describedby")).toBe(`${input.id}-error`);expect(screen.getByRole("alert").textContent).toBe("اختر نموذجًا");
 });
+
+it("uses the selected interface language for validation even without a field locale prop",()=>{render(<I18nProvider locale="en"><form><FormField label="Title"><Input name="title" required/></FormField></form></I18nProvider>);fireEvent.invalid(screen.getByRole("textbox"));expect(screen.getByRole("alert").textContent).toBe("This field is required.");});

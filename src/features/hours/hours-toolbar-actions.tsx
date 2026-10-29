@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { Tooltip,TooltipTrigger,TooltipContent } from "@/components/ui/tooltip";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -21,7 +22,7 @@ export function HoursToolbarActions({ org, committee, term, exportScopes, locale
   canAddHours: boolean;
 }) {
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const canExportSelectedScope = exportScopes.some(scope => scope.id === committee);
   const exportQuery = new URLSearchParams();
   if (committee) exportQuery.set("committee", committee);

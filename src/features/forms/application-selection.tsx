@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import {
@@ -38,7 +39,7 @@ export function ApplicationSelection({
     pathname = usePathname(),
     search = useSearchParams(),
     en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar);
+    c = createTranslator((en) ? "en" : "ar");
 
   function openDetail(id: string) {
     const next = new URLSearchParams(query);

@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import Image from "next/image";
 import type {Locale} from "@/lib/preferences";
@@ -182,7 +183,7 @@ export function EventExampleDetail({example, locale}: {example: EventExample; lo
         <div className="event-example-detail-organization">
           <span className="event-example-detail-organization-mark"><Image src={example.organizationLogo} alt="" width={72} height={72} unoptimized/></span>
           <span className="event-example-detail-organization-copy">
-            <span>{en ? "Organized by" : "تنظمها"}</span>
+            <span>{translateUi((en) ? "en" : "ar", "تنظمها", "Organized by")}</span>
             <bdi>{text(example.organization)}</bdi>
           </span>
         </div>
@@ -190,11 +191,11 @@ export function EventExampleDetail({example, locale}: {example: EventExample; lo
       </header>
 
       <section className="event-example-application" aria-labelledby="event-example-application-title">
-        <h2 id="event-example-application-title">{en ? "Registration" : "التسجيل"}</h2>
+        <h2 id="event-example-application-title">{translateUi((en) ? "en" : "ar", "التسجيل", "Registration")}</h2>
         <button type="button" disabled aria-describedby="event-example-application-note" className="button event-example-application-button">
-          {en ? "Apply for this event" : "التقديم على الفعالية"}
+          {translateUi((en) ? "en" : "ar", "التقديم على الفعالية", "Apply for this event")}
         </button>
-        <p id="event-example-application-note">{en ? "Applications are not available for this event." : "التقديم غير متاح لهذه الفعالية."}</p>
+        <p id="event-example-application-note">{translateUi((en) ? "en" : "ar", "التقديم غير متاح لهذه الفعالية.", "Applications are not available for this event.")}</p>
       </section>
     </div>
 
@@ -227,7 +228,7 @@ export function EventExamples({locale}: {locale: Locale}) {
   const en = locale === "en";
   const text = (value: LocalizedText) => en ? value.en : value.ar;
 
-  return <section className="event-examples-section" aria-label={en ? "Student organization events" : "فعاليات الأندية"}>
+  return <section className="event-examples-section" aria-label={translateUi((en) ? "en" : "ar", "فعاليات الأندية", "Student organization events")}>
     <ul className="event-examples-grid">
       {eventExamples.map(example => <li key={example.id}>
         <Link href={`/events/examples/${example.id}`} className={`panel event-example-card event-example-card--${example.theme}`}>

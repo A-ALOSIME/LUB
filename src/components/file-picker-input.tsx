@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useId, useRef, useState, type ChangeEvent } from "react";
 import { FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,16 +37,16 @@ export function FilePickerInput({
       accept={accept}
       disabled={disabled}
       tabIndex={-1}
-      aria-label={ariaLabel ?? (en ? "Choose a file" : "اختيار ملف")}
+      aria-label={ariaLabel ?? (translateUi((en) ? "en" : "ar", "اختيار ملف", "Choose a file"))}
       className="sr-only"
       onChange={event => { setFileName(event.target.files?.[0]?.name ?? ""); onChange(event); }}
     />
     <Button type="button" variant="outline" disabled={disabled} onClick={choose}>
       <FileUp aria-hidden="true" />
-      {en ? "Choose file" : "اختيار ملف"}
+      {translateUi((en) ? "en" : "ar", "اختيار ملف", "Choose file")}
     </Button>
     <span className="min-w-0 truncate text-sm text-muted" aria-live="polite">
-      {fileName || (en ? "No file selected" : "لم يتم اختيار ملف")}
+      {fileName || (translateUi((en) ? "en" : "ar", "لم يتم اختيار ملف", "No file selected"))}
     </span>
   </div>;
 }

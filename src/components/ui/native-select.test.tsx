@@ -5,6 +5,7 @@ import {NativeSelect} from "./native-select";
 import {FormField} from "@/components/form-field";
 import {LiveFilterForm} from "@/components/live-filter-form";
 beforeEach(()=>{Element.prototype.scrollIntoView=vi.fn();});
+vi.mock("next/navigation",()=>({useRouter:()=>({replace:vi.fn()})}));
 afterEach(cleanup);
 it("uses a styled popup and keeps native form submission and change events",async()=>{
  const changed=vi.fn();const {container}=render(<form onChange={changed}><FormField label="نوع الإجابة"><NativeSelect name="type" defaultValue="Text"><option value="Text">نص قصير</option><option value="Number">رقم</option></NativeSelect></FormField></form>);

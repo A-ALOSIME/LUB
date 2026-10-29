@@ -1,5 +1,6 @@
 "use client"
 
+import {useI18n} from "@/components/i18n-provider";
 import * as React from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react"
 import { cn } from "cn"
@@ -37,9 +38,11 @@ function ComboboxTrigger({
 }
 
 function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
+  const {t}=useI18n();
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
+      aria-label={t("مسح الاختيار","Clear selection")}
       render={<InputGroupButton variant="ghost" size="icon-xs" />}
       className={cn(className)}
       {...props}
@@ -60,6 +63,7 @@ function ComboboxInput({
   showTrigger?: boolean
   showClear?: boolean
 }) {
+  const {t}=useI18n();
   return (
     <InputGroup className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input
@@ -71,6 +75,7 @@ function ComboboxInput({
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
+            aria-label={t("إظهار الخيارات","Show options")}
             render={<ComboboxTrigger />}
             data-slot="input-group-button"
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"

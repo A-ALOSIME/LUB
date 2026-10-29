@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { FilterTabs, type FilterTabOption } from "@/components/ui/filter-tabs";
 import type { Locale } from "@/lib/preferences";
@@ -11,7 +12,7 @@ export function ApplicationReviewStatusFilters({ value, options, locale,ariaLabe
   const en = locale === "en";
   return <FilterTabs
     value={value}
-    ariaLabel={ariaLabel??(en ? "Filter organization applications" : "تصفية طلبات الأعضاء")}
+    ariaLabel={ariaLabel??(translateUi((en) ? "en" : "ar", "تصفية طلبات الأعضاء", "Filter organization applications"))}
     dir={en ? "ltr" : "rtl"}
     size="sm"
     activeTone="primary"

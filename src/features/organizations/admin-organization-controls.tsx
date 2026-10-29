@@ -1,4 +1,5 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -30,7 +31,7 @@ export function AdminOrganizationControls({
   locale: Locale;
 }) {
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     router = useRouter(),
     [slug, setSlug] = useState(organization.slug),
     [kind, setKind] = useState<"leader" | "status" | null>(null);

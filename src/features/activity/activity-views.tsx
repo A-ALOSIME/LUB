@@ -1,3 +1,4 @@
+import {createTranslator,t as translateUi} from "@/lib/i18n";
 import {NativeSelect} from "@/components/ui/native-select";
 import Link from "next/link"
 import { CalendarDays, Clock, ChevronDown } from "lucide-react"
@@ -31,20 +32,20 @@ function statusVariant(status: string): "secondary" | "outline" | "destructive" 
 export function ActivityEventRows({ events, page, locale }: { events: MyEvent[]; page: number; locale: Locale }) {
   const en = locale === "en"
   const date=(value:string)=>formatRiyadhDate(value,locale)
-  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?en?"Registration cancelled":"أُلغي التسجيل":event.review_status==="Rejected"?en?"Registration rejected":"مرفوض":event.review_status==="Pending"?en?"Awaiting approval":"بانتظار الموافقة":event.attendance==="Present"?en?"Attendance confirmed":"حضور مؤكد":event.attendance==="Absent"?en?"Did not attend":"لم تحضر":event.attendance==="Excused"?en?"Excused":"معذور":en?"Accepted · awaiting attendance confirmation":"مقبول · بانتظار تأكيد الحضور"
+  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "أُلغي التسجيل", "Registration cancelled"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
 
   return <div className="flex min-w-0 flex-col gap-3">
-    {events.length ? <ItemGroup role="list" aria-label={en ? "My events" : "فعالياتي"}>
+    {events.length ? <ItemGroup role="list" aria-label={translateUi((en) ? "en" : "ar", "فعالياتي", "My events")}>
       {events.slice(0,25).map(event=><Link key={event.id} href={`/events/${event.id}`} className="rounded-lg outline-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring"><Item role="listitem" size="sm"><ItemMedia variant="icon"><CalendarDays aria-hidden="true"/></ItemMedia><ItemContent><ItemTitle className="flex flex-wrap items-center gap-2"><bdi>{event.title}</bdi><Badge variant={statusVariant(event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge></ItemTitle><ItemDescription>{date(event.starts_at)}</ItemDescription></ItemContent></Item></Link>)}
     </ItemGroup> : <WorkspaceEmptyState
       icon={CalendarDays}
-      title={en ? "No event registrations yet" : "ما سجلت في فعالية بعد"}
-      description={en ? "Browse upcoming events to find one to join." : "تصفح الفعاليات القادمة للعثور على فعالية تناسبك."}
-      action={<Link href="/events" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><CalendarDays data-icon="inline-start" aria-hidden="true" />{en ? "Browse events" : "تصفح الفعاليات"}</Link>}
+      title={translateUi((en) ? "en" : "ar", "ما سجلت في فعالية بعد", "No event registrations yet")}
+      description={translateUi((en) ? "en" : "ar", "تصفح الفعاليات القادمة للعثور على فعالية تناسبك.", "Browse upcoming events to find one to join.")}
+      action={<Link href="/events" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><CalendarDays data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تصفح الفعاليات", "Browse events")}</Link>}
     />}
-    {(page > 0 || events.length > 25) && <nav aria-label={en ? "My event pages" : "صفحات فعالياتي"} className="flex flex-wrap gap-3">
-      {page > 0 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page - 1}`}>{en ? "Previous" : "السابق"}</Link>}
-      {events.length > 25 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page + 1}`}>{en ? "Next" : "التالي"}</Link>}
+    {(page > 0 || events.length > 25) && <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات فعالياتي", "My event pages")} className="flex flex-wrap gap-3">
+      {page > 0 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page - 1}`}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Link>}
+      {events.length > 25 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page + 1}`}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Link>}
     </nav>}
   </div>
 }
@@ -57,7 +58,7 @@ export function ActivityHours({ data, page, term, status, locale }: {
   locale: Locale
 }) {
   const en = locale === "en"
-  const c = (ar: string, english: string) => en ? english : ar
+  const c = createTranslator(en ? "en" : "ar")
   const statusCode = status === "all" ? null : status === "approved" ? "Approved" : status === "pending" ? "Pending" : "Rejected"
 
   return <div className="flex min-w-0 flex-col gap-4">

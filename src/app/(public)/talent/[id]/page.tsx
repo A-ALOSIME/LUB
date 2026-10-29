@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -75,7 +76,7 @@ export default async function TalentProfile({
         render={<Link href={from} />}
       >
         <ArrowLeft className="rtl:rotate-180" />
-        {en ? "Back to talent discovery" : "العودة لاكتشاف المواهب"}
+        {translateUi((en) ? "en" : "ar", "العودة لاكتشاف المواهب", "Back to talent discovery")}
       </Button>
       <PublicTalentView
         profile={profile}

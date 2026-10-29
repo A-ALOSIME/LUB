@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useId, useState } from "react";
 import { WorkflowForm } from "@/features/forms/mutation-form";
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -27,15 +28,15 @@ export function ProjectFields({ locale = "ar", namePrefix = "", value }: { local
   const id = useId();
   const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
-  const featuredLabel = en ? "Feature this achievement" : "إبراز الإنجاز في أعلى الملف";
+  const featuredLabel = translateUi((en) ? "en" : "ar", "إبراز الإنجاز في أعلى الملف", "Feature this achievement");
 
   return <FieldGroup className="min-w-0 gap-3">
     <Field>
-      <FieldLabel htmlFor={titleId}>{en ? "Public achievement title" : "عنوان الإنجاز العام"}</FieldLabel>
+      <FieldLabel htmlFor={titleId}>{translateUi((en) ? "en" : "ar", "عنوان الإنجاز العام", "Public achievement title")}</FieldLabel>
       <Input id={titleId} name={`${namePrefix}title`} required minLength={2} maxLength={120} defaultValue={value?.display_title} />
     </Field>
     <Field>
-      <FieldLabel htmlFor={descriptionId}>{en ? "Achievement summary" : "ملخص الإنجاز"}</FieldLabel>
+      <FieldLabel htmlFor={descriptionId}>{translateUi((en) ? "en" : "ar", "ملخص الإنجاز", "Achievement summary")}</FieldLabel>
       <Textarea id={descriptionId} name={`${namePrefix}description`} maxLength={1000} rows={3} defaultValue={value?.display_description} />
     </Field>
     <Field orientation="horizontal" className="justify-between gap-4 py-1">
@@ -45,7 +46,7 @@ export function ProjectFields({ locale = "ar", namePrefix = "", value }: { local
       <HiddenSwitch id={`${id}-featured`} name={`${namePrefix}featured`} label={featuredLabel} defaultChecked={value?.is_featured ?? false} />
     </Field>
     <p className="text-xs leading-5 text-muted-foreground">
-      {en ? "The summary is public while task files and internal notes remain private." : "يظهر الملخص فقط، وتبقى ملفات المهمة وملاحظاتها الداخلية خاصة."}
+      {translateUi((en) ? "en" : "ar", "يظهر الملخص فقط، وتبقى ملفات المهمة وملاحظاتها الداخلية خاصة.", "The summary is public while task files and internal notes remain private.")}
     </p>
   </FieldGroup>;
 }
@@ -59,17 +60,17 @@ export function NewProject({ sources, locale = "ar", onSuccess }: { sources: Arr
   return <TalentForm
     operation="project"
     fields={{ ...(source?.kind === "Task" ? { participant: selected } : { contribution: selected }) }}
-    label={en ? "Add achievement" : "إضافة الإنجاز"}
+    label={translateUi((en) ? "en" : "ar", "إضافة الإنجاز", "Add achievement")}
     buttonClassName="button button-compact w-fit"
     formClassName="flex flex-col gap-4"
     locale={locale}
     onSuccess={onSuccess}
   >
     <Field>
-      <FieldLabel htmlFor={sourceId}>{en ? "Verified activity" : "النشاط الموثق"}</FieldLabel>
+      <FieldLabel htmlFor={sourceId}>{translateUi((en) ? "en" : "ar", "النشاط الموثق", "Verified activity")}</FieldLabel>
       <NativeSelect id={sourceId} required value={selected} onChange={(event) => setSelected(event.currentTarget.value)}>
         {sources.map((item) => <NativeSelectOption key={item.id} value={item.id} dir="auto">
-          {item.kind === "Task" ? en ? "Task" : "مهمة" : en ? "Contribution" : "مساهمة"} · {item.title}
+          {item.kind === "Task" ? translateUi((en) ? "en" : "ar", "مهمة", "Task") : translateUi((en) ? "en" : "ar", "مساهمة", "Contribution")} · {item.title}
         </NativeSelectOption>)}
       </NativeSelect>
     </Field>

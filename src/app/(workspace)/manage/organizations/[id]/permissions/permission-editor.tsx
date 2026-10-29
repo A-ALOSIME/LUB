@@ -1,5 +1,7 @@
 "use client";
 
+import {NumberText} from "@/components/number-text";
+import {createTranslator} from "@/lib/i18n";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { DateInput } from "@/features/forms/date-input";
@@ -42,7 +44,7 @@ export function PermissionEditor({ organization, workspace, committees, locale }
 }) {
   const [capability, setCapability] = useState("MEMBERS_VIEW");
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
   return <div className="space-y-6">
     <section className="panel p-5 sm:p-7">
@@ -56,7 +58,7 @@ export function PermissionEditor({ organization, workspace, committees, locale }
     </section>
 
     <section className="panel p-5 sm:p-7" aria-labelledby="active-permissions-title">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><h2 id="active-permissions-title" className="text-xl font-bold">{c("التفويضات الحالية","Current permissions")}</h2><span className="rounded-full bg-mist px-3 py-1 text-sm font-semibold">{workspace.grants.length}</span></div>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><h2 id="active-permissions-title" className="text-xl font-bold">{c("التفويضات الحالية","Current permissions")}</h2><span className="rounded-full bg-mist px-3 py-1 text-sm font-semibold"><NumberText value={workspace.grants.length}/></span></div>
       {workspace.grants.length ? <ul className="divide-y divide-line">{workspace.grants.map(grant => <li key={grant.id} className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
         <div className="min-w-0"><p className="font-semibold"><bdi>{grant.member}</bdi></p><p className="mt-1 text-sm text-muted">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code} · <bdi>{grant.committee ?? c("الجهة بالكامل","Whole organization")}</bdi>{grant.ends && <> · {c("ينتهي","Ends")} <time dateTime={grant.ends}>{formatRiyadhDate(grant.ends, locale)}</time></>}</p></div>
         <WorkflowForm operation="end-grant" fields={{ org: organization, grant: grant.id }} label={c("إنهاء التفويض","End permission")} mutation={mutateOrganizationMembers} locale={locale}><label className="text-sm"><input type="checkbox" name="confirm" required/> {c("أؤكد الإنهاء","Confirm ending")}</label></WorkflowForm>

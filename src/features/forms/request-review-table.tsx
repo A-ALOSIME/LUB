@@ -1,5 +1,7 @@
 "use client";
 
+import {t as translateUi,createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import { useId, useState, useTransition, type ReactNode } from "react";
 import { Eye, Check, X, CalendarDays, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -87,7 +89,7 @@ export function RequestReviewTable({
     [interviewAt, setInterviewAt] = useState(""),
     [interviewPast, setInterviewPast] = useState(false),
     [pending, start] = useTransition();
-  const c = (ar: string, en: string) => (locale === "en" ? en : ar);
+  const c = createTranslator((locale === "en") ? "en" : "ar");
   const labels = {
     Accepted: c("قبول", "Accept"),
     Rejected: c("رفض", "Reject"),
@@ -351,13 +353,11 @@ export function RequestReviewTable({
         pending={pending}
         onUndo={() => setSelected([])}
         message={
-          locale === "en"
-            ? `${checked.length} selected`
-            : checked.length === 1
+          translateUi((locale === "en") ? "en" : "ar", checked.length === 1
               ? "طلب واحد محدد"
               : checked.length === 2
                 ? "طلبان محددان"
-                : `${formatCount(checked.length, "applications")} ${checked.length <= 10 ? "محددة" : "محددًا"}`
+                : `${formatCount(checked.length, "applications")} ${checked.length <= 10 ? "محددة" : "محددًا"}`, `${checked.length} selected`)
         }
         actions={
           <>
@@ -425,7 +425,7 @@ export function RequestReviewTable({
                 onChange={(e) => setMessage(e.target.value)}
               />
               <span dir="ltr" className="self-end text-xs text-muted-foreground">
-                {message.length} / 1000
+                <NumberText value={message.length}/> / 1000
               </span>
             </FormField>
           )}

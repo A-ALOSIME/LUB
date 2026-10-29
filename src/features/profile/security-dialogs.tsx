@@ -1,4 +1,5 @@
 "use client";
+import {t as translateUi} from "@/lib/i18n";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, KeyRound } from "lucide-react";
@@ -49,8 +50,8 @@ export function EmailChangeDialog({
   useActionToast(state, locale);
   return (
     <ManagementActionSheet
-      label={en ? "Change email" : "تغيير البريد"}
-      title={en ? "Change email address" : "تغيير البريد الإلكتروني"}
+      label={translateUi((en) ? "en" : "ar", "تغيير البريد", "Change email")}
+      title={translateUi((en) ? "en" : "ar", "تغيير البريد الإلكتروني", "Change email address")}
       icon={<Pencil />}
       locale={locale}
       open={open}
@@ -69,23 +70,19 @@ export function EmailChangeDialog({
           value={administrative ? "/manage/account" : "/account"}
         />
         <FieldDescription>
-          {en
-            ? "Your current email stays active until confirmation is complete."
-            : "يبقى بريدك الحالي فعالًا حتى اكتمال التأكيد."}{" "}
+          {translateUi((en) ? "en" : "ar", "يبقى بريدك الحالي فعالًا حتى اكتمال التأكيد.", "Your current email stays active until confirmation is complete.")}{" "}
           <bdi>{email}</bdi>
         </FieldDescription>
         {state.pendingEmail ? (
           <>
             <p>
-              {en ? "New email:" : "البريد الجديد:"}{" "}
+              {translateUi((en) ? "en" : "ar", "البريد الجديد:", "New email:")}{" "}
               <bdi>{state.pendingEmail}</bdi>
             </p>
             <FormField
-              label={en ? "Verification code" : "رمز التحقق"}
+              label={translateUi((en) ? "en" : "ar", "رمز التحقق", "Verification code")}
               hint={
-                en
-                  ? "Enter the code from either inbox. If both require confirmation, enter the other code next."
-                  : "أدخل رمز أي من البريدين. إذا طُلب تأكيدهما، أدخل رمز البريد الآخر بعده."
+                translateUi((en) ? "en" : "ar", "أدخل رمز أي من البريدين. إذا طُلب تأكيدهما، أدخل رمز البريد الآخر بعده.", "Enter the code from either inbox. If both require confirmation, enter the other code next.")
               }
             >
               <Input
@@ -101,7 +98,7 @@ export function EmailChangeDialog({
           </>
         ) : (
           <FormField
-            label={en ? "New email address" : "البريد الإلكتروني الجديد"}
+            label={translateUi((en) ? "en" : "ar", "البريد الإلكتروني الجديد", "New email address")}
           >
             <Input
               name="email"
@@ -136,7 +133,7 @@ export function EmailChangeDialog({
                 formNoValidate
                 disabled={pending}
               >
-                {en ? "Edit address" : "تعديل العنوان"}
+                {translateUi((en) ? "en" : "ar", "تعديل العنوان", "Edit address")}
               </Button>
             ) : undefined
           }
@@ -170,8 +167,8 @@ export function PasswordChangeDialog({ locale = "ar" }: { locale?: Locale }) {
   useActionToast(state, locale);
   return (
     <ManagementActionSheet
-      label={en ? "Change password" : "تغيير كلمة المرور"}
-      title={en ? "Change password" : "تغيير كلمة المرور"}
+      label={translateUi((en) ? "en" : "ar", "تغيير كلمة المرور", "Change password")}
+      title={translateUi((en) ? "en" : "ar", "تغيير كلمة المرور", "Change password")}
       icon={<KeyRound />}
       locale={locale}
       open={open}
@@ -180,8 +177,8 @@ export function PasswordChangeDialog({ locale = "ar" }: { locale?: Locale }) {
     >
       <form action={action} className="flex flex-col gap-5">
         <FormField
-          label={en ? "New password" : "كلمة المرور الجديدة"}
-          hint={en ? "At least 12 characters." : "12 حرفًا على الأقل."}
+          label={translateUi((en) ? "en" : "ar", "كلمة المرور الجديدة", "New password")}
+          hint={translateUi((en) ? "en" : "ar", "12 حرفًا على الأقل.", "At least 12 characters.")}
         >
           <Input
             name="password"
@@ -192,7 +189,7 @@ export function PasswordChangeDialog({ locale = "ar" }: { locale?: Locale }) {
             required
           />
         </FormField>
-        <FormField label={en ? "Confirm password" : "تأكيد كلمة المرور"}>
+        <FormField label={translateUi((en) ? "en" : "ar", "تأكيد كلمة المرور", "Confirm password")}>
           <Input
             name="confirmation"
             type="password"
@@ -211,7 +208,7 @@ export function PasswordChangeDialog({ locale = "ar" }: { locale?: Locale }) {
         )}
         <ManagementActionFooter
           pending={pending}
-          label={en ? "Save password" : "حفظ كلمة المرور"}
+          label={translateUi((en) ? "en" : "ar", "حفظ كلمة المرور", "Save password")}
         />
       </form>
     </ManagementActionSheet>

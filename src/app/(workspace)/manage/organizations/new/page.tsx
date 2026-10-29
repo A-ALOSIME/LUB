@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,10 @@ export default async function NewOrganizationPage() {
         nativeButton={false}
         render={<Link href="/manage/organizations" />}
       >
-        {en ? "Back to organizations" : "رجوع للجهات"}
+        {translateUi((en) ? "en" : "ar", "رجوع للجهات", "Back to organizations")}
       </Button>
       <header className="workspace-page-header">
-        <h1>{en ? "Add organization" : "إضافة جهة"}</h1>
+        <h1>{translateUi((en) ? "en" : "ar", "إضافة جهة", "Add organization")}</h1>
       </header>
       <Card>
         <CardContent>

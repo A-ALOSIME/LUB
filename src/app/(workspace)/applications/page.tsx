@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {openingRequests} from "@/features/organization-requests/repository";
 import {OpeningRequestList} from "@/features/organization-requests/request-list";
 import { z } from "zod";
@@ -27,7 +28,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
   if(tab==="organizations"){
     const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(Array.isArray(query.page)?query.page[0]:query.page??0);
     const data=await openingRequests(user.id,true,null,page);
-    return <main id="main" dir={en?"ltr":"rtl"} className="workspace-page--wide min-w-0 space-y-5"><header className="workspace-page-header"><h1>{en?"My requests":"طلباتي"}</h1></header><MyRequestsTabs activeTab={tab} locale={locale}><OpeningRequestList data={data} locale={locale} page={page}/></MyRequestsTabs></main>;
+    return <main id="main" dir={en?"ltr":"rtl"} className="workspace-page--wide min-w-0 space-y-5"><header className="workspace-page-header"><h1>{translateUi((en) ? "en" : "ar", "طلباتي", "My requests")}</h1></header><MyRequestsTabs activeTab={tab} locale={locale}><OpeningRequestList data={data} locale={locale} page={page}/></MyRequestsTabs></main>;
   }
 
   if (tab === "renewals") {
@@ -39,7 +40,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
 
     return <main id="main" dir={en ? "ltr" : "rtl"} className="workspace-page--wide min-w-0 space-y-5 pb-20 lg:pb-0">
       <header className="workspace-page-header">
-        <h1>{en ? "My requests" : "طلباتي"}</h1>
+        <h1>{translateUi((en) ? "en" : "ar", "طلباتي", "My requests")}</h1>
       </header>
       <MyRequestsTabs activeTab={tab} locale={locale}>
         <PersonalRenewalsView data={data} page={page} locale={locale} />
@@ -76,7 +77,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
 
   return <main id="main" dir={en ? "ltr" : "rtl"} className="workspace-page--wide min-w-0 space-y-5 pb-20 lg:pb-0">
     <header className="workspace-page-header">
-      <h1>{en ? "My requests" : "طلباتي"}</h1>
+      <h1>{translateUi((en) ? "en" : "ar", "طلباتي", "My requests")}</h1>
     </header>
     <MyRequestsTabs activeTab={tab} preview={preview} locale={locale}>
       <ApplicationList

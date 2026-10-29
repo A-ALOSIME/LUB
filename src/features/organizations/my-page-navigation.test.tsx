@@ -76,11 +76,11 @@ describe("workspace sidebar", () => {
     expect(screen.getByRole("link", { name: "الفعاليات والإعلانات" }).getAttribute("aria-current")).toBe("page");
     expect(management.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
     expect(within(management).queryByRole("link", { name: /طلبات الأعضاء/ })).toBeNull();
-    expect(within(management).getByRole("link", { name: /الأعضاء/ }).querySelector("[data-pending-count]")?.textContent).toBe("2");
+    expect(within(management).getByRole("link", { name: /الأعضاء/ }).querySelector("[data-pending-count]")?.textContent).toBe("٢");
     expect(within(management).queryByRole("link", { name: "اللجان" })).toBeNull();
     expect(within(management).queryByRole("link", { name: "الأدوار والتفويضات" })).toBeNull();
     expect(within(management).queryByRole("link", { name: "التقارير والمستندات" })).toBeNull();
-    expect(screen.getByText("2", { selector: "[data-pending-count]" })).toBeTruthy();
+    expect(screen.getByText("٢", { selector: "[data-pending-count]" })).toBeTruthy();
     expect(screen.queryByText("نشطة")).toBeNull();
   });
 

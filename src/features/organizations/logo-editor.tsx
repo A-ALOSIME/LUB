@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
@@ -39,15 +40,15 @@ export function OrganizationLogoEditor({ organizationId, organizationName, logoU
         const result = await response.json().catch(() => undefined) as { error?: string } | undefined;
         throw new Error(result?.error ?? (response.status === 401 ? "unauthorized" : response.status === 403 ? "forbidden" : response.status === 413 ? "too-large" : "invalid-file"));
       }
-      setSuccess(en ? "Logo updated." : "تم تحديث الشعار.");
+      setSuccess(translateUi((en) ? "en" : "ar", "تم تحديث الشعار.", "Logo updated."));
       router.refresh();
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "invalid-file";
-      setError(code === "unauthorized" ? en ? "Sign in again to upload a logo." : "سجّل الدخول من جديد لرفع الشعار."
-        : code === "forbidden" ? en ? "You do not have permission to change this logo." : "ما عندك صلاحية لتغيير الشعار."
-          : code === "too-large" ? en ? "The logo must be 2 MB or smaller." : "حجم الشعار لازم يكون 2 ميجابايت أو أقل."
-            : code === "invalid-file" ? en ? "Use a valid PNG or SVG logo (up to 2 MB)." : "استخدم شعار PNG أو SVG صالحًا، بحجم 2 ميجابايت أو أقل."
-              : en ? "The logo could not be saved. Try again." : "تعذّر حفظ الشعار. حاول مرة ثانية.");
+      setError(code === "unauthorized" ? translateUi((en) ? "en" : "ar", "سجّل الدخول من جديد لرفع الشعار.", "Sign in again to upload a logo.")
+        : code === "forbidden" ? translateUi((en) ? "en" : "ar", "ما عندك صلاحية لتغيير الشعار.", "You do not have permission to change this logo.")
+          : code === "too-large" ? translateUi((en) ? "en" : "ar", "حجم الشعار لازم يكون 2 ميجابايت أو أقل.", "The logo must be 2 MB or smaller.")
+            : code === "invalid-file" ? translateUi((en) ? "en" : "ar", "استخدم شعار PNG أو SVG صالحًا، بحجم 2 ميجابايت أو أقل.", "Use a valid PNG or SVG logo (up to 2 MB).")
+              : translateUi((en) ? "en" : "ar", "تعذّر حفظ الشعار. حاول مرة ثانية.", "The logo could not be saved. Try again."));
     } finally {
       setPending(false);
       event.target.value = "";
@@ -64,31 +65,31 @@ export function OrganizationLogoEditor({ organizationId, organizationName, logoU
         const result = await response.json().catch(() => undefined) as { error?: string } | undefined;
         throw new Error(result?.error ?? (response.status === 401 ? "unauthorized" : response.status === 403 ? "forbidden" : "failed"));
       }
-      setSuccess(en ? "Default organization logo restored." : "تمت استعادة الشعار الافتراضي للجهة.");
+      setSuccess(translateUi((en) ? "en" : "ar", "تمت استعادة الشعار الافتراضي للجهة.", "Default organization logo restored."));
       router.refresh();
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "failed";
-      setError(code === "unauthorized" ? en ? "Sign in again to change the logo." : "سجّل الدخول من جديد لتغيير الشعار."
-        : code === "forbidden" ? en ? "You do not have permission to change this logo." : "ما عندك صلاحية لتغيير الشعار."
-          : en ? "The logo could not be reset." : "تعذّر استعادة الشعار الافتراضي.");
+      setError(code === "unauthorized" ? translateUi((en) ? "en" : "ar", "سجّل الدخول من جديد لتغيير الشعار.", "Sign in again to change the logo.")
+        : code === "forbidden" ? translateUi((en) ? "en" : "ar", "ما عندك صلاحية لتغيير الشعار.", "You do not have permission to change this logo.")
+          : translateUi((en) ? "en" : "ar", "تعذّر استعادة الشعار الافتراضي.", "The logo could not be reset."));
     } finally { setPending(false); }
   }
 
   return <div className="organization-logo-editor">
     <div className={`organization-logo-preview${error ? " has-error" : ""}`}>
-      <button type="button" className="organization-settings-logo" aria-label={en ? "Change organization logo" : "تغيير شعار الجهة"} disabled={pending} onClick={() => inputRef.current?.click()}>
+      <button type="button" className="organization-settings-logo" aria-label={translateUi((en) ? "en" : "ar", "تغيير شعار الجهة", "Change organization logo")} disabled={pending} onClick={() => inputRef.current?.click()}>
         {currentLogo ? <Image src={currentLogo} alt="" width={88} height={88} unoptimized className="h-full w-full object-contain" /> : <span aria-hidden="true">{organizationName.trim().slice(0, 1) || "ج"}</span>}
         <Camera aria-hidden="true" className="organization-logo-change-icon" />
       </button>
-      <input ref={inputRef} id={`organization-logo-${organizationId}`} type="file" accept="image/png,image/svg+xml,.png,.svg" disabled={pending} className="sr-only" aria-label={en ? "Choose an organization logo" : "اختيار شعار الجهة"} onChange={upload} />
-      <p className="organization-logo-hint">{en ? "PNG or SVG · up to 2 MB" : "PNG أو SVG · بحد أقصى 2 ميجابايت"}</p>
+      <input ref={inputRef} id={`organization-logo-${organizationId}`} type="file" accept="image/png,image/svg+xml,.png,.svg" disabled={pending} className="sr-only" aria-label={translateUi((en) ? "en" : "ar", "اختيار شعار الجهة", "Choose an organization logo")} onChange={upload} />
+      <p className="organization-logo-hint">{translateUi((en) ? "en" : "ar", "PNG أو SVG · بحد أقصى 2 ميجابايت", "PNG or SVG · up to 2 MB")}</p>
     </div>
     <div className="organization-logo-controls">
-      {pending && <p role="status" className="organization-logo-status"><LoaderCircle aria-hidden="true" className="size-4 animate-spin" />{en ? "Saving logo…" : "جارٍ حفظ الشعار…"}</p>}
+      {pending && <p role="status" className="organization-logo-status"><LoaderCircle aria-hidden="true" className="size-4 animate-spin" />{translateUi((en) ? "en" : "ar", "جارٍ حفظ الشعار…", "Saving logo…")}</p>}
       {error && <p role="alert" className="organization-logo-error">{error}</p>}
       {success && <p role="status" className="organization-logo-status">{success}</p>}
       {customLogo && <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={resetLogo} className="w-fit gap-1.5">
-        <RotateCcw aria-hidden="true" />{en ? "Restore default logo" : "استعادة الشعار الافتراضي"}
+        <RotateCcw aria-hidden="true" />{translateUi((en) ? "en" : "ar", "استعادة الشعار الافتراضي", "Restore default logo")}
       </Button>}
     </div>
   </div>;

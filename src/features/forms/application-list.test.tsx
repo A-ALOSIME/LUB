@@ -36,12 +36,12 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
     "الحالة",
     "الإجراءات",
   ]);
-  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("5");
-  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مقابلة/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مقبول/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مرفوض/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toContain("1");
+  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("٥");
+  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toContain("١");
+  expect(screen.getByRole("tab", { name: /مقابلة/ }).textContent).toContain("١");
+  expect(screen.getByRole("tab", { name: /مقبول/ }).textContent).toContain("١");
+  expect(screen.getByRole("tab", { name: /مرفوض/ }).textContent).toContain("١");
+  expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toContain("١");
   expect(screen.getByRole("tab", { name: /الكل/ }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("tablist", { name: "تصفية الطلبات حسب الحالة" }).parentElement?.getAttribute("dir")).toBe("rtl");
   expect(screen.getAllByRole("row")[0].className).toContain("border-border/60");
@@ -88,7 +88,7 @@ it("hides zero counts from application status filters", () => {
     locale="ar"
   />);
 
-  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("2");
+  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("٢");
   expect(screen.getByRole("tab", { name: "مقبول" }).textContent).toBe("مقبول");
   expect(screen.getByRole("tab", { name: "مرفوض" }).textContent).toBe("مرفوض");
   expect(screen.getByRole("tab", { name: "مسحوب" }).textContent).toBe("مسحوب");

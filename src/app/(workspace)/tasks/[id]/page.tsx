@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
 import {notFound} from "next/navigation";
@@ -12,5 +13,5 @@ export default async function TaskPage({params,searchParams}:{params:Promise<{id
  const participant=z.uuid().safeParse(query.participant);const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.page??0);const eventPage=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.eventPage??0);const teamPage=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.teamPage??0);
  const detail=await taskDetail(user.id,id,participant.success?participant.data:null,page,teamPage,eventPage);if(!detail)notFound();
  const workspace=detail.canManage?await taskWorkspace(user.id,detail.task.organization_id):undefined;
- return <><main id="main" className="min-w-0"><Link className="text-link mb-6 inline-block" href="/tasks">{locale==="en"?"All tasks":"جميع المهام"}</Link><TaskDetailView workspace={workspace} eventPage={eventPage} detail={detail} page={page} teamPage={teamPage} participant={participant.success?participant.data:null} locale={locale}/></main></>;
+ return <><main id="main" className="min-w-0"><Link className="text-link mb-6 inline-block" href="/tasks">{translateUi((locale==="en") ? "en" : "ar", "جميع المهام", "All tasks")}</Link><TaskDetailView workspace={workspace} eventPage={eventPage} detail={detail} page={page} teamPage={teamPage} participant={participant.success?participant.data:null} locale={locale}/></main></>;
 }

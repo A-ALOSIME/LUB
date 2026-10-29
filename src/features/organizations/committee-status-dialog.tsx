@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useCallback, useState } from "react";
 import { Archive, RotateCcw } from "lucide-react";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
@@ -12,7 +13,7 @@ export function CommitteeStatusDialog({ organizationId, committeeId, committeeNa
   const setOpen = onOpenChange ?? setLocalOpen;
   const closeAfterSave = useCallback(() => setOpen(false), [setOpen]);
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const action = archived ? c("استعادة", "Restore") : c("أرشفة", "Archive");
 
   return <ManagementActionSheet label={action} title={`${action} ${committeeName??c("اللجنة","committee")}؟`} locale={locale} icon={archived ? <RotateCcw aria-hidden="true" /> : <Archive aria-hidden="true" />} open={open} onOpenChange={setOpen} hideTrigger={hideTrigger}>

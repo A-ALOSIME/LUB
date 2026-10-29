@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import {formatCount} from "@/lib/display";
 import { useState, type ReactNode } from "react";
 import { Archive, Copy, Pencil, RotateCcw } from "lucide-react";
@@ -28,7 +29,7 @@ export function CommitteeListRow({ organizationId, committee, canManage, locale,
   const [action, setAction] = useState<"edit" | "copy" | "archive" | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const archived = committee.statusCode === "Archived";
   const count = committee.memberCount === null
     ? c("عدد الأعضاء غير متاح", "Member count unavailable")

@@ -1,4 +1,6 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import { useState } from "react";
 import Image from "next/image";
 import { UserRound, UserRoundMinus, Power, Building2, Archive } from "lucide-react";
@@ -26,7 +28,7 @@ export function AdminOrganizationTable({
   locale: Locale;
 }) {
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     [decision, setDecision] = useState<{
       organization: AdminOrganizationRow;
       kind: "leader" | "status" | "remove-leader" | "archive";
@@ -126,7 +128,7 @@ export function AdminOrganizationTable({
                 <TableCell className="whitespace-normal">
                   {leader(item)}
                 </TableCell>
-                <TableCell>{item.memberCount}</TableCell>
+                <TableCell><NumberText value={item.memberCount}/></TableCell>
                 <TableCell>{actions(item)}</TableCell>
               </TableRow>
             ))}
@@ -148,7 +150,7 @@ export function AdminOrganizationTable({
               </div>
               <p className="text-sm">
                 {leader(item)} ·{" "}
-                {c("الأعضاء:", "Members:")} <bdi>{item.memberCount}</bdi>
+                {c("الأعضاء:", "Members:")} <bdi><NumberText value={item.memberCount}/></bdi>
               </p>
               {actions(item)}
             </CardContent>

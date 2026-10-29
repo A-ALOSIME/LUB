@@ -1,4 +1,5 @@
 import "server-only";
+import {talentOrganizationLogo} from "@/features/talent/repository";
 import { eq,sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
 import { users } from "@/db/schema";
@@ -16,6 +17,6 @@ export async function getMyPageData(user:string) {
   tasks:sql<Array<{id:string;title:string;status:string}>>`coalesce((select jsonb_agg(x) from (select t.id,t.title,p.status_code as status from lub.task_participants p join lub.tasks t on t.id=p.task_id where p.user_id=${user} order by p.joined_at desc,p.id limit 5) x),'[]')`,
   memberships:sql<Awaited<ReturnType<typeof getMembershipHistory>>>`coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'organizationName',o.name_ar,'logo',o.logo_url,'type',o.type_code,'hours',(select coalesce(sum(h.hours),0)::text from lub.hour_records h join lub.organization_memberships hm on hm.id=h.organization_membership_id where hm.user_id=${user} and hm.organization_id=o.id and h.status_code='Approved'),'slug',o.slug,'organizationStatus',o.status_code,'statusCode',m.status_code,'startDate',m.start_date,'endDate',m.end_date,'roles',coalesce((select jsonb_agg(jsonb_build_object('code',r.role_code,'startDate',r.start_date,'endDate',r.end_date,'hours',(select coalesce(sum(h.hours),0)::text from lub.hour_records h where h.organization_membership_id=m.id and h.status_code='Approved' and h.activity_date>=r.start_date and (r.end_date is null or h.activity_date<r.end_date) and (r.committee_id is null or r.committee_id=h.committee_id))) order by r.start_date,r.id) from lub.role_assignments r where r.organization_membership_id=m.id),'[]')) order by o.name_ar,m.start_date,m.id) from lub.organization_memberships m join lub.organizations o on o.id=m.organization_id where m.user_id=${user}),'[]')`,
  }).from(users).where(eq(users.id,user)).limit(1);
- return {status:row?.status,profile:row?.profile,access:{superAdmin:Boolean(row?.superAdmin),organizations:row?.organizations??[]},memberships:row?.memberships??[],tasks:row?.tasks??[],hours:row?.hours??"0"};
+ return {status:row?.status,profile:row?.profile,access:{superAdmin:Boolean(row?.superAdmin),organizations:row?.organizations??[]},memberships:(row?.memberships??[]).map(m=>({...m,logo:talentOrganizationLogo(m.organizationName,m.logo)})),tasks:row?.tasks??[],hours:row?.hours??"0"};
  });
 }

@@ -1,4 +1,5 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import { formatHours } from "@/lib/display";
 
 import { useId, useState } from "react";
@@ -21,7 +22,7 @@ type HoursRule = { id: string; name: string; default_hours: string; committee_id
 export function TaskTemplatePicker({ templates, selected, locale = "ar" }: { templates: TaskTemplate[]; selected?: string; locale?: Locale }) {
   const router = useRouter();
   const pathname = usePathname();
-  const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   return <FormField label={c("ابدأ من قالب", "Start from a template")}><NativeSelect value={selected ?? ""} onChange={event => {
     const url = new URL(window.location.href);
     if (event.target.value) url.searchParams.set("template", event.target.value);
@@ -49,7 +50,7 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
   const [ruleId, setRuleId] = useState("");
   const [manualHours, setManualHours] = useState(value?.default_hours ?? "0");
   const selectedRule = rules.find(rule => rule.id === ruleId);
-  const en = locale === "en", c = (ar: string, english: string) => en ? english : ar;
+  const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   if(template)return <FieldGroup className="task-template-fields">
     <FormField id={`${fieldId}-title`} label={c("العنوان","Title")} required><Input id={`${fieldId}-title`} name="title" required minLength={2} maxLength={120} defaultValue={value?.title??value?.name??""}/></FormField>
     <FormField id={`${fieldId}-description`} label={c("وصف العمل والمخرج المطلوب","Work description and expected deliverable")} required><Textarea id={`${fieldId}-description`} name="description" required maxLength={6000} rows={5} defaultValue={value?.description??value?.description_template??""}/></FormField>

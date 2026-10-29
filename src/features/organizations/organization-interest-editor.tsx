@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useId, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ function OrganizationInterestEditorState({ initialInterests, locale }: { initial
   const inputId = useId();
   const { markChanged } = useProfileFormState();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
   function add() {
     const value = draft.trim();

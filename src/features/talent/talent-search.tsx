@@ -1,4 +1,6 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
@@ -69,7 +71,7 @@ export function TalentSearch({
     );
     return () => clearTimeout(timer);
   }, [draft, current, router, filters]);
-  const c = (ar: string, english: string) => (en ? english : ar);
+  const c = createTranslator((en) ? "en" : "ar");
   const patch = (value: Partial<TalentFilters>) =>
     setFilters({ ...filters, ...value, page: 0 });
   const labels = new Map(
@@ -160,7 +162,7 @@ export function TalentSearch({
               <SlidersHorizontal />
               {c("فلاتر", "Filters")}
               {chips.length > 0 && (
-                <Badge variant="secondary">{chips.length}</Badge>
+                <Badge variant="secondary"><NumberText value={chips.length}/></Badge>
               )}
             </SheetTrigger>
             <SheetContent side="left"
@@ -243,7 +245,7 @@ function TalentFilterFields({
   onChange: (v: Partial<TalentFilters>) => void;
 }) {
   const anchor = useComboboxAnchor(),
-    c = (ar: string, english: string) => (en ? english : ar);
+    c = createTranslator((en) ? "en" : "ar");
   const catalog = new Map(
     options.skills.map((x) => [skillKey(x), skillLabel(x)]),
   );

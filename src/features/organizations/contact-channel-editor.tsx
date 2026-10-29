@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -29,13 +30,13 @@ function editableChannels(channels: OrganizationContactChannel[], prefix: string
 }
 
 function invalidMessage(kind: OrganizationContactKind, en: boolean) {
-  if (kind === "Email") return en ? "Enter a valid email address." : "أدخل بريداً إلكترونياً صحيحاً.";
-  if (kind === "Phone") return en ? "Enter a valid phone number." : "أدخل رقم هاتف صحيحاً.";
-  return en ? "Enter a valid HTTPS link." : "أدخل رابط HTTPS صحيحاً.";
+  if (kind === "Email") return translateUi((en) ? "en" : "ar", "أدخل بريداً إلكترونياً صحيحاً.", "Enter a valid email address.");
+  if (kind === "Phone") return translateUi((en) ? "en" : "ar", "أدخل رقم هاتف صحيحاً.", "Enter a valid phone number.");
+  return translateUi((en) ? "en" : "ar", "أدخل رابط HTTPS صحيحاً.", "Enter a valid HTTPS link.");
 }
 
 function valueError(channel: OrganizationContactChannel, en: boolean) {
-  if (!channel.value.trim()) return en ? "This field is required." : "هذا الحقل مطلوب.";
+  if (!channel.value.trim()) return translateUi((en) ? "en" : "ar", "هذا الحقل مطلوب.", "This field is required.");
   return normalizeOrganizationContact(channel) ? "" : invalidMessage(channel.kind, en);
 }
 
@@ -78,11 +79,11 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
       return;
     }
     if (channels.some(channel => normalizeOrganizationContact(channel)?.url === normalized.url)) {
-      setError(en ? "This contact channel already exists." : "قناة التواصل هذه مضافة بالفعل.");
+      setError(translateUi((en) ? "en" : "ar", "قناة التواصل هذه مضافة بالفعل.", "This contact channel already exists."));
       return;
     }
     if (channels.length >= 12) {
-      setError(en ? "You can add up to 12 channels." : "يمكنك إضافة 12 قناة على الأكثر.");
+      setError(translateUi((en) ? "en" : "ar", "يمكنك إضافة 12 قناة على الأكثر.", "You can add up to 12 channels."));
       return;
     }
     setChannels(current => [...current, { kind: normalized.kind, value: normalized.value, id: `${rowPrefix}-${nextId.current++}` }]);
@@ -102,7 +103,7 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
 
   return <section className="organization-settings-field full organization-contact-editor" aria-labelledby="organization-contacts-title" dir={en ? "ltr" : "rtl"}>
     <div className="organization-contact-heading">
-      <h3 id="organization-contacts-title">{en ? "Contact channels" : "قنوات التواصل"}</h3>
+      <h3 id="organization-contacts-title">{translateUi((en) ? "en" : "ar", "قنوات التواصل", "Contact channels")}</h3>
       {channels.length < 12 && <ContactChannelAddMenu locale={locale} onSelect={channelKind => {
             setKind(channelKind);
             setValue("");
@@ -119,9 +120,9 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
           <span className="organization-contact-label"><span className="organization-contact-icon" aria-hidden="true"><OrganizationSocialIcon kind={channel.kind} className="size-5" /></span><span>{en ? organizationContactLabel(channel.kind, true) : channelNamesAr[channel.kind] ?? organizationContactLabel(channel.kind, false)}</span></span>
           <div className="organization-contact-value">
             <div className="organization-contact-field-wrap">
-              {channel.kind === "Phone" ? <PhoneInput value={channel.value} locale={locale} onChange={value => { setChannels(current => current.map(item => item.id === channel.id ? { ...item, value } : item)); markChanged(); }} onBlur={() => setTouched(current => new Set(current).add(channel.id))} aria-label={`${organizationContactLabel(channel.kind, en)} ${en ? "value" : "القيمة"}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required />
-                : <Input value={channel.value} onChange={event => setChannels(current => current.map(item => item.id === channel.id ? { ...item, value: event.target.value } : item))} onBlur={() => setTouched(current => new Set(current).add(channel.id))} type={channel.kind === "Email" ? "email" : "url"} inputMode={channel.kind === "Email" ? "email" : "url"} dir="ltr" className="text-right" aria-label={`${organizationContactLabel(channel.kind, en)} ${en ? "value" : "القيمة"}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required maxLength={2048} />}
-              <Button type="button" variant="ghost" size="icon-sm" className="organization-contact-delete" aria-label={en ? `Remove ${organizationContactLabel(channel.kind, true)}` : `حذف ${organizationContactLabel(channel.kind, false)}`} title={en ? `Remove ${organizationContactLabel(channel.kind, true)}` : `حذف ${organizationContactLabel(channel.kind, false)}`} onClick={() => setDeleteId(channel.id)}>
+              {channel.kind === "Phone" ? <PhoneInput value={channel.value} locale={locale} onChange={value => { setChannels(current => current.map(item => item.id === channel.id ? { ...item, value } : item)); markChanged(); }} onBlur={() => setTouched(current => new Set(current).add(channel.id))} aria-label={`${organizationContactLabel(channel.kind, en)} ${translateUi((en) ? "en" : "ar", "القيمة", "value")}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required />
+                : <Input value={channel.value} onChange={event => setChannels(current => current.map(item => item.id === channel.id ? { ...item, value: event.target.value } : item))} onBlur={() => setTouched(current => new Set(current).add(channel.id))} type={channel.kind === "Email" ? "email" : "url"} inputMode={channel.kind === "Email" ? "email" : "url"} dir="ltr" className={en?"text-left":"text-right"} aria-label={`${organizationContactLabel(channel.kind, en)} ${translateUi((en) ? "en" : "ar", "القيمة", "value")}`} aria-invalid={channelError ? true : undefined} aria-describedby={channelError ? errorId : undefined} required maxLength={2048} />}
+              <Button type="button" variant="ghost" size="icon-sm" className="organization-contact-delete" aria-label={translateUi((en) ? "en" : "ar", `حذف ${organizationContactLabel(channel.kind, false)}`, `Remove ${organizationContactLabel(channel.kind, true)}`)} title={translateUi((en) ? "en" : "ar", `حذف ${organizationContactLabel(channel.kind, false)}`, `Remove ${organizationContactLabel(channel.kind, true)}`)} onClick={() => setDeleteId(channel.id)}>
                 <Trash2 aria-hidden="true" />
               </Button>
             </div>
@@ -129,34 +130,34 @@ function OrganizationContactChannelEditorState({ initialChannels, locale }: { in
           </div>
         </li>;
       })}
-    </ul> : <p className="organization-contact-empty">{en ? "No public contact channels added." : "ما أُضيفت قنوات تواصل بعد."}</p>}
+    </ul> : <p className="organization-contact-empty">{translateUi((en) ? "en" : "ar", "ما أُضيفت قنوات تواصل بعد.", "No public contact channels added.")}</p>}
 
     <ManagementActionSheet
       label=""
-      title={en ? "Add a contact channel" : "إضافة قناة تواصل"}
+      title={translateUi((en) ? "en" : "ar", "إضافة قناة تواصل", "Add a contact channel")}
       locale={locale}
       open={open}
       onOpenChange={next => { setOpen(next); if (!next) setError(""); }}
       hideTrigger
     >
-      <p className="text-sm leading-6 text-muted">{en ? "Enter the public contact value." : "أدخل وسيلة التواصل التي ستظهر للزوار."}</p>
+      <p className="text-sm leading-6 text-muted">{translateUi((en) ? "en" : "ar", "أدخل وسيلة التواصل التي ستظهر للزوار.", "Enter the public contact value.")}</p>
       <form noValidate onSubmit={event => { event.stopPropagation(); addChannel(event); }} className="grid gap-3">
         <FormField id={valueId} label={organizationContactLabel(kind, en)} required error={error}>
-        {kind === "Phone" ? <PhoneInput id={valueId} autoFocus value={value} locale={locale} onChange={value => { setValue(value); setError(""); }} required /> : <Input id={valueId} autoFocus value={value} onChange={event => { setValue(event.target.value); setError(""); }} type={kind === "Email" ? "email" : "url"} inputMode={kind === "Email" ? "email" : "url"} dir="ltr" className="text-right" placeholder={channelPlaceholder[kind]} maxLength={2048} required />}
+        {kind === "Phone" ? <PhoneInput id={valueId} autoFocus value={value} locale={locale} onChange={value => { setValue(value); setError(""); }} required /> : <Input id={valueId} autoFocus value={value} onChange={event => { setValue(event.target.value); setError(""); }} type={kind === "Email" ? "email" : "url"} inputMode={kind === "Email" ? "email" : "url"} dir="ltr" className={en?"text-left":"text-right"} placeholder={channelPlaceholder[kind]} maxLength={2048} required />}
         </FormField>
-        <ManagementActionFooter label={en ? "Add channel" : "إضافة القناة"} />
+        <ManagementActionFooter label={translateUi((en) ? "en" : "ar", "إضافة القناة", "Add channel")} />
       </form>
     </ManagementActionSheet>
 
     <AlertDialog open={deleteId !== null} onOpenChange={next => { if (!next) setDeleteId(null); }}>
       <AlertDialogContent dir={en ? "ltr" : "rtl"}>
         <AlertDialogHeader>
-          <AlertDialogTitle>{en ? `Delete ${organizationContactLabel(channels.find(channel=>channel.id===deleteId)?.kind??"Website",true)}?` : `حذف قناة ${organizationContactLabel(channels.find(channel=>channel.id===deleteId)?.kind??"Website",false)}؟`}</AlertDialogTitle>
-          <AlertDialogDescription>{en ? "This channel will be removed when you save the profile." : "ستُحذف القناة عند حفظ بيانات الجهة."}</AlertDialogDescription>
+          <AlertDialogTitle>{translateUi((en) ? "en" : "ar", `حذف قناة ${organizationContactLabel(channels.find(channel=>channel.id===deleteId)?.kind??"Website",false)}؟`, `Delete ${organizationContactLabel(channels.find(channel=>channel.id===deleteId)?.kind??"Website",true)}?`)}</AlertDialogTitle>
+          <AlertDialogDescription>{translateUi((en) ? "en" : "ar", "ستُحذف القناة عند حفظ بيانات الجهة.", "This channel will be removed when you save the profile.")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{en ? "Cancel" : "إلغاء"}</AlertDialogCancel>
-          <AlertDialogAction type="button" variant="danger-outline" onClick={removeChannel}>{en ? "Delete channel" : "حذف القناة"}</AlertDialogAction>
+          <AlertDialogCancel>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</AlertDialogCancel>
+          <AlertDialogAction type="button" variant="danger-outline" onClick={removeChannel}>{translateUi((en) ? "en" : "ar", "حذف القناة", "Delete channel")}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import {formatCount} from "@/lib/display";
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -18,7 +19,7 @@ export function RegistrationTemplateRow({ template, organization, locale }: { te
   const [deleteOpen,setDeleteOpen]=useState(false),[pending,startTransition]=useTransition();
   const router=useRouter();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const base = `/manage/organizations/${organization}/renewals`;
   const editHref = `${base}?section=forms&template=${template.id}`;
   const latest = template.versions[0];

@@ -1,5 +1,7 @@
 "use client";
 
+import {useI18n} from "@/components/i18n-provider";
+import {localizeDigits} from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 
 function parseStatValue(value: string) {
@@ -58,5 +60,6 @@ export function AnimatedStat({ value }: { value: string }) {
     };
   }, [value]);
 
-  return <span ref={elementRef} aria-label={value}><span aria-hidden="true">{displayValue}</span></span>;
+  const {locale}=useI18n();
+  return <span ref={elementRef} aria-label={localizeDigits(value,locale)}><span aria-hidden="true">{localizeDigits(displayValue,locale)}</span></span>;
 }

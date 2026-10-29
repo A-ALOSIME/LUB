@@ -8,6 +8,7 @@ afterEach(cleanup);
 it("renders compact filters as shadcn tabs with one rounded active option", () => {
   const onValueChange = vi.fn();
   const { container } = render(<FilterTabs
+    dir="ltr"
     value="all"
     ariaLabel="Filter by status"
     options={[{ value: "all", label: "All" }, { value: "active", label: "Active", count: 2 }]}

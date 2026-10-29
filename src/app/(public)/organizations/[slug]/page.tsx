@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
 import Image from "next/image";
@@ -45,7 +46,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
       description:{ar:description,en:description},
     });
   } catch {
-    return localizedMetadata(locale==="en"?"Organization details":"تفاصيل الجهة",locale==="en"?"Organization details":"تفاصيل الجهة");
+    return localizedMetadata(translateUi((locale==="en") ? "en" : "ar", "تفاصيل الجهة", "Organization details"),translateUi((locale==="en") ? "en" : "ar", "تفاصيل الجهة", "Organization details"));
   }
 }
 
@@ -87,7 +88,7 @@ export default async function OrganizationPage({ params, searchParams }: {
   const query = await searchParams;
   let detail: Awaited<ReturnType<typeof getPublicOrganization>>;
   try { detail = await getPublicOrganization(slug); }
-  catch { return <><main id="main" className="mx-auto max-w-3xl px-5 py-14"><h1 className="text-3xl font-bold">{en?"Could not load this organization":"تعذّر تحميل الجهة"}</h1><p className="mt-5 leading-8 text-muted">{en?"Please refresh the page in a moment.":"حاول تحديث الصفحة بعد قليل."}</p><Link className="text-link mt-6 inline-block" href="/organizations">{en?"Back to clubs and councils":"العودة للأندية والمجالس"}</Link></main></>; }
+  catch { return <><main id="main" className="mx-auto max-w-3xl px-5 py-14"><h1 className="text-3xl font-bold">{translateUi((en) ? "en" : "ar", "تعذّر تحميل الجهة", "Could not load this organization")}</h1><p className="mt-5 leading-8 text-muted">{translateUi((en) ? "en" : "ar", "حاول تحديث الصفحة بعد قليل.", "Please refresh the page in a moment.")}</p><Link className="text-link mt-6 inline-block" href="/organizations">{translateUi((en) ? "en" : "ar", "العودة للأندية والمجالس", "Back to clubs and councils")}</Link></main></>; }
   if (!detail) notFound();
 
   const { organization, committees, contacts, leadership, rounds, upcomingEvents, announcements } = detail;
@@ -122,7 +123,7 @@ export default async function OrganizationPage({ params, searchParams }: {
   const leadershipInOverview = leadership.length > 0 && committees.length === 0;
   const hasOverview = Boolean(aboutProfileGroup?.entries.length || presentation.motto?.trim() || presentation.vision?.trim() || presentation.mission?.trim() || presentation.stats?.length || leadershipInOverview);
   const sectionNavItems: { id: string; label: string; icon: ProfileIconName; profileSectionIndexes: number[] }[] = [
-    ...(hasOverview ? [{ id: "about", label: en ? "About" : "عن الجهة", icon: "reach" as const, profileSectionIndexes: aboutProfileGroup?.entries.map(entry => entry.index) ?? [] }] : []),
+    ...(hasOverview ? [{ id: "about", label: translateUi((en) ? "en" : "ar", "عن الجهة", "About"), icon: "reach" as const, profileSectionIndexes: aboutProfileGroup?.entries.map(entry => entry.index) ?? [] }] : []),
     ...profileSectionGroups.filter(group => group.kind !== "about" && group.kind !== "structure").map(group => ({
       id: group.id,
       label: profileGroupLabel(group, en),
@@ -131,13 +132,13 @@ export default async function OrganizationPage({ params, searchParams }: {
     })),
   ];
   if (committees.length > 0) {
-    sectionNavItems.push({ id: "structure", label: en ? "Committees" : "اللجان", icon: "teams", profileSectionIndexes: [] });
+    sectionNavItems.push({ id: "structure", label: translateUi((en) ? "en" : "ar", "اللجان", "Committees"), icon: "teams", profileSectionIndexes: [] });
   }
   if (hasActivity && !sectionNavItems.some(item => item.id === "activities")) {
-    sectionNavItems.push({ id: "activities", label: en ? "Events" : "الفعاليات", icon: "events", profileSectionIndexes: [] });
+    sectionNavItems.push({ id: "activities", label: translateUi((en) ? "en" : "ar", "الفعاليات", "Events"), icon: "events", profileSectionIndexes: [] });
   }
-  sectionNavItems.push({ id: "applications", label: en ? "Applications" : "التقديم", icon: "membership", profileSectionIndexes: [] });
-  if(announcements.length)sectionNavItems.push({id:"announcements",label:en?"Announcements":"الإعلانات",icon:"events",profileSectionIndexes:[]});
+  sectionNavItems.push({ id: "applications", label: translateUi((en) ? "en" : "ar", "التقديم", "Applications"), icon: "membership", profileSectionIndexes: [] });
+  if(announcements.length)sectionNavItems.push({id:"announcements",label:translateUi((en) ? "en" : "ar", "الإعلانات", "Announcements"),icon:"events",profileSectionIndexes:[]});
   const requestedSection = Array.isArray(query.section) ? query.section[0] : query.section;
   const orderedNavItems = orderOrganizationTabs(sectionNavItems);
   const activeSection = orderedNavItems.find(item => item.id === requestedSection) ?? orderedNavItems[0];
@@ -168,23 +169,23 @@ export default async function OrganizationPage({ params, searchParams }: {
     ...(logoUrl?{logo:logoUrl}:{}),
     ...(sameAs.length?{sameAs:[...new Set(sameAs)]}:{}),
   }}/>}<main id="main" className="mx-auto max-w-7xl px-5 pb-20 pt-9 sm:px-8 sm:pt-12">
-    <div className="flex flex-wrap items-center justify-between gap-3"><Button nativeButton={false} variant="ghost" render={<Link href="/organizations"/>}><ArrowRight/>{en?"Clubs and councils":"الأندية والمجالس"}</Button>{canManageOrganization&&<Button nativeButton={false} variant="outline" render={<Link href={`/manage/organizations/${organization.id}`}/>}><Settings2/>{en?"Organization settings":"إعدادات الجهة"}</Button>}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><Button nativeButton={false} variant="ghost" render={<Link href="/organizations"/>}><ArrowRight/>{translateUi((en) ? "en" : "ar", "الأندية والمجالس", "Clubs and councils")}</Button>{canManageOrganization&&<Button nativeButton={false} variant="outline" render={<Link href={`/manage/organizations/${organization.id}`}/>}><Settings2/>{translateUi((en) ? "en" : "ar", "إعدادات الجهة", "Organization settings")}</Button>}</div>
     <header id="organization-overview" className="organization-hero organization-section-nav-target mt-6">
-      {profile?.coverSrc && <figure className={"organization-hero-cover" + (profile?.imageTheme ? " organization-hero-cover--" + profile.imageTheme : "")}><Image src={profile.coverSrc} alt={en ? profile.imageTheme === "ieee" ? `Logo of ${organization.nameAr}` : `${organization.nameAr} banner` : profile.imageTheme === "ieee" ? `شعار ${organization.nameAr}` : `غلاف ${organization.nameAr}`} fill sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-hero-cover-image" /></figure>}
+      {profile?.coverSrc && <figure className={"organization-hero-cover" + (profile?.imageTheme ? " organization-hero-cover--" + profile.imageTheme : "")}><Image src={profile.coverSrc} alt={translateUi((en) ? "en" : "ar", profile.imageTheme === "ieee" ? `شعار ${organization.nameAr}` : `غلاف ${organization.nameAr}`, profile.imageTheme === "ieee" ? `Logo of ${organization.nameAr}` : `${organization.nameAr} banner`)} fill sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-hero-cover-image" /></figure>}
       <div className={"organization-hero-main" + (profile?.coverSrc ? " organization-hero-main--cover" : "") + (profile?.coverSrc && organization.logoUrl ? " organization-hero-main--custom-cover" : "")}>
-      {profile?.coverSrc && organization.logoUrl && <div className="organization-hero-custom-logo"><Image src={organization.logoUrl} alt={en ? `Logo of ${organization.nameAr}` : `شعار ${organization.nameAr}`} fill sizes="96px" unoptimized referrerPolicy="no-referrer" className="organization-hero-image" /></div>}
+      {profile?.coverSrc && organization.logoUrl && <div className="organization-hero-custom-logo"><Image src={organization.logoUrl} alt={translateUi((en) ? "en" : "ar", `شعار ${organization.nameAr}`, `Logo of ${organization.nameAr}`)} fill sizes="96px" unoptimized referrerPolicy="no-referrer" className="organization-hero-image" /></div>}
       {!profile?.coverSrc && organizationLogo && <div className={`organization-hero-art organization-hero-art--${organization.logoUrl ? "default" : profile?.imageTheme ?? "default"}`}>
-          <Image src={organizationLogo} alt={en ? `Logo of ${organization.nameAr}` : `شعار ${organization.nameAr}`} {...heroImageLayout} sizes="(max-width: 767px) 100vw, 320px" unoptimized referrerPolicy={organization.logoUrl ? "no-referrer" : undefined} className="organization-hero-image" style={heroImageStyle} />
+          <Image src={organizationLogo} alt={translateUi((en) ? "en" : "ar", `شعار ${organization.nameAr}`, `Logo of ${organization.nameAr}`)} {...heroImageLayout} sizes="(max-width: 767px) 100vw, 320px" unoptimized referrerPolicy={organization.logoUrl ? "no-referrer" : undefined} className="organization-hero-image" style={heroImageStyle} />
         </div>}
         <div className="organization-hero-copy">
           <p className="text-sm font-bold text-action">{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</p>
           <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl">{organization.nameAr}</h1>
           {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9">{visibleSummary}</p>}
           {currentRound&&!superAdmin&&<div className="mt-5"><RegistrationCallToAction round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></div>}
-          {organization.tags.length > 0 && <ul aria-label={en ? "Organization interests" : "مجالات الجهة"} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm">{tag}</li>)}</ul>}
-          {organization.statusCode !== "Active" && <p className="mt-6 rounded-lg border border-line bg-white p-4 leading-8">{en ? `This organization is ${organization.statusCode.toLowerCase()}.` : `هذه الجهة ${organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}.`}{organization.archivedAt && <> {en ? "Archived on" : "أُرشفت بتاريخ"} {formatRiyadhDate(organization.archivedAt, preferences.locale)}{en ? ". This link remains available to preserve its history." : "، ويبقى هذا الرابط متاحًا لحفظ تاريخها."}</>}</p>}
+          {organization.tags.length > 0 && <ul aria-label={translateUi((en) ? "en" : "ar", "مجالات الجهة", "Organization interests")} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm">{tag}</li>)}</ul>}
+          {organization.statusCode !== "Active" && <p className="mt-6 rounded-lg border border-line bg-white p-4 leading-8">{translateUi((en) ? "en" : "ar", `هذه الجهة ${organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}.`, `This organization is ${organization.statusCode.toLowerCase()}.`)}{organization.archivedAt && <> {translateUi((en) ? "en" : "ar", "أُرشفت بتاريخ", "Archived on")} {formatRiyadhDate(organization.archivedAt, preferences.locale)}{translateUi((en) ? "en" : "ar", "، ويبقى هذا الرابط متاحًا لحفظ تاريخها.", ". This link remains available to preserve its history.")}</>}</p>}
           {socialLinks.some(link => link.href) && <section id="organization-contact" className="organization-hero-social organization-section-nav-target" aria-labelledby="organization-social-title">
-            <h2 id="organization-social-title" className="text-sm font-bold">{en ? "Organization links" : "روابط التواصل"}</h2>
+            <h2 id="organization-social-title" className="text-sm font-bold">{translateUi((en) ? "en" : "ar", "روابط التواصل", "Organization links")}</h2>
             <SocialLinkIcons links={socialLinks} en={en} />
           </section>}
         </div>
@@ -194,25 +195,25 @@ export default async function OrganizationPage({ params, searchParams }: {
     {activeSection && <OrganizationSectionTabs
       items={orderedNavItems.map(item => ({ ...item, icon: item.id==="announcements"?<Megaphone/>:<OrganizationProfileIcon name={item.icon} /> }))}
       initialSection={activeSection.id}
-      label={en ? `${organization.nameAr} sections` : `أقسام ${organization.nameAr}`}
+      label={translateUi((en) ? "en" : "ar", `أقسام ${organization.nameAr}`, `${organization.nameAr} sections`)}
       dir={en ? "ltr" : "rtl"}
       centered
       showSingleTab
     >
       {orderedNavItems.map(item => <OrganizationSectionTabPanel key={item.id} id={item.id}>
         {presentation && item.id !== "structure" && (item.profileSectionIndexes.length > 0 || item.id === "about") && <div id={`organization-profile-${item.id}`} className="organization-section-nav-target"><OrganizationProfileContent profile={presentation} en={en} visibleSectionIndexes={item.profileSectionIndexes} showOverview={item.id === "about"} expandSections /></div>}
-        {item.id === "about" && leadershipInOverview && <Card><CardHeader><CardTitle>{en ? "Organization leadership" : "قيادة الجهة"}</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">{rootLeadershipDetails.map(detail => <p key={detail} dir="auto">{detail}</p>)}</CardContent></Card>}
+        {item.id === "about" && leadershipInOverview && <Card><CardHeader><CardTitle>{translateUi((en) ? "en" : "ar", "قيادة الجهة", "Organization leadership")}</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">{rootLeadershipDetails.map(detail => <p key={detail} dir="auto">{detail}</p>)}</CardContent></Card>}
         {item.id === "activities" && hasActivity && <section className="organization-section-nav-target mt-8" aria-labelledby="organization-updates-title">
-          <h2 id="organization-updates-title" className="text-xl font-bold">{en ? "Activities and updates" : "الفعاليات والمستجدات"}</h2>
+          <h2 id="organization-updates-title" className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "الفعاليات والمستجدات", "Activities and updates")}</h2>
           <div className="organization-update-list">
-            {featuredEvent&&<section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{en?"Featured event":"فعالية مميزة"}</h3><Link className="text-link" href={`/events/${featuredEvent.id}`}>{featuredEvent.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></section>}
-            {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{en ? "Selected events" : "فعاليات مختارة"}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}>{event.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{en ? "All organization events" : "كل فعاليات الجهة"}</Link>}</section>}
+            {featuredEvent&&<section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعالية مميزة", "Featured event")}</h3><Link className="text-link" href={`/events/${featuredEvent.id}`}>{featuredEvent.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></section>}
+            {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعاليات مختارة", "Selected events")}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}>{event.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{translateUi((en) ? "en" : "ar", "كل فعاليات الجهة", "All organization events")}</Link>}</section>}
           </div>
         </section>}
         {item.id==="announcements"&&<PublicAnnouncements items={announcements} locale={preferences.locale}/>}
         {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></section>}
-        {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={en ? "Organization structure" : "هيكل الجهة"}>
-          <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{en ? "Committees" : "اللجان"}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={en ? "No public committees yet." : "لا توجد لجان عامة حالياً."} /></section>
+        {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={translateUi((en) ? "en" : "ar", "هيكل الجهة", "Organization structure")}>
+          <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "اللجان", "Committees")}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={translateUi((en) ? "en" : "ar", "لا توجد لجان عامة حالياً.", "No public committees yet.")} /></section>
         </section>}
       </OrganizationSectionTabPanel>)}
     </OrganizationSectionTabs>}

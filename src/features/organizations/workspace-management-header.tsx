@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator,t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House } from "lucide-react";
@@ -40,12 +41,12 @@ function pageTitle(pathname: string, locale: Locale) {
     renewals: ["التسجيل والتجديد", "Registration and renewal"], events: ["الفعاليات والإعلانات", "Events and announcements"],
     tasks: ["المهام والساعات", "Tasks and hours"], hours: ["المهام والساعات", "Tasks and hours"],
   };
-  if (pathname.startsWith("/tasks/")) return en ? "Task details" : "تفاصيل المهمة";
+  if (pathname.startsWith("/tasks/")) return translateUi((en) ? "en" : "ar", "تفاصيل المهمة", "Task details");
   const exact = labels[pathname];
   if (exact) return exact[en ? 1 : 0];
   const section = pathname.split("/").filter(Boolean).at(-1) ?? "";
   const label = pathLabels[section];
-  return label?.[en ? 1 : 0] ?? (en ? "Workspace" : "مساحتي");
+  return label?.[en ? 1 : 0] ?? (translateUi((en) ? "en" : "ar", "مساحتي", "Workspace"));
 }
 
 export function WorkspaceManagementHeader({ locale, theme, organizations, notifications, unreadCount }: {
@@ -57,7 +58,7 @@ export function WorkspaceManagementHeader({ locale, theme, organizations, notifi
 }) {
   const pathname = usePathname() ?? "/me";
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
   const page = pageTitle(pathname, locale);
   const organizationMatch = pathname === "/manage/organizations/new"
     ? null

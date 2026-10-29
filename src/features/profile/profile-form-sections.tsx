@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {studentMajors,studentMajorsEn,normalizeMajor} from "@/lib/student-identity";
 import {EmailChangeDialog} from "./security-dialogs";
 import { academicLevel } from "@/lib/display";
@@ -98,7 +99,7 @@ export function ProfileDetailsSection({
   const academicLevelField = (
     <Field className="account-settings-field">
       <FieldLabel htmlFor="academicLevel">
-        {en ? "Academic level" : "المستوى الدراسي"}
+        {translateUi((en) ? "en" : "ar", "المستوى الدراسي", "Academic level")}
       </FieldLabel>
       <NativeSelect
         id="academicLevel"
@@ -110,7 +111,7 @@ export function ProfileDetailsSection({
         aria-describedby={errors?.academicLevel?.[0] ? "academicLevel-error" : undefined}
       >
         <NativeSelectOption value="" disabled>
-          {en ? "Select your level" : "اختر المستوى"}
+          {translateUi((en) ? "en" : "ar", "اختر المستوى", "Select your level")}
         </NativeSelectOption>
         {Array.from({ length: 12 }, (_, index) => (
           <NativeSelectOption key={index + 1} value={String(index + 1)}>
@@ -118,7 +119,7 @@ export function ProfileDetailsSection({
           </NativeSelectOption>
         ))}
         <NativeSelectOption value="graduate">
-          {en ? "Graduate studies" : "دراسات عليا"}
+          {translateUi((en) ? "en" : "ar", "دراسات عليا", "Graduate studies")}
         </NativeSelectOption>
       </NativeSelect>
       {errors?.academicLevel?.[0] && (
@@ -132,20 +133,20 @@ export function ProfileDetailsSection({
     <div
       className="account-settings-email"
       role="group"
-      aria-label={en ? "Verified email" : "البريد المتحقق منه"}
+      aria-label={translateUi((en) ? "en" : "ar", "البريد المتحقق منه", "Verified email")}
     >
       <span className="account-settings-email-icon" aria-hidden="true">
         <Mail />
       </span>
       <div className="min-w-0">
         <p className="text-sm font-medium">
-          {en ? "Verified email" : "البريد المتحقق منه"}
+          {translateUi((en) ? "en" : "ar", "البريد المتحقق منه", "Verified email")}
         </p>
         <div className="account-settings-email-address">
           <p className="m-0 break-all text-sm text-muted-foreground">
             <bdi>{email}</bdi>
           </p>
-          <span className="account-settings-verified">{en ? "Verified" : "موثّق"}</span>
+          <span className="account-settings-verified">{translateUi((en) ? "en" : "ar", "موثّق", "Verified")}</span>
         </div>
       </div>
       {profile&&<EmailChangeDialog email={email} pendingEmail={pendingEmail} locale={locale}/>}
@@ -154,7 +155,7 @@ export function ProfileDetailsSection({
 
   const phoneField = (
     <Field className="account-settings-field">
-      <FieldLabel htmlFor="phone">{en ? "Phone number (optional)" : "رقم الهاتف (اختياري)"}</FieldLabel>
+      <FieldLabel htmlFor="phone">{translateUi((en) ? "en" : "ar", "رقم الهاتف (اختياري)", "Phone number (optional)")}</FieldLabel>
       <PhoneInput id="phone" name="phone" defaultValue={profile?.phone ?? ""} locale={locale} aria-invalid={Boolean(errors?.phone?.[0])} aria-describedby={errors?.phone?.[0] ? "phone-error" : undefined} />
       {errors?.phone?.[0] && <p id="phone-error" className="text-sm text-destructive">{actionFeedback(errors.phone[0], locale)}</p>}
     </Field>
@@ -166,7 +167,7 @@ export function ProfileDetailsSection({
         <div className="account-settings-field-row">
           <ProfileTextField
             name="fullName"
-            label={en ? "Full name in Arabic" : "الاسم الكامل بالعربية"}
+            label={translateUi((en) ? "en" : "ar", "الاسم الكامل بالعربية", "Full name in Arabic")}
             value={profile?.fullName}
             locale={locale}
             errors={errors}
@@ -176,17 +177,17 @@ export function ProfileDetailsSection({
             autoComplete="name"
           />
           <Field className="account-settings-field">
-            <FieldLabel htmlFor="major">{en?'Major':'التخصص'}</FieldLabel>
+            <FieldLabel htmlFor="major">{translateUi((en) ? "en" : "ar", 'التخصص', 'Major')}</FieldLabel>
             <NativeSelect id="major" name="major" required defaultValue={normalizeMajor(profile?.major??'')} aria-invalid={Boolean(errors?.major?.[0])} aria-describedby={errors?.major?.[0]?'major-error':undefined}>
-              <NativeSelectOption value="" disabled>{en?'Select your major':'اختر التخصص'}</NativeSelectOption>
+              <NativeSelectOption value="" disabled>{translateUi((en) ? "en" : "ar", 'اختر التخصص', 'Select your major')}</NativeSelectOption>
               {studentMajors.map((major,index)=><NativeSelectOption key={major} value={major}>{en?studentMajorsEn[index]:major}</NativeSelectOption>)}
             </NativeSelect>
             {errors?.major?.[0]&&<p id="major-error" className="text-sm text-destructive">{actionFeedback(errors.major[0],locale)}</p>}
           </Field>
         </div>
         <div className="account-settings-field-row">
-          <ProfileTextField name="universityId" label={en?'University number':'الرقم الجامعي'} value={profile?.universityId} locale={locale} errors={errors} required minLength={6} maxLength={15} dir="ltr" inputMode="numeric" autoComplete="off"/>
-          <ProfileTextField name="nationalId" label={en?'National / resident ID':'رقم الهوية الوطنية أو الإقامة'} value={profile?.nationalId} locale={locale} errors={errors} required minLength={10} maxLength={10} dir="ltr" inputMode="numeric" autoComplete="off" hint={en?'Encrypted; visible only to you and authorized system administrators.':'محفوظ بتشفير، ولا يظهر إلا لك وللمشرف العام المخوّل.'}/>
+          <ProfileTextField name="universityId" label={translateUi((en) ? "en" : "ar", 'الرقم الجامعي', 'University number')} value={profile?.universityId} locale={locale} errors={errors} required minLength={6} maxLength={15} dir="ltr" inputMode="numeric" autoComplete="off"/>
+          <ProfileTextField name="nationalId" label={translateUi((en) ? "en" : "ar", 'رقم الهوية الوطنية أو الإقامة', 'National / resident ID')} value={profile?.nationalId} locale={locale} errors={errors} required minLength={10} maxLength={10} dir="ltr" inputMode="numeric" autoComplete="off" hint={translateUi((en) ? "en" : "ar", 'محفوظ بتشفير، ولا يظهر إلا لك وللمشرف العام المخوّل.', 'Encrypted; visible only to you and authorized system administrators.')}/>
         </div>
         <div className="account-settings-field-row">{academicLevelField}{profile?phoneField:null}</div>
         {!profile ? (

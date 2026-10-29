@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { FilterTabs } from "@/components/ui/filter-tabs";
 import type { Locale } from "@/lib/preferences";
@@ -23,7 +24,7 @@ export function ApplicationStatusFilters({ status, counts, preview, locale }: {
 
   return <FilterTabs
     value={status}
-    ariaLabel={en ? "Filter applications by status" : "تصفية الطلبات حسب الحالة"}
+    ariaLabel={translateUi((en) ? "en" : "ar", "تصفية الطلبات حسب الحالة", "Filter applications by status")}
     dir={en ? "ltr" : "rtl"}
     options={applicationStatusTabs.map(tab => ({
       value: tab.value,

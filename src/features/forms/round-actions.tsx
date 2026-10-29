@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import {useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {Pencil,Play,Pause,Trash2} from "lucide-react";
@@ -17,7 +18,7 @@ import type {Locale} from "@/lib/preferences";
 import {formatCount} from "@/lib/display";
 
 export function RoundForm({organization,templates,locale,value,reopen=false,onSuccess}:{organization:string;templates:Array<{id:string;name:string}>;locale:Locale;value?:Round;reopen?:boolean;onSuccess?:()=>void}){
- const c=(ar:string,en:string)=>locale==="en"?en:ar;
+ const c=createTranslator((locale==="en") ? "en" : "ar");
  return <WorkflowForm operation={value?"save-round":"create-round"} fields={{org:organization,...(value?{round:value.id}:{}),...(!value||value.status_code==="Draft"||reopen?{publish:"on"}:{})}} label={value&&value.status_code!=="Draft"&&!reopen?c("حفظ التعديلات","Save changes"):c("نشر الآن","Publish now")} disabled={!templates.length} locale={locale} splitBody onSuccess={onSuccess} secondaryAction={!value||value.status_code==="Draft"?<Button type="submit" variant="outline" name="intent" value="draft" formNoValidate>{c("حفظ كمسودة","Save as draft")}</Button>:undefined}>
   {reopen&&<Alert><AlertDescription>{c("مدّد الفترة قبل إعادة فتح الجولة المنتهية.","Extend the period before reopening this expired round.")}</AlertDescription></Alert>}
   <RegistrationRoundFields templates={templates} locale={locale} value={value} formHref={`/manage/organizations/${organization}/renewals?section=forms${value?`&template=${value.form_template_id}`:""}`}/>
@@ -26,7 +27,7 @@ export function RoundForm({organization,templates,locale,value,reopen=false,onSu
 
 export function RoundActions({round,organization,templates,locale}:{round:Round;organization:string;templates:Array<{id:string;name:string}>;locale:Locale}){
  const [edit,setEdit]=useState(false),[reopen,setReopen]=useState(false),[confirmation,setConfirmation]=useState<"delete"|"Open"|"Closed"|null>(null),[pending,start]=useTransition();const router=useRouter();
- const c=(ar:string,en:string)=>locale==="en"?en:ar;
+ const c=createTranslator((locale==="en") ? "en" : "ar");
  const title=confirmation==="delete"?c(`حذف جولة «${round.title}»؟`,`Delete “${round.title}”?`):confirmation==="Closed"?c(`إيقاف جولة «${round.title}»؟`,`Pause “${round.title}”?`):c(`إعادة فتح جولة «${round.title}»؟`,`Reopen “${round.title}”?`);
  function perform(){start(async()=>{const data=new FormData();data.set("operation",confirmation==="delete"?"delete-round":"round-status");data.set("round",round.id);data.set("confirm","on");if(confirmation!=="delete"&&confirmation)data.set("status",confirmation);const result=await mutateWorkflow({},data);if(result.error){toast.add({title:result.error,type:"error",timeout:0});return;}setConfirmation(null);router.refresh();toast.add({title:c("تم حفظ التغيير","Change saved"),type:"success",timeout:3000});});}
  return <div className="flex items-center gap-2">

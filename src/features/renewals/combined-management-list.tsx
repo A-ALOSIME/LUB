@@ -1,3 +1,4 @@
+import {createTranslator} from "@/lib/i18n";
 import {Eye} from "lucide-react";
 import type {ReactNode} from "react";
 import {RowAction} from "@/components/row-action";
@@ -13,7 +14,7 @@ import {formatCount} from "@/lib/display";
 
 type Item={kind:"round";id:string;title:string;opens:string;closes:string;status:string;round:Round}|{kind:"campaign";id:string;title:string;opens:string;closes:string;status:string;campaign:Campaign};
 export function CombinedManagementList({rounds,campaigns,organization,locale,canManageRounds,emptyAction,templates=[]}:{rounds:Round[];campaigns:Campaign[];organization:string;locale:Locale;canManageRounds:boolean;emptyAction?:ReactNode;templates?:Array<{id:string;name:string}>}){
- const c=(ar:string,en:string)=>locale==="en"?en:ar;
+ const c=createTranslator((locale==="en") ? "en" : "ar");
  const now=new Date().getTime();
  const current=rounds.filter(r=>["Open","Closed"].includes(r.status_code)&&Date.parse(r.closes_at)>now).sort((a,b)=>Number(b.status_code==="Open")-Number(a.status_code==="Open")||Date.parse(a.opens_at)-Date.parse(b.opens_at))[0];
  const items:Item[]=[...rounds.filter(r=>r.id!==current?.id).map(round=>({kind:"round" as const,id:round.id,title:round.title,opens:round.opens_at,closes:round.closes_at,status:round.status_code,round})),...campaigns.map(campaign=>({kind:"campaign" as const,id:campaign.id,title:campaign.name,opens:campaign.opens_at,closes:campaign.closes_at,status:campaign.status_code,campaign}))].sort((a,b)=>Date.parse(b.opens)-Date.parse(a.opens));

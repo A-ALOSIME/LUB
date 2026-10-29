@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -32,7 +33,7 @@ export function PhoneInput({ id, name, value, defaultValue = "", onChange, local
   const en = locale === "en";
   return <div className="phone-input" ref={ref} dir="ltr">
     {name && <input type="hidden" name={name} value={joinPhone(parts.code, parts.number)} readOnly />}
-    <NativeSelect aria-label={en ? "Country calling code" : "رمز الدولة"} value={parts.code} onChange={event => update({ ...parts, code: event.target.value })} disabled={props.disabled} dir="ltr" autoComplete="tel-country-code">
+    <NativeSelect aria-label={translateUi((en) ? "en" : "ar", "رمز الدولة", "Country calling code")} value={parts.code} onChange={event => update({ ...parts, code: event.target.value })} disabled={props.disabled} dir="ltr" autoComplete="tel-country-code">
       <NativeSelectOption value="966">+966</NativeSelectOption>
       {!callingCodes.includes(parts.code) && <NativeSelectOption value={parts.code}>+{parts.code}</NativeSelectOption>}
       {callingCodes.filter(code => code !== "966").map(code => <NativeSelectOption key={code} value={code}>+{code}</NativeSelectOption>)}

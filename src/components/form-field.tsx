@@ -1,14 +1,19 @@
 "use client";
 
+import {useI18n} from "./i18n-provider";
+import {actionFeedback} from "@/lib/action-feedback";
+import {t as translateUi} from "@/lib/i18n";
 import { Children, cloneElement, isValidElement, useId, useState, type ReactNode, type ReactElement } from "react";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import type { Locale } from "@/lib/preferences";
 
 // One field contract for management forms, including legacy native controls.
-export function FormField({ id: suppliedId, label, required, hint, error: suppliedError, children, locale = "ar", className }: {
+export function FormField({ id: suppliedId, label, required, hint, error: suppliedError, children, locale: suppliedLocale, className }: {
   id?: string; label: ReactNode; required?: boolean; hint?: ReactNode; error?: ReactNode;
   children: ReactNode; locale?: Locale; className?: string;
 }) {
+  const {locale:currentLocale}=useI18n();
+  const locale=suppliedLocale??currentLocale;
   const findControl = (nodes: ReactNode): ReactElement<Record<string, unknown>> | undefined => {
     for (const node of (Array.isArray(nodes) ? nodes.flat(Infinity) : [nodes])) {
       if (!isValidElement(node)) continue;
@@ -21,7 +26,8 @@ export function FormField({ id: suppliedId, label, required, hint, error: suppli
   const first = findControl(children);
   const generatedId = useId(), id = suppliedId ?? (first?.props.id as string | undefined) ?? generatedId;
   const [validationError, setValidationError] = useState("");
-  const error = suppliedError || validationError;
+  const rawError = suppliedError || validationError;
+  const error=typeof rawError==="string"?actionFeedback(rawError,locale):rawError;
   const inferredRequired = required ?? Boolean(first?.props.required);
   const connect = (nodes: ReactNode): ReactNode => Children.map(nodes, node => {
     if (!isValidElement(node)) return node;
@@ -38,7 +44,7 @@ export function FormField({ id: suppliedId, label, required, hint, error: suppli
     onInvalidCapture={event => {
       event.preventDefault();
       const control = event.target as HTMLInputElement;
-      setValidationError(locale === "en" ? control.validationMessage : control.validity.valueMissing ? "هذا الحقل مطلوب." : "راجع القيمة المدخلة.");
+      setValidationError(control.validity.valueMissing?translateUi(locale,"هذا الحقل مطلوب.","This field is required."):translateUi(locale,"راجع القيمة المدخلة.","Check the value entered."));
       if (Array.from(control.form?.elements ?? []).find(element => "willValidate" in element && (element as HTMLInputElement).willValidate && !(element as HTMLInputElement).validity.valid) === control) control.focus();
     }} onInputCapture={() => setValidationError("")} onChangeCapture={() => setValidationError("")}>
     <FieldLabel htmlFor={id}>{label}{inferredRequired && <span className="text-destructive" aria-hidden="true">*</span>}</FieldLabel>

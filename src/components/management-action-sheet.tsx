@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import {Spinner} from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createContext, useContext, useState, type ReactNode } from "react";
@@ -35,7 +36,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   return <div className={`management-action-footer${action && sticky ? " is-modal-footer" : ""}`}>
     <Button type="submit" className={buttonClassName} disabled={pending || disabled}>{pending&&<Spinner/>}{label}</Button>
     {secondaryAction}
-    {action && showCancel && <Button type="button" variant={cancelVariant} onClick={action.close}>{en ? "Cancel" : "إلغاء"}</Button>}
+    {action && showCancel && <Button type="button" variant={cancelVariant} onClick={action.close}>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</Button>}
   </div>;
 }
 
@@ -64,7 +65,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   const open = controlledOpen ?? localOpen;
   const setOpen = onOpenChange ?? setLocalOpen;
   const en = locale === "en";
-  const cancelLabel = en ? "Close" : "إغلاق";
+  const cancelLabel = translateUi((en) ? "en" : "ar", "إغلاق", "Close");
   const dir = en ? "ltr" : "rtl";
   const body = <ManagementActionProvider locale={locale} close={() => setOpen(false)}>
     <div className="management-action-scroll" data-management-action-scroll>{children}</div>

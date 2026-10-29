@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator,t as translateUi} from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {Upload, Pencil, Trash2} from "lucide-react";
@@ -40,7 +41,7 @@ function posterUploadMessage(code: string | undefined, status: number, locale: L
       : status === 403 ? messages.organization_permission_required
         : status === 413 ? messages.file_too_large
           : ["تعذّر رفع البوستر الآن. تحقق من الاتصال ثم أعد المحاولة.", "The poster could not be uploaded. Check your connection and try again."]);
-  const message=code==="unsupported_poster_type"&&purpose==="announcement-image"?(en?"Use a JPEG, PNG or WebP image.":"استخدم صورة JPEG أو PNG أو WebP."):fallback[en ? 1 : 0];return purpose==="event-poster"?message:message.replaceAll("بوستر","صورة").replaceAll("poster","image");
+  const message=code==="unsupported_poster_type"&&purpose==="announcement-image"?(translateUi((en) ? "en" : "ar", "استخدم صورة JPEG أو PNG أو WebP.", "Use a JPEG, PNG or WebP image.")):fallback[en ? 1 : 0];return purpose==="event-poster"?message:message.replaceAll("بوستر","صورة").replaceAll("poster","image");
 }
 
 export function EventPosterField({organization,locale,event,hasPoster=false}:{organization:string;locale:Locale;event?:string;hasPoster?:boolean}) {
@@ -55,9 +56,9 @@ export function EntityImageField({organization,locale,committee,initialPreview="
   const input = useRef<HTMLInputElement>(null);
   const [retryFile, setRetryFile] = useState<File>();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
-  useEffect(()=>{input.current?.setCustomValidity(pending?(en?"Wait for the image upload.":"انتظر اكتمال رفع الصورة."):error);},[pending,error,en]);
+  useEffect(()=>{input.current?.setCustomValidity(pending?(translateUi((en) ? "en" : "ar", "انتظر اكتمال رفع الصورة.", "Wait for the image upload.")):error);},[pending,error,en]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   async function upload(file?: File) {

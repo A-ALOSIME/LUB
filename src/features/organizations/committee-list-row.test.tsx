@@ -58,5 +58,5 @@ it("keeps public chart cards name-only and opens full committee details on click
   expect(dialog.textContent).toContain("لجنة الأمن");
   expect(dialog.textContent).toContain("تنسيق المبادرات والأنشطة التقنية بالكامل.");
   expect(dialog.textContent).toContain("أحمد العتيبي");
-  expect(dialog.textContent).toContain("12 عضوًا");
+  expect(dialog.textContent).toContain("١٢ عضوًا");
 });

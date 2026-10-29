@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import type { OrganizationProfileLink } from "./local-content";
 
 export const organizationContactKinds = [
@@ -96,5 +97,5 @@ export function organizationContactLabel(kind: string, en: boolean) {
     X: ["X", "X"], YouTube: ["YouTube", "YouTube"], TikTok: ["TikTok", "TikTok"],
     WhatsApp: ["WhatsApp", "WhatsApp"], Telegram: ["Telegram", "Telegram"],
   };
-  return labels[kind as OrganizationContactKind]?.[en ? 1 : 0] ?? (en ? "Contact" : "تواصل");
+  return labels[kind as OrganizationContactKind]?.[en ? 1 : 0] ?? (translateUi((en) ? "en" : "ar", "تواصل", "Contact"));
 }

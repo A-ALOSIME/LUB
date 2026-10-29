@@ -1,4 +1,5 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import { actionFeedback } from "@/lib/action-feedback";
 import { useActionState, useEffect, useState } from "react";
 import Image from "next/image";
@@ -32,7 +33,7 @@ export function OpeningRequestForm({
   initial?: OpeningRequest;
 }) {
   const en = locale === "en",
-    c = (ar: string, english: string) => (en ? english : ar),
+    c = createTranslator((en) ? "en" : "ar"),
     router = useRouter();
   const [removeLogo, setRemoveLogo] = useState(false);
   const [logo, setLogo] = useState<File | null>(null),

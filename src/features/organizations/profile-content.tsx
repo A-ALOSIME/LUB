@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Image from "next/image";
 import type { OrganizationProfilePresentation } from "./organization-public-profile";
 import type { OrganizationProfileSection } from "./local-content";
@@ -65,7 +66,7 @@ function ProfileSection({ section, en, sectionId, expandSections, hideIcon }: { 
       {items.map((item, index) => <li key={`${item.title}-${index}`} className={`organization-profile-item${committeeSection ? " organization-profile-committee-item" : ""}`}>
         {committeeSection && <div className="organization-profile-committee-heading">
           <span className="organization-profile-committee-icon"><OrganizationProfileIcon name="teams" /></span>
-          <OrganizationStatusBadge status="public">{en ? "Public" : "عامة"}</OrganizationStatusBadge>
+          <OrganizationStatusBadge status="public">{translateUi((en) ? "en" : "ar", "عامة", "Public")}</OrganizationStatusBadge>
         </div>}
         <h3 dir="auto" className="font-semibold leading-7">{item.title}</h3>
         {item.body && <p dir="auto" className="mt-2 text-sm leading-7 text-muted">{item.body}</p>}
@@ -80,7 +81,7 @@ function ProfileSection({ section, en, sectionId, expandSections, hideIcon }: { 
     ? <details id={sectionId} dir={isIeeeGlobalHistory ? "rtl" : undefined} className={`organization-profile-disclosure organization-section-nav-target${rtlClass}`}>
       <summary className="organization-profile-disclosure-summary">
         <span dir={isIeeeGlobalHistory ? "rtl" : "auto"} className="organization-profile-section-title mb-0 text-xl font-bold">{!hideIcon && <span className="organization-profile-section-icon"><OrganizationProfileIcon name={icon} /></span>}{title}</span>
-        <span className="text-sm text-action">{en ? "Show details" : "عرض التفاصيل"}</span>
+        <span className="text-sm text-action">{translateUi((en) ? "en" : "ar", "عرض التفاصيل", "Show details")}</span>
       </summary>
       <div className="pt-5">{content}</div>
     </details>
@@ -115,11 +116,11 @@ export function OrganizationProfileContent({
 
   return <div className="organization-profile-content">
     {showOverview && profile.motto && <p dir="auto" className="organization-profile-motto">{profile.motto}</p>}
-    {showOverview && (profile.vision || profile.mission) && <section id="organization-profile-statements" aria-label={en ? "Vision and mission" : "الرؤية والرسالة"} className="organization-profile-statements organization-section-nav-target">
-      {profile.vision && <article className="organization-profile-statement"><h2 className="organization-profile-statement-title"><span className="organization-profile-statement-icon"><OrganizationProfileIcon name="vision" /></span>{en ? "Vision" : "رؤيتنا"}</h2><p dir="auto" className="leading-8 text-muted">{profile.vision}</p></article>}
-      {profile.mission && <article className="organization-profile-statement"><h2 className="organization-profile-statement-title"><span className="organization-profile-statement-icon"><OrganizationProfileIcon name="mission" /></span>{en ? "Mission" : "رسالتنا"}</h2><p dir="auto" className="leading-8 text-muted">{profile.mission}</p></article>}
+    {showOverview && (profile.vision || profile.mission) && <section id="organization-profile-statements" aria-label={translateUi((en) ? "en" : "ar", "الرؤية والرسالة", "Vision and mission")} className="organization-profile-statements organization-section-nav-target">
+      {profile.vision && <article className="organization-profile-statement"><h2 className="organization-profile-statement-title"><span className="organization-profile-statement-icon"><OrganizationProfileIcon name="vision" /></span>{translateUi((en) ? "en" : "ar", "رؤيتنا", "Vision")}</h2><p dir="auto" className="leading-8 text-muted">{profile.vision}</p></article>}
+      {profile.mission && <article className="organization-profile-statement"><h2 className="organization-profile-statement-title"><span className="organization-profile-statement-icon"><OrganizationProfileIcon name="mission" /></span>{translateUi((en) ? "en" : "ar", "رسالتنا", "Mission")}</h2><p dir="auto" className="leading-8 text-muted">{profile.mission}</p></article>}
     </section>}
-    {showOverview && profile.stats && <ul className="organization-profile-stats flex flex-wrap gap-4" aria-label={en ? "Organization figures" : "أرقام الجهة"}>
+    {showOverview && profile.stats && <ul className="organization-profile-stats flex flex-wrap gap-4" aria-label={translateUi((en) ? "en" : "ar", "أرقام الجهة", "Organization figures")}>
       {profile.stats.map(stat => <li key={stat.label}><span className="organization-profile-stat-icon"><OrganizationProfileIcon name={statIcon(stat.label)} /></span><strong><AnimatedStat value={stat.value} /></strong><span>{stat.label}</span></li>)}
     </ul>}
     {sections.map(({ section, index }) => <ProfileSection key={section.title} section={section} sectionId={`organization-profile-section-${index}`} en={en} expandSections={expandSections} hideIcon={!showSectionIcons} />)}

@@ -1,3 +1,5 @@
+import {t as translateUi,createTranslator} from "@/lib/i18n";
+import {NumberText} from "@/components/number-text";
 import {
   OrganizationSectionTabs,
   OrganizationSectionTabPanel,
@@ -87,12 +89,12 @@ export function EventCards({
                 </div>
                 <p className="event-card-meta">
                   <EventIcon name="calendar" />
-                  <span>{en ? "Date" : "التاريخ"}</span>
+                  <span>{translateUi((en) ? "en" : "ar", "التاريخ", "Date")}</span>
                   <time dateTime={e.starts_at}>{day(e.starts_at)}</time>
                 </p>
                 <p className="event-card-meta">
                   <EventIcon name="clock" />
-                  <span>{en ? "Time" : "الوقت"}</span>
+                  <span>{translateUi((en) ? "en" : "ar", "الوقت", "Time")}</span>
                   <time dateTime={e.starts_at}>{time(e.starts_at)}</time>
                 </p>
                 <p className="event-card-meta">
@@ -131,7 +133,7 @@ export function EventCards({
                   className: "mx-5 mb-5",
                 })}
               >
-                {en ? "View event" : "عرض الفعالية"}
+                {translateUi((en) ? "en" : "ar", "عرض الفعالية", "View event")}
               </span>
             </Link>
           </li>
@@ -140,7 +142,7 @@ export function EventCards({
     </ul>
   ) : (
     <p role="status" className="panel event-empty-state text-muted">
-      {en ? "No matching events right now." : "لا توجد فعاليات مطابقة الآن."}
+      {translateUi((en) ? "en" : "ar", "لا توجد فعاليات مطابقة الآن.", "No matching events right now.")}
     </p>
   );
 }
@@ -164,7 +166,7 @@ export function EventContent({
   const e = data.event;
   const base = { event: e.id, revision: String(e.revision) };
   const en = locale === "en";
-  const c = (ar: string, english: string) => (en ? english : ar);
+  const c = createTranslator((en) ? "en" : "ar");
   const labels = en ? eventLabelsEn : eventLabels;
   const date = en ? eventDateEn : eventDate;
   const day = en ? eventDayEn : eventDay;
@@ -228,7 +230,7 @@ export function EventContent({
           icon="users"
           label={c("المقاعد المتبقية", "Seats remaining")}
         >
-          {data.remaining}
+          <NumberText value={data.remaining}/>
         </EventFact>
       )}
       <EventFact
@@ -272,9 +274,7 @@ export function EventContent({
                 loading="lazy"
                 src={url}
                 alt={
-                  en
-                    ? "Event photo " + (index + 1)
-                    : "صورة منشورة للفعالية " + (index + 1)
+                  translateUi((en) ? "en" : "ar", "صورة منشورة للفعالية " + (index + 1), "Event photo " + (index + 1))
                 }
                 width={640}
                 height={400}

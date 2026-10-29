@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -41,26 +42,22 @@ export default async function NewOrganizationRequest({
       className="mx-auto w-full max-w-3xl flex flex-col gap-6 px-5 py-10"
     >
       <Button variant="ghost" render={<Link href="/organizations" />}>
-        {en ? "Back to organizations" : "رجوع للأندية والمجالس"}
+        {translateUi((en) ? "en" : "ar", "رجوع للأندية والمجالس", "Back to organizations")}
       </Button>
       <header>
         <h1 className="text-3xl">
-          {en ? "Request a club or council" : "طلب فتح نادي أو مجلس"}
+          {translateUi((en) ? "en" : "ar", "طلب فتح نادي أو مجلس", "Request a club or council")}
         </h1>
         <p className="mt-3 text-muted-foreground">
-          {en
-            ? "Submit the essentials for administrator review. Track the decision in My requests."
-            : "قدّم بيانات الجهة الأساسية للمراجعة، وتابع القرار في طلباتك."}
+          {translateUi((en) ? "en" : "ar", "قدّم بيانات الجهة الأساسية للمراجعة، وتابع القرار في طلباتك.", "Submit the essentials for administrator review. Track the decision in My requests.")}
         </p>
       </header>
       {data.items.length ? (
         <Alert>
           <AlertDescription>
-            {en
-              ? "You already have a request under review."
-              : "لديك طلب قيد المراجعة بالفعل."}{" "}
+            {translateUi((en) ? "en" : "ar", "لديك طلب قيد المراجعة بالفعل.", "You already have a request under review.")}{" "}
             <Link href="/applications?tab=organizations">
-              {en ? "View request" : "متابعة الطلب"}
+              {translateUi((en) ? "en" : "ar", "متابعة الطلب", "View request")}
             </Link>
           </AlertDescription>
         </Alert>

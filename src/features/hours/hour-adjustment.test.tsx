@@ -16,7 +16,7 @@ it("does not preview or save empty/zero/excess decreases, then submits a valid s
  fireEvent.change(screen.getByLabelText("عدد الساعات"),{target:{value:"11"}});
  expect(screen.getByRole("alert").textContent).toContain("النزول عن صفر");expect(save.hasAttribute("disabled")).toBe(true);
  fireEvent.change(screen.getByLabelText("عدد الساعات"),{target:{value:"2"}});
- expect(screen.getByRole("status").textContent).toContain("10 ← 8");expect(save.hasAttribute("disabled")).toBe(false);
+ expect(screen.getByRole("status").textContent).toContain("١٠ ← ٨");expect(save.hasAttribute("disabled")).toBe(false);
  fireEvent.change(screen.getByLabelText(/سبب التعديل/),{target:{value:"تصحيح"}});
  fireEvent.click(save);await waitFor(()=>expect(mutate).toHaveBeenCalled());
  const payload=mutate.mock.calls[0][1] as FormData;expect(payload.get("delta")).toBe("-2");expect(payload.get("expected")).toBe("10");expect(payload.get("note")).toBe("تصحيح");await waitFor(()=>expect(done).toHaveBeenCalled());

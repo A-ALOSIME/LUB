@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import Image from "next/image";
 import { useId, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { CalendarDays, ImagePlus, LoaderCircle, UsersRound, X } from "lucide-react";
@@ -77,9 +78,9 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
       update("partnersImageUrl", result.url);
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "upload-failed";
-      setError(code === "too-large" ? (en ? "Image must be 2 MB or smaller." : "حجم الصورة لازم يكون 2 ميجابايت أو أقل.")
-        : code === "invalid-file" ? (en ? "Use a valid PNG or SVG image." : "استخدم صورة PNG أو SVG صالحة.")
-          : en ? "Image upload failed. Try again." : "تعذّر رفع الصورة. حاول مرة ثانية.");
+      setError(code === "too-large" ? (translateUi((en) ? "en" : "ar", "حجم الصورة لازم يكون 2 ميجابايت أو أقل.", "Image must be 2 MB or smaller."))
+        : code === "invalid-file" ? (translateUi((en) ? "en" : "ar", "استخدم صورة PNG أو SVG صالحة.", "Use a valid PNG or SVG image."))
+          : translateUi((en) ? "en" : "ar", "تعذّر رفع الصورة. حاول مرة ثانية.", "Image upload failed. Try again."));
     } finally {
       setPending(false);
       event.target.value = "";
@@ -90,7 +91,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
     <input type="hidden" name="publicProfileContent" value={JSON.stringify(content)} readOnly />
     <Card className="organization-settings-card organization-public-profile-vision-card" aria-labelledby={`${inputId}-vision-title`}>
       <CardHeader className="organization-settings-card-header">
-        <h2 id={`${inputId}-vision-title`} className="organization-settings-section-title">{en ? "Vision and values" : "الرؤية والقيم"}</h2>
+        <h2 id={`${inputId}-vision-title`} className="organization-settings-section-title">{translateUi((en) ? "en" : "ar", "الرؤية والقيم", "Vision and values")}</h2>
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-fields">
@@ -102,18 +103,18 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
     </Card>
     <Card className="organization-settings-card" aria-labelledby={`${inputId}-stats-title`}>
       <CardHeader className="organization-settings-card-header">
-        <h2 id={`${inputId}-stats-title`} className="organization-settings-section-title">{en ? "Organization statistics" : "إحصائيات الجهة"}</h2>
-        <p className="text-sm text-muted-foreground">{en ? "Enter figures from your organization's annual records. These are displayed on the public profile and are not calculated by LUB." : "أدخل الأرقام من سجلات الجهة السنوية. تظهر في الملف العام، ولا يحسبها لُبّ تلقائيًا."}</p>
+        <h2 id={`${inputId}-stats-title`} className="organization-settings-section-title">{translateUi((en) ? "en" : "ar", "إحصائيات الجهة", "Organization statistics")}</h2>
+        <p className="text-sm text-muted-foreground">{translateUi((en) ? "en" : "ar", "أدخل الأرقام من سجلات الجهة السنوية. تظهر في الملف العام، ولا يحسبها لُبّ تلقائيًا.", "Enter figures from your organization's annual records. These are displayed on the public profile and are not calculated by LUB.")}</p>
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-stats">
           <FormField className="organization-public-profile-stat" id={`${inputId}-annual-events`} label={<>
-              <CalendarDays aria-hidden="true" />{en ? "Events per year" : "فعالية سنوية"}
+              <CalendarDays aria-hidden="true" />{translateUi((en) ? "en" : "ar", "فعالية سنوية", "Events per year")}
             </>}>
             <Input id={`${inputId}-annual-events`} dir={en ? "ltr" : "rtl"} inputMode="numeric" maxLength={5} placeholder="0" value={content.annualEventCount ?? ""} onChange={event => update("annualEventCount", normalizeDigits(event.target.value).slice(0, 5))} />
           </FormField>
           <FormField className="organization-public-profile-stat" id={`${inputId}-participants`} label={<>
-              <UsersRound aria-hidden="true" />{en ? "Participating students" : "طالب مشارك"}
+              <UsersRound aria-hidden="true" />{translateUi((en) ? "en" : "ar", "طالب مشارك", "Participating students")}
             </>}>
             <Input id={`${inputId}-participants`} dir={en ? "ltr" : "rtl"} inputMode="numeric" maxLength={6} placeholder="0" value={content.participatingStudentCount ?? ""} onChange={event => update("participatingStudentCount", normalizeDigits(event.target.value).slice(0, 6))} />
           </FormField>
@@ -122,7 +123,7 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
     </Card>
     <Card className="organization-settings-card" aria-labelledby={`${inputId}-programs-title`}>
       <CardHeader className="organization-settings-card-header">
-        <h2 id={`${inputId}-programs-title`} className="organization-settings-section-title">{en ? "Programs, goals, and achievements" : "البرامج والأهداف والإنجازات"}</h2>
+        <h2 id={`${inputId}-programs-title`} className="organization-settings-section-title">{translateUi((en) ? "en" : "ar", "البرامج والأهداف والإنجازات", "Programs, goals, and achievements")}</h2>
       </CardHeader>
       <CardContent className="organization-settings-card-content">
         <div className="organization-public-profile-fields">
@@ -131,16 +132,16 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
             {field.key === "offerings" ? <Textarea id={`${inputId}-${field.key}`} dir={en ? "ltr" : "rtl"} rows={field.rows} maxLength={5000} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={event => update(field.key, event.target.value)} />
               : <ListEntryInput id={`${inputId}-${field.key}`} label={en ? field.key : field.label} locale={locale} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={value => update(field.key, value)} />}
           </div>)}
-          <FormField className="organization-settings-field full organization-partner-image-field" id={`${inputId}-partner-image`} label={<>{en ? "Partners image" : "صورة الشركاء"}</>}>
-            <input ref={fileRef} id={`${inputId}-partner-image`} type="file" accept="image/png,image/svg+xml,.png,.svg" className="sr-only" aria-label={en ? "Upload partners image" : "إرفاق صورة الشركاء"} onChange={uploadPartnerImage} />
+          <FormField className="organization-settings-field full organization-partner-image-field" id={`${inputId}-partner-image`} label={<>{translateUi((en) ? "en" : "ar", "صورة الشركاء", "Partners image")}</>}>
+            <input ref={fileRef} id={`${inputId}-partner-image`} type="file" accept="image/png,image/svg+xml,.png,.svg" className="sr-only" aria-label={translateUi((en) ? "en" : "ar", "إرفاق صورة الشركاء", "Upload partners image")} onChange={uploadPartnerImage} />
             {content.partnersImageUrl ? <div className="organization-partner-image-preview">
-              <Image src={content.partnersImageUrl} alt={en ? "Partners" : "الشركاء"} width={520} height={300} unoptimized className="h-full w-full rounded-lg object-cover" />
-              <Button type="button" variant="secondary" size="icon-sm" aria-label={en ? "Remove partners image" : "إزالة صورة الشركاء"} onClick={() => update("partnersImageUrl", "")}><X aria-hidden="true" /></Button>
+              <Image src={content.partnersImageUrl} alt={translateUi((en) ? "en" : "ar", "الشركاء", "Partners")} width={520} height={300} unoptimized className="h-full w-full rounded-lg object-cover" />
+              <Button type="button" variant="secondary" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "إزالة صورة الشركاء", "Remove partners image")} onClick={() => update("partnersImageUrl", "")}><X aria-hidden="true" /></Button>
             </div> : <Button type="button" variant="outline" size="sm" className="w-fit" disabled={pending} onClick={() => fileRef.current?.click()}>
               {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}
-              {pending ? (en ? "Uploading…" : "جارٍ الرفع…") : (en ? "Attach image" : "إرفاق صورة")}
+              {pending ? (translateUi((en) ? "en" : "ar", "جارٍ الرفع…", "Uploading…")) : (translateUi((en) ? "en" : "ar", "إرفاق صورة", "Attach image"))}
             </Button>}
-            <p className="text-xs text-muted-foreground">{en ? "PNG or SVG · up to 2 MB" : "PNG أو SVG · بحد أقصى 2 ميجابايت"}</p>
+            <p className="text-xs text-muted-foreground">{translateUi((en) ? "en" : "ar", "PNG أو SVG · بحد أقصى 2 ميجابايت", "PNG or SVG · up to 2 MB")}</p>
             {error && <p role="alert" className="organization-contact-error">{error}</p>}
           </FormField>
         </div>

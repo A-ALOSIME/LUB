@@ -1,5 +1,6 @@
 "use client";
 
+import {createTranslator} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { FilterTabs } from "@/components/ui/filter-tabs";
 import type { Locale } from "@/lib/preferences";
@@ -9,7 +10,7 @@ export type HoursStatusFilter = "all" | "Approved" | "Pending" | "Rejected";
 export function HoursStatusFilters({ value, locale = "ar" }: { value: HoursStatusFilter; locale?: Locale }) {
   const router = useRouter();
   const en = locale === "en";
-  const c = (ar: string, english: string) => en ? english : ar;
+  const c = createTranslator(en ? "en" : "ar");
 
   return <FilterTabs
       value={value}

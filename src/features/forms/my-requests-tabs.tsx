@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { FilterTabs } from "@/components/ui/filter-tabs";
@@ -23,12 +24,12 @@ export function MyRequestsTabs({
   return <div className="flex min-w-0 flex-col gap-4">
     <FilterTabs
       value={activeTab}
-      ariaLabel={en ? "My request categories" : "أنواع طلباتي"}
+      ariaLabel={translateUi((en) ? "en" : "ar", "أنواع طلباتي", "My request categories")}
       dir={en ? "ltr" : "rtl"}
       options={[
-        { value: "applications", label: en ? "Applications" : "طلبات الانضمام" },
-        { value: "renewals", label: en ? "Renewals" : "طلبات التجديد" },
-        { value: "organizations", label: en ? "Organization requests" : "طلبات فتح الأندية" },
+        { value: "applications", label: translateUi((en) ? "en" : "ar", "طلبات الانضمام", "Applications") },
+        { value: "renewals", label: translateUi((en) ? "en" : "ar", "طلبات التجديد", "Renewals") },
+        { value: "organizations", label: translateUi((en) ? "en" : "ar", "طلبات فتح الأندية", "Organization requests") },
       ]}
       size="sm"
       activeTone="primary"

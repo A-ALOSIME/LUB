@@ -1,4 +1,5 @@
 "use client";
+import {createTranslator} from "@/lib/i18n";
 import {startTransition,useActionState,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 import {ManagementActionSheet} from "@/components/management-action-sheet";
@@ -13,7 +14,7 @@ import {LeaderEmailSearch} from "./leader-email-search";
 import type {AdminOrganizationIdentity} from "./management-repository";
 import type {Locale} from "@/lib/preferences";
 export function AdminOrganizationDecision({organization,kind,locale,onClose}:{organization:AdminOrganizationIdentity;kind:"leader"|"status"|"remove-leader"|"archive";locale:Locale;onClose:()=>void}) {
- const en=locale==="en",c=(ar:string,english:string)=>en?english:ar,router=useRouter(),form=useRef<HTMLFormElement>(null);
+ const en=locale==="en",c=createTranslator(en ? "en" : "ar"),router=useRouter(),form=useRef<HTMLFormElement>(null);
  const [submission,setSubmission]=useState<FormData|null>(null),direct=kind!=="leader";
  const [confirm,setConfirm]=useState(direct);
  const title=kind==="archive"?c(`أرشفة ${organization.nameAr}؟`,`Archive ${organization.nameAr}?`):kind==="leader"?c(`تعيين قائد ${organization.nameAr}`,`Assign ${organization.nameAr} leader`):kind==="remove-leader"?c(`حذف قائد ${organization.nameAr}؟`,`Remove ${organization.nameAr} leader?`):organization.statusCode==="Active"?c(`إيقاف ${organization.nameAr}؟`,`Deactivate ${organization.nameAr}?`):c(`تفعيل ${organization.nameAr}؟`,`Activate ${organization.nameAr}?`);

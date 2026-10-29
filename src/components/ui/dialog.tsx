@@ -1,5 +1,6 @@
 "use client"
 
+import {useI18n} from "@/components/i18n-provider";
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { cn } from "cn"
@@ -49,6 +50,7 @@ function DialogContent({
   showCloseButton?: boolean
   width?: "default" | "wide"
 }) {
+  const {t}=useI18n();
   const popupRef = React.useRef<HTMLDivElement>(null);
   const widthClass = width === "wide"
     ? "w-[min(42rem,calc(100vw-2rem))] max-w-2xl"
@@ -74,14 +76,14 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className="absolute top-2 end-2"
                 size="icon-sm"
               />
             }
           >
             <XIcon
             />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("إغلاق","Close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

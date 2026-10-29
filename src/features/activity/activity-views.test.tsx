@@ -16,6 +16,7 @@ vi.mock("@/features/events/view", () => ({ eventDate: () => "", eventLabels: {} 
 vi.mock("@/features/events/display", () => ({ eventDateEn: () => "", eventLabelsEn: {} }));
 vi.mock("@/features/tasks/task-list", () => ({ TaskPagination: () => null }));
 
+vi.mock("next/navigation",()=>({useRouter:()=>({replace:vi.fn()})}));
 afterEach(cleanup);
 
 const data: HoursData = {

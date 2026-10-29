@@ -1,5 +1,6 @@
 "use client"
 
+import {useI18n} from "@/components/i18n-provider";
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { XIcon } from "lucide-react"
@@ -22,7 +23,7 @@ function SheetContent({
   className,
   side = "left",
   showCloseButton = true,
-  closeLabel = "Close",
+  closeLabel,
   children,
   ...props
 }: DialogPrimitive.Popup.Props & {
@@ -30,13 +31,16 @@ function SheetContent({
   showCloseButton?: boolean
   closeLabel?: string
 }) {
+  const {dir,t}=useI18n();
+  const direction=props.dir??dir;
+  const effectiveSide=direction==="ltr"?(side==="left"?"right":side==="right"?"left":side):side;
   const popupRef = React.useRef<HTMLDivElement>(null);
   const sideClasses = {
     right: "inset-y-0 right-0 h-full w-[min(90vw,30rem)] border-s",
     left: "inset-y-0 left-0 h-full w-[min(90vw,30rem)] border-e",
     top: "inset-x-0 top-0 max-h-[85dvh] border-b",
     bottom: "inset-x-0 bottom-0 max-h-[85dvh] border-t",
-  }[side]
+  };
 
   return (
     <DialogPrimitive.Portal>
@@ -48,10 +52,10 @@ function SheetContent({
         ref={popupRef}
         initialFocus={() => popupRef.current?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]):not([aria-hidden="true"]),textarea:not([disabled]),select:not([disabled]),[role="combobox"]:not([aria-disabled="true"])') ?? true}
         data-slot="sheet-content"
-        data-side={side}
+        data-side={effectiveSide}
         className={cn(
           "fixed z-50 flex min-w-0 flex-col gap-4 overflow-y-auto bg-card p-4 text-card-foreground shadow-xl ring-1 ring-foreground/10 outline-none duration-200 data-open:animate-in data-closed:animate-out data-[side=right]:data-open:slide-in-from-right data-[side=right]:data-closed:slide-out-to-right data-[side=left]:data-open:slide-in-from-left data-[side=left]:data-closed:slide-out-to-left data-[side=top]:data-open:slide-in-from-top data-[side=top]:data-closed:slide-out-to-top data-[side=bottom]:data-open:slide-in-from-bottom data-[side=bottom]:data-closed:slide-out-to-bottom",
-          sideClasses,
+          sideClasses[effectiveSide],
           className,
         )}
         {...props}
@@ -63,7 +67,7 @@ function SheetContent({
             render={<Button variant="ghost" size="icon-sm" className="absolute end-3 top-3" />}
           >
             <XIcon />
-            <span className="sr-only">{closeLabel}</span>
+            <span className="sr-only">{closeLabel??t("إغلاق","Close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

@@ -1,5 +1,6 @@
 "use client";
 
+import {t as translateUi} from "@/lib/i18n";
 import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,6 @@ export function DisplayControls({ locale, theme }: { locale: Locale; theme: Them
     <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-md hover:bg-accent" onClick={toggleTheme} aria-label={locale === "ar" ? activeTheme === "dark" ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن" : activeTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={locale === "ar" ? activeTheme === "dark" ? "الوضع الفاتح" : "الوضع الداكن" : activeTheme === "dark" ? "Light mode" : "Dark mode"} aria-pressed={activeTheme === "dark"}>
       {activeTheme === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
     </Button>
-    <Button type="button" variant="ghost" size="sm" className="h-9 rounded-md hover:bg-accent" onClick={toggleLanguage} aria-label={locale === "ar" ? "Switch to English" : "التحويل إلى العربية"} lang={locale === "ar" ? "en" : "ar"}>{locale === "ar" ? "EN" : "AR"}</Button>
+    <Button type="button" variant="ghost" size="sm" className="h-9 rounded-md hover:bg-accent" onClick={toggleLanguage} aria-label={translateUi((locale === "ar") ? "en" : "ar", "التحويل إلى العربية", "Switch to English")} lang={locale === "ar" ? "en" : "ar"}>{locale === "ar" ? "EN" : "AR"}</Button>
   </div>;
 }

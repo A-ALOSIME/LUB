@@ -1,3 +1,4 @@
+import {t as translateUi} from "@/lib/i18n";
 import {getPendingEmailChange} from "@/features/profile/security-actions";
 import {syncVerifiedAccountEmail} from "@/features/profile/repository";
 import { notFound } from "next/navigation";
@@ -22,11 +23,11 @@ export default async function AdminAccountPage({ searchParams }: { searchParams:
   return <div className="workspace-content">
     <header className="workspace-page-header">
       <div>
-        <h1>{en ? "Account settings" : "إعدادات الحساب"}</h1>
+        <h1>{translateUi((en) ? "en" : "ar", "إعدادات الحساب", "Account settings")}</h1>
       </div>
     </header>
-    {query.saved === "1" && <p role="status" className="panel p-4 text-action">{en ? "Name saved." : "تم حفظ الاسم."}</p>}
-    <section className="panel max-w-2xl p-5 sm:p-7" aria-label={en ? "Administrative account details" : "بيانات الحساب الإداري"}>
+    {query.saved === "1" && <p role="status" className="panel p-4 text-action">{translateUi((en) ? "en" : "ar", "تم حفظ الاسم.", "Name saved.")}</p>}
+    <section className="panel max-w-2xl p-5 sm:p-7" aria-label={translateUi((en) ? "en" : "ar", "بيانات الحساب الإداري", "Administrative account details")}>
       <AdminAccountForm pendingEmail={pendingEmail} fullName={profile.fullName} email={profile.email} locale={locale} />
     </section>
   </div>;
