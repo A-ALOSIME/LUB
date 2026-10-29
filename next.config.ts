@@ -2,8 +2,6 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   ...(process.env.LUB_VINEXT_BUILD === "true" ? {} : { output: "standalone" }),
-  // Browser-local page snapshots expire quickly; writes still invalidate them and recheck permissions.
-  experimental: { staleTimes: { dynamic: 30 } },
   poweredByHeader: false,
   turbopack: { root: process.cwd() },
   async headers() {
