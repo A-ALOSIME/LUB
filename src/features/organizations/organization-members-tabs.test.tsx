@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { OrganizationMembersTabs } from "./organization-members-tabs";
 
 const navigation = vi.hoisted(() => ({
@@ -15,8 +15,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: navigation.push }),
 }));
 
+beforeEach(()=>window.history.replaceState(null,"","/manage/organizations/org-1/members"));
+
 afterEach(() => {
   cleanup();
+  window.history.replaceState(null,"","/manage/organizations/org-1/members");
   navigation.pathname = "/manage/organizations/org-1/members";
   navigation.query = "";
   navigation.push.mockClear();
@@ -33,14 +36,18 @@ describe("organization members tabs", () => {
     />);
 
     expect(screen.getByRole("tab", { name: /الأعضاء الحاليون/ })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /طلبات الانضمام.*3/ })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /طلبات الانضمام.*٣/ })).toBeTruthy();
     expect(screen.getByText("جدول الأعضاء")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /طلبات الانضمام/ }));
-    expect(navigation.push).toHaveBeenCalledWith("/manage/organizations/org-1/members?section=applications", { scroll: false });
+    expect(navigation.push).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("?section=applications");
+    expect(screen.getByRole("tab",{name:/طلبات الانضمام/}).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("جدول الأعضاء")).toBeTruthy();
   });
 
   it("opens the applications tab for a legacy applications query", () => {
     navigation.query = "section=applications";
+    window.history.replaceState(null,"","/manage/organizations/org-1/members?section=applications");
     render(<OrganizationMembersTabs
       locale="ar"
       initialTab="applications"
