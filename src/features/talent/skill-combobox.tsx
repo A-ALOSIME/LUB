@@ -1,0 +1,13 @@
+"use client";
+import {useEffect,useId,useMemo,useState} from "react";
+import {Combobox,ComboboxInput,ComboboxContent,ComboboxList,ComboboxItem,ComboboxEmpty} from "@/components/ui/combobox";
+import {Field,FieldLabel,FieldDescription} from "@/components/ui/field";
+import type {Locale} from "@/lib/preferences";
+import type {SkillSuggestion} from "./esco";
+import {suggestTalentSkills} from "./skill-search-actions";
+export function SkillCombobox({locale="ar"}:{locale?:Locale}){
+ const en=locale==="en",id=useId();const [query,setQuery]=useState(""),[selected,setSelected]=useState<SkillSuggestion|null>(null),[items,setItems]=useState<SkillSuggestion[]>([]),[open,setOpen]=useState(false),[loading,setLoading]=useState(false);
+ const names=useMemo(()=>items.map(i=>i.name),[items]);
+ useEffect(()=>{let active=true;const timer=setTimeout(()=>{if(query.trim().length<2||selected)return;setLoading(true);suggestTalentSkills(query,locale).then(v=>{if(active)setItems(v);}).catch(()=>{if(active)setItems([]);}).finally(()=>{if(active)setLoading(false);});},250);return()=>{active=false;clearTimeout(timer);};},[query,locale,selected]);
+ return <Field><FieldLabel htmlFor={id}>{en?"Skill name":"اسم المهارة"}</FieldLabel><input type="hidden" name="name" value={selected?.name??query.trim()}/><input type="hidden" name="escoUri" value={selected?.uri??""}/><Combobox items={names} filter={null} open={open} onOpenChange={setOpen} value={selected?.name??null} inputValue={query} onInputValueChange={(value,details)=>{if(details.reason==="input-change"||details.reason==="input-clear"){setQuery(value);setSelected(null);setItems([]);setLoading(value.trim().length>=2);setOpen(value.length>0);}}} onValueChange={value=>{if(value!==null){const item=items.find(i=>i.name===value);if(item){setSelected(item);setQuery(item.label);setOpen(false);}}}}><ComboboxInput id={id} required minLength={2} maxLength={80} showTrigger={false} autoComplete="off" placeholder={en?"Search or enter a skill…":"ابحث أو اكتب مهارة…"}/><ComboboxContent><ComboboxEmpty>{query.trim().length<2?(en?"Type at least two characters":"اكتب حرفين على الأقل"):loading?(en?"Searching…":"جاري البحث…"):(en?"No suggestions. You can add this skill.":"لا توجد اقتراحات. يمكنك إضافة هذه المهارة.")}</ComboboxEmpty><ComboboxList>{name=>{const item=items.find(i=>i.name===name);return <ComboboxItem key={name} value={name}><bdi>{item?.label??name}</bdi></ComboboxItem>;}}</ComboboxList></ComboboxContent></Combobox><FieldDescription>{en?"Choose a skill or enter your own. Suggestions start after two characters.":"اختر مهارة أو أضف مهارتك. تبدأ الاقتراحات من حرفين."}</FieldDescription></Field>;
+}

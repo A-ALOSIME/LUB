@@ -8,6 +8,8 @@ import { requireUser } from "@/features/auth/session";
 import { studentOperationError } from "@/features/auth/authorization";
 import { normalizeDigits } from "@/lib/validation";
 import { normalizeOrganizationContact, organizationContactAddableKinds } from "@/features/organizations/contact-channels";
+import {resolveEscoSkill} from "./esco";
+import {skillLabel} from "./skill-normalization";
 import type { WorkflowState } from "@/features/forms/actions";
 
 const id = (form: FormData, key: string) => z.uuid().parse(form.get(key));
@@ -29,6 +31,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
 
   try {
     const operation = z.enum(["profile", "link", "update-link", "remove-link", "skill", "remove-skill", "project"]).parse(form.get("operation"));
+    const catalog=operation==="skill"&&form.get("escoUri")?await resolveEscoSkill(text(form,"escoUri",120)):null;
     await withUser(user.id, async (tx) => {
       switch (operation) {
         case "profile": {
@@ -41,12 +44,12 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
             const label = text(form, `${fields}label`, 80, 1);
             const input = text(form, `${fields}value`, 2048, 1);
             const value = contactValue(kind, input);
-            await tx.execute(sql`select lub.save_talent_link(${linkId},${kind},${label},${value},${checked(form, `${fields}visible`)})`);
+            await tx.execute(sql`select lub.save_talent_link(${linkId},${kind},${label},${value},${true})`);
           }
 
           const skillCount = z.coerce.number().int().min(0).max(30).parse(form.get("skillCount") ?? "0");
           for (let index = 0; index < skillCount; index++) {
-            await tx.execute(sql`select lub.save_talent_skill(${text(form, `skill_${index}_name`, 80, 2)},${checked(form, `skill_${index}_visible`)})`);
+            await tx.execute(sql`select lub.save_talent_skill(${text(form, `skill_${index}_name`, 80, 2)},${true})`);
           }
 
           const projectCount = z.coerce.number().int().min(0).max(25).parse(form.get("projectCount") ?? "0");
@@ -67,7 +70,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
           const kind = linkKind.parse(form.get("kind"));
           const input = text(form, "value", 2048, 1);
           const value = contactValue(kind, input);
-          await tx.execute(sql`select lub.save_talent_link(null,${kind},${kind},${value},${checked(form, "visible")})`);
+          await tx.execute(sql`select lub.save_talent_link(null,${kind},${kind},${value},${true})`);
           break;
         }
         case "update-link": {
@@ -76,15 +79,17 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
           const label = text(form, "label", 80, 1);
           const input = text(form, "value", 2048, 1);
           const value = contactValue(kind, input);
-          await tx.execute(sql`select lub.save_talent_link(${link},${kind},${label},${value},${checked(form, "visible")})`);
+          await tx.execute(sql`select lub.save_talent_link(${link},${kind},${label},${value},${true})`);
           break;
         }
         case "remove-link":
           await tx.execute(sql`select lub.remove_talent_link(${id(form, "link")})`);
           break;
-        case "skill":
-          await tx.execute(sql`select lub.save_talent_skill(${text(form, "name", 80, 2)},${checked(form, "visible")})`);
+        case "skill": {
+          if(catalog){await tx.execute(sql`select lub.save_talent_catalog_skill(${catalog.name},${catalog.english},${catalog.arabic})`);}
+          else await tx.execute(sql`select lub.save_talent_skill(${skillLabel(text(form,"name",80,2))},true)`);
           break;
+        }
         case "remove-skill":
           await tx.execute(sql`select lub.remove_talent_skill(${text(form, "name", 80, 2)})`);
           break;

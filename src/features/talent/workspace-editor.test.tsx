@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { TalentPages, TalentWorkspace } from "./repository";
 import { TalentWorkspaceEditor } from "./workspace-editor";
 
+vi.mock("./skill-search-actions",()=>({suggestTalentSkills:vi.fn().mockResolvedValue([])}));
 vi.mock("./actions", () => ({ mutateTalent: vi.fn() }));
 vi.mock("./form", () => ({ TalentForm: ({ children }: { children?: ReactNode }) => <div>{children}</div>, NewProject: () => null, ProjectFields: () => null }));
 vi.mock("./view", () => ({ TalentPagination: () => null }));
@@ -55,3 +56,5 @@ it("keeps the public profile link in the publish footer", () => {
   expect(view.closest(".workspace-page-header")).toBeNull();
   expect(view.parentElement?.textContent).toContain("نشر ملفي");
 });
+
+it("offers only whole-profile visibility controls",()=>{render(<TalentWorkspaceEditor data={{...data,links:[{id:"link",link_type:"GitHub",label:"GitHub",url_or_value:"https://github.com/student",is_public:true}]}} user="student" pages={pages}/>);expect(screen.queryByRole("button",{name:/إخفاء المهارة|إظهار المهارة|إخفاء قناة|إظهار قناة/})).toBeNull();expect(screen.getByRole("button",{name:"نشر ملفي المهاري"})).toBeTruthy();});
