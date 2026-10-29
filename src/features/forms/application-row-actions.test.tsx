@@ -7,6 +7,7 @@ import { ApplicationRowActions } from "./application-row-actions";
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));
+vi.mock("./application-panel-actions",()=>({loadOwnApplicationPanel:vi.fn().mockResolvedValue({error:true})}));
 vi.mock("./mutation-form", () => ({
   WorkflowForm: ({ label }: { label: string }) => <button type="button">{label}</button>,
 }));
@@ -26,8 +27,11 @@ it("offers details and asks for confirmation before withdrawal", async () => {
   render(<ApplicationRowActions {...baseProps} />);
 
 
-  const details = await screen.findByRole("link", { name: /عرض التفاصيل/ });
-  expect(details.getAttribute("href")).toBe(baseProps.detailsHref);
+  const url=window.location.href;
+  fireEvent.click(await screen.findByRole("button", {name:/عرض التفاصيل/}));
+  expect(await screen.findByRole("dialog")).toBeTruthy();
+  expect(window.location.href).toBe(url);
+  fireEvent.click(screen.getByRole("button",{name:/إغلاق/}));
 
   fireEvent.click(await screen.findByRole("button", { name: /سحب الطلب/ }));
   expect(await screen.findByRole("alertdialog")).toBeTruthy();
@@ -40,6 +44,6 @@ it("does not show withdrawal when the request is not eligible", async () => {
   render(<ApplicationRowActions {...baseProps} canWithdraw={false} />);
 
 
-  expect(await screen.findByRole("link", { name: /عرض التفاصيل/ })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: /عرض التفاصيل/ })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /سحب الطلب/ })).toBeNull();
 });

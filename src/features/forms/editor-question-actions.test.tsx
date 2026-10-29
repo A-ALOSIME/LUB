@@ -42,3 +42,10 @@ it("uses an explicit answered condition for dynamic committees without requestin
  const payload=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as FormDefinition;
  expect(payload.sections[0].fields[1].condition).toEqual({fieldId:definition.sections[0].fields[0].id,operator:"Answered",value:"true"});
 });
+
+it("exposes section actions directly without a menu",()=>{
+ open();expect(screen.queryByRole("menu")).toBeNull();
+ const copy=screen.getByRole("button",{name:/نسخ القسم/});fireEvent.click(copy);
+ const definition=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as FormDefinition;
+ expect(definition.sections.length).toBe(2);expect(definition.sections[0].id).not.toBe(definition.sections[1].id);
+});

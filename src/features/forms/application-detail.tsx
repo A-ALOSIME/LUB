@@ -113,7 +113,7 @@ export function ApplicationDetail({
           {en ? "Application history" : "سجل الطلب"}
         </h2>
         <ol className="mt-3 space-y-4 border-s border-border ps-4">
-          {detail.history.map((h, i) => (
+          {[...detail.history].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map((h, i) => (
             <li key={i} className="relative">
               <span className="absolute -start-5 top-2 size-2 rounded-full bg-muted-foreground" />
               <RequestStatusBadge status={h.to_status_code} locale={locale} />

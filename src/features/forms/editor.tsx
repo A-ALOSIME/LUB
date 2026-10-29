@@ -12,11 +12,9 @@ import {
   Upload,
   Save,
   Copy,
-  Ellipsis,
 } from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group";
-import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuGroup,DropdownMenuItem,DropdownMenuSeparator} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -812,7 +810,12 @@ function EditorSection({title,tools,children,defaultOpen=false,kind="section",on
 }
 function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {
  const en=locale==="en";
- return <DropdownMenu><DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label}/>}><Ellipsis/></DropdownMenuTrigger><DropdownMenuContent align="end" className="form-editor-menu"><DropdownMenuGroup><DropdownMenuItem disabled={upDisabled} onClick={onUp}><ArrowUp/>{en?"Move up":"تحريك لأعلى"}</DropdownMenuItem><DropdownMenuItem disabled={downDisabled} onClick={onDown}><ArrowDown/>{en?"Move down":"تحريك لأسفل"}</DropdownMenuItem><DropdownMenuItem disabled={copyDisabled} onClick={onCopy}><Copy/>{en?"Duplicate":"نسخ"}</DropdownMenuItem></DropdownMenuGroup><DropdownMenuSeparator/><DropdownMenuGroup><DropdownMenuItem variant="destructive" disabled={deleteDisabled} onClick={onDelete}><Trash2/>{en?"Delete":"حذف"}</DropdownMenuItem></DropdownMenuGroup></DropdownMenuContent></DropdownMenu>;
+ return <div className="flex flex-wrap items-center gap-1" aria-label={label}>{[
+ {name:en?"Move up":"تحريك لأعلى",Icon:ArrowUp,disabled:upDisabled,run:onUp},
+ {name:en?"Move down":"تحريك لأسفل",Icon:ArrowDown,disabled:downDisabled,run:onDown},
+ {name:en?"Duplicate section":"نسخ القسم",Icon:Copy,disabled:copyDisabled,run:onCopy},
+ {name:en?"Delete section":"حذف القسم",Icon:Trash2,disabled:deleteDisabled,run:onDelete,danger:true},
+ ].map(({name,Icon,disabled,run,danger})=><RowAction key={name} label={`${name} · ${label}`} hint={name} disabled={disabled} danger={danger} onClick={run}><Icon/></RowAction>)}</div>;
 }
 
 function QuestionActions({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}){

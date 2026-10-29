@@ -165,12 +165,10 @@ export function OpeningRequestList({
                 <CardFooter>
                   <Button
                     className="relative z-10"
-                    variant="outline"
-                    render={
-                      <Link href={`/organizations/${item.organization_slug}`} />
-                    }
+                    variant="link"
+                    render={<Link href={`/organizations/${item.organization_slug}`} />}
                   >
-                    {c("عرض الجهة", "View organization")}
+                    {c("فتح الجهة ←", "Open organization →")}
                   </Button>
                 </CardFooter>
               )}

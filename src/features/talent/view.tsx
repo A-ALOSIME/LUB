@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LubBrandName } from "@/components/lub-brand-name";
-import { BadgeCheck, CalendarDays, Clock3, UsersRound } from "lucide-react";
-import { academicLevel, formatCount, formatHours } from "@/lib/display";
+import { BadgeCheck, CalendarDays, Clock, Building2, Calendar, Clock3, UsersRound } from "lucide-react";
+import { academicLevel, formatCount } from "@/lib/display";
 import { formatRiyadhDate } from "@/lib/datetime";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,9 @@ import {
 import { TalentContactLinks } from "./contact-links";
 import { displaySkills, skillKey } from "./skill-normalization";
 import type { PublicTalent, TalentCard, TalentPages } from "./repository";
+import { Separator } from "@/components/ui/separator";
+import { OrganizationAvatars } from "./organization-avatars";
+import { MembershipHistory } from "./membership-history";
 import type { Locale } from "@/lib/preferences";
 
 export function TalentPagination({
@@ -93,7 +96,7 @@ export function ApprovedHours({
     <Tooltip>
       <TooltipTrigger render={<Badge variant="outline" tabIndex={0} />}>
         <BadgeCheck />
-        {formatHours(value, locale)}{" "}
+        {formatCount(value, "hours", locale, "nominative", "number")}{" "}
         {locale === "en"
           ? "approved"
           : Number(value) === 2
@@ -114,20 +117,6 @@ export function ApprovedHours({
   );
 }
 
-function OrganizationAvatar({
-  name,
-  logo,
-}: {
-  name: string;
-  logo?: string | null;
-}) {
-  return (
-    <Avatar size="sm" className="shrink-0">
-      <AvatarImage src={logo ?? undefined} alt="" />
-      <AvatarFallback>{name.trim().slice(0, 1)}</AvatarFallback>
-    </Avatar>
-  );
-}
 export function TalentCards({
   items,
   locale = "ar",
@@ -138,11 +127,11 @@ export function TalentCards({
   returnTo?: string;
 }) {
   return (
-    <ul className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="flex flex-wrap items-stretch justify-center gap-4">
       {items.map((t) => {
         const skills = displaySkills(t.skills);
         return (
-          <li key={t.id} className="min-w-0">
+          <li key={t.id} className="w-full min-w-0 sm:w-[calc((100%-1rem)/2)] xl:w-[calc((100%-2rem)/3)]">
             <Link
               href={`/talent/${t.id}?from=${encodeURIComponent(returnTo)}`}
               className="block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -169,10 +158,10 @@ export function TalentCards({
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-3">
                   <div className="min-h-7">
-                    {Number(t.total) > 0 && (
+                    {(
                       <Badge variant="outline">
                         <Clock3 />
-                        {formatHours(t.total!, locale)}{" "}
+                        {formatCount(t.total ?? 0, "hours", locale, "nominative", "number")}{" "}
                         {locale === "en"
                           ? "approved"
                           : Number(t.total) === 2
@@ -182,29 +171,18 @@ export function TalentCards({
                     )}
                   </div>
                   <div className="flex min-h-10 flex-wrap content-start items-start gap-2">
-                    {skills.slice(0, 4).map((s) => (
+                    {skills.slice(0, 3).map((s) => (
                       <Badge key={skillKey(s)} variant="secondary">
                         <bdi>{s}</bdi>
                       </Badge>
                     ))}
-                    {skills.length > 4 && (
-                      <Badge variant="outline">
-                        <bdi>+{skills.length - 4}</bdi>
-                      </Badge>
+                    {skills.length > 3 && (
+                      <span className="text-sm text-muted-foreground">{locale === "en" ? `${skills.length - 3} more` : `و ${skills.length - 3} أخرى`}</span>
                     )}
                   </div>
                 </CardContent>
                 <CardFooter className="min-h-10 gap-2 border-border">
-                  {t.organizations?.slice(0, 4).map((o) => (
-                    <span key={o.slug} title={o.name} aria-label={o.name}>
-                      <OrganizationAvatar name={o.name} logo={o.logo} />
-                    </span>
-                  ))}
-                  {(t.organizations?.length ?? 0) > 4 && (
-                    <span className="text-sm text-muted-foreground">
-                      <bdi>+{t.organizations!.length - 4}</bdi>
-                    </span>
-                  )}
+                  <OrganizationAvatars items={t.organizations ?? []} locale={locale}/>
                 </CardFooter>
               </Card>
             </Link>
@@ -260,29 +238,6 @@ export function TalentEmpty({
     </Empty>
   );
 }
-function roleLabel(code: string, type: string | undefined, en: boolean) {
-  if (en)
-    return (
-      (
-        {
-          OL: type === "Council" ? "Council leader" : "Club leader",
-          OD: "Deputy leader",
-          CL: "Committee leader",
-          CD: "Deputy committee leader",
-        } as Record<string, string>
-      )[code] ?? "Member"
-    );
-  return (
-    (
-      {
-        OL: type === "Council" ? "قائد المجلس" : "قائد النادي",
-        OD: type === "Council" ? "نائب قائد المجلس" : "نائب قائد النادي",
-        CL: "قائد اللجنة",
-        CD: "نائب قائد اللجنة",
-      } as Record<string, string>
-    )[code] ?? "عضو"
-  );
-}
 function OwnerPrompt({
   children,
   href = "/account/talent",
@@ -317,26 +272,6 @@ export function PublicTalentView({
   const en = locale === "en",
     c = (ar: string, english: string) => (en ? english : ar),
     skills = displaySkills(p.skills);
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Riyadh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  const grouped = (past: boolean) =>
-    p.organizations
-      .slice(0, 25)
-      .map((o) => ({
-        ...o,
-        memberships: o.memberships.filter(
-          (m) =>
-            (m.status_code !== "Active" ||
-              (!!m.end_date && m.end_date <= today)) === past,
-        ),
-      }))
-      .filter((o) => o.memberships.length);
-  const current = grouped(false),
-    previous = grouped(true);
   return (
     <div
       className="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-5"
@@ -344,7 +279,7 @@ export function PublicTalentView({
       <aside className="min-w-0">
         <Card>
           <CardHeader className="flex flex-row items-center gap-4">
-            <Avatar className="size-20 shrink-0">
+            <Avatar className="size-24 shrink-0 sm:size-28">
               {p.avatar_version && (
                 <AvatarImage
                   src={`/talent/${p.id}/avatar?v=${encodeURIComponent(p.avatar_version)}`}
@@ -354,15 +289,11 @@ export function PublicTalentView({
               <AvatarFallback>{p.name.trim().slice(0, 1)}</AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
-            <h1 className="break-words text-2xl font-semibold">
-              <bdi>{p.name}</bdi>
-            </h1>
+            <div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-2xl font-semibold"><bdi>{p.name}</bdi></h1><OrganizationAvatars items={p.organizations.filter(o=>!o.archived && o.memberships.some(m=>m.status_code==="Active"&&!m.end_date))} locale={locale}/></div>
             <p className="text-muted-foreground">
               <bdi>{p.major}</bdi> · {academicLevel(p.level, locale)}
             </p>
-            {Number(p.total) > 0 && (
-              <ApprovedHours value={p.total!} locale={locale} />
-            )}
+            <ApprovedHours value={p.total ?? 0} locale={locale} />
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -393,32 +324,14 @@ export function PublicTalentView({
             {p.links.length > 0 && (
               <TalentContactLinks links={p.links} en={en} />
             )}
+            <Separator/><section className="flex flex-col gap-2"><h2 className="font-semibold">{c("نبذة", "About")}</h2>{p.bio?<p className="whitespace-pre-wrap break-words leading-relaxed" dir="auto">{p.bio}</p>:owner?<OwnerPrompt>{c("أضف نبذة", "Add a bio")}</OwnerPrompt>:<p className="text-sm text-muted-foreground">{c("لم تُضف نبذة بعد", "No bio added yet")}</p>}</section>
           </CardContent>
           <CardFooter className="grid grid-cols-3 items-center gap-3 border-t border-border pt-4 text-center">
-            {[{value:p.total??0,unit:"hours"},{value:p.stats?.organizations??p.organizations.length,unit:"organizations"},{value:p.stats?.events??p.events.length,unit:"events"}].map(stat=><p key={stat.unit} className="font-medium">{formatCount(stat.value,stat.unit as "hours"|"organizations"|"events",locale,"nominative","number")}</p>)}
+            {[{value:p.total??0,unit:"hours",Icon:Clock},{value:p.stats?.organizations??p.organizations.length,unit:"organizations",Icon:Building2},{value:p.stats?.events??p.events.length,unit:"events",Icon:Calendar}].map(({value,unit,Icon})=><p key={unit} className="flex flex-wrap items-center justify-center gap-2 text-sm"><Icon className="size-4 text-muted-foreground" aria-hidden="true"/><span className="font-semibold">{formatCount(value,unit as "hours"|"organizations"|"events",locale,"nominative","number")}</span></p>)}
           </CardFooter>
         </Card>
       </aside>
       <div className="flex min-w-0 flex-col gap-5">
-        {p.bio ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{c("نبذة", "About")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p
-                className="whitespace-pre-wrap break-words leading-relaxed"
-                dir="auto"
-              >
-                {p.bio}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          owner && (
-            <OwnerPrompt>{c("أضف نبذة عنك", "Add your bio")}</OwnerPrompt>
-          )
-        )}
         {p.organizations.length > 0 ? (
           <Card>
             <CardHeader>
@@ -427,92 +340,7 @@ export function PublicTalentView({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              {[
-                { items: current, title: c("الحالية", "Current") },
-                { items: previous, title: c("السابقة", "Previous") },
-              ]
-                .filter((g) => g.items.length)
-                .map((g) => (
-                  <section key={g.title} className="flex flex-col gap-3">
-                    {previous.length > 0 && (
-                      <h3 className="font-medium text-muted-foreground">
-                        {g.title}
-                      </h3>
-                    )}
-                    <ul className="divide-y divide-border">
-                      {g.items.map((o) => {
-                        const joined = o.memberships
-                          .map((m) => m.start_date)
-                          .sort()[0];
-                        return (
-                          <li
-                            key={o.slug}
-                            className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0"
-                          >
-                            <div className="flex flex-wrap items-center gap-3">
-                              <div className="min-w-0 flex-1">
-                                <Link
-                                  className="font-semibold hover:text-primary"
-                                  href={`/organizations/${o.slug}`}
-                                >
-                                  <bdi>{o.name}</bdi>
-                                </Link>
-                                <p className="text-sm text-muted-foreground">
-                                  {c("عضو منذ", "Member since")}{" "}
-                                  {formatRiyadhDate(joined, locale)}
-                                </p>
-                              </div>
-                              {Number(o.hours) > 0 && (
-                                <span className="text-sm text-muted-foreground">
-                                  {c("إجمالي الجهة:", "Organization total:")}{" "}
-                                  {formatHours(o.hours!, locale)}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {o.memberships.map((m, index) =>
-                                m.roles.length ? (
-                                  m.roles.map((r, ri) => (
-                                    <div
-                                      key={`${index}-${ri}`}
-                                      className="flex flex-wrap items-center gap-2"
-                                    >
-                                      <Badge
-                                        variant={
-                                          r.code === "OL" || r.code === "CL"
-                                            ? "default"
-                                            : "secondary"
-                                        }
-                                      >
-                                        {roleLabel(r.code, o.type, en)}
-                                      </Badge>
-                                      {r.hours !== undefined && (
-                                        <span className="text-sm text-muted-foreground">
-                                          {c("ساعات الدور:", "Role hours:")}{" "}
-                                          {formatHours(r.hours, locale)}
-                                        </span>
-                                      )}
-                                      {r.ends && (
-                                        <span className="text-sm text-muted-foreground">
-                                          {c("حتى", "Until")}{" "}
-                                          {formatRiyadhDate(r.ends, locale)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <Badge key={index} variant="secondary">
-                                    {c("عضو", "Member")}
-                                  </Badge>
-                                ),
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </section>
-                ))}
+              <MembershipHistory organizations={p.organizations.slice(0,25)} locale={locale}/>
               <TalentPagination
                 pages={pages}
                 keyName="organizations"

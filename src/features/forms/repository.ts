@@ -125,3 +125,11 @@ export async function listApplications(user: string, org?: string, filters?: Fil
   return rows as unknown as Application[];
  });
 }
+
+export async function getOwnApplicationDetail(user:string,application:string){
+ return withUser(user,async tx=>{
+ const rows=await tx.execute(sql`select ${detailColumns},r.title as campaign_title,a.created_at from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.form_responses f on f.id=a.form_response_id join lub.form_versions v on v.id=f.form_version_id where a.id=${application} and a.applicant_user_id=${user}`);
+ const detail=rows[0] as unknown as (Detail&{campaign_title:string;created_at:string})|undefined;
+ return detail?{...detail,notes:[],canReview:false,canStaff:false}:undefined;
+ });
+}
