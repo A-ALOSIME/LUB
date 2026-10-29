@@ -34,3 +34,11 @@ it("keeps a failed request retryable and prevents editing without server permiss
  expect(await screen.findByText("لا تملك صلاحية تعديل هذه المهمة.")).toBeTruthy();
  expect(screen.queryByRole("textbox")).toBeNull();
 });
+
+it("translates server-returned panel errors in the selected language",async()=>{
+ mocks.load.mockResolvedValue({error:"المهمة غير متاحة أو لا تملك صلاحية عرضها."});
+ render(<TaskPanelAction task="task" title="Design" locale="en"/>);
+ fireEvent.click(screen.getByRole("button",{name:"View details"}));
+ expect(await screen.findByText("This task is unavailable or you do not have access to it.")).toBeTruthy();
+ expect(screen.queryByText("المهمة غير متاحة أو لا تملك صلاحية عرضها.")).toBeNull();
+});

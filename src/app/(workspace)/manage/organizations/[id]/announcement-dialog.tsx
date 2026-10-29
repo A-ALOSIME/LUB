@@ -1,4 +1,5 @@
 "use client";
+import {actionFeedback} from "@/lib/action-feedback";
 import {createTranslator} from "@/lib/i18n";
 import {useState,useActionState} from "react";
 import {Megaphone,Pencil,Link as LinkIcon} from "lucide-react";
@@ -28,7 +29,7 @@ export function AnnouncementDialog({organizationId,announcement,locale,open:cont
  <EntityImageField key={`${announcement?.id??"new"}-${open}`} organization={organizationId} locale={locale} purpose="announcement-image" initialPreview={announcement?.imageAssetId?`/files/${announcement.imageAssetId}/preview`:""}/>
  <Field orientation="horizontal"><Switch id={`pin-${announcement?.id??"new"}`} name="pinned" defaultChecked={announcement?.pinned??false}/><FieldLabel htmlFor={`pin-${announcement?.id??"new"}`}>{c("تثبيت الإعلان","Pin announcement")}</FieldLabel></Field>
  </FieldGroup></fieldset>
- {state.error&&<p role="alert" className="error-message">{state.error}</p>}</div>
+ {state.error&&<p role="alert" className="error-message">{actionFeedback(state.error,locale)}</p>}</div>
  <div className="management-action-footer is-modal-footer flex-wrap"><Button type="submit" name="intent" value="publish" disabled={pending}>{pending?c("جارٍ الحفظ…","Saving…"):c("نشر الإعلان","Publish announcement")}</Button><Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending}>{c("حفظ كمسودة","Save draft")}</Button><Button type="button" variant="ghost" className="sm:ms-auto" disabled={pending} onClick={()=>setOpen(false)}>{c("إلغاء","Cancel")}</Button></div>
  </form></ManagementActionSheet>;
 }

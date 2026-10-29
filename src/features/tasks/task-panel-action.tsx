@@ -1,4 +1,5 @@
 "use client";
+import {actionFeedback} from "@/lib/action-feedback";
 
 import {t as translateUi} from "@/lib/i18n";
 import {useEffect,useRef,useState,useTransition} from "react";
@@ -36,7 +37,7 @@ export function TaskPanelAction({task,title,locale="ar",submission=false,edit=fa
   }}>
     <div ref={content} className="min-w-0">
       {pending&&!result&&<div role="status" aria-label={translateUi((en) ? "en" : "ar", "جارٍ تحميل المهمة", "Loading task")} className="space-y-4"><Skeleton className="h-8 w-2/3"/><Skeleton className="h-40 w-full"/><Skeleton className="h-28 w-full"/></div>}
-      {result?.error&&<Alert variant="destructive"><AlertDescription>{result.error}</AlertDescription><Button variant="outline" onClick={()=>load(query)}>{translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Retry")}</Button></Alert>}
+      {result?.error&&<Alert variant="destructive"><AlertDescription>{actionFeedback(result.error,locale)}</AlertDescription><Button variant="outline" onClick={()=>load(query)}>{translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Retry")}</Button></Alert>}
       {result?.detail&&(edit?(result.detail.canManage&&result.workspace?<TaskEditorForm org={result.detail.task.organization_id} task={result.detail.task} workspace={result.workspace} locale={locale}/>:<Alert><AlertDescription>{translateUi((en) ? "en" : "ar", "لا تملك صلاحية تعديل هذه المهمة.", "You cannot edit this task.")}</AlertDescription></Alert>):<ManagementActionProvider locale={locale} close={()=>setOpen(false)} inlineForms><TaskDetailView detail={result.detail} workspace={result.workspace} {...query} locale={locale} onNavigate={changes=>load({...query,...changes})}/></ManagementActionProvider>)}
     </div>
   </ManagementActionSheet>;

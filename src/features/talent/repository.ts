@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { withUser, withVisitor } from "@/db/client";
 import type { TalentFilters } from "./filters";
-export function talentOrganizationLogo(name:string,logo:string|null|undefined){return logo??(localOrganizationContent(name,"Club")??localOrganizationContent(name,"Council"))?.logoSrc??null;}
+export function talentOrganizationLogo(name:string,logo:string|null|undefined){return logo?.trim()||((localOrganizationContent(name,"Club")??localOrganizationContent(name,"Council"))?.logoSrc??null);}
 export type TalentOrganization = {
   name: string;
   slug: string;
@@ -139,7 +139,7 @@ const readPublicTalent = unstable_cache(
     if (!profile) throw new PublicTalentNotFound();
     return profile;
   },
-  ["public-talent-profile-first-page-v5"],
+  ["public-talent-profile-first-page-v6"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export async function publicTalent(id: string, pages: TalentPages) {
@@ -207,7 +207,7 @@ const popular = unstable_cache(
       sort: "relevance",
       page: 0,
     }),
-  ["public-talent-search-v5"],
+  ["public-talent-search-v6"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export function searchTalent(filters: TalentFilters) {
