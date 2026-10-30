@@ -1,3 +1,5 @@
+"use client";
+
 import {Avatar,AvatarFallback,AvatarImage} from "@/components/ui/avatar";
 import {cn} from "cn";
 import type {ComponentProps} from "react";
