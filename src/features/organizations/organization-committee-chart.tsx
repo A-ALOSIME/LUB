@@ -1,5 +1,6 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
 import {NumberText} from "@/components/number-text";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import {formatCount} from "@/lib/display";
@@ -42,7 +43,7 @@ function CommitteeNode({ data }: NodeProps<ChartNode>) {
       <CardContent className="committee-flow-card-content">
         <div className="committee-flow-node-heading">
           {!committee && <Building2 aria-hidden="true" />}
-          {committee ? <button type="button" className="committee-flow-name" onClick={() => onAction("details")} aria-haspopup="dialog" aria-label={c(`عرض تفاصيل ${name}`, `View details for ${name}`)}><bdi>{name}</bdi></button> : <strong className="committee-flow-name" dir="auto">{name}</strong>}
+          {committee ? <button type="button" className="committee-flow-name" onClick={() => onAction("details")} aria-haspopup="dialog" aria-label={c(`عرض تفاصيل ${name}`, `View details for ${name}`)}><bdi><ContentText value={name}/></bdi></button> : <strong className="committee-flow-name" dir="auto"><ContentText value={name}/></strong>}
         </div>
         {meta.length > 0 && <p className="committee-flow-meta">{meta.join(" · ")}</p>}
         {committee && !readOnly && (committee.canEdit || canManage) && <div className="committee-flow-actions" role="group" aria-label={c(`إجراءات ${name}`, `Actions for ${name}`)}>

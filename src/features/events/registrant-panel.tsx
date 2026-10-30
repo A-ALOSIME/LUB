@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { z } from "zod";
@@ -76,7 +78,7 @@ export async function EventRegistrantPanel({
             <option value="">{c("كل الفعاليات", "All events")}</option>
             {data.options.map((e) => (
               <option key={e.id} value={e.id}>
-                {e.title}
+                <ContentText value={e.title}/>
               </option>
             ))}
           </NativeSelect>

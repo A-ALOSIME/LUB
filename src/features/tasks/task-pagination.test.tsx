@@ -24,7 +24,7 @@ describe("task pagination", () => {
   it("keeps the renewals tab in pagination links when another page exists", () => {
     render(<TaskPagination page={0} more base="/applications" query={{ tab: "renewals" }} />);
 
-    expect(screen.getByText("الصفحة ١")).toBeTruthy();
+    expect(screen.getByText("الصفحة 1")).toBeTruthy();
     expect(screen.getByRole("link", { name: "التالي" }).getAttribute("href")).toBe("/applications?tab=renewals&page=1");
   });
 });

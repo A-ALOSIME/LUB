@@ -1,3 +1,6 @@
+import {translateContent} from "@/lib/content-translation";
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
@@ -40,10 +43,10 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
     const profile=localOrganizationContent(organization.nameAr,organization.typeCode);
     const summary=organization.summary ?? profile?.about ?? "";
     const description=toMetaDescription(summary,`جهة طلابية ${organization.nameAr} على منصة لُبّ.`);
-    return localizedMetadata(organization.nameAr,organization.nameAr,{}, {
+    return localizedMetadata(organization.nameAr,translateContent(organization.nameAr,"en"),{}, {
       index:organization.statusCode==="Active",
       canonical:`/organizations/${organization.slug}`,
-      description:{ar:description,en:description},
+      description:{ar:description,en:toMetaDescription(translateContent(summary,"en"),`Student organization ${translateContent(organization.nameAr,"en")} on LUB.`)},
     });
   } catch {
     return localizedMetadata(translateUi((locale==="en") ? "en" : "ar", "تفاصيل الجهة", "Organization details"),translateUi((locale==="en") ? "en" : "ar", "تفاصيل الجهة", "Organization details"));
@@ -179,8 +182,8 @@ export default async function OrganizationPage({ params, searchParams }: {
         </div>}
         <div className="organization-hero-copy">
           <p className="text-sm font-bold text-action">{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</p>
-          <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl">{organization.nameAr}</h1>
-          {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9">{visibleSummary}</p>}
+          <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl"><ContentText value={organization.nameAr}/></h1>
+          {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9"><ContentText value={visibleSummary}/></p>}
           {currentRound&&!superAdmin&&<div className="mt-5"><RegistrationCallToAction round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></div>}
           {organization.tags.length > 0 && <ul aria-label={translateUi((en) ? "en" : "ar", "مجالات الجهة", "Organization interests")} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm">{tag}</li>)}</ul>}
           {organization.statusCode !== "Active" && <p className="mt-6 rounded-lg border border-line bg-white p-4 leading-8">{translateUi((en) ? "en" : "ar", `هذه الجهة ${organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}.`, `This organization is ${organization.statusCode.toLowerCase()}.`)}{organization.archivedAt && <> {translateUi((en) ? "en" : "ar", "أُرشفت بتاريخ", "Archived on")} {formatRiyadhDate(organization.archivedAt, preferences.locale)}{translateUi((en) ? "en" : "ar", "، ويبقى هذا الرابط متاحًا لحفظ تاريخها.", ". This link remains available to preserve its history.")}</>}</p>}
@@ -206,8 +209,8 @@ export default async function OrganizationPage({ params, searchParams }: {
         {item.id === "activities" && hasActivity && <section className="organization-section-nav-target mt-8" aria-labelledby="organization-updates-title">
           <h2 id="organization-updates-title" className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "الفعاليات والمستجدات", "Activities and updates")}</h2>
           <div className="organization-update-list">
-            {featuredEvent&&<section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعالية مميزة", "Featured event")}</h3><Link className="text-link" href={`/events/${featuredEvent.id}`}>{featuredEvent.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></section>}
-            {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعاليات مختارة", "Selected events")}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}>{event.title}</Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{translateUi((en) ? "en" : "ar", "كل فعاليات الجهة", "All organization events")}</Link>}</section>}
+            {featuredEvent&&<section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعالية مميزة", "Featured event")}</h3><Link className="text-link" href={`/events/${featuredEvent.id}`}><ContentText value={featuredEvent.title}/></Link><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></section>}
+            {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعاليات مختارة", "Selected events")}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}><ContentText value={event.title}/></Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{translateUi((en) ? "en" : "ar", "كل فعاليات الجهة", "All organization events")}</Link>}</section>}
           </div>
         </section>}
         {item.id==="announcements"&&<PublicAnnouncements items={announcements} locale={preferences.locale}/>}

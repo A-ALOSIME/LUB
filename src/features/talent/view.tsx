@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {majorLabel} from "@/lib/display";
 import Link from "next/link";
 import { LubBrandName } from "@/components/lub-brand-name";
@@ -184,7 +186,7 @@ export function TalentCards({
                   </div>
                 </CardContent>
                 <CardFooter className="min-h-10 gap-2 border-border">
-                  <OrganizationAvatars items={t.organizations ?? []} locale={locale}/>
+                  <OrganizationAvatars items={t.organizations ?? []} locale={locale} size="lg"/>
                 </CardFooter>
               </Card>
             </Link>
@@ -382,7 +384,7 @@ export function PublicTalentView({
                       className="flex items-center gap-2 font-medium hover:text-primary"
                     >
                       <CalendarDays />
-                      <bdi>{e.title}</bdi>
+                      <bdi><ContentText value={e.title}/></bdi>
                     </Link>
                     <p className="text-sm text-muted-foreground">
                       <bdi>{e.organization}</bdi> ·{" "}
@@ -390,7 +392,7 @@ export function PublicTalentView({
                     </p>
                     {e.contributions.map((v, i) => (
                       <Badge key={i} variant="secondary">
-                        <bdi>{v.title}</bdi>
+                        <bdi><ContentText value={v.title}/></bdi>
                       </Badge>
                     ))}
                   </li>
@@ -416,13 +418,13 @@ export function PublicTalentView({
                 {p.projects.slice(0, 25).map((x) => (
                   <li key={x.id}>
                     <h3 className="font-semibold" dir="auto">
-                      {x.title}
+                      <ContentText value={x.title}/>
                     </h3>
                     <p
                       className="whitespace-pre-wrap leading-relaxed text-muted-foreground"
                       dir="auto"
                     >
-                      {x.description}
+                      <ContentText value={x.description}/>
                     </p>
                   </li>
                 ))}

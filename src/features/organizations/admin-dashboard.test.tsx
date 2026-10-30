@@ -9,9 +9,9 @@ describe("super admin dashboard", () => {
   it("shows active and archived organizations separately", () => {
     render(<SuperAdminDashboard locale="ar" summary={{ activeOrganizations: 12, archivedOrganizations: 1, administrators: 1 }} />);
 
-    expect(screen.getByText("١٢")).toBeTruthy();
+    expect(screen.getByText("12")).toBeTruthy();
     expect(screen.getByText("الجهات النشطة")).toBeTruthy();
-    expect(screen.getAllByText("١")).toHaveLength(2);
+    expect(screen.getAllByText("1")).toHaveLength(2);
     expect(screen.getByText("الجهات المؤرشفة")).toBeTruthy();
   });
 

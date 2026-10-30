@@ -112,7 +112,7 @@ export function TimeSelect({
             .sort((a, b) => a - b)
             .map((m) => (
               <option key={m} value={m}>
-                {localizeDigits(String(m).padStart(2,"0"),locale)}
+                {localizeDigits(String(m).padStart(2,"0"))}
               </option>
             ))}
         </NativeSelect>
@@ -147,11 +147,11 @@ function CalendarPanel({
   const en = locale === "en",
     today = riyadhToday();
   const [month,setMonth] = useState(value ? dateFromValue(value) : today);
-  const monthName = new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA-u-ca-gregory-nu-arab", {month:"long",year:"numeric"}).format(month);
+  const monthName = new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA-u-ca-gregory-nu-latn", {month:"long",year:"numeric"}).format(month);
   const moveMonth = (delta:number) => setMonth(new Date(month.getFullYear(),month.getMonth()+delta,1));
   const shared = {
     locale: en ? enGB : arSA,
-    numerals: en ? "latn" as const : "arab" as const,
+    numerals: "latn" as const,
     weekStartsOn: 0 as const,
     dir: en ? "ltr" : "rtl",
     today,
@@ -167,7 +167,7 @@ function CalendarPanel({
     showOutsideDays: false,
     formatters: {
       formatCaption: (d: Date) =>
-        new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA-u-nu-arab", {
+        new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA-u-nu-latn", {
           month: "long",
           year: "numeric",
           calendar: "gregory",
@@ -420,7 +420,7 @@ export function DateRangeInput({startName,endName,label,startValue="",endValue="
   const invalid=!!(startOutput&&endOutput&&(includeTime?new Date(endOutput)<=new Date(startOutput):endDate<startDate))||!validStart||!validEnd;
   const complete=!!(startOutput&&endOutput&&!invalid);
   const endpoint=(value:string)=>{
-    const date=new Date(includeTime?value:`${value}T12:00:00+03:00`),language=en?"en-GB":"ar-SA-u-ca-gregory-nu-arab";
+    const date=new Date(includeTime?value:`${value}T12:00:00+03:00`),language=en?"en-GB":"ar-SA-u-ca-gregory-nu-latn";
     const day=new Intl.DateTimeFormat(language,{timeZone:"Asia/Riyadh",day:"numeric",month:"long"}).format(date);
     return includeTime?`${day} ${new Intl.DateTimeFormat(language,{timeZone:"Asia/Riyadh",hour:"numeric",minute:"2-digit",hour12:true}).format(date)}`:day;
   };

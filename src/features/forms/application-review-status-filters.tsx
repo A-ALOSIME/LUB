@@ -1,4 +1,5 @@
 "use client";
+import {useRoutePrefetch} from "@/components/use-route-prefetch";
 
 import {t as translateUi} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
@@ -10,6 +11,8 @@ export type ApplicationReviewStatusOption = FilterTabOption & { href: string };
 export function ApplicationReviewStatusFilters({ value, options, locale,ariaLabel }: { value: string; options: ApplicationReviewStatusOption[]; locale: Locale;ariaLabel?:string }) {
   const router = useRouter();
   const en = locale === "en";
+  useRoutePrefetch(router.prefetch,()=>options.map(option=>option.href),locale);
+
   return <FilterTabs
     value={value}
     ariaLabel={ariaLabel??(translateUi((en) ? "en" : "ar", "تصفية طلبات الأعضاء", "Filter organization applications"))}

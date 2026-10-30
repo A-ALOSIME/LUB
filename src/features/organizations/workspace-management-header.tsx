@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -85,8 +87,8 @@ export function WorkspaceManagementHeader({ locale, theme, organizations, notifi
           {crumbs.map((crumb, index) => <li key={`${crumb.label}-${index}`} title={crumb.label}>
             {index > 0 && <span aria-hidden="true" className="workspace-management-breadcrumb-separator">/</span>}
             {crumb.href && index < crumbs.length - 1
-              ? <Link href={crumb.href}>{crumb.label}</Link>
-              : <span aria-current={index === crumbs.length - 1 ? "page" : undefined}>{crumb.label}</span>}
+              ? <Link href={crumb.href}><ContentText value={crumb.label}/></Link>
+              : <span aria-current={index === crumbs.length - 1 ? "page" : undefined}><ContentText value={crumb.label}/></span>}
           </li>)}
         </ol>
       </nav>

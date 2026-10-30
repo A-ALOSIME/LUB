@@ -1,3 +1,6 @@
+import {QuietRefresh} from "@/components/quiet-refresh";
+import {activityRevision} from "@/features/activity/revision";
+import {readActivityVersion} from "@/features/activity/freshness-actions";
 import {t as translateUi} from "@/lib/i18n";
 import { localizedMetadata } from "@/lib/localized-metadata"
 import { z } from "zod"
@@ -38,11 +41,18 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   const hourStatusCode = hourStatus === "approved" ? "Approved" : hourStatus === "pending" ? "Pending" : hourStatus === "rejected" ? "Rejected" : null
   const taskFilter = first(query.taskFilter) === "mine" || first(query.mine) === "1" ? "mine" : "available"
 
-  const [availableTasks, myTasks, eventData, hoursData] = await Promise.all([
-    listTasks(user.id, { view: "available", page }),
-    listTasks(user.id, { view: "mine", page }),
-    myEvents(user.id, page),
-    myHours(user.id, term, page, hourStatusCode),
+  const taskPage=initialTab==="tasks"?page:0,eventPage=initialTab==="events"?page:0,hourPage=initialTab==="hours"?page:0;
+  const hourTerm=initialTab==="hours"?term:null,hourFilter=initialTab==="hours"?hourStatus:"all";
+  const href=new URLSearchParams({tab:initialTab});
+  if(page>0)href.set("page",String(page));
+  if(initialTab==="tasks"&&taskFilter==="mine")href.set("taskFilter","mine");
+  if(initialTab==="hours"){if(term)href.set("term",term);if(hourStatus!=="all")href.set("hourStatus",hourStatus);}
+  const [availableTasks, myTasks, eventData, hoursData, version] = await Promise.all([
+    listTasks(user.id, { view: "available", page:taskPage }),
+    listTasks(user.id, { view: "mine", page:taskPage }),
+    myEvents(user.id, eventPage),
+    myHours(user.id, hourTerm, hourPage, initialTab==="hours"?hourStatusCode:null),
+    activityRevision(user.id),
   ])
 
   checkReadiness(eventData)
@@ -54,13 +64,15 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
     <header className="workspace-page-header">
       <h1>{translateUi((en) ? "en" : "ar", "نشاطي", "My activity")}</h1>
     </header>
+    <QuietRefresh version={version} readVersion={readActivityVersion}/>
     <ActivityTabs
       initialTab={initialTab}
+      activeHref={`/activity?${href.toString()}`}
       locale={locale}
       tasks={<TaskBrowser
         key={`${page}:${taskFilter}`}
         initialView={taskFilter}
-        page={page}
+        page={taskPage}
         availableItems={availableTasks.items}
         availableMore={availableTasks.more}
         mineItems={myTasks.items}
@@ -70,12 +82,12 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
         baseQuery={{ tab: "tasks" }}
         compact
       />}
-      events={<ActivityEventRows events={eventData.events} page={page} locale={locale} />}
+      events={<ActivityEventRows events={eventData.events} page={eventPage} locale={locale} />}
       hours={<ActivityHours
         data={hoursData}
-        page={page}
-        term={term}
-        status={hourStatus}
+        page={hourPage}
+        term={hourTerm}
+        status={hourFilter}
         locale={locale}
       />}
     />

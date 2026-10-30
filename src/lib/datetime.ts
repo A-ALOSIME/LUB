@@ -2,7 +2,7 @@ import {t as translateUi} from "@/lib/i18n";
 import type { Locale } from "./preferences";
 
 const TIME_ZONE = "Asia/Riyadh";
-const AR_LOCALE = "ar-SA-u-nu-arab";
+const AR_LOCALE = "ar-SA-u-nu-latn";
 const EN_LOCALE = "en-GB-u-nu-latn";
 // Six immutable locale/format combinations; never cache dates or user data.
 const formatters = new Map<string, Intl.DateTimeFormat>();

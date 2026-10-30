@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi,createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
@@ -135,7 +137,7 @@ export function OpeningRequestList({
                         className="break-words text-start after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-ring"
                         onClick={() => setSelected(item)}
                       >
-                        {item.name_ar}
+                        <ContentText value={item.name_ar}/>
                       </button>
                     </CardTitle>
                     <p className="mt-2 text-sm text-muted-foreground">

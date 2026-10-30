@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import type { Locale } from "@/lib/preferences";
@@ -38,7 +40,7 @@ export function SuperAdminDashboard({ locale, summary, notice }: {
     <section aria-label={translateUi((en) ? "en" : "ar", "ملخص النظام", "System summary")} className="workspace-summary-grid">
       {stats.map(stat => <div key={stat.label} className="workspace-summary-item">
         <span aria-hidden="true" className="workspace-summary-icon"><SectionIcon name={stat.name} /></span>
-        <span className="min-w-0"><span className="workspace-summary-label">{stat.label}</span><strong className="workspace-summary-value"><NumberText value={stat.value}/></strong></span>
+        <span className="min-w-0"><span className="workspace-summary-label"><ContentText value={stat.label}/></span><strong className="workspace-summary-value"><NumberText value={stat.value}/></strong></span>
       </div>)}
     </section>
   </div>;

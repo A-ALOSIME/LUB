@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {createTranslator} from "@/lib/i18n";
 import { Fragment, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -222,12 +224,12 @@ export function MyPageNavigation({
           {organizations.length === 1
             ? <div className="workspace-sidebar-organization workspace-sidebar-organization-heading" title={selectedOrganization.nameAr}>
               <span className="workspace-sidebar-organization-mark" aria-hidden="true">{organizationInitial(selectedOrganization.nameAr)}</span>
-              <span className="workspace-sidebar-label" dir="auto">{selectedOrganization.nameAr}</span>
+              <span className="workspace-sidebar-label" dir="auto"><ContentText value={selectedOrganization.nameAr}/></span>
             </div>
             : <DropdownMenu>
               <DropdownMenuTrigger render={<button type="button" className="workspace-sidebar-organization" aria-label={c("اختيار الجهة", "Choose organization")} title={selectedOrganization.nameAr} />}>
                 <span className="workspace-sidebar-organization-mark" aria-hidden="true">{organizationInitial(selectedOrganization.nameAr)}</span>
-                <span className="workspace-sidebar-label" dir="auto">{selectedOrganization.nameAr}</span>
+                <span className="workspace-sidebar-label" dir="auto"><ContentText value={selectedOrganization.nameAr}/></span>
                 <ChevronDown aria-hidden="true" className="workspace-sidebar-chevron" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="min-w-56">
@@ -235,7 +237,7 @@ export function MyPageNavigation({
                   <DropdownMenuLabel>{c("الجهة", "Organization")}</DropdownMenuLabel>
                   {organizations.map(organization => <DropdownMenuItem key={organization.id} render={<IntentPrefetchLink href={`/manage/organizations/${organization.id}`} onClick={closeMobile} />}>
                     <span className="workspace-sidebar-organization-mark" aria-hidden="true">{organizationInitial(organization.nameAr)}</span>
-                    <span dir="auto" className="truncate">{organization.nameAr}</span>
+                    <span dir="auto" className="truncate"><ContentText value={organization.nameAr}/></span>
                   </DropdownMenuItem>)}
                 </DropdownMenuGroup>
               </DropdownMenuContent>

@@ -119,6 +119,6 @@ const english: Record<string, string> = {
 
 export function actionFeedback(message: string | undefined, locale: Locale): string | undefined {
   if (!message) return message;
-  if (locale === "ar") return localizeDigits(message,locale);
+  if (locale === "ar") return localizeDigits(message);
   return english[message] ?? (/[\u0600-\u06ff]/u.test(message) ? "Please review the details and try again." : message);
 }

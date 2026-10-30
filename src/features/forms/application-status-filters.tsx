@@ -1,4 +1,5 @@
 "use client";
+import {useRoutePrefetch} from "@/components/use-route-prefetch";
 
 import {t as translateUi} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,8 @@ export function ApplicationStatusFilters({ status, counts, preview, locale }: {
 }) {
   const router = useRouter();
   const en = locale === "en";
+
+  useRoutePrefetch(router.prefetch,()=>applicationStatusTabs.map(tab=>applicationsHref({status:tab.value,preview})),locale);
 
   return <FilterTabs
     value={status}

@@ -58,7 +58,7 @@ describe("organization profile content", () => {
       expect(heading.parentElement?.querySelector("svg")).not.toBeNull();
     }
 
-    expect(screen.getByLabelText("٣٠+")).toBeTruthy();
+    expect(screen.getByLabelText("30+")).toBeTruthy();
     expect(screen.getByText("أرشيف إضافي").parentElement?.querySelector("svg")).not.toBeNull();
   });
 

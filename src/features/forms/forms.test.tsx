@@ -19,8 +19,8 @@ it("keeps typed answers and focuses failure feedback after a rejected submission
 });
 it("reorders stable questions with visible arrow actions without losing labels or identifiers",async()=>{
  render(<FormEditor version="version" revision={1} initial={initialDefinition}/>);
- fireEvent.click(screen.getByRole("button",{name:/القسم ١:/}));
- fireEvent.click(screen.getByRole("button",{name:"تحريك لأسفل · السؤال ١"}));
+ fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
+ fireEvent.click(screen.getByRole("button",{name:"تحريك لأسفل · السؤال 1"}));
  const payload=screen.getByRole("button",{name:"حفظ المسودة"}).closest("form")!.querySelector<HTMLInputElement>('input[name="definition"]')!;
  const saved=JSON.parse(payload.value) as typeof initialDefinition;
  expect(saved.sections[0].fields.map(f=>f.id)).toEqual(initialDefinition.sections[0].fields.map(f=>f.id).reverse());
@@ -31,15 +31,15 @@ it("switches progressive sections without destroying answers on earlier steps",(
  const second=structuredClone(definition.sections[0]);second.id="40000000-0000-4000-8000-000000000001";second.title="القسم التالي";second.fields=second.fields.map((f,i)=>({...f,id:`40000000-0000-4000-8000-00000000000${i+2}`,label:f.label+" ثاني"}));definition.sections.push(second);
  render(<ApplicationForm round="round" version="version" definition={definition} committees={[]}/>);
  fireEvent.change(screen.getByLabelText("ليش ترغب بالانضمام؟ *"),{target:{value:"باقية"}});
- fireEvent.click(screen.getByRole("button",{name:"التالي"}));expect(screen.getByText("القسم ٢ من ٢")).toBeTruthy();
+ fireEvent.click(screen.getByRole("button",{name:"التالي"}));expect(screen.getByText("القسم 2 من 2")).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:"السابق"}));expect((screen.getByLabelText("ليش ترغب بالانضمام؟ *") as HTMLTextAreaElement).value).toBe("باقية");
 });
 
 it("confirms publication, saves the latest draft first and returns to forms without a read-only intermediate screen",async()=>{
  action.mockResolvedValue({success:"تم الحفظ"});
  render(<FormEditor version="version" revision={1} initial={initialDefinition} returnHref="/forms"/>);
- fireEvent.click(screen.getByRole("button",{name:/القسم ١:/}));
- fireEvent.click(screen.getByRole("button",{name:/^السؤال ١/}));
+ fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
+ fireEvent.click(screen.getByRole("button",{name:/^السؤال 1/}));
  fireEvent.change(screen.getAllByRole("textbox",{name:"السؤال"})[0],{target:{value:"سؤال معدّل"}});
  fireEvent.click(screen.getByRole("button",{name:"نشر النسخة"}));
  const dialog=screen.getByRole("alertdialog");expect(dialog.textContent).toContain("طلبات الطلاب السابقة");expect(action).not.toHaveBeenCalled();
@@ -52,7 +52,7 @@ it("confirms publication, saves the latest draft first and returns to forms with
 });
 it("reorders questions with their drag handle while retaining stable identifiers",()=>{
  render(<FormEditor version="version" revision={1} initial={initialDefinition}/>);
- fireEvent.click(screen.getByRole("button",{name:/القسم ١:/}));
+ fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
  const rows=document.querySelectorAll(".editor-question"),handles=screen.getAllByRole("button",{name:"اسحب لإعادة ترتيب السؤال"});
  fireEvent.dragStart(handles[1],{dataTransfer:{setData:vi.fn()}});fireEvent.drop(rows[0]);
  const definition=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as typeof initialDefinition;
@@ -62,11 +62,11 @@ it("reorders questions with their drag handle while retaining stable identifiers
 it("collapses existing questions, opens new ones and duplicates with fresh identifiers",async()=>{
  render(<FormEditor version="version" revision={1} initial={initialDefinition}/>);
  expect(screen.queryByRole("textbox",{name:"السؤال"})).toBeNull();
- fireEvent.click(screen.getByRole("button",{name:/القسم ١:/}));
+ fireEvent.click(screen.getByRole("button",{name:/القسم 1:/}));
  expect(screen.queryByRole("textbox",{name:"السؤال"})).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:"إضافة سؤال"}));
  expect((screen.getByRole("textbox",{name:"السؤال"}) as HTMLInputElement).value).toBe("سؤال جديد");
- fireEvent.click(screen.getByRole("button",{name:"نسخ السؤال · السؤال ١"}));
+ fireEvent.click(screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"}));
  const definition=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as typeof initialDefinition;
  expect(new Set(definition.sections[0].fields.map(field=>field.id)).size).toBe(4);
  expect(definition.sections[0].fields[1].label).toBe(initialDefinition.sections[0].fields[0].label);

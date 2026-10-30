@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi,createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import {
@@ -77,7 +79,7 @@ export function EventCards({
               <div className="event-card-copy">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h2 dir="auto" className="m-0 text-xl font-semibold">
-                    {e.title}
+                    <ContentText value={e.title}/>
                   </h2>
                   {e.status_code !== "Published" && (
                     <OrganizationStatusBadge
@@ -125,7 +127,7 @@ export function EventCards({
                     {Array.from(e.org_name)[0] ?? "؟"}
                   </span>
                 )}
-                <bdi>{e.org_name}</bdi>
+                <bdi><ContentText value={e.org_name}/></bdi>
               </div>
               <span
                 className={buttonVariants({
@@ -318,7 +320,7 @@ export function EventContent({
               <span className="block text-xs font-medium text-muted">
                 {c("تنظمها", "Organized by")}
               </span>
-              <bdi>{data.org_name}</bdi>
+              <bdi><ContentText value={data.org_name}/></bdi>
             </span>
           </Link>
           <p className="event-detail-status">
@@ -343,7 +345,7 @@ export function EventContent({
           {!management && facts}
           {!management && e.description && (
             <p dir="auto" className="event-detail-description">
-              {e.description}
+              <ContentText value={e.description}/>
             </p>
           )}
           {management && data.canManage && (
@@ -649,7 +651,7 @@ export function EventContent({
               {facts}
               {e.description && (
                 <p dir="auto" className="whitespace-pre-wrap leading-relaxed">
-                  {e.description}
+                  <ContentText value={e.description}/>
                 </p>
               )}
             </section>

@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
@@ -12,4 +14,4 @@ export async function generateMetadata({params}:{params:Promise<{topic:string}>}
  const description=toMetaDescription(doc.text,doc.title);
  return localizedMetadata(doc.title,doc.title,{}, {index:true,canonical:`/help/${doc.id}`,description:{ar:description,en:description}});
 }
-export default async function HelpPage({params}:{params:Promise<{topic:string}>}){const [{topic},{locale}]=await Promise.all([params,getPreferences()]);const doc=publicKnowledge.find(s=>s.id===topic);if(!doc)notFound();return <><main id="main" className="mx-auto max-w-3xl px-5 py-10 sm:px-8"><Link href="/ai" className="text-link">{translateUi((locale==="en") ? "en" : "ar", "اسأل لُبّ", "Ask LUB")}</Link><article className="panel mt-6 p-6 sm:p-8"><h1 dir="auto" className="text-2xl font-bold leading-normal">{doc.title}</h1><p dir="auto" className="mt-6 leading-9">{doc.text}</p></article></main></>;}
+export default async function HelpPage({params}:{params:Promise<{topic:string}>}){const [{topic},{locale}]=await Promise.all([params,getPreferences()]);const doc=publicKnowledge.find(s=>s.id===topic);if(!doc)notFound();return <><main id="main" className="mx-auto max-w-3xl px-5 py-10 sm:px-8"><Link href="/ai" className="text-link">{translateUi((locale==="en") ? "en" : "ar", "اسأل لُبّ", "Ask LUB")}</Link><article className="panel mt-6 p-6 sm:p-8"><h1 dir="auto" className="text-2xl font-bold leading-normal"><ContentText value={doc.title}/></h1><p dir="auto" className="mt-6 leading-9">{doc.text}</p></article></main></>;}

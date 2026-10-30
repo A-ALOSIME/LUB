@@ -12,7 +12,7 @@ it("requires a future appointment and retains its readable Riyadh date with the 
  fireEvent.change(within(dialog).getByRole('textbox',{name:'تفاصيل المقابلة'}),{target:{value:'المقابلة في مقر النادي'}});
  expect((within(dialog).getByRole('button',{name:'تأكيد'}) as HTMLButtonElement).disabled).toBe(true);
  fireEvent.click(screen.getByLabelText('موعد المقابلة'));fireEvent.click(screen.getByRole('button',{name:'الشهر التالي'}));
- fireEvent.click(screen.getByRole('button',{name:/، ١ .* ٢٠[٠-٩]{2}$/}));fireEvent.click(screen.getByRole('button',{name:'تم'}));
+ fireEvent.click(screen.getByRole('button',{name:/، 1 .* 20[0-9]{2}$/}));fireEvent.click(screen.getByRole('button',{name:'تم'}));
  await waitFor(()=>expect((within(dialog).getByRole('button',{name:'تأكيد'}) as HTMLButtonElement).disabled).toBe(false));
- fireEvent.click(within(dialog).getByRole('button',{name:'تأكيد'}));await waitFor(()=>expect(decide).toHaveBeenCalledWith(['first'],'Interview',expect.stringMatching(/[٠-٩]{4}.*\nالمقابلة في مقر النادي/)));
+ fireEvent.click(within(dialog).getByRole('button',{name:'تأكيد'}));await waitFor(()=>expect(decide).toHaveBeenCalledWith(['first'],'Interview',expect.stringMatching(/[0-9]{4}.*\nالمقابلة في مقر النادي/)));
 });

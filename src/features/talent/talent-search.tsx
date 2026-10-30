@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useEffect, useState } from "react";
@@ -187,7 +189,7 @@ export function TalentSearch({
         >
           {chips.map((chip) => (
             <Badge key={chip.key} variant="secondary" className="gap-1">
-              <bdi>{chip.label}</bdi>
+              <bdi><ContentText value={chip.label}/></bdi>
               <Tooltip>
                 <TooltipTrigger
                   render={

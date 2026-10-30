@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {formatNumber,t as translateUi,createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import {useRouter} from "next/navigation";
@@ -342,7 +344,7 @@ export function FormEditor({
                 const conditionSource=earlier.find(previous=>previous.id===field.condition?.fieldId);
                 const answeredCondition=field.condition?.operator==="Answered" || (conditionSource?.type==="Committee" && field.condition?.operator==="Equals" && field.condition.value==="true");
                 return (
-                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · {field.label}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
+                  <EditorSection key={field.id} kind="question" defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · <ContentText value={field.label}/></span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
                     onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
                     tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${formatNumber(fi+1,locale)}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
@@ -584,7 +586,7 @@ export function FormEditor({
                                 </option>
                                 {earlier.map((f) => (
                                   <option key={f.id} value={f.id}>
-                                    {f.label}
+                                    <ContentText value={f.label}/>
                                   </option>
                                 ))}
                               </NativeSelect>
@@ -651,7 +653,7 @@ export function FormEditor({
                                       >
                                         {opts.map((o) => (
                                           <option key={o.value} value={o.value}>
-                                            {o.label}
+                                            <ContentText value={o.label}/>
                                           </option>
                                         ))}
                                       </NativeSelect>

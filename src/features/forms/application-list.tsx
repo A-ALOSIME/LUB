@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {formatNumber,t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { CalendarDays, ClipboardList, Info, Plus } from "lucide-react";
@@ -65,8 +67,8 @@ function ApplicationTable({ rows, locale, preview }: { rows: Application[]; loca
         {rows.length > 0 ? rows.map(application => <TableRow key={application.id}>
           <TableCell className="px-4 py-3.5">
             <div dir="auto" className="flex min-w-0 flex-col gap-0.5">
-              <span className="font-medium">{application.organization_name}</span>
-              <span className="truncate text-xs text-muted-foreground">{application.title}</span>
+              <span className="font-medium"><ContentText value={application.organization_name}/></span>
+              <span className="truncate text-xs text-muted-foreground"><ContentText value={application.title}/></span>
             </div>
           </TableCell>
           <TableCell className="px-4 py-3.5 text-muted-foreground">
@@ -93,8 +95,8 @@ function ApplicationCards({ rows, locale, preview }: { rows: Application[]; loca
     {rows.length > 0 ? rows.map(application => <article key={application.id} className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div dir="auto" className="min-w-0 space-y-0.5">
-          <p className="truncate text-xs text-muted-foreground">{application.organization_name}</p>
-          <h2 className="text-sm font-medium leading-5">{application.title}</h2>
+          <p className="truncate text-xs text-muted-foreground"><ContentText value={application.organization_name}/></p>
+          <h2 className="text-sm font-medium leading-5"><ContentText value={application.title}/></h2>
         </div>
         <ApplicationActions application={application} locale={locale} preview={preview} />
       </div>

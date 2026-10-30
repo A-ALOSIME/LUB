@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -63,7 +65,7 @@ export function KnowledgeSearch({ locale = "ar" }: { locale?: Locale }) {
       {state.sources.length ? <ul className="mt-4 divide-y divide-line border-t border-line">
         {state.sources.map(source => <li key={source.id} className="py-5">
           <p dir="auto" className="leading-8 wrap-anywhere">{source.text}</p>
-          <Link dir="auto" className="text-link mt-3 inline-block text-sm" href={source.url}>{source.title}</Link>
+          <Link dir="auto" className="text-link mt-3 inline-block text-sm" href={source.url}><ContentText value={source.title}/></Link>
         </li>)}
       </ul> : <p className="mt-4 border-t border-line py-5 leading-8 text-muted">{c("ما لقيت مرجعًا مناسبًا. جرّب سؤالًا بصياغة أوضح.", "No matching reference found. Try a clearer question.")}</p>}
     </section>}

@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import {NativeSelect} from "@/components/ui/native-select";
 import Link from "next/link"
@@ -36,7 +38,7 @@ export function ActivityEventRows({ events, page, locale }: { events: MyEvent[];
 
   return <div className="flex min-w-0 flex-col gap-3">
     {events.length ? <ItemGroup role="list" aria-label={translateUi((en) ? "en" : "ar", "فعالياتي", "My events")}>
-      {events.slice(0,25).map(event=><Link key={event.id} href={`/events/${event.id}`} className="rounded-lg outline-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring"><Item role="listitem" size="sm"><ItemMedia variant="icon"><CalendarDays aria-hidden="true"/></ItemMedia><ItemContent><ItemTitle className="flex flex-wrap items-center gap-2"><bdi>{event.title}</bdi><Badge variant={statusVariant(event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge></ItemTitle><ItemDescription>{date(event.starts_at)}</ItemDescription></ItemContent></Item></Link>)}
+      {events.slice(0,25).map(event=><Link key={event.id} href={`/events/${event.id}`} className="rounded-lg outline-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring"><Item role="listitem" size="sm"><ItemMedia variant="icon"><CalendarDays aria-hidden="true"/></ItemMedia><ItemContent><ItemTitle className="flex flex-wrap items-center gap-2"><bdi><ContentText value={event.title}/></bdi><Badge variant={statusVariant(event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge></ItemTitle><ItemDescription>{date(event.starts_at)}</ItemDescription></ItemContent></Item></Link>)}
     </ItemGroup> : <WorkspaceEmptyState
       icon={CalendarDays}
       title={translateUi((en) ? "en" : "ar", "ما سجلت في فعالية بعد", "No event registrations yet")}

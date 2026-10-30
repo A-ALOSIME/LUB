@@ -33,8 +33,8 @@ it("formats membership dates and keeps zero-hour totals", () => {
   render(<PublicTalentView profile={profile} pages={pages} />);
   expect(screen.getByRole("heading", { name: "أحمد فهد العصيّمي" })).toBeTruthy();
   expect(screen.getAllByText("أ").length).toBeGreaterThan(0);
-  expect(screen.getByText(/١٢ أكتوبر ٢٠٢٦/)).toBeTruthy();
-  expect(screen.getByText("٠ ساعة معتمدة")).toBeTruthy();
+  expect(screen.getByText(/12 أكتوبر 2026/)).toBeTruthy();
+  expect(screen.getByText("0 ساعة معتمدة")).toBeTruthy();
 });
 
 it("renders icon-only LinkedIn and GitHub links without exposing their URLs", () => {
@@ -60,11 +60,11 @@ it("shows numeric zero statistics and shows organization avatar fallbacks in mem
 
 it("limits card skills and organizations, keeps zero hours, and centers a single result", () => {
  render(<TalentCards items={[{...profile, skills:["Python","SQL","React","Figma","JavaScript"], organizations:Array.from({length:4},(_,i)=>({slug:String(i),name:`جهة ${i}`,logo:null}))}]} />);
- expect(screen.getByText("و ٢ أخرى")).toBeTruthy();
- expect(screen.getByText("+١")).toBeTruthy();
- expect(screen.getByText("٠ ساعة معتمدة")).toBeTruthy();
+ expect(screen.getByText("و 2 أخرى")).toBeTruthy();
+ expect(screen.getByText("+1")).toBeTruthy();
+ expect(screen.getByText("0 ساعة معتمدة")).toBeTruthy();
  expect(screen.getByRole("list").className).toContain("justify-center");
- expect(document.querySelectorAll('[data-slot="card-footer"] [data-size="default"]').length).toBe(4);
+ expect(document.querySelectorAll('[data-slot="card-footer"] [data-size="lg"]').length).toBe(4);
 });
 it("places the bio inside the identity card and displays chronological roles with collapse",()=>{
  render(<PublicTalentView profile={{...profile,bio:"نبذة قصيرة",organizations:[{...profile.organizations[0],hours:"4",memberships:[{...profile.organizations[0].memberships[0],roles:[{code:"OL",starts:"2026-10-20",ends:null,hours:"2"},{code:"OD",starts:"2026-10-15",ends:"2026-10-20",hours:"2"},{code:"CL",starts:"2026-10-12",ends:"2026-10-15",hours:"0"}]}]}]}} pages={pages}/>);

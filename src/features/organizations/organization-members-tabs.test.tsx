@@ -36,7 +36,7 @@ describe("organization members tabs", () => {
     />);
 
     expect(screen.getByRole("tab", { name: /الأعضاء الحاليون/ })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: /طلبات الانضمام.*٣/ })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /طلبات الانضمام.*3/ })).toBeTruthy();
     expect(screen.getByText("جدول الأعضاء")).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /طلبات الانضمام/ }));
     expect(navigation.push).not.toHaveBeenCalled();

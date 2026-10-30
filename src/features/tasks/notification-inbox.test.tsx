@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
+import {readTaskNotification} from "./actions";
 import { NotificationInbox, notificationDate, notificationHref } from "./notification-inbox";
 import { previewNotifications } from "./notification-preview";
 
@@ -39,7 +40,7 @@ it("shows sample notifications and lets the user inspect unread and read states 
   fireEvent.click(screen.getByRole("tab", { name: /غير مقروءة/ }));
 
   expect(screen.getByText("ما عندك إشعارات غير مقروءة.")).toBeTruthy();
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("٠");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("0");
 });
 
 it("filters the preview list while keeping English digit counts", () => {
@@ -52,8 +53,8 @@ it("filters the preview list while keeping English digit counts", () => {
   />);
 
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(4);
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).toContain("٦");
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("٤");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).toContain("6");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("4");
 });
 
 it("uses the shared segmented filter and keeps unread filtering in the URL", () => {
@@ -67,7 +68,8 @@ it("uses the shared segmented filter and keeps unread filtering in the URL", () 
   const group = screen.getByRole("tablist", { name: "تصفية الإشعارات" });
   expect(group.parentElement?.getAttribute("dir")).toBe("rtl");
   fireEvent.click(within(group).getByRole("tab", { name: /غير مقروءة/ }));
-  expect(routerPush).toHaveBeenCalledWith("/notifications?filter=unread");
+  expect(routerPush).not.toHaveBeenCalled();
+  expect(window.location.search).toBe("?filter=unread");
 });
 
 it("loads preview examples when navigating from an empty inbox without a full reload", async () => {
@@ -121,4 +123,21 @@ it("uses relative dates for recent notifications and full dates after a week", (
   const now = Date.parse("2026-10-14T12:00:00+03:00");
   expect(notificationDate("2026-10-14T10:00:00+03:00", "en", now)).toBe("2 hours ago");
   expect(notificationDate("2026-10-01T10:00:00+03:00", "en", now)).toContain("1 October 2026, 10:00 am");
+});
+
+it("uses the prefetched unread list without navigating again",()=>{
+ window.history.replaceState(null,"","/notifications");
+ render(<NotificationInbox items={[{...previewNotifications[0],read_at:"2026-10-01"}]} unreadItems={[previewNotifications[1]]} counts={{all:2,unread:1}} filter="all" locale="en"/>);
+ fireEvent.click(screen.getByRole("tab",{name:/Unread/}));
+ expect(routerPush).not.toHaveBeenCalled();expect(window.location.search).toBe("?filter=unread");
+ expect(screen.getByRole("list",{name:"Notifications"}).textContent).toContain(previewNotifications[1].title);
+});
+it("marks a notification read immediately and rolls back a failed save",async()=>{
+ let finish!:(result:{error:string})=>void;
+ vi.mocked(readTaskNotification).mockReturnValueOnce(new Promise(resolve=>{finish=resolve;}));
+ render(<NotificationInbox items={[{...previewNotifications[0],target_url:""}]} counts={{all:1,unread:1}} filter="all" locale="en"/>);
+ fireEvent.click(screen.getByRole("button",{name:"Mark as read"}));
+ expect(screen.getByRole("tab",{name:/Unread/}).textContent).toContain("0");
+ finish({error:"تعذّر تحديث الإشعار. حدّث الصفحة وحاول مرة ثانية."});
+ await waitFor(()=>expect(screen.getByRole("tab",{name:/Unread/}).textContent).toContain("1"));
 });

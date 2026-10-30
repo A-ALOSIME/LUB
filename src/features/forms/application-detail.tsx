@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import { ExternalLink, LockKeyhole } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -40,7 +42,7 @@ export function ApplicationDetail({
             return (
               <div key={f.id}>
                 <dt dir="auto" className="text-sm text-muted-foreground">
-                  {f.label}
+                  <ContentText value={f.label}/>
                 </dt>
                 <dd
                   dir="auto"
@@ -104,7 +106,7 @@ export function ApplicationDetail({
               dir="auto"
               className="mt-3 whitespace-pre-wrap leading-relaxed"
             >
-              {m.body}
+              <ContentText value={m.body}/>
             </p>
           ))}
         </section>
@@ -147,7 +149,7 @@ export function ApplicationDetail({
                 dir="auto"
                 className="whitespace-pre-wrap leading-relaxed"
               >
-                {n.body}
+                <ContentText value={n.body}/>
               </p>
             ))}
           </CardContent>

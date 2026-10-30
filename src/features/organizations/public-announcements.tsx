@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {useState} from "react";
 import Image from "next/image";
@@ -12,8 +14,8 @@ import type {PublicAnnouncement} from "./announcement-types";
 import type {Locale} from "@/lib/preferences";
 function AnnouncementCard({item,locale}:{item:PublicAnnouncement;locale:Locale}){
  const [expanded,setExpanded]=useState(false),en=locale==="en",long=item.body.length>500;
- return <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><CardTitle dir="auto" className="break-words">{item.title}</CardTitle>{item.pinned&&<Badge variant="secondary"><Pin/>{translateUi((en) ? "en" : "ar", "مثبّت", "Pinned")}</Badge>}</div><CardDescription><time dateTime={item.published_at}>{formatRiyadhDate(item.published_at,locale)}</time></CardDescription></CardHeader><CardContent className="flex min-w-0 flex-col gap-4">
- {long?<Collapsible open={expanded} onOpenChange={setExpanded}>{!expanded&&<p dir="auto" className="whitespace-pre-wrap break-words leading-8">{item.body.slice(0,500)}…</p>}<CollapsibleContent><p dir="auto" className="whitespace-pre-wrap break-words leading-8">{item.body}</p></CollapsibleContent><CollapsibleTrigger render={<Button variant="ghost" size="sm"/>}><ChevronDown/>{expanded?(translateUi((en) ? "en" : "ar", "عرض أقل", "Show less")):(translateUi((en) ? "en" : "ar", "عرض المزيد", "Show more"))}</CollapsibleTrigger></Collapsible>:<p dir="auto" className="whitespace-pre-wrap break-words leading-8">{item.body}</p>}
+ return <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><CardTitle dir="auto" className="break-words"><ContentText value={item.title}/></CardTitle>{item.pinned&&<Badge variant="secondary"><Pin/>{translateUi((en) ? "en" : "ar", "مثبّت", "Pinned")}</Badge>}</div><CardDescription><time dateTime={item.published_at}>{formatRiyadhDate(item.published_at,locale)}</time></CardDescription></CardHeader><CardContent className="flex min-w-0 flex-col gap-4">
+ {long?<Collapsible open={expanded} onOpenChange={setExpanded}>{!expanded&&<p dir="auto" className="whitespace-pre-wrap break-words leading-8">{item.body.slice(0,500)}…</p>}<CollapsibleContent><p dir="auto" className="whitespace-pre-wrap break-words leading-8"><ContentText value={item.body}/></p></CollapsibleContent><CollapsibleTrigger render={<Button variant="ghost" size="sm"/>}><ChevronDown/>{expanded?(translateUi((en) ? "en" : "ar", "عرض أقل", "Show less")):(translateUi((en) ? "en" : "ar", "عرض المزيد", "Show more"))}</CollapsibleTrigger></Collapsible>:<p dir="auto" className="whitespace-pre-wrap break-words leading-8"><ContentText value={item.body}/></p>}
  {item.has_image&&<Image src={`/announcement-images/${item.id}`} width={1000} height={700} unoptimized alt={item.title} sizes="(max-width:767px) 100vw, 60rem" className="h-auto w-full rounded-lg"/>}
  </CardContent>{item.external_url&&<CardFooter><Button variant="outline" render={<a href={item.external_url} target="_blank" rel="noopener noreferrer"/>} nativeButton={false}>{translateUi((en) ? "en" : "ar", "اقرأ المزيد", "Read more")}<ExternalLink/></Button></CardFooter>}</Card>;
 }

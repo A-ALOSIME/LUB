@@ -40,7 +40,7 @@ it("uses a compact unlabeled search and filters members by status", () => {
   expect(document.querySelector('.member-directory-search-wrap [data-slot="input-group-addon"]')?.className).not.toContain("absolute");
   expect(screen.getAllByText("أحمد محمد").length).toBeGreaterThan(0);
   expect(screen.getAllByText("سارة علي").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("منذ ١٢ أكتوبر ٢٠٢٦")).toHaveLength(2);
+  expect(screen.getAllByText("منذ 12 أكتوبر 2026")).toHaveLength(2);
 
   fireEvent.click(screen.getByRole("tab", { name: "منتهية" }));
 

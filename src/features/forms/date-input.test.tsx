@@ -40,7 +40,7 @@ it("rejects an inverted period and shows a field error without submitting it",()
 it("accepts numeric-keypad time entry and formats it on blur",()=>{
  const change=vi.fn(),valid=vi.fn();render(<CompactTimeInput label="البداية" value="12:00" onChange={change} onValidity={valid} locale="ar"/>);
  const input=screen.getByRole("textbox",{name:"البداية"});fireEvent.change(input,{target:{value:"1230"}});fireEvent.blur(input);
- expect((input as HTMLInputElement).value).toBe("١٢:٣٠");expect(change).toHaveBeenLastCalledWith("12:30");expect(valid).toHaveBeenLastCalledWith(true);
+ expect((input as HTMLInputElement).value).toBe("12:30");expect(change).toHaveBeenLastCalledWith("12:30");expect(valid).toHaveBeenLastCalledWith(true);
  fireEvent.change(input,{target:{value:"1300"}});expect(valid).toHaveBeenLastCalledWith(false);
 });
 
@@ -53,7 +53,7 @@ it("keeps period actions outside the scrollable calendar and clears both submitt
  fireEvent.click(screen.getByRole("button",{name:"مسح"}));
  expect(screen.getByRole("button",{name:"تم"}).hasAttribute("disabled")).toBe(true);
  expect(container.querySelector<HTMLInputElement>('input[name="opens"]')!.value).toBe("");expect(container.querySelector<HTMLInputElement>('input[name="closes"]')!.value).toBe("");
- expect((screen.getByRole("textbox",{name:"البداية"}) as HTMLInputElement).value).toBe("١٢:٠٠");expect((screen.getByRole("textbox",{name:"النهاية"}) as HTMLInputElement).value).toBe("١١:٥٩");
+ expect((screen.getByRole("textbox",{name:"البداية"}) as HTMLInputElement).value).toBe("12:00");expect((screen.getByRole("textbox",{name:"النهاية"}) as HTMLInputElement).value).toBe("11:59");
 });
 
 it("blocks saving an optional period that was started but left incomplete",()=>{

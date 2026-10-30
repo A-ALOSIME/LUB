@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -96,7 +98,7 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
           <div className="mb-2 font-medium">{c("فلاتر إضافية", "Additional filters")}</div>
           <LiveFilterForm action={searchApplications} className="grid gap-3">
             <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="q" value={filters.q}/><input type="hidden" name="page" value="1"/>
-            <FormField label={c("الجولة","Round")}><NativeSelect name="round" defaultValue={filters.round??""}><option value="">{c("كل الجولات","All rounds")}</option>{workspace.rounds.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</NativeSelect></FormField>
+            <FormField label={c("الجولة","Round")}><NativeSelect name="round" defaultValue={filters.round??""}><option value="">{c("كل الجولات","All rounds")}</option>{workspace.rounds.map(r=><option key={r.id} value={r.id}><ContentText value={r.title}/></option>)}</NativeSelect></FormField>
             <FormField  label={<>{c("اللجنة", "Committee")}</>}><NativeSelect name="committee" defaultValue={filters.committee}><option value="">{c("كل اللجان", "All committees")}</option>{workspace.committees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></FormField>
             <FormField  label={<>{c("المستوى", "Level")}</>}><input name="level" maxLength={20} defaultValue={filters.level}/></FormField>
             <FormField  label={<>{c("التخصص", "Major")}</>}><input name="major" dir={en ? "ltr" : "rtl"} maxLength={120} defaultValue={filters.major}/></FormField>

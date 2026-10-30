@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import {useActionState,useEffect,useRef,useState,startTransition,type ReactNode} from "react";
@@ -32,5 +34,5 @@ export function TaskForm({operation,fields={},label,children,disabled=false,loca
  {state.error&&<p ref={alert} role="alert" tabIndex={-1} className="error-message">{actionFeedback(state.error,locale)}</p>}
  {state.success&&<p role="status" className="text-action">{actionFeedback(state.success,locale)}{state.task&&<> <Link className="text-link" href={`/tasks/${state.task}`}>{translateUi((en) ? "en" : "ar", "فتح المهمة", "Open task")}</Link></>}</p>}
  </div>{footer}</form>
- <AlertDialog open={Boolean(staged)} onOpenChange={open=>{if(!open)setStaged(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{staged?.label}{translateUi((en) ? "en" : "ar", "؟", "?")}</AlertDialogTitle><AlertDialogDescription>{description}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button disabled={pending} onClick={()=>{if(staged){startTransition(()=>action(staged.data));setStaged(null);}}}>{translateUi((en) ? "en" : "ar", "تأكيد", "Confirm")}</Button><AlertDialogCancel>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
+ <AlertDialog open={Boolean(staged)} onOpenChange={open=>{if(!open)setStaged(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle><ContentText value={staged?.label}/>{translateUi((en) ? "en" : "ar", "؟", "?")}</AlertDialogTitle><AlertDialogDescription>{description}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button disabled={pending} onClick={()=>{if(staged){startTransition(()=>action(staged.data));setStaged(null);}}}>{translateUi((en) ? "en" : "ar", "تأكيد", "Confirm")}</Button><AlertDialogCancel>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
 }

@@ -17,7 +17,7 @@ export function CompactTimeInput({label,value,onChange,onValidity,locale}:{label
     if(match)onChange(`${String(Number(match[1])%12+(nextPeriod==="pm"?12:0)).padStart(2,"0")}:${match[2]}`);
   }
   return <Field data-invalid={invalid||undefined}><FieldLabel>{label}</FieldLabel><InputGroup className="compact-time-input" dir="ltr">
-    <InputGroupInput aria-label={label} aria-invalid={invalid} value={localizeDigits(text,locale)} inputMode="numeric" maxLength={5} placeholder={localizeDigits("12:00",locale)} onBlur={()=>{if(/^\d{3,4}$/.test(text))setText(`${text.slice(0,-2)}:${text.slice(-2)}`);}} onChange={event=>{const next=normalizeDigits(event.target.value);setText(next);update(next,period);}}/>
+    <InputGroupInput aria-label={label} aria-invalid={invalid} value={localizeDigits(text)} inputMode="numeric" maxLength={5} placeholder={localizeDigits("12:00")} onBlur={()=>{if(/^\d{3,4}$/.test(text))setText(`${text.slice(0,-2)}:${text.slice(-2)}`);}} onChange={event=>{const next=normalizeDigits(event.target.value);setText(next);update(next,period);}}/>
     <InputGroupAddon align="inline-end"><NativeSelect aria-label={`${label}: ${translateUi((locale==="ar") ? "ar" : "en", "الفترة", "period")}`} value={period} onChange={event=>update(text,event.target.value)}><option value="am">{translateUi((locale==="ar") ? "ar" : "en", "ص", "AM")}</option><option value="pm">{translateUi((locale==="ar") ? "ar" : "en", "م", "PM")}</option></NativeSelect></InputGroupAddon>
   </InputGroup></Field>;
 }

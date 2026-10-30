@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {t as translateUi} from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -46,7 +48,7 @@ export function EventDraftPreview({ locale }: { locale: Locale }) {
         {preview?.poster && <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-mist"><Image src={preview.poster} alt="" fill unoptimized sizes="(max-width: 640px) 100vw, 36rem" className="object-contain" /></div>}
         <div className="space-y-3">
           <h3 dir="auto" className="text-2xl font-bold">{preview?.title || (translateUi((en) ? "en" : "ar", "فعالية بلا عنوان", "Untitled event"))}</h3>
-          {preview?.description && <p dir="auto" className="whitespace-pre-line leading-7 text-muted">{preview.description}</p>}
+          {preview?.description && <p dir="auto" className="whitespace-pre-line leading-7 text-muted"><ContentText value={preview.description}/></p>}
           {preview?.starts && <p className="text-sm text-muted">{preview.ends
             ? en ? <>{"From "}<bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi>{" to "}<bdi>{formatRiyadhDateTime(preview.ends, locale)}</bdi></> : <>من <bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi> إلى <bdi>{formatRiyadhDateTime(preview.ends, locale)}</bdi></>
             : <>{translateUi((en) ? "en" : "ar", "تبدأ: ", "Starts: ")}<bdi>{formatRiyadhDateTime(preview.starts, locale)}</bdi></>}</p>}

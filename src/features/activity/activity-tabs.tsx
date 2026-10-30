@@ -1,7 +1,7 @@
 "use client"
 
 import {t as translateUi} from "@/lib/i18n";
-import { useRouter, useSearchParams } from "next/navigation"
+import {useSyncExternalStore} from "react"
 import { CalendarDays, ClipboardCheck, Clock3 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Locale } from "@/lib/preferences"
@@ -14,25 +14,30 @@ export function ActivityTabs({
   events,
   hours,
   locale,
+  activeHref,
 }: {
   initialTab: ActivityTab
   tasks: React.ReactNode
   events: React.ReactNode
   hours: React.ReactNode
+  activeHref?: string
   locale: Locale
 }) {
   const en = locale === "en"
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const requestedTab = searchParams.get("tab")
-  const tab: ActivityTab = requestedTab === "events" || requestedTab === "hours" ? requestedTab : initialTab
+  const tab=useSyncExternalStore(subscribe,()=>{
+    const value=new URL(window.location.href).searchParams.get("tab");
+    return value==="events"||value==="hours"?value:"tasks";
+  },()=>initialTab);
+  const hrefs={tasks:"/activity?tab=tasks",events:"/activity?tab=events",hours:"/activity?tab=hours",[initialTab]:activeHref??`/activity?tab=${initialTab}`};
 
   return <Tabs
     value={tab}
     dir={en ? "ltr" : "rtl"}
     onValueChange={value => {
       if (value !== "tasks" && value !== "events" && value !== "hours") return
-      router.push(`/activity?tab=${value}`, { scroll: false })
+      if(value===tab)return;
+      window.history.pushState(window.history.state,"",hrefs[value]);
+      window.dispatchEvent(new Event("activity-tab-change"));
     }}
     className="min-w-0 gap-4"
   >
@@ -47,8 +52,10 @@ export function ActivityTabs({
         <Clock3 aria-hidden="true" />{translateUi((en) ? "en" : "ar", "الساعات", "Hours")}
       </TabsTrigger>
     </TabsList>
-    <TabsContent value="tasks" className="min-w-0">{tasks}</TabsContent>
-    <TabsContent value="events" className="min-w-0">{events}</TabsContent>
-    <TabsContent value="hours" className="min-w-0">{hours}</TabsContent>
+    <TabsContent keepMounted value="tasks" className="min-w-0">{tasks}</TabsContent>
+    <TabsContent keepMounted value="events" className="min-w-0">{events}</TabsContent>
+    <TabsContent keepMounted value="hours" className="min-w-0">{hours}</TabsContent>
   </Tabs>
 }
+
+function subscribe(notify:()=>void){window.addEventListener("popstate",notify);window.addEventListener("activity-tab-change",notify);return()=>{window.removeEventListener("popstate",notify);window.removeEventListener("activity-tab-change",notify);};}

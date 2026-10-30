@@ -9,7 +9,7 @@ describe("animated organization statistics", () => {
   it("keeps the complete value available as text and an accessible name", () => {
     render(<AnimatedStat value="3,216+" />);
 
-    expect(screen.getByLabelText("٣,٢١٦+")).toBeTruthy();
-    expect(screen.getByText("٣,٢١٦+")).toBeTruthy();
+    expect(screen.getByLabelText("3,216+")).toBeTruthy();
+    expect(screen.getByText("3,216+")).toBeTruthy();
   });
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import { createContext, useCallback, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,7 +103,7 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
           tabIndex={activeSection === item.id ? 0 : -1}
           className="organization-section-nav-link"
         >
-          {item.icon}<span>{item.label}</span>
+          {item.icon}<span><ContentText value={item.label}/></span>
         </TabsTrigger>)}
     </TabsList>
   </nav>;

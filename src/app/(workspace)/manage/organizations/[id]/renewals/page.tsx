@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {RoundForm} from "@/features/forms/round-actions";
 import { FilePlus2, CalendarRange, ClipboardList } from "lucide-react";
@@ -57,7 +59,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const canManageForms = !!registration?.allowed.includes("FORMS_MANAGE");
   const createRoundForm = <RoundForm organization={id} templates={publishedTemplates} locale={locale}/>;
   const createCampaignForm = renewals?.allowed && <HoursForm operation="campaign" fields={{ org: id }} label={c("إنشاء المسودة", "Create draft")} locale={locale}>
-    <FormField  id="renewal-term" label={<>{c("الفصل الدراسي","Academic term")}</>}><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}>{term.name_ar} · {term.academic_year}</option>)}</NativeSelect></FormField>
+    <FormField  id="renewal-term" label={<>{c("الفصل الدراسي","Academic term")}</>}><NativeSelect id="renewal-term" name="term" required defaultValue=""><option value="">{c("اختر الفصل","Choose term")}</option>{renewals.terms.map(term=><option key={term.id} value={term.id}><ContentText value={term.name_ar}/> · {term.academic_year}</option>)}</NativeSelect></FormField>
     <DateRangeInput startName="opens" endName="closes" label={c("فترة استقبال الردود", "Response period")} required includeTime locale={locale}/>
     <Field orientation="horizontal" className="items-center">
       <Checkbox id="renewal-campaign-leaders" name="leaders" value="on" />

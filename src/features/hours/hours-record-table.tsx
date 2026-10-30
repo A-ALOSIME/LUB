@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useState } from "react";
@@ -157,11 +159,11 @@ function RecordActions({
             <dl className="hour-detail-fields">
               <div>
                 <dt>{c("الجهة", "Organization")}</dt>
-                <dd>{record.org_name}</dd>
+                <dd><ContentText value={record.org_name}/></dd>
               </div>
               <div>
                 <dt>{c("السبب", "Reason")}</dt>
-                <dd>{record.description}</dd>
+                <dd><ContentText value={record.description}/></dd>
               </div>
               <div>
                 <dt>{c("الساعات", "Hours")}</dt>
@@ -379,7 +381,7 @@ export function HoursRecordTable({
                     </TableCell>
                     <TableCell>
                       <p dir="auto" className="break-words">
-                        {record.description}
+                        <ContentText value={record.description}/>
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {source(record)}
@@ -423,7 +425,7 @@ export function HoursRecordTable({
               <CardContent className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
                   <strong>{formatHours(record.hours, locale)}</strong>
-                  <span>{record.context?.committee_name}</span>
+                  <span><ContentText value={record.context?.committee_name}/></span>
                   <time dateTime={record.activity_date}>
                     {formatRiyadhDate(record.activity_date, locale)}
                   </time>
@@ -434,7 +436,7 @@ export function HoursRecordTable({
                   </p>
                 )}
                 <p dir="auto" className="break-words">
-                  {record.description}
+                  <ContentText value={record.description}/>
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {source(record)}

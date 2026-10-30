@@ -5,7 +5,7 @@ export function relativeDate(value: string, locale: Locale = "ar") {
     Math.round((new Date(value).getTime() - Date.now()) / 86400000),
   );
   return new Intl.RelativeTimeFormat(
-    locale === "en" ? "en" : "ar-SA-u-nu-arab",
+    locale === "en" ? "en" : "ar-SA-u-nu-latn",
     { numeric: "auto" },
   ).format(days, "day");
 }

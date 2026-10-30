@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {majorLabel} from "@/lib/display";
 
@@ -108,7 +110,7 @@ export function EventRegistrationReview({
                   locale={locale}
                 />
                 <p className="text-sm text-muted-foreground">
-                  {detail.title} ·{" "}
+                  <ContentText value={detail.title}/> ·{" "}
                   {formatRiyadhDateTime(detail.created_at, locale)}
                 </p>
                 <SheetClose
@@ -132,7 +134,7 @@ export function EventRegistrationReview({
                     .map((f) => (
                       <div key={f.id}>
                         <dt className="text-sm text-muted-foreground">
-                          {f.label}
+                          <ContentText value={f.label}/>
                         </dt>
                         <dd className="mt-1 whitespace-pre-wrap break-words leading-relaxed">
                           {f.type === "File" ? (

@@ -5,7 +5,7 @@ export function notificationDate(value: string, locale: Locale, now = Date.now()
   const date = new Date(value)
   const elapsed = now - date.getTime()
   const absolute = Math.abs(elapsed)
-  const numberLocale = locale === "en" ? "en-US" : "ar-SA-u-nu-arab"
+  const numberLocale = locale === "en" ? "en-US" : "ar-SA-u-nu-latn"
   if (Number.isFinite(elapsed) && absolute < 7 * 24 * 60 * 60 * 1000) {
     const [amount, unit] = absolute < 60_000
       ? [Math.round(elapsed / 1000), "second"]

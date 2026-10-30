@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useState } from "react";
@@ -73,12 +75,12 @@ export function AdminOrganizationTable({
             width={40}
             height={40}
             unoptimized
-            className="size-10 shrink-0 rounded-lg object-contain"
+            className="size-10 shrink-0 rounded-lg object-contain p-1"
           />
         ) : (
           <Building2 className="size-8 shrink-0 text-muted-foreground" />
         )}
-        <span className="min-w-0 break-words font-medium">{item.nameAr}</span>
+        <span className="min-w-0 break-words font-medium"><ContentText value={item.nameAr}/></span>
       </span>
     );
   }

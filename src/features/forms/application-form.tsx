@@ -1,4 +1,6 @@
 "use client";
+
+import {ContentText} from "@/components/content-text";
 import {formatNumber,t as translateUi} from "@/lib/i18n";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
@@ -110,17 +112,17 @@ export function ApplicationForm({
             dir={en ? "ltr" : "rtl"}
             className="mb-4 text-xl font-semibold"
           >
-            {section.title}
+            <ContentText value={section.title}/>
           </legend>
           <p dir={en ? "ltr" : "rtl"} className="text-muted leading-8">
-            {section.description}
+            <ContentText value={section.description}/>
           </p>
           {section.fields
             .filter((f) => visible.has(f.id))
             .map((f) => (
               <div key={f.id}>
                 <label htmlFor={f.id} dir={en ? "ltr" : "rtl"}>
-                  {f.label}
+                  <ContentText value={f.label}/>
                   {f.required ? " *" : translateUi((en) ? "en" : "ar", " (اختياري)", " (optional)")}
                 </label>
                 {f.help && (
@@ -176,13 +178,13 @@ export function ApplicationForm({
                     </option>
                     {f.options.map((o) => (
                       <option key={o.value} value={o.value}>
-                        {o.label}
+                        <ContentText value={o.label}/>
                       </option>
                     ))}
                   </NativeSelect>
                 ) : f.type === "MultiSelect" ? (
                   <fieldset id={f.id} className="space-y-2">
-                    <legend className="sr-only">{f.label}</legend>
+                    <legend className="sr-only"><ContentText value={f.label}/></legend>
                     {f.options.map((o) => (
                       <label key={o.value} className="flex items-center gap-3">
                         <input
@@ -204,7 +206,7 @@ export function ApplicationForm({
                             );
                           }}
                         />
-                        {o.label}
+                        <ContentText value={o.label}/>
                       </label>
                     ))}
                   </fieldset>

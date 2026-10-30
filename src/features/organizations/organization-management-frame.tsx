@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -56,7 +58,7 @@ export function OrganizationManagementFrame({ locale, children }: { locale: Loca
   return <HeaderActionContext.Provider value={setAction}>
     <main className={`organization-management-page organization-management-page--wide workspace-content min-w-0${organizationOverview ? " organization-management-page--overview" : ""}`}>
       {!organizationOverview && <header className="workspace-page-header">
-        <h1>{page.title}</h1>
+        <h1><ContentText value={page.title}/></h1>
         {headerAction && <div className="organization-management-header-action">{headerAction}</div>}
       </header>}
       {children}

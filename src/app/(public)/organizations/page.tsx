@@ -1,3 +1,5 @@
+
+import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {Button} from "@/components/ui/button";
 import {Plus} from "lucide-react";
@@ -30,13 +32,13 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
       <div><p className="mb-2 text-sm font-medium text-action">{translateUi((en) ? "en" : "ar", "كلية علوم الحاسب والمعلومات", "College of Computer and Information Sciences")}</p><h1 className="text-4xl leading-normal sm:text-5xl">{translateUi((en) ? "en" : "ar", "الأندية والمجالس", "Clubs and councils")}</h1></div>
       <div className="flex flex-wrap items-center gap-3"><Button render={<Link href="/organization-requests/new"/>}><Plus/>{translateUi((en) ? "en" : "ar", "طلب فتح نادي أو مجلس", "Request a club or council")}</Button>
       {groups && groups.some(group => group.items.length > 0) && <nav aria-label={translateUi((en) ? "en" : "ar", "أنواع الجهات", "Organization types")} className="directory-shortcuts">
-        {groups.filter(group => group.items.length > 0).map(group => <a key={group.code} href={`#group-${group.code}`} className="button button-secondary">{group.title}</a>)}
+        {groups.filter(group => group.items.length > 0).map(group => <a key={group.code} href={`#group-${group.code}`} className="button button-secondary"><ContentText value={group.title}/></a>)}
       </nav>}</div>
     </header>
     {!directory && <section className="panel p-8" role="alert"><h2 className="text-xl font-semibold">{translateUi((en) ? "en" : "ar", "تعذّر تحميل الجهات", "Could not load organizations")}</h2><p className="mt-3 leading-7 text-muted">{translateUi((en) ? "en" : "ar", "حاول تحديث الصفحة بعد قليل.", "Please refresh the page in a moment.")}</p><Link href="/organizations" className="button button-secondary mt-5">{translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Try again")}</Link></section>}
     {directory && (directory.organizations.length === 0 ? <section className="panel px-6 py-12 text-center"><h2 className="text-xl font-semibold">{translateUi((en) ? "en" : "ar", "لا توجد جهات لعرضها الآن", "No organizations to show yet")}</h2><p className="mt-3 leading-8 text-muted">{translateUi((en) ? "en" : "ar", "تظهر الأندية والمجالس هنا عندما تُضاف إلى لُبّ.", "Clubs and councils will appear here when they are added to LUB.")}</p></section> : <>
       {groups?.map(group => group.items.length > 0 && <section key={group.code} aria-labelledby={`group-${group.code}`} className="directory-group">
-        <h2 id={`group-${group.code}`} className="directory-divider">{group.title}</h2>
+        <h2 id={`group-${group.code}`} className="directory-divider"><ContentText value={group.title}/></h2>
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
           const imageSrc = organization.logoUrl || profile?.logoSrc;
@@ -57,7 +59,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
               </span>
               <span className="organization-card-copy">
                 {organization.statusCode !== "Active" && <span className="mb-2 block text-sm text-muted">{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>}
-                <span dir="auto" className="organization-card-title">{organization.nameAr}</span>
+                <span dir="auto" className="organization-card-title"><ContentText value={organization.nameAr}/></span>
                 {organization.tags.length > 0 && <span className="organization-card-tags">{organization.tags.map(tag => <span key={tag} dir="auto">{tag}</span>)}</span>}
               </span>
             </IntentPrefetchLink>

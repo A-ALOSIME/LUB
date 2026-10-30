@@ -1,4 +1,5 @@
 "use client";
+import {useRoutePrefetch} from "@/components/use-route-prefetch";
 
 import {createTranslator} from "@/lib/i18n";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,9 @@ export function HoursStatusFilters({ value, locale = "ar" }: { value: HoursStatu
   const router = useRouter();
   const en = locale === "en";
   const c = createTranslator(en ? "en" : "ar");
+
+  function href(next:string){const params=new URLSearchParams(window.location.search);params.set("section","hours");params.delete("hoursPage");if(next==="all")params.delete("hourStatus");else params.set("hourStatus",next);return `${window.location.pathname}?${params.toString()}`;}
+  useRoutePrefetch(router.prefetch,()=>["all","Approved","Pending","Rejected"].map(href),locale);
 
   return <FilterTabs
       value={value}

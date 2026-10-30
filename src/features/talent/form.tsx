@@ -1,5 +1,7 @@
 "use client";
 
+import {ContentText} from "@/components/content-text";
+
 import {t as translateUi} from "@/lib/i18n";
 import { useId, useState } from "react";
 import { WorkflowForm } from "@/features/forms/mutation-form";
@@ -70,7 +72,7 @@ export function NewProject({ sources, locale = "ar", onSuccess }: { sources: Arr
       <FieldLabel htmlFor={sourceId}>{translateUi((en) ? "en" : "ar", "النشاط الموثق", "Verified activity")}</FieldLabel>
       <NativeSelect id={sourceId} required value={selected} onChange={(event) => setSelected(event.currentTarget.value)}>
         {sources.map((item) => <NativeSelectOption key={item.id} value={item.id} dir="auto">
-          {item.kind === "Task" ? translateUi((en) ? "en" : "ar", "مهمة", "Task") : translateUi((en) ? "en" : "ar", "مساهمة", "Contribution")} · {item.title}
+          {item.kind === "Task" ? translateUi((en) ? "en" : "ar", "مهمة", "Task") : translateUi((en) ? "en" : "ar", "مساهمة", "Contribution")} · <ContentText value={item.title}/>
         </NativeSelectOption>)}
       </NativeSelect>
     </Field>
