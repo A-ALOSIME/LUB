@@ -2,7 +2,7 @@
 import React from "react";
 import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
-const save=vi.hoisted(()=>vi.fn<(previous:unknown,data:FormData)=>Promise<{error?:string;success?:string}>>(async()=>({error:"تعذّر حفظ التغيير"})));
+const save=vi.hoisted(()=>vi.fn<(previous:unknown,data:FormData)=>Promise<{error?:string;success?:string;submissionError?:import("./submission-errors").SubmissionErrorCode}>>(async()=>({error:"تعذّر حفظ التغيير"})));
 vi.mock("./actions",()=>({mutateTask:save}));
 import {TaskForm} from "./task-form";
 import {ManagementActionProvider} from "@/components/management-action-sheet";
@@ -44,5 +44,11 @@ it("rolls an unsuccessful optimistic join back to the join action",async()=>{
 });
 it("shows one plain submission failure inside the form without an error toast",async()=>{
  const add=vi.spyOn(toast,"add");render(<TaskForm operation="submit" label="Send" locale="en"><textarea name="message" aria-label="Submission"/></TaskForm>);
- fireEvent.submit(screen.getByRole("button",{name:"Send"}).closest("form")!);expect((await screen.findAllByRole("alert"))).toHaveLength(1);expect(screen.getByRole("alert").textContent).toBe("Could not send your submission. Check the details and try again.");expect(add).not.toHaveBeenCalled();
+ fireEvent.submit(screen.getByRole("button",{name:"Send"}).closest("form")!);expect((await screen.findAllByRole("alert"))).toHaveLength(1);expect(screen.getByRole("alert").textContent).toBe("Your submission could not be sent right now. Keep your content and try again shortly.");expect(add).not.toHaveBeenCalled();
+});
+
+it.each(["input","setup"] as const)("explains %s errors without SQL details or a duplicate toast",async(code)=>{
+ save.mockResolvedValueOnce({error:"Failed query: private schema details",submissionError:code});const add=vi.spyOn(toast,"add");
+ render(<TaskForm operation="submit" label="إرسال" locale="ar"/>);fireEvent.submit(screen.getByRole("button",{name:"إرسال"}).closest("form")!);
+ const alert=await screen.findByRole("alert");expect(alert.textContent).toContain(code==="setup"?"تواصل مع قائد الجهة":"راجع بيانات التسليم");expect(alert.textContent).not.toContain("private");expect(alert.className).not.toContain("destructive");expect(alert.querySelector("svg")).toBeTruthy();expect(add).not.toHaveBeenCalled();
 });

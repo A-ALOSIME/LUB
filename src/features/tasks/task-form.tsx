@@ -7,16 +7,19 @@ import {useActionState,useEffect,useMemo,useRef,useState,startTransition,type Re
 import {mutateTask,type TaskState} from "./actions";
 import type {Locale} from "@/lib/preferences";
 import {actionFeedback} from "@/lib/action-feedback";
+import {TriangleAlert} from "lucide-react";
+import {Alert,AlertDescription} from "@/components/ui/alert";
+import {submissionErrorMessage,type SubmissionErrorCode} from "./submission-errors";
 import {Button} from "@/components/ui/button";
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel} from "@/components/ui/alert-dialog";
 import {ManagementActionFooter,useManagementAction} from "@/components/management-action-sheet";
 import {useActionToast} from "@/components/action-toast";
-export function TaskForm({operation,fields={},label,children,disabled=false,locale="ar",creationActions=false,canSaveTemplate=false,confirmDescription,onSubmitStart}:{operation:string;fields?:Record<string,string>;label:string;children?:ReactNode;disabled?:boolean;locale?:Locale;creationActions?:boolean;canSaveTemplate?:boolean;confirmDescription?:string;onSubmitStart?:()=>void}){
+export function TaskForm({operation,fields={},label,children,disabled=false,locale="ar",creationActions=false,canSaveTemplate=false,confirmDescription,onSubmitStart,uploadError}:{operation:string;fields?:Record<string,string>;label:string;children?:ReactNode;disabled?:boolean;locale?:Locale;creationActions?:boolean;canSaveTemplate?:boolean;confirmDescription?:string;onSubmitStart?:()=>void;uploadError?:SubmissionErrorCode}){
  const management=useManagementAction(),en=locale==="en";
  const [state,action,pending]=useActionState<TaskState,FormData>(async(previous,form)=>{const result=await mutateTask(previous,form);if(result.success){window.dispatchEvent(new Event("activity-changed"));if(management?.inlineForms)await management.refresh?.();else management?.close();}return result;},{});
- const alert=useRef<HTMLParagraphElement>(null),[staged,setStaged]=useState<{data:FormData;label:string}|null>(null);
+ const alert=useRef<HTMLDivElement>(null),[staged,setStaged]=useState<{data:FormData;label:string}|null>(null);
  const toastState=useMemo(()=>operation==="submit"?{success:state.success}:state,[operation,state]);
- useActionToast(toastState,locale);useEffect(()=>{if(state.error)alert.current?.focus();},[state]);
+ useActionToast(toastState,locale);useEffect(()=>{if(state.error||uploadError)alert.current?.focus();},[state,uploadError]);
  const footer=creationActions?<div className="management-action-footer is-modal-footer flex-wrap">
   <Button type="submit" name="intent" value="publish" disabled={pending||disabled}>{translateUi((en) ? "en" : "ar", "نشر المهمة", "Publish task")}</Button>
   <Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending||disabled}>{translateUi((en) ? "en" : "ar", "حفظ كمسودة", "Save draft")}</Button>
@@ -33,7 +36,7 @@ export function TaskForm({operation,fields={},label,children,disabled=false,loca
  }} onReset={event=>event.preventDefault()} className={management&&!management.inlineForms?"workflow-split-form":"flex flex-col gap-4"}>
  <input type="hidden" name="operation" value={operation}/>{Object.entries(fields).map(([key,value])=><input key={key} type="hidden" name={key} value={value}/>)}
  <div className={management&&!management.inlineForms?"workflow-form-body":"flex flex-col gap-4"}><fieldset disabled={pending||disabled} className="flex min-w-0 flex-col gap-4">{children}</fieldset>
- {state.error&&<p ref={alert} role="alert" tabIndex={-1} className="error-message">{operation==="submit"?translateUi(locale,"تعذّر إرسال التسليم، تحقق من المعلومات وحاول مجدداً.","Could not send your submission. Check the details and try again."):actionFeedback(state.error,locale)}</p>}
+ {operation==="submit"?(uploadError||state.error)&&<Alert ref={alert} tabIndex={-1} className="border-amber-600/20 bg-amber-500/5"><TriangleAlert className="text-amber-600 dark:text-amber-300"/><AlertDescription className="text-foreground">{submissionErrorMessage(uploadError??state.submissionError??"service",locale)}</AlertDescription></Alert>:state.error&&<div ref={alert} role="alert" tabIndex={-1} className="error-message">{actionFeedback(state.error,locale)}</div>}
  {state.success&&operation!=="join"&&<p role="status" className="text-action">{actionFeedback(state.success,locale)}{state.task&&<> <Link className="text-link" href={`/tasks/${state.task}`}>{translateUi((en) ? "en" : "ar", "فتح المهمة", "Open task")}</Link></>}</p>}
  </div>{operation==="join"&&(pending||state.success)?<div className="flex flex-col gap-3"><p role="status">{translateUi(locale,"الحالة: منضم","Status: Joined")}</p><Button type="button" disabled>{translateUi(locale,"بدء العمل","Start work")}</Button></div>:footer}</form>
  <AlertDialog open={Boolean(staged)} onOpenChange={open=>{if(!open)setStaged(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle><ContentText value={staged?.label}/>{translateUi((en) ? "en" : "ar", "؟", "?")}</AlertDialogTitle><AlertDialogDescription>{description}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button disabled={pending} onClick={()=>{if(staged){startTransition(()=>action(staged.data));setStaged(null);}}}>{translateUi((en) ? "en" : "ar", "تأكيد", "Confirm")}</Button><AlertDialogCancel>{translateUi((en) ? "en" : "ar", "إلغاء", "Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;

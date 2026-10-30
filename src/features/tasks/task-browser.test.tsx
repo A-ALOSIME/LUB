@@ -89,7 +89,7 @@ it("switches instantly between open tasks and all current or past participations
   const mine = screen.getByRole("tab", { name: "مشاركاتي" });
   expect(available.getAttribute("aria-selected")).toBe("true");
   expect(screen.getByText("مهمة متاحة")).toBeTruthy();
-  expect(screen.getByText("منضم")).toBeTruthy();
+  expect(screen.getByText("قيد العمل")).toBeTruthy();
   expect(screen.queryByText("مهمة منتهية")).toBeNull();
 
   fireEvent.click(mine);

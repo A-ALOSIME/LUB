@@ -1,12 +1,17 @@
 import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
-vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);return operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});}}));
+vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);await db.exec("savepoint with_user");try{const result=await operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});await db.exec("release savepoint with_user");return result;}catch(error){await db.exec("rollback to savepoint with_user; release savepoint with_user");throw error;}}}));
 import {activityRevision} from "../src/features/activity/revision";
 import {listTasks,taskDetail} from "../src/features/tasks/repository";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
+vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:currentActor})}));
+vi.mock("@/features/auth/authorization",()=>({studentOperationError:async()=>null}));
+import {mutateTask} from "../src/features/tasks/actions";
+let currentActor:string;
 let db: PGlite;
 const leader="00000000-0000-4000-8000-000000000001", member="00000000-0000-4000-8000-000000000002", other="00000000-0000-4000-8000-000000000003";
 const org="00000000-0000-4000-8000-000000000101", committee="00000000-0000-4000-8000-000000000201";
@@ -18,7 +23,7 @@ beforeAll(async()=>{
  await storageFixture(db);
  await applyMigrations(db);
 },30000);
-async function asUser(id:string){await db.exec("reset role");await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)",[id]);}
+async function asUser(id:string){currentActor=id;await db.exec("reset role");await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)",[id]);}
 async function denied(fn:()=>Promise<unknown>){await db.exec("savepoint denied");await expect(fn()).rejects.toThrow();await db.exec("rollback to savepoint denied; release savepoint denied");}
 beforeEach(async()=>{
  await db.exec("begin"); memberships=[];
@@ -167,4 +172,28 @@ it("returns all submissions to authorized managers but keeps student reads owner
 
 it("refreshes the actor-scoped activity fingerprint when another participant joins a managed task",async()=>{
  const task=await openTask(),before=await activityRevision(leader);await join(task,member);const after=await activityRevision(leader);expect(before).toHaveLength(32);expect(after).not.toBe(before);
+});
+
+it.each([false,true])("submits through the real server action, with attachments=%s, without awarding hours prematurely",async(withAttachment)=>{
+ const task=await openTask(),p=await join(task);
+ const form=new FormData();form.set("operation","submit");form.set("participant",p);form.set("message","المخرج جاهز للمراجعة");form.set("revision","2");form.set("lastRevision","0");
+ if(withAttachment){const asset="00000000-0000-4000-8000-000000000399";await db.query("select lub.register_application_asset($1,$2,'work.pdf','application/pdf',100)",[asset,`${member}/${asset}`]);form.append("asset",asset);}
+ const result=await mutateTask({},form);expect(result.success).toBeTruthy();expect(result.error).toBeUndefined();
+ expect((await db.query("select status_code from lub.task_participants where id=$1",[p])).rows[0]).toEqual({status_code:"Submitted"});expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[p])).rows).toHaveLength(1);expect((await db.query("select id from lub.hour_records")).rows).toHaveLength(0);
+});
+
+it("returns actionable errors for empty work, stale task versions, pending reviews and other accounts",async()=>{
+ const task=await openTask(),participant=await join(task);
+ const form=new FormData();for(const [key,value]of Object.entries({operation:"submit",participant,message:"",revision:"2",lastRevision:"0"}))form.set(key,value);
+ expect((await mutateTask({},form)).submissionError).toBe("empty");form.set("message","المخرج");form.set("revision","1");
+ expect((await mutateTask({},form)).submissionError).toBe("task-changed");form.set("revision","2");
+ await asUser(other);expect((await mutateTask({},form)).submissionError).toBe("access");await asUser(member);
+ expect((await mutateTask({},form)).success).toBeTruthy();expect((await mutateTask({},form)).submissionError).toBe("pending");
+ expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(1);
+});
+it("rejects another student's attachment without blaming task settings",async()=>{
+ const task=await openTask(),participant=await join(task),asset="00000000-0000-4000-8000-000000000398";
+ await asUser(other);await db.query("select lub.register_application_asset($1,$2,'work.pdf','application/pdf',100)",[asset,`${other}/${asset}`]);await asUser(member);
+ const form=new FormData();for(const [key,value]of Object.entries({operation:"submit",participant,message:"المخرج",revision:"2",lastRevision:"0",asset}))form.set(key,value);
+ expect((await mutateTask({},form)).submissionError).toBe("attachment");expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(0);
 });
