@@ -17,4 +17,15 @@ it("keeps the student panel in one column with participation then submissions th
  expect(headings.indexOf("مشاركتي")).toBeLessThan(headings.indexOf("تسليماتي"));expect(headings.indexOf("تسليماتي")).toBeLessThan(headings.indexOf("فريق المهمة"));
  expect(screen.getByText("لا توجد تسليمات.").parentElement?.textContent).toContain("إضافة تسليم");fireEvent.click(screen.getByRole("button",{name:"إضافة تسليم"}));expect(screen.getByRole("textbox",{name:"وصف التسليم"})).toBeTruthy();
 });
-it("retains manager history, event controls and task actions",()=>{render(<TaskDetailView detail={{...d,canManage:true}} page={0} teamPage={0} participant={null}/>);expect(screen.getByText("سجل نسخ المهمة")).toBeTruthy();expect(screen.getByText("إعدادات ارتباط الفعالية")).toBeTruthy();expect(screen.getByText("إجراءات المهمة")).toBeTruthy();});
+it("retains manager history, event controls and task actions",()=>{render(<TaskDetailView detail={{...d,canManage:true}} page={0} teamPage={0} participant={null}/>);expect(screen.getByText("سجل نسخ المهمة")).toBeTruthy();expect(screen.getByText("إعدادات ارتباط الفعالية")).toBeTruthy();expect(screen.getByLabelText("إجراءات المهمة")).toBeTruthy();expect(document.querySelector("aside")).toBeNull();});
+
+it("hides task version metadata from students even on past submissions and displays participation status only once",()=>{
+ const submission={id:"submission",revision_number:1,message:"Work",status_code:"Submitted",submitted_at:"2026-10-30",review_note:null,reviewed_at:null,task_revision_id:"revision",task_revision_number:7,task_snapshot:d.task,assets:[{id:"asset",name:"%D9%85%D9%84%D9%81%20%D8%B9%D9%85%D9%84.pdf"}]};
+ render(<TaskDetailView detail={{...d,submissions:[submission]}} page={0} teamPage={0} participant={null}/>);
+ expect(screen.queryByText(/نسخة المهمة/)).toBeNull();expect(screen.getAllByText(/حالة المشاركة/)).toHaveLength(1);expect(screen.getByRole("link",{name:"ملف عمل.pdf"}).getAttribute("href")).toBe("/files/asset");expect(screen.queryByRole("button",{name:"حفظ قرار المراجعة"})).toBeNull();
+});
+it("places manager actions, statistics and participants before all submissions in a full-width column",()=>{
+ render(<TaskDetailView detail={{...d,canManage:true,summary:{participants:2,submitted:1}}} page={0} teamPage={0} participant={null}/>);
+ const actions=screen.getByLabelText("إجراءات المهمة"),stats=screen.getByText("نسبة التسليم");expect(actions.compareDocumentPosition(stats)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ const headings=screen.getAllByRole("heading").map(h=>h.textContent);expect(headings.indexOf("المطلوب")).toBeLessThan(headings.indexOf("المنضمون للمهمة"));expect(headings.indexOf("المنضمون للمهمة")).toBeLessThan(headings.indexOf("كل التسليمات"));expect(headings.indexOf("كل التسليمات")).toBeLessThan(headings.indexOf("فريق المهمة"));expect(document.querySelector("aside")).toBeNull();
+});

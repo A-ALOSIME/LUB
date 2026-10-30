@@ -5,7 +5,7 @@ import {Button} from "@/components/ui/button";
 import {Plus} from "lucide-react";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
-import Image from "next/image";
+import {OrganizationLogo} from "@/components/organization-logo";
 import { localOrganizationContent } from "@/features/organizations/local-content";
 import { IntentPrefetchLink } from "@/features/organizations/intent-prefetch-link";
 import { readPublicDirectory } from "@/features/organizations/public-data";
@@ -42,20 +42,10 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
           const imageSrc = organization.logoUrl || profile?.logoSrc;
-          // The CyberSec PNG has tall transparent margins; size its visible mark to the square art.
-          const imageStyle = organization.logoUrl ? {objectFit:"contain" as const,objectPosition:"center",padding:0} : profile?.imageTheme === "cybersec"
-            ? { transform: "translateY(8px) scale(2.078)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
-            : profile?.imageTheme === "tuwaiq"
-              ? { transform: "scale(1.4)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
-            : profile?.imageTheme === "it-council" || profile?.imageTheme === "oss"
-              ? { objectFit: "contain" as const, objectPosition: "center", padding: 0 }
-            : profile?.imageTheme === "student-council"
-              ? { transform: "scale(1.22)", padding: 0, objectFit: "contain" as const, objectPosition: "center" }
-            : { objectFit: "contain" as const, objectPosition: "center" };
           return <li key={organization.id} className="organization-card">
             <IntentPrefetchLink href={`/organizations/${organization.slug}`} className="directory-link" aria-label={translateUi((en) ? "en" : "ar", `عرض ${organization.nameAr}`, `View ${organization.nameAr}`)}>
               <span className={`organization-card-art organization-card-art--${profile?.imageTheme ?? "default"}`} aria-hidden="true">
-                {imageSrc ? <Image src={imageSrc} alt="" fill sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw" unoptimized className="organization-card-image" style={imageStyle} /> : <span className="organization-card-placeholder">{organization.typeCode === "Council" ? translateUi((en) ? "en" : "ar", "مجلس طلابي", "Student council") : translateUi((en) ? "en" : "ar", "نادي طلابي", "Student club")}</span>}
+                <OrganizationLogo name={organization.nameAr} src={imageSrc} className="size-full"/>
               </span>
               <span className="organization-card-copy">
                 {organization.statusCode !== "Active" && <span className="mb-2 block text-sm text-muted">{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>}

@@ -13,7 +13,7 @@ export type HoursExportWorkspace={account:AccountReadiness;name:string;scopes:Ho
 export type HoursWorkspace={account:AccountReadiness;name:string;selfEnabled:boolean;canPolicy:boolean;exportScopes:HoursExportScope[];scopes:HourScope[];terms:Term[];templates:Array<{id:string;name:string;committee_id:string|null}>;members:Array<{id:string;name:string}>;rules:HourRule[];records:HourRecord[];total:string;hoursByStatus:HoursStatusTotals;filteredTotal?:string;filteredCount?:number;imports:Array<{id:string;name:string}>};
 const account=sql`jsonb_build_object('status',u.status_code,'onboarded',exists(select 1 from lub.student_profiles where user_id=u.id))`;
 const terms=sql`coalesce((select jsonb_agg(t order by t.start_date desc) from (select * from lub.academic_terms order by start_date desc limit 100) t),'[]')`;
-function recordRows(org:string|null,term:string|null,page:number,mine:string|null,committee:string|null=null,status:string|null=null,q=""){return sql`coalesce((select jsonb_agg(x order by x.created_at desc,x.id) from (
+function recordRows(org:string|null,term:string|null,page:number|null,mine:string|null,committee:string|null=null,status:string|null=null,q=""){return sql`coalesce((select jsonb_agg(x order by x.created_at desc,x.id) from (
  select h.*,o.name_ar as org_name,t.name_ar as term_name,lub.hour_owner_name(h.id) as owner,lub.can_approve_hours(h.organization_id,h.committee_id) as "canReview",lub.hour_record_context(h.id) as context,
  coalesce((select jsonb_agg(jsonb_build_object('before_hours',a.before_hours,'after_hours',a.after_hours,'actor_name',a.actor_name,'note',a.note,'created_at',a.created_at) order by a.created_at,a.id) from (select * from lub.hour_adjustments aa where aa.hour_record_id=h.id order by aa.created_at desc,aa.id desc limit 100) a),'[]') as adjustments,
  coalesce((select jsonb_agg(d order by d.created_at,d.id) from (select id,status_code,note,created_at from lub.hour_decisions where hour_record_id=h.id order by created_at,id limit 3) d),'[]') as decisions
@@ -21,8 +21,8 @@ function recordRows(org:string|null,term:string|null,page:number,mine:string|nul
  where (${org}::uuid is null or h.organization_id=${org}::uuid) and (${term}::uuid is null or h.academic_term_id=${term}::uuid) and (${committee}::uuid is null or h.committee_id=${committee}::uuid)
  and (${q}='' or position(lower(${q}) in lower(lub.hour_owner_name(h.id)))>0)
  and (${mine}::uuid is null or h.organization_membership_id in (select id from lub.organization_memberships where user_id=${mine}::uuid)) and (${status}::text is null or h.status_code=${status}::text)
- order by h.created_at desc,h.id limit 26 offset ${page*25}) x),'[]')`;}
-export async function myHours(user:string,term:string|null,page:number,status:string|null=null){return withUser(user,async tx=>{
+ order by h.created_at desc,h.id limit ${page===null?null:26} offset ${(page??0)*25}) x),'[]')`;}
+export async function myHours(user:string,term:string|null,page:number|null,status:string|null=null){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select ${account} as account,${terms} as terms,${recordRows(null,term,page,user,null,status)} as records,
  coalesce((select sum(h.hours) from lub.hour_records h where h.status_code='Approved' and (${term}::uuid is null or h.academic_term_id=${term}::uuid) and h.organization_membership_id in (select id from lub.organization_memberships where user_id=${user})) ,0)::text as total,
  (select jsonb_build_object(

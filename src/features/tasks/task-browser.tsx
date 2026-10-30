@@ -5,7 +5,7 @@ import { FilterTabs } from "@/components/ui/filter-tabs";
 import Link from "next/link";
 import { ClipboardCheck } from "lucide-react";
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 import { useState } from "react";
 import { TaskList, TaskPagination } from "./task-list";
@@ -23,7 +23,7 @@ export function TaskBrowser({
   locale = "ar",
   base = "/tasks",
   baseQuery = {},
-  compact = false,
+  compact = false,onViewChange,onPageChange,
 }: {
   availableItems: TaskCard[];
   mineItems: TaskCard[];
@@ -34,10 +34,11 @@ export function TaskBrowser({
   locale?: Locale;
   base?: string;
   baseQuery?: Record<string, string>;
-  compact?: boolean;
+  compact?: boolean;onViewChange?:(view:View)=>void;onPageChange?:(page:number)=>void;
 }) {
   const en = locale === "en";
-  const [view, setView] = useState<View>(initialView);
+  const [localView, setView] = useState<View>(initialView);
+  const view=onViewChange?initialView:localView;
   const items = view === "available" ? availableItems : mineItems;
   const more = view === "available" ? availableMore : mineMore;
 
@@ -51,15 +52,15 @@ export function TaskBrowser({
       ]}
       dir={en ? "ltr" : "rtl"}
       onValueChange={next => {
-        if (next === "available" || next === "mine") setView(next);
+        if (next === "available" || next === "mine"){if(onViewChange)onViewChange(next);else setView(next);}
       }}
     />
     {items.length ? <TaskList items={items} mode={view} locale={locale} compact={compact} /> : <WorkspaceEmptyState
       icon={ClipboardCheck}
       title={view === "mine" ? translateUi((en) ? "en" : "ar", "ما شاركت في أي مهمة حتى الآن", "No task participation yet") : translateUi((en) ? "en" : "ar", "لا توجد مهام متاحة الآن", "No tasks available right now")}
       description={view === "mine" ? translateUi((en) ? "en" : "ar", "تصفح المهام المتاحة للعثور على نشاط جديد.", "Browse open tasks to find your next activity.") : translateUi((en) ? "en" : "ar", "تفقّد الصفحة لاحقاً للاطلاع على المهام الجديدة.", "Check again later for new tasks.")}
-      action={view === "mine" ? <Link href="/activity?tab=tasks&taskFilter=available" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><ClipboardCheck data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تصفح المهام", "Browse tasks")}</Link> : undefined}
+      action={view === "mine" ? <Button size="lg" className="workspace-empty-state-action w-full sm:w-auto" {...(onViewChange?{onClick:()=>onViewChange("available")}:{render:<Link href="/activity?tab=tasks&taskFilter=available"/>,nativeButton:false})}><ClipboardCheck data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تصفح المهام", "Browse tasks")}</Button> : undefined}
     />}
-    <TaskPagination page={page} more={Boolean(more)} base={base} query={{ ...baseQuery, ...(view === "mine" ? { taskFilter: "mine" } : {}) }} locale={locale} />
+    <TaskPagination page={page} more={Boolean(more)} base={base} query={{ ...baseQuery, ...(view === "mine" ? { taskFilter: "mine" } : {}) }} locale={locale} onPageChange={onPageChange} />
   </div>;
 }

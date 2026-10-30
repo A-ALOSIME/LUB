@@ -54,9 +54,10 @@ it("fits the cyber security logo and keeps social links inside the organization 
   });
   render(page);
 
-  const logo = screen.getByAltText("شعار نادي الأمن السيبراني");
-  expect(logo.getAttribute("style")).toContain("height: 180%");
-  expect(logo.getAttribute("style")).toContain("object-fit: contain");
+  const logo = screen.getByAltText("نادي الأمن السيبراني");
+  expect(logo.className).toContain("object-contain");
+  expect(logo.getAttribute("style")??"").not.toMatch(/transform|height/);
+  expect(logo.parentElement?.className).toContain("rounded-lg");
   const contact = screen.getByRole("heading", { name: "روابط التواصل" }).closest("#organization-contact");
   expect(contact?.closest("#organization-overview")).toBeTruthy();
   expect(screen.queryByText("تابع الجهة أو تواصل معها عبر الروابط المتاحة.")).toBeNull();
@@ -82,7 +83,7 @@ it("uses a manager-uploaded organization logo on the public page", async () => {
   });
   render(page);
 
-  const logo = screen.getByAltText("شعار نادي تجريبي");
+  const logo = screen.getByAltText("نادي تجريبي");
   expect(logo.getAttribute("src")).toBe("https://logos.example/custom-logo-club.svg");
 });
 
@@ -93,7 +94,7 @@ it("shows a custom logo alongside an existing council cover", async () => {
   });
   render(page);
 
-  expect(screen.getByAltText("شعار المجلس الطلابي").getAttribute("src")).toBe("https://logos.example/student-council.svg");
+  expect(screen.getByAltText("المجلس الطلابي").getAttribute("src")).toBe("https://logos.example/student-council.svg");
   expect(screen.getByAltText("غلاف المجلس الطلابي")).toBeTruthy();
 });
 

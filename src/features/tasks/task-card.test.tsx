@@ -21,3 +21,9 @@ it("keeps other actions independent of the rectangle button",()=>{
  fireEvent.click(screen.getByRole("button",{name:"Other action"}));expect(screen.queryByRole("dialog")).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:"View details"}));expect(screen.getByRole("dialog")).toBeTruthy();
 });
+
+it("places the task thumbnail at the start and the status beside the title for leaders too",()=>{
+ const {container}=render(<TaskList items={[{...task,can_manage:true,task:{...task.task,status_code:"Draft",image_asset_id:"poster"}}]} mode="all"/>);
+ const image=container.querySelector('img')!;expect(image.getAttribute("src")).toBe("/files/poster/preview");expect(image.className).toContain("object-contain");
+ const title=screen.getByText("مهمة التصميم");expect(title.closest('[data-slot=card-title]')?.textContent).toContain("مسودة");fireEvent.click(screen.getByRole("button",{name:"عرض المهمة: مهمة التصميم"}));expect(screen.getByRole("dialog")).toBeTruthy();
+});

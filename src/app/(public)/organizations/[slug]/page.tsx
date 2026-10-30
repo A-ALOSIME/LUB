@@ -28,7 +28,7 @@ import { formatRiyadhDate } from "@/lib/datetime";
 import { canManageOrganizationSettings } from "@/features/organizations/management-repository";
 import { JsonLd } from "@/lib/json-ld";
 import { toMetaDescription } from "@/lib/seo";
-import type { CSSProperties } from "react";
+import {OrganizationLogo} from "@/components/organization-logo";
 import { buildCommitteeTree } from "@/features/organizations/committee-tree";
 import { buildOrganizationProfilePresentation } from "@/features/organizations/organization-public-profile";
 import { OrganizationCommitteeChart } from "@/features/organizations/organization-committee-chart";
@@ -150,13 +150,6 @@ export default async function OrganizationPage({ params, searchParams }: {
   const canonicalUrl=`https://lub.community/organizations/${organization.slug}`;
   const logoUrl=organization.logoUrl || (profile?.logoSrc ? new URL(profile.logoSrc,"https://lub.community").toString() : undefined);
   const organizationLogo = organization.logoUrl || profile?.logoSrc;
-  const isCuratedArtwork = !organization.logoUrl;
-  const heroImageLayout = isCuratedArtwork && profile?.imageTheme === "cybersec" ? { width: 738, height: 1600 } : { fill: true as const };
-  const heroImageStyle: CSSProperties | undefined = isCuratedArtwork && profile?.imageTheme === "cybersec"
-    ? { position: "absolute", width: "auto", height: "180%", maxWidth: "none", top: "57%", right: "auto", bottom: "auto", left: "50%", transform: "translate(-50%, -50%)", padding: 0, objectFit: "contain", objectPosition: "center" }
-    : profile?.imageTheme === "tuwaiq"
-      ? { width: "140%", height: "109%", maxWidth: "none", top: "50%", right: "auto", bottom: "auto", left: "50%", transform: "translate(-50%, -50%)", padding: 0, objectFit: "contain", objectPosition: "center" }
-      : profile?.imageTheme === "it-council" ? { padding: 0, objectFit: "contain", objectPosition: "center" } : { objectFit: "contain", objectPosition: "center" };
   const sameAs=socialLinks.flatMap(link=>{
     if(!link.href)return [];
     try { const url=new URL(link.href);return url.protocol==="https:"?[url.toString()]:[]; }
@@ -176,10 +169,8 @@ export default async function OrganizationPage({ params, searchParams }: {
     <header id="organization-overview" className="organization-hero organization-section-nav-target mt-6">
       {profile?.coverSrc && <figure className={"organization-hero-cover" + (profile?.imageTheme ? " organization-hero-cover--" + profile.imageTheme : "")}><Image src={profile.coverSrc} alt={translateUi((en) ? "en" : "ar", profile.imageTheme === "ieee" ? `شعار ${organization.nameAr}` : `غلاف ${organization.nameAr}`, profile.imageTheme === "ieee" ? `Logo of ${organization.nameAr}` : `${organization.nameAr} banner`)} fill sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-hero-cover-image" /></figure>}
       <div className={"organization-hero-main" + (profile?.coverSrc ? " organization-hero-main--cover" : "") + (profile?.coverSrc && organization.logoUrl ? " organization-hero-main--custom-cover" : "")}>
-      {profile?.coverSrc && organization.logoUrl && <div className="organization-hero-custom-logo"><Image src={organization.logoUrl} alt={translateUi((en) ? "en" : "ar", `شعار ${organization.nameAr}`, `Logo of ${organization.nameAr}`)} fill sizes="96px" unoptimized referrerPolicy="no-referrer" className="organization-hero-image" /></div>}
-      {!profile?.coverSrc && organizationLogo && <div className={`organization-hero-art organization-hero-art--${organization.logoUrl ? "default" : profile?.imageTheme ?? "default"}`}>
-          <Image src={organizationLogo} alt={translateUi((en) ? "en" : "ar", `شعار ${organization.nameAr}`, `Logo of ${organization.nameAr}`)} {...heroImageLayout} sizes="(max-width: 767px) 100vw, 320px" unoptimized referrerPolicy={organization.logoUrl ? "no-referrer" : undefined} className="organization-hero-image" style={heroImageStyle} />
-        </div>}
+      {profile?.coverSrc && organization.logoUrl && <div className="organization-hero-custom-logo"><OrganizationLogo name={organization.nameAr} src={organization.logoUrl} className="size-full"/></div>}
+      {!profile?.coverSrc && <div className={`organization-hero-art organization-hero-art--${organization.logoUrl ? "default" : profile?.imageTheme ?? "default"}`}><OrganizationLogo name={organization.nameAr} src={organizationLogo} className="size-full"/></div>}
         <div className="organization-hero-copy">
           <p className="text-sm font-bold text-action">{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</p>
           <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl"><ContentText value={organization.nameAr}/></h1>

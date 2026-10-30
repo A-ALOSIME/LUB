@@ -59,7 +59,7 @@ export function HoursForm({
   useActionToast(state, locale);
   useEffect(() => {
     if (state.error) alert.current?.focus();
-    if (state.success) onSuccess?.();
+    if (state.success){window.dispatchEvent(new Event("activity-changed"));onSuccess?.();}
   }, [state, onSuccess]);
   return (
     <>

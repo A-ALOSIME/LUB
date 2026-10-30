@@ -297,7 +297,7 @@ html:lang(en) .only-en { display: inline; }
 .organization-card-art--tuwaiq { background: #5429b7; }
 .organization-card-art--robotx { background: #0b2d81; }
 .organization-card-art--oss { background: #fff; }
-.organization-card-image { display: block; object-fit: contain; object-position: center; padding: 1.25rem; }
+.organization-card-image { display: block; object-fit: contain; object-position: center; padding: 0; }
 .organization-card-placeholder { display: grid; width: 100%; height: 100%; min-height: 0; place-items: center; border: 1px dashed #9aabb7; border-radius: .85rem; color: var(--color-subtle); font-size: 1.15rem; font-weight: 700; }
 .organization-card-copy { display: flex; flex: 1; flex-direction: column; align-items: flex-start; padding: 1.5rem; }
 .organization-card-title { display: block; font-size: 1.35rem; font-weight: 700; line-height: 1.55; }
@@ -327,7 +327,7 @@ html:lang(en) .only-en { display: inline; }
 .organization-hero-art--dhaheer, .organization-hero-art--it-council, .organization-hero-art--student-council { background: #fff; }
 .organization-hero-art--robotx { background: #0b2d81; }
 .organization-hero-art--oss { background: #fff; }
-.organization-hero-image { display: block; padding: 1rem; object-fit: contain; object-position: center; }
+.organization-hero-image { display: block; padding: 0; object-fit: contain; object-position: center; }
 .organization-hero-copy { min-width: 0; }
 .organization-hero-copy .intro-summary { color: var(--color-subtle); }
 .organization-profile-content { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
@@ -543,8 +543,8 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
 .event-example-date .event-icon { margin-top: .18rem; }
 .event-example-club, .event-card-organization { display: flex; min-width: 0; align-items: center; gap: .7rem; color: var(--color-action); font-size: .9rem; font-weight: 700; overflow-wrap: anywhere; }
 .event-example-club { margin-top: auto; }
-.event-example-club-logo, .event-card-organization-logo { display: grid; width: 3rem; height: 3rem; flex: none; place-items: center; overflow: hidden; border: 1px solid var(--color-line); border-radius: 50%; background: #fff; }
-.event-example-club-logo img, .event-card-organization-logo img { display: block; width: 100%; height: 100%; padding: .2rem; object-fit: contain; object-position: center; }
+.event-example-club-logo, .event-card-organization-logo { display: grid; width: 3rem; height: 3rem; flex: none; place-items: center; overflow: hidden; border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; }
+.event-example-club-logo img, .event-card-organization-logo img { display: block; width: 100%; height: 100%; padding: 0; object-fit: contain; object-position: center; }
 .event-card { display: flex; height: 100%; min-height: 16rem; flex-direction: column; gap: 1.2rem; padding: 1.25rem; color: inherit; text-decoration: none; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
 .event-card:hover { border-color: var(--color-action); box-shadow: 0 12px 30px rgb(29 45 61 / 10%); transform: translateY(-2px); }
 .event-card:focus-visible:not(input,select,textarea) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -566,7 +566,7 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
 .event-example-detail-back:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; border-radius: .25rem; }
 .event-example-detail-heading { display: flex; min-width: 0; flex-direction: column; align-items: stretch; gap: 1.25rem; margin-top: clamp(1.5rem, 3vw, 2.5rem); }
 .event-example-detail-organization { display: flex; width: fit-content; max-width: 100%; min-width: 0; align-items: center; gap: 1rem; padding: .65rem 1rem .65rem .75rem; border: 1px solid var(--color-line); border-radius: 1.2rem; background: var(--color-mist); }
-.event-example-detail-organization-mark { display: grid; width: clamp(5.25rem, 8vw, 7.5rem); aspect-ratio: 1; flex: none; place-items: center; overflow: hidden; padding: .65rem; border: 1px solid var(--color-line); border-radius: 1.25rem; background: #fff; box-shadow: 0 .5rem 1.25rem rgb(12 25 37 / .14); }
+.event-example-detail-organization-mark { display: grid; width: clamp(5.25rem, 8vw, 7.5rem); aspect-ratio: 1; flex: none; place-items: center; overflow: hidden; padding: 0; border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; box-shadow: 0 .5rem 1.25rem rgb(12 25 37 / .14); }
 .event-example-detail-organization-mark img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .event-example-detail-organization-copy { display: grid; min-width: 0; gap: .3rem; color: var(--color-subtle); font-size: .9rem; text-align: start; }
 .event-example-detail-organization-copy bdi { color: var(--color-action); font-size: 1.2rem; font-weight: 750; line-height: 1.5; overflow-wrap: anywhere; }
@@ -935,8 +935,8 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
 .event-detail-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 1rem; padding: clamp(1.25rem, 3vw, 2.3rem); }
 .event-detail-back { color: var(--color-action); font-size: .875rem; font-weight: 700; text-underline-offset: .25em; }
 .event-detail-organization { display: inline-flex; max-width: 100%; min-width: 0; align-items: center; gap: .85rem; padding: .45rem .8rem .45rem .45rem; border: 1px solid var(--color-line); border-radius: 1rem; background: var(--color-mist); color: var(--color-action); font-weight: 700; }
-.event-detail-organization-logo { display: grid; width: 3.75rem; height: 3.75rem; flex: none; place-items: center; overflow: hidden; border: 1px solid var(--color-line); border-radius: .8rem; background: #fff; }
-.event-detail-organization-logo img { width: 100%; height: 100%; padding: .35rem; object-fit: contain; object-position: center; }
+.event-detail-organization-logo { display: grid; width: 3.75rem; height: 3.75rem; flex: none; place-items: center; overflow: hidden; border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: #fff; }
+.event-detail-organization-logo img { width: 100%; height: 100%; padding: 0; object-fit: contain; object-position: center; }
 .event-detail-title { margin: 0; font-size: clamp(1.8rem, 3.7vw, 3rem); font-weight: 800; line-height: 1.35; text-align: start; overflow-wrap: anywhere; }
 .event-detail-status { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; color: var(--color-subtle); font-size: .84rem; }
 .event-detail-registration-link { min-height: 3.4rem; margin-block-start: .4rem; font-size: 1rem; }
@@ -2310,3 +2310,10 @@ input[data-slot="combobox-chip-input"], input[data-slot="combobox-chip-input"]:f
 :where([data-slot="select-item"],[data-slot="combobox-item"],[data-slot="dropdown-menu-item"]) { line-height:1.65; }
 html[dir="ltr"] :where(.organization-contact-value input,.organization-public-profile-stat input,.phone-input .phone-national-input) { text-align:left; }
 .organization-profile-section--rtl { direction:inherit; text-align:start; }
+
+/* Organization marks share the square frame; person avatars keep their circular shape. */
+.organization-settings-logo { border-radius: var(--radius-lg); padding: 0; }
+.organization-hero-art, .organization-hero-custom-logo, .organization-card-art, .event-card-organization-logo { border-radius: var(--radius-lg); }
+.event-card-organization-logo { padding: 0; }
+
+.organization-logo, .organization-logo [data-slot="avatar-fallback"] { border-radius: var(--radius-lg); }

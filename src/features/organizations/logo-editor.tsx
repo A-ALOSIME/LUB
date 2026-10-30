@@ -1,7 +1,7 @@
 "use client";
 
 import {t as translateUi} from "@/lib/i18n";
-import Image from "next/image";
+import {OrganizationLogo} from "@/components/organization-logo";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Camera, LoaderCircle, RotateCcw } from "lucide-react";
@@ -78,7 +78,7 @@ export function OrganizationLogoEditor({ organizationId, organizationName, logoU
   return <div className="organization-logo-editor">
     <div className={`organization-logo-preview${error ? " has-error" : ""}`}>
       <button type="button" className="organization-settings-logo" aria-label={translateUi((en) ? "en" : "ar", "تغيير شعار الجهة", "Change organization logo")} disabled={pending} onClick={() => inputRef.current?.click()}>
-        {currentLogo ? <Image src={currentLogo} alt="" width={88} height={88} unoptimized className="h-full w-full object-contain" /> : <span aria-hidden="true">{organizationName.trim().slice(0, 1) || "ج"}</span>}
+        <OrganizationLogo name={organizationName} src={currentLogo} className="size-full"/>
         <Camera aria-hidden="true" className="organization-logo-change-icon" />
       </button>
       <input ref={inputRef} id={`organization-logo-${organizationId}`} type="file" accept="image/png,image/svg+xml,.png,.svg" disabled={pending} className="sr-only" aria-label={translateUi((en) ? "en" : "ar", "اختيار شعار الجهة", "Choose an organization logo")} onChange={upload} />

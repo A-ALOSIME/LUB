@@ -1,3 +1,6 @@
+import Image from "next/image";
+import {OrganizationLogo} from "@/components/organization-logo";
+import {displayFileName} from "@/lib/file-name";
 
 import {ContentText} from "@/components/content-text";
 import {t as translateUi,createTranslator} from "@/lib/i18n";
@@ -20,7 +23,6 @@ import {
 import { formatHours } from "@/lib/display";
 import { NativeSelect } from "@/components/ui/native-select";
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import type { EventCard, EventDetail } from "./repository";
@@ -108,25 +110,7 @@ export function EventCards({
                 </p>
               </div>
               <div className="event-card-organization">
-                {logoSrc ? (
-                  <span className="event-card-organization-logo">
-                    <Image
-                      src={logoSrc}
-                      alt=""
-                      width={48}
-                      height={48}
-                      unoptimized
-                      loading="lazy"
-                    />
-                  </span>
-                ) : (
-                  <span
-                    className="event-card-organization-logo event-card-organization-logo--fallback"
-                    aria-hidden="true"
-                  >
-                    {Array.from(e.org_name)[0] ?? "؟"}
-                  </span>
-                )}
+                <OrganizationLogo name={e.org_name} src={logoSrc} className="event-card-organization-logo"/>
                 <bdi><ContentText value={e.org_name}/></bdi>
               </div>
               <span
@@ -298,24 +282,7 @@ export function EventContent({
             className="event-detail-organization"
             dir="auto"
           >
-            {logoSrc ? (
-              <span className="event-detail-organization-logo">
-                <Image
-                  src={logoSrc}
-                  alt=""
-                  width={72}
-                  height={72}
-                  unoptimized
-                />
-              </span>
-            ) : (
-              <span
-                className="event-detail-organization-logo event-card-organization-logo--fallback"
-                aria-hidden="true"
-              >
-                {Array.from(data.org_name)[0] ?? "؟"}
-              </span>
-            )}
+            <OrganizationLogo name={data.org_name} src={logoSrc} className="event-detail-organization-logo"/>
             <span>
               <span className="block text-xs font-medium text-muted">
                 {c("تنظمها", "Organized by")}
@@ -569,7 +536,7 @@ export function EventContent({
                               href={`/files/${asset.id}`}
                               className="text-link"
                             >
-                              {asset.file_name}
+                              {displayFileName(asset.file_name)}
                             </a>
                           </p>
                         ))}

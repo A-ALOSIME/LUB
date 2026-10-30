@@ -11,8 +11,11 @@ vi.mock("@/features/auth/verified-account", () => ({ getVerifiedAccountAccess: a
 vi.mock("@/features/ai/chat-widget", () => ({ ChatWidget: () => null }));
 vi.mock("next/headers", () => ({ headers: async () => request.headers }));
 vi.mock("@/features/profile/completion-actions",()=>({claimProfileCompletionNotice:vi.fn().mockResolvedValue(false)}));
+vi.mock("@/features/activity/activity-data-actions",()=>({loadActivitySnapshot:vi.fn()}));
+vi.mock("@/features/activity/freshness-actions",()=>({readActivityVersion:vi.fn()}));
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "font" }) }));
 
+import {ActivityCacheProvider} from "@/features/activity/activity-cache";
 import {DeferredChatWidget} from "@/features/ai/deferred-chat-widget";
 import {ProfileCompletionNotice} from "@/features/profile/completion-notice";
 import RootLayout, { generateMetadata } from "./layout";
@@ -86,4 +89,8 @@ it("describes LUB as a student clubs platform in English metadata", async () => 
 it("does not mount the completion-notice request for visitors",async()=>{
  identity.user=null;expect(findComponent(await RootLayout({children:null}),ProfileCompletionNotice)).toBeUndefined();
  identity.user={id:"verified-user"};expect(findComponent(await RootLayout({children:null}),ProfileCompletionNotice)).toBeDefined();identity.user=null;
+});
+
+it("keeps private activity cache outside route children and keys it to verified identity",async()=>{
+ identity.user={id:"verified-student"};const root=await RootLayout({children:"Route content"});const provider=findComponent(root,ActivityCacheProvider);expect(provider).toBeDefined();expect((provider?.props as {actorId:string}).actorId).toBe("verified-student");identity.user=null;
 });

@@ -4,7 +4,7 @@ import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useState } from "react";
-import Image from "next/image";
+import {OrganizationLogo} from "@/components/organization-logo";
 import { UserRound, UserRoundMinus, Power, Building2, Archive } from "lucide-react";
 import { RowAction } from "@/components/row-action";
 import {
@@ -68,18 +68,7 @@ export function AdminOrganizationTable({
   function name(item: AdminOrganizationRow) {
     return (
       <span className="flex min-w-0 items-center gap-3">
-        {item.logoUrl ? (
-          <Image
-            src={item.logoUrl}
-            alt=""
-            width={40}
-            height={40}
-            unoptimized
-            className="size-10 shrink-0 rounded-lg object-contain p-1"
-          />
-        ) : (
-          <Building2 className="size-8 shrink-0 text-muted-foreground" />
-        )}
+        <OrganizationLogo name={item.nameAr} src={item.logoUrl} size="lg"/>
         <span className="min-w-0 break-words font-medium"><ContentText value={item.nameAr}/></span>
       </span>
     );

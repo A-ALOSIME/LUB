@@ -5,7 +5,7 @@ import {NativeSelect} from "@/components/ui/native-select";
 import Link from "next/link"
 import { CalendarDays, Clock, ChevronDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
+import {Button, buttonVariants } from "@/components/ui/button"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { LiveFilterForm } from "@/components/live-filter-form"
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state"
@@ -14,7 +14,7 @@ import type { HoursData } from "@/features/hours/repository"
 import { HoursFields, TermSelect } from "@/features/hours/view"
 import { HoursRecordTable } from "@/features/hours/hours-record-table"
 import { Progress } from "@/components/ui/progress"
-import { formatHours } from "@/lib/display"
+import { formatHours, academicTerm } from "@/lib/display"
 import { HoursStatusSummary } from "@/features/hours/hours-status-summary"
 import { HoursForm } from "@/features/hours/form"
 import {formatRiyadhDate} from "@/lib/datetime"
@@ -31,7 +31,7 @@ function statusVariant(status: string): "secondary" | "outline" | "destructive" 
   return "outline"
 }
 
-export function ActivityEventRows({ events, page, locale }: { events: MyEvent[]; page: number; locale: Locale }) {
+export function ActivityEventRows({ events, page, locale,onPageChange }: { events: MyEvent[]; page: number; locale: Locale;onPageChange?:(page:number)=>void }) {
   const en = locale === "en"
   const date=(value:string)=>formatRiyadhDate(value,locale)
   const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "أُلغي التسجيل", "Registration cancelled"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
@@ -46,18 +46,20 @@ export function ActivityEventRows({ events, page, locale }: { events: MyEvent[];
       action={<Link href="/events" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><CalendarDays data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تصفح الفعاليات", "Browse events")}</Link>}
     />}
     {(page > 0 || events.length > 25) && <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات فعالياتي", "My event pages")} className="flex flex-wrap gap-3">
-      {page > 0 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page - 1}`}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Link>}
-      {events.length > 25 && <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/activity?tab=events&page=${page + 1}`}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Link>}
+      {page > 0 && <Button variant="outline" size="sm" {...(onPageChange?{onClick:()=>onPageChange(page-1)}:{render:<Link href={`/activity?tab=events&page=${page-1}`}/>,nativeButton:false})}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Button>}
+      {events.length > 25 && <Button variant="outline" size="sm" {...(onPageChange?{onClick:()=>onPageChange(page+1)}:{render:<Link href={`/activity?tab=events&page=${page+1}`}/>,nativeButton:false})}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Button>}
     </nav>}
   </div>
 }
 
-export function ActivityHours({ data, page, term, status, locale }: {
+export function ActivityHours({ data, page, term, status, locale,onFiltersChange,onPageChange }: {
   data: HoursData
   page: number
   term: string | null
   status: ActivityHourStatus
   locale: Locale
+  onFiltersChange?:(changes:{term?:string|null;status?:ActivityHourStatus})=>void
+  onPageChange?:(page:number)=>void
 }) {
   const en = locale === "en"
   const c = createTranslator(en ? "en" : "ar")
@@ -65,13 +67,13 @@ export function ActivityHours({ data, page, term, status, locale }: {
 
   return <div className="flex min-w-0 flex-col gap-4">
     <div className="flex min-w-0 items-center gap-3 overflow-x-auto pb-1">
-      <LiveFilterForm action="/activity" method="get" className="w-56 shrink-0">
+      {onFiltersChange?<NativeSelect aria-label={c("الفصل الدراسي","Academic term")} value={term??""} onChange={event=>onFiltersChange({term:event.target.value||null})} className="w-56 shrink-0"><option value="">{c("كل الفصول","All terms")}</option>{data.terms.map(item=><option key={item.id} value={item.id}>{academicTerm(item.name_ar,locale)} · {item.academic_year}</option>)}</NativeSelect>:<LiveFilterForm action="/activity" method="get" className="w-56 shrink-0">
         <input type="hidden" name="tab" value="hours" />
         <input type="hidden" name="page" value="0" />
         {statusCode && <input type="hidden" name="hourStatus" value={status} />}
         <TermSelect compact terms={data.terms} all value={term ?? ""} locale={locale} className="w-full min-w-0" />
-      </LiveFilterForm>
-      <div className="shrink-0"><ActivityHourFilter value={status} locale={locale} /></div>
+      </LiveFilterForm>}
+      <div className="shrink-0"><ActivityHourFilter value={status} locale={locale} onChange={onFiltersChange?status=>onFiltersChange({status}):undefined}/></div>
     </div>
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale} />
@@ -86,7 +88,7 @@ export function ActivityHours({ data, page, term, status, locale }: {
     {data.records.length
       ? <HoursRecordTable items={data.records} locale={locale} personal />
       : <WorkspaceEmptyState icon={Clock} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("لا توجد سجلات لهذه الفترة والحالة.", "No records match this term and status.")} />}
-    {(page > 0 || data.records.length > 25) && <TaskPagination page={page} more={data.records.length > 25} base="/activity" query={{ tab: "hours", ...(term ? { term } : {}), ...(statusCode ? { hourStatus: status } : {}) }} locale={locale} />}
+    {(page > 0 || data.records.length > 25) && <TaskPagination page={page} more={data.records.length > 25} base="/activity" onPageChange={onPageChange} query={{ tab: "hours", ...(term ? { term } : {}), ...(statusCode ? { hourStatus: status } : {}) }} locale={locale} />}
 
     {data.memberships.filter(membership => membership.self).map(membership => <details key={membership.id} className="rounded-lg border border-border/70 p-3">
       <summary className="cursor-pointer text-sm font-medium">{c("طلب ساعات ذاتي", "Self-reported hours request")} · <bdi>{membership.name}</bdi></summary>

@@ -72,3 +72,8 @@ it("places the bio inside the identity card and displays chronological roles wit
  expect(screen.getByRole("button",{name:/عرض المزيد/})).toBeTruthy();
  expect(document.querySelector('[data-slot="avatar"].size-24')).toBeTruthy();
 });
+
+it("merges duplicate roles within an organization while retaining leadership as a separate role",()=>{
+ render(<PublicTalentView profile={{...profile,organizations:[{...profile.organizations[0],memberships:[{start_date:"2025-10-01",end_date:"2026-01-01",status_code:"Ended",roles:[{code:"Member",starts:"2025-10-01",ends:"2026-01-01",hours:"1"}]},{start_date:"2026-02-01",end_date:null,status_code:"Active",roles:[{code:"Member",starts:"2026-02-01",ends:null,hours:"2"},{code:"OL",starts:"2026-10-01",ends:null,hours:"3"}]}]}]}} pages={pages}/>);
+ expect(screen.getAllByText("عضو")).toHaveLength(1);expect(screen.getByText("قائد النادي")).toBeTruthy();expect(screen.getByText(/1 أكتوبر 2025/)).toBeTruthy();expect(screen.queryByRole("button",{name:/عرض المزيد/})).toBeNull();
+});

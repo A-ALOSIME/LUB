@@ -2,7 +2,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
 export {taskLabels,formatTaskDate} from "./display";
-export type Task={id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null;image_asset_id?:string|null};
+export type Task={id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null;image_asset_id?:string|null;has_event_poster?:boolean};
 export type Participant={id:string;user_id:string;status_code:string;approved_hours_override:string|null;joined_at:string;closed_at:string|null};
 export type Submission={id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
 export type TaskTemplate={id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
@@ -16,21 +16,21 @@ export async function taskWorkspace(user:string,org:string){return withUser(user
  from lub.organizations o where o.id=${org} and lub.has_task_access(o.id)`);
  return rows[0] as unknown as TaskWorkspace|undefined;
 });}
-export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number}){return withUser(user,async tx=>{
+export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number|null}){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`with visible as (
  select to_jsonb(t) as task,t.organization_id,t.created_at,to_jsonb(p) as participant,false as historical from lub.tasks t left join lub.task_participants p on p.task_id=t.id and p.user_id=${user}
  where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and ((${options.view==='all'} and lub.can_manage_task(t.id)) or p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
  union all select r.snapshot_json,(r.snapshot_json->>'organization_id')::uuid,p.joined_at,to_jsonb(p),true from lub.task_participants p join lateral(select r.* from lub.task_revisions r where r.task_id=p.task_id order by r.revision_number desc limit 1) r on true
  where p.user_id=${user} and not exists(select 1 from lub.tasks t where t.id=p.task_id) and (${options.org??null}::uuid is null or (r.snapshot_json->>'organization_id')::uuid=${options.org??null}::uuid))
- select v.task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
+ select v.task||jsonb_build_object('has_event_poster',(exists(select 1 from lub.public_event_poster((v.task->>'event_id')::uuid)) or exists(select 1 from lub.event_assets a where a.event_id=(v.task->>'event_id')::uuid and a.asset_type_code='Poster'))) as task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
  (select jsonb_build_object('status_code',s.status_code) from lub.task_submissions s where s.task_participant_id=(v.participant->>'id')::uuid order by s.revision_number desc limit 1) as latest_submission,
  (select h.hours::text from lub.hour_records h where h.task_participant_id=(v.participant->>'id')::uuid and h.status_code='Approved' limit 1) as approved_hours
  from visible v join lub.organizations o on o.id=v.organization_id
  where (${options.view==='mine'} and v.participant is not null) or
  (${options.view==='available'} and not v.historical and v.task->>'status_code'='Open') or
  (${options.view==='all'} and not v.historical)
- order by v.created_at desc,v.task->>'id' limit 26 offset ${options.page*25}`);
- const items=rows as unknown as TaskCard[];return {items:items.slice(0,25),more:items.length>25};
+ order by v.created_at desc,v.task->>'id' limit ${options.page===null?null:26} offset ${(options.page??0)*25}`);
+ const items=rows as unknown as TaskCard[];return {items:options.page===null?items:items.slice(0,25),more:options.page!==null&&items.length>25};
 });}
 export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,teamPage=0,eventPage=0){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select
@@ -42,7 +42,7 @@ export async function taskDetail(user:string,id:string,participant:string|null=n
  (select to_jsonb(p) from lub.task_participants p where p.task_id=${id} and ((p.id=${participant}::uuid and lub.can_manage_task(${id})) or (${participant}::uuid is null and p.user_id=${user})) limit 1) as selected,
  coalesce((select max(s.revision_number) from lub.task_submissions s join lub.task_participants p on p.id=s.task_participant_id where p.task_id=${id} and p.user_id=${user}),0) as "lastRevision",
  coalesce((select jsonb_agg(t) from lub.task_team(${id},${teamPage*100}) t),'[]') as team,
- coalesce((select jsonb_agg(s order by s.revision_number desc) from (select s.*,r.revision_number as task_revision_number,r.snapshot_json as task_snapshot,coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'name',a.file_name)) from lub.task_submission_assets sa join lub.application_assets a on a.id=sa.asset_id where sa.task_submission_id=s.id),'[]') as assets from lub.task_submissions s join lub.task_participants p on p.id=s.task_participant_id join lub.task_revisions r on r.id=s.task_revision_id where p.task_id=${id} and ((${participant}::uuid is null and p.user_id=${user}) or (p.id=${participant}::uuid and lub.can_manage_task(${id}))) order by s.revision_number desc limit 21 offset ${revisionPage*20}) s),'[]') as submissions,
+ coalesce((select jsonb_agg(s order by s.submitted_at desc,s.id) from (select s.*,r.revision_number as task_revision_number,r.snapshot_json as task_snapshot,coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'name',a.file_name)) from lub.task_submission_assets sa join lub.application_assets a on a.id=sa.asset_id where sa.task_submission_id=s.id),'[]') as assets from lub.task_submissions s join lub.task_participants p on p.id=s.task_participant_id join lub.task_revisions r on r.id=s.task_revision_id where p.task_id=${id} and ((${participant}::uuid is null and (p.user_id=${user} or lub.can_manage_task(${id}))) or (p.id=${participant}::uuid and lub.can_manage_task(${id}))) order by s.submitted_at desc,s.id limit 21 offset ${revisionPage*20}) s),'[]') as submissions,
  coalesce((select jsonb_agg(r order by r.revision_number desc) from (select id,revision_number,snapshot_json,changed_at from lub.task_revisions where task_id=${id} and lub.can_manage_task(${id}) order by revision_number desc limit 21 offset ${revisionPage*20}) r),'[]') as history`);
  const data=rows[0] as unknown as TaskDetail|undefined;return data?.task?data:undefined;
 });}

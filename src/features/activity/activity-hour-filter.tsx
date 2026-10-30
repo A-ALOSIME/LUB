@@ -8,12 +8,12 @@ import type { Locale } from "@/lib/preferences"
 
 export type ActivityHourStatus = "all" | "approved" | "pending" | "rejected"
 
-export function ActivityHourFilter({ value, locale }: { value: ActivityHourStatus; locale: Locale }) {
+export function ActivityHourFilter({ value, locale,onChange }: { value: ActivityHourStatus; locale: Locale;onChange?:(value:ActivityHourStatus)=>void }) {
   const en = locale === "en"
   const router = useRouter()
 
   function href(next:string){const params=new URLSearchParams(window.location.search);params.set("tab","hours");params.delete("page");if(next==="all")params.delete("hourStatus");else params.set("hourStatus",next);return `/activity?${params.toString()}`;}
-  useRoutePrefetch(router.prefetch,()=>["all","approved","pending","rejected"].map(href),locale);
+  useRoutePrefetch(onChange?undefined:router.prefetch,()=>["all","approved","pending","rejected"].map(href),locale);
 
   return <FilterTabs
     value={value}
@@ -27,6 +27,7 @@ export function ActivityHourFilter({ value, locale }: { value: ActivityHourStatu
     ]}
     onValueChange={next => {
       if (next !== "all" && next !== "approved" && next !== "pending" && next !== "rejected") return
+      if(onChange){onChange(next);return;}
       const params = new URLSearchParams(window.location.search)
       params.set("tab", "hours")
       params.delete("page")

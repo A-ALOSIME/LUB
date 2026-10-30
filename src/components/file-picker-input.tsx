@@ -1,5 +1,6 @@
 "use client";
 
+import {displayFileName} from "@/lib/file-name";
 import {t as translateUi} from "@/lib/i18n";
 import { useId, useRef, useState, type ChangeEvent } from "react";
 import { FileUp } from "lucide-react";
@@ -45,8 +46,8 @@ export function FilePickerInput({
       <FileUp aria-hidden="true" />
       {translateUi((en) ? "en" : "ar", "اختيار ملف", "Choose file")}
     </Button>
-    <span className="min-w-0 truncate text-sm text-muted" aria-live="polite">
-      {fileName || (translateUi((en) ? "en" : "ar", "لم يتم اختيار ملف", "No file selected"))}
+    <span className="min-w-0 break-words text-sm text-muted" aria-live="polite">
+      {displayFileName(fileName) || (translateUi((en) ? "en" : "ar", "لم يتم اختيار ملف", "No file selected"))}
     </span>
   </div>;
 }

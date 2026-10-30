@@ -2,7 +2,7 @@
 import {createTranslator} from "@/lib/i18n";
 import { actionFeedback } from "@/lib/action-feedback";
 import { useActionState, useEffect, useState } from "react";
-import Image from "next/image";
+import {OrganizationLogo} from "@/components/organization-logo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FieldGroup } from "@/components/ui/field";
@@ -181,14 +181,7 @@ export function OpeningRequestForm({
               }}
             />
             {(preview || (!removeLogo && initial?.has_logo)) && (
-              <Image
-                src={preview || `/organization-requests/${initial?.id}/logo`}
-                alt={c("معاينة الشعار", "Logo preview")}
-                width={96}
-                height={96}
-                unoptimized
-                className="size-24 rounded-lg object-contain"
-              />
+              <OrganizationLogo name={initial?.name_ar || c("معاينة الشعار", "Logo preview")} src={preview || `/organization-requests/${initial?.id}/logo`} className="size-24"/>
             )}
             {(logo || (!removeLogo && initial?.has_logo) || imageError) && (
               <Button

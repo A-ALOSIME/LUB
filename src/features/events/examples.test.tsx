@@ -45,7 +45,7 @@ describe("event example details", () => {
 
     expect(screen.getByRole("heading", {level: 1, name: example.title.ar})).toBeTruthy();
     expect(container.querySelector(".event-example-detail")?.getAttribute("dir")).toBe("rtl");
-    expect(container.querySelector(".event-example-detail-organization-mark [data-image-src]")?.getAttribute("data-image-src")).toBe(example.organizationLogo);
+    expect(container.querySelector(".event-example-detail-organization-mark img")?.getAttribute("src")).toBe(example.organizationLogo);
     expect(screen.getByText("طلاب وطالبات الجامعة")).toBeTruthy();
     const detailHeadings = Array.from(container.querySelectorAll(".event-example-detail-meta dt, .event-example-detail-section h2"));
     expect(detailHeadings).toHaveLength(example.facts.length + 1 + example.sections.length);

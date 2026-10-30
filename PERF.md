@@ -28,3 +28,13 @@ Data freshness is separate from tab interaction: while the document is visible a
 Finite status-route categories are prefetched in parallel once per page/locale, never arbitrary search permutations, pagination ranges or filter Cartesian products. Component tests assert unique local URLs only. Server authorization and the fresh CSP nonce are preserved.
 
 English editorial content uses a bundled saved dictionary rather than an external translation provider. It covers the current public club/council names, summaries and curated descriptions/sections. Display rendering never overwrites form inputs, Arabic source data, URLs or personal names. Unknown future user-authored text remains authored until an English translation is added; there is no automatic Google/DeepL service, key or recurring fee.
+
+## Complete Activity filter cache — 30 October 2026
+
+The earlier mounted panels still contained only each filter's first page. Activity now fetches one authenticated snapshot with all available/mine tasks, registrations, and personal hour records in parallel. `page: null` explicitly requests all actor-visible rows; ordinary management reads retain their 25-row pagination. Filtering and pagination run against this complete snapshot, including results beyond the original first page. No filter Cartesian-product prefetch is needed.
+
+An in-memory provider in the shared root layout retains this snapshot across client navigation, including the Activity loading boundary. It is keyed by verified actor identity, rejects a response belonging to another actor, and is cleared when identity changes. It neither persists personal records in browser storage nor replaces server authorization. Writes and panel reads still enforce current permissions on the server.
+
+A visible/online freshness check runs in the background every 30 seconds and on focus, with a five-second throttle. A changed RLS-scoped fingerprint refreshes the snapshot without removing cached content or displaying Skeletons; unchanged fingerprints avoid the full read. Successful local activity writes trigger a quiet refresh. Task participant status and linked event poster changes are included. Transient errors preserve the last authorized view, while an initial failure offers Retry.
+
+Regressions exercise ten rounds of main-tab and subordinate-filter switching, records beyond page one, page departure/revisit, identity isolation, changed-version refresh, transient failure retention, and owner-scoped server reads. This removes repeated filter navigations; it does not claim a reduction in initial download size or initial page latency. The complete snapshot grows with the actor's record history by design.

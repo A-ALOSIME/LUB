@@ -8,7 +8,7 @@ import { actionFeedback } from "@/lib/action-feedback";
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import {OrganizationLogo} from "@/components/organization-logo";
 import { Check, X, Building2, Plus, Undo2, ChevronDown } from "lucide-react";
 import {
   Card,
@@ -120,16 +120,7 @@ export function OpeningRequestList({
             >
               <CardHeader>
                 <div className="flex items-start gap-3">
-                  {item.has_logo && (
-                    <Image
-                      src={`/organization-requests/${item.id}/logo`}
-                      alt=""
-                      width={48}
-                      height={48}
-                      unoptimized
-                      className="size-12 rounded-lg object-contain"
-                    />
-                  )}
+                  <OrganizationLogo name={item.name_ar} src={item.has_logo?`/organization-requests/${item.id}/logo`:null} className="size-12"/>
                   <div className="min-w-0 flex-1">
                     <CardTitle>
                       <button
@@ -228,16 +219,7 @@ export function OpeningRequestList({
                   : c("مجلس", "Council")}
               </Badge>
             </div>
-            {detail.has_logo && (
-              <Image
-                src={`/organization-requests/${detail.id}/logo`}
-                alt={c("شعار الجهة", "Organization logo")}
-                width={128}
-                height={128}
-                unoptimized
-                className="size-32 rounded-lg object-contain"
-              />
-            )}
+            <OrganizationLogo name={detail.name_ar} src={detail.has_logo?`/organization-requests/${detail.id}/logo`:null} className="size-32"/>
             {manage && (
               <div>
                 <p className="text-sm text-muted-foreground">

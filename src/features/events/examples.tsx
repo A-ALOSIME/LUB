@@ -1,3 +1,4 @@
+import {OrganizationLogo} from "@/components/organization-logo";
 import {t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import Image from "next/image";
@@ -181,7 +182,7 @@ export function EventExampleDetail({example, locale}: {example: EventExample; lo
     <div className="event-example-detail-copy" dir={en ? "ltr" : "rtl"}>
       <header className="event-example-detail-heading">
         <div className="event-example-detail-organization">
-          <span className="event-example-detail-organization-mark"><Image src={example.organizationLogo} alt="" width={72} height={72} unoptimized/></span>
+          <OrganizationLogo name={example.organization[locale]} src={example.organizationLogo} className="event-example-detail-organization-mark"/>
           <span className="event-example-detail-organization-copy">
             <span>{translateUi((en) ? "en" : "ar", "تنظمها", "Organized by")}</span>
             <bdi>{text(example.organization)}</bdi>
@@ -239,7 +240,7 @@ export function EventExamples({locale}: {locale: Locale}) {
             <h3 className="event-example-title" dir="auto">{example.cardTitleLines ? example.cardTitleLines.map(line => <span className="block" key={line.ar}>{text(line)}</span>) : text(example.title)}</h3>
             <p className="event-example-date"><EventIcon name="calendar"/><span>{example.cardDateLines ? example.cardDateLines.map(line => <span className="block" key={line.ar}>{text(line)}</span>) : text(example.date)}</span></p>
             <div className="event-example-club" dir="auto">
-              <span className="event-example-club-logo"><Image src={example.organizationLogo} alt="" width={48} height={48} unoptimized/></span>
+              <OrganizationLogo name={example.organization[locale]} src={example.organizationLogo} className="event-example-club-logo"/>
               <span>{text(example.organization)}</span>
             </div>
           </div>

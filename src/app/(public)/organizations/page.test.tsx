@@ -45,13 +45,15 @@ it("uses the supplied optimized IEEE logo and keeps the card itself as the only 
   expect(ieeeLink.querySelector(".organization-card-summary")).toBeNull();
 });
 
-it("prefetches a club profile on intent and positions the CyberSec mark lower in its card", async () => {
+it("prefetches a club profile on intent and displays the whole CyberSec mark", async () => {
   render(await OrganizationsPage({ searchParams: Promise.resolve({}) }));
   const link = screen.getByRole("link", { name: "عرض نادي الأمن السيبراني" });
-  const logo = link.querySelector(".organization-card-image");
+  const logo = link.querySelector("[data-slot=avatar-image]");
 
   expect(link.getAttribute("data-prefetch")).toBe("false");
-  expect(logo?.getAttribute("style")).toContain("translateY(8px) scale(2.078)");
+  expect(logo?.className).toContain("object-contain");
+  expect(logo?.getAttribute("style")??"").not.toMatch(/transform|height/);
+  expect(logo?.parentElement?.className).toContain("rounded-lg");
 
   fireEvent.mouseEnter(link);
 

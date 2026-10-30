@@ -14,7 +14,6 @@ export function ActivityTabs({
   events,
   hours,
   locale,
-  activeHref,
 }: {
   initialTab: ActivityTab
   tasks: React.ReactNode
@@ -28,7 +27,6 @@ export function ActivityTabs({
     const value=new URL(window.location.href).searchParams.get("tab");
     return value==="events"||value==="hours"?value:"tasks";
   },()=>initialTab);
-  const hrefs={tasks:"/activity?tab=tasks",events:"/activity?tab=events",hours:"/activity?tab=hours",[initialTab]:activeHref??`/activity?tab=${initialTab}`};
 
   return <Tabs
     value={tab}
@@ -36,7 +34,8 @@ export function ActivityTabs({
     onValueChange={value => {
       if (value !== "tasks" && value !== "events" && value !== "hours") return
       if(value===tab)return;
-      window.history.pushState(window.history.state,"",hrefs[value]);
+      const params=new URLSearchParams(window.location.search);params.set("tab",value);params.delete("page");
+      window.history.pushState(window.history.state,"",`/activity?${params.toString()}`);
       window.dispatchEvent(new Event("activity-tab-change"));
     }}
     className="min-w-0 gap-4"

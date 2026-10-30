@@ -13,12 +13,12 @@ import { RowAction } from "@/components/row-action";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Presentation = "dialog" | "sheet";
-const ManagementActionContext = createContext<{ close: () => void; locale: Locale; inlineForms?:boolean } | null>(null);
+const ManagementActionContext = createContext<{ close: () => void; locale: Locale; inlineForms?:boolean;refresh?:()=>void|Promise<void> } | null>(null);
 
 export function useManagementAction() { return useContext(ManagementActionContext); }
 
-export function ManagementActionProvider({ locale, close, children,inlineForms=false }: { locale: Locale; close: () => void; children: ReactNode;inlineForms?:boolean }) {
-  return <ManagementActionContext.Provider value={{ close, locale,inlineForms }}>{children}</ManagementActionContext.Provider>;
+export function ManagementActionProvider({ locale, close, children,inlineForms=false,refresh }: { locale: Locale; close: () => void; children: ReactNode;inlineForms?:boolean;refresh?:()=>void|Promise<void> }) {
+  return <ManagementActionContext.Provider value={{ close, locale,inlineForms,refresh }}>{children}</ManagementActionContext.Provider>;
 }
 
 export function ManagementActionFooter({ label, pending = false, disabled = false, secondaryAction, buttonClassName, showCancel = true, sticky = true, cancelVariant = "ghost" }: {

@@ -2,7 +2,8 @@ import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
 vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);return operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});}}));
-import {listTasks} from "../src/features/tasks/repository";
+import {activityRevision} from "../src/features/activity/revision";
+import {listTasks,taskDetail} from "../src/features/tasks/repository";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
@@ -151,4 +152,19 @@ it("guards removal and task images, preserves bound images, and exposes accurate
  await denied(()=>db.query("select lub.delete_task($1,3)",[task]));await denied(()=>db.query("select lub.set_task_image($1,$2,3)",[task,asset]));
  await asUser(leader);await db.query("select lub.set_task_image($1,null,3)",[task]);
  expect((await db.query<{allowed:boolean}>("select lub.can_delete_application_object($1) as allowed",[key])).rows[0].allowed).toBe(false);
+});
+
+it("returns every activity task for a complete snapshot while retaining paged management reads",async()=>{
+ for(let i=0;i<28;i++)await openTask();
+ const paged=await listTasks(leader,{view:"available",page:0}),complete=await listTasks(leader,{view:"available",page:null});
+ expect(paged.items).toHaveLength(25);expect(paged.more).toBe(true);expect(complete.items).toHaveLength(28);expect(complete.more).toBe(false);
+});
+it("returns all submissions to authorized managers but keeps student reads owner-scoped",async()=>{
+ const task=await openTask();const first=await join(task);await submit(first,0);const second=await join(task,other);await submit(second,0);
+ const managerView=await taskDetail(leader,task),studentView=await taskDetail(member,task),crossOwner=await taskDetail(member,task,second);
+ expect(managerView?.canManage).toBe(true);expect(managerView?.submissions).toHaveLength(2);expect(studentView?.canManage).toBe(false);expect(studentView?.submissions).toHaveLength(1);expect(studentView?.history).toHaveLength(0);expect(crossOwner?.submissions).toHaveLength(0);
+});
+
+it("refreshes the actor-scoped activity fingerprint when another participant joins a managed task",async()=>{
+ const task=await openTask(),before=await activityRevision(leader);await join(task,member);const after=await activityRevision(leader);expect(before).toHaveLength(32);expect(after).not.toBe(before);
 });
