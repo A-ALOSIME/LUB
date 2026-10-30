@@ -1,2 +1,5 @@
-import {LocalizedText} from "@/components/localized-text";
-export default function Loading(){return <p role="status"><LocalizedText ar="جارٍ تحميل إدارة الفعاليات…" en="Loading event management…"/></p>;}
+"use client";
+import {usePathname} from "next/navigation";
+import {OrganizationEventsScreen} from "@/features/events/management-screen";
+import WorkspaceLoading from "../../../../loading";
+export default function Loading(){const path=usePathname(),match=/^\/manage\/organizations\/([a-f0-9-]{36})\/events\/?$/.exec(path);return match?<OrganizationEventsScreen organization={match[1]}/>:<WorkspaceLoading/>;}

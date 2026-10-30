@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { withUser, withVisitor } from "@/db/client";
 import type { Event } from "./repository";
 
-type EventWorkspace = {
+export type EventWorkspace = {
   name: string;
   status: string | null;
   onboarded: boolean;
@@ -15,7 +15,7 @@ type EventWorkspace = {
   announcements: import("@/features/organizations/announcement-types").ManagedAnnouncement[];
 };
 
-export async function eventWorkspaceOverview(user: string, org: string, page: number) {
+export async function eventWorkspaceOverview(user: string, org: string, page: number|null) {
   return withUser(user, async tx => {
     const rows = await tx.execute(sql`
       select
@@ -31,7 +31,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
               exists(select 1 from lub.event_assets ea where ea.event_id=e.id and ea.asset_type_code='Poster') as has_poster,
               (select count(*)::int from lub.event_registrations r where r.event_id=e.id) as registrant_count
             from lub.events e where e.organization_id=o.id
-            order by e.starts_at desc, e.id limit 26 offset ${page * 25}
+            order by e.starts_at desc, e.id limit ${page===null?null:26} offset ${(page??0) * 25}
           ) e
         ), '[]'::jsonb) else '[]'::jsonb end as events,
         case when lub.has_event_access(o.id) then coalesce((
@@ -47,7 +47,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
             select a.id, a.title, a.body, a.published_at is not null as published,
               a.pinned_at is not null as pinned, a.created_at as "createdAt",a.published_at as "publishedAt",a.archived_at is not null as archived,a.external_url as "externalUrl",a.image_asset_id as "imageAssetId"
             from lub.announcements a where a.organization_id=o.id and a.deleted_at is null
-            order by a.pinned_at desc nulls last, a.created_at desc, a.id limit 100
+            order by a.pinned_at desc nulls last, a.created_at desc, a.id limit ${page===null?null:100}
           ) a
         ), '[]'::jsonb) else '[]'::jsonb end as announcements
       from lub.organizations o

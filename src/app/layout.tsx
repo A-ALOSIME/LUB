@@ -1,3 +1,4 @@
+import {OrganizationEventsCacheProvider} from "@/features/events/management-cache";
 import {ActivityCacheProvider} from "@/features/activity/activity-cache";
 import {t as translateUi} from "@/lib/i18n";
 import {I18nProvider} from "@/components/i18n-provider";
@@ -49,7 +50,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const [{ locale, theme },identity] = await Promise.all([getPreferences(),getVerifiedProxyIdentity()]);
   return <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"} data-theme={theme} className={thmanyahDisplay.variable}><body className="min-h-screen antialiased">
     <a href="#main" className="fixed start-4 top-4 z-50 -translate-y-32 rounded-lg bg-white p-4 text-ink focus:translate-y-0">{translateUi((locale === "ar") ? "ar" : "en", "تخطي إلى المحتوى", "Skip to content")}</a>
-    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><I18nProvider locale={locale}><ActivityCacheProvider actorId={identity?.id??null}><ChatSessionProvider locale={locale}><Toaster timeout={3000}>{children}{identity&&<ProfileCompletionNotice locale={locale}/>}</Toaster>
-    <DeferredChatWidget locale={locale} /></ChatSessionProvider></ActivityCacheProvider></I18nProvider></DirectionProvider>
+    <DirectionProvider direction={locale === "ar" ? "rtl" : "ltr"}><I18nProvider locale={locale}><ActivityCacheProvider actorId={identity?.id??null}><OrganizationEventsCacheProvider actorId={identity?.id??null}><ChatSessionProvider locale={locale}><Toaster timeout={3000}>{children}{identity&&<ProfileCompletionNotice locale={locale}/>}</Toaster>
+    <DeferredChatWidget locale={locale} /></ChatSessionProvider></OrganizationEventsCacheProvider></ActivityCacheProvider></I18nProvider></DirectionProvider>
   </body></html>;
 }

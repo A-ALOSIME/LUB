@@ -1,0 +1,11 @@
+import {afterEach,expect,it,vi} from "vitest";
+const mocks=vi.hoisted(()=>({auth:vi.fn(),workspace:vi.fn(),registrations:vi.fn(),version:vi.fn()}));
+vi.mock("@/features/organizations/access",()=>({requireManagementUser:mocks.auth}));
+vi.mock("./workspace",()=>({eventWorkspaceOverview:mocks.workspace}));
+vi.mock("./review-repository",()=>({eventRegistrants:mocks.registrations}));
+vi.mock("./management-version",()=>({organizationEventsVersion:mocks.version}));
+import {loadOrganizationEvents} from "./management-cache-actions";
+const org="00000000-0000-4000-8000-000000000001";
+afterEach(()=>vi.resetAllMocks());
+it("loads every status only for the verified actor and an authorized organization",async()=>{mocks.auth.mockResolvedValue({id:"actor"});mocks.version.mockResolvedValue("v1");mocks.workspace.mockResolvedValue({canViewEvents:true});mocks.registrations.mockResolvedValue({items:[]});const data=await loadOrganizationEvents(org);expect(data.actorId).toBe("actor");expect(mocks.workspace).toHaveBeenCalledWith("actor",org,null);expect(mocks.registrations).toHaveBeenCalledWith("actor",org,null,"","",null);});
+it("does not read cached private datasets without current server permission",async()=>{mocks.auth.mockResolvedValue({id:"actor"});mocks.version.mockResolvedValue(null);await expect(loadOrganizationEvents(org)).rejects.toThrow("UNAVAILABLE");expect(mocks.workspace).not.toHaveBeenCalled();expect(mocks.registrations).not.toHaveBeenCalled();});

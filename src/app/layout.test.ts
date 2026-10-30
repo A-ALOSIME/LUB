@@ -13,6 +13,7 @@ vi.mock("next/headers", () => ({ headers: async () => request.headers }));
 vi.mock("@/features/profile/completion-actions",()=>({claimProfileCompletionNotice:vi.fn().mockResolvedValue(false)}));
 vi.mock("@/features/activity/activity-data-actions",()=>({loadActivitySnapshot:vi.fn()}));
 vi.mock("@/features/activity/freshness-actions",()=>({readActivityVersion:vi.fn()}));
+vi.mock("@/features/events/management-cache-actions",()=>({loadOrganizationEvents:vi.fn(),readOrganizationEventsVersion:vi.fn()}));
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "font" }) }));
 
 import {ActivityCacheProvider} from "@/features/activity/activity-cache";

@@ -1,5 +1,12 @@
+import {PgDialect} from "drizzle-orm/pg-core";
+import type {SQL} from "drizzle-orm";
+vi.mock("server-only",()=>({}));
+vi.mock("@/db/client",()=>({withUser:async(user:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await actor(user);return operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});}}));
+import {eventWorkspaceOverview} from "../src/features/events/workspace";
+import {eventRegistrants} from "../src/features/events/review-repository";
+import {organizationEventsVersion} from "../src/features/events/management-version";
 import { PGlite } from "@electric-sql/pglite";
-import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
 import {initialDefinition} from "@/features/forms/definition";
 let db:PGlite;
@@ -72,3 +79,11 @@ it("reviews registrations with scoped bulk decisions and keeps approval separate
 it("copies the approval policy and excludes rejected registrations when reducing capacity",async()=>{const event=await create(2);await db.query("select lub.set_event_registration_policy($1,true,1)",[event]);const copy=(await db.query<{id:string}>("select lub.duplicate_event($1) as id",[event])).rows[0].id;expect((await db.query("select requires_approval from lub.events where id=$1",[copy])).rows[0]).toMatchObject({requires_approval:true});await db.query("select lub.change_event_status($1,'Published',2)",[event]);await actor(student);await register(event);await actor(peer);const r=await register(event);await actor(leader);await db.query("select lub.review_event_registrations($1::uuid[],'Rejected','')",[[r]]);await db.query("select lub.save_event($1,$2,'ورشة','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',1,null,2,3)",[event,org]);expect((await db.query<{remaining:number}>("select lub.event_remaining($1) as remaining",[event])).rows[0].remaining).toBe(0);});
 
 it("allows only event managers to remove registrations and retains decision history",async()=>{const event=await create();await publish(event);await actor(student);const r=await register(event);await actor(peer);await denied(()=>db.query("select lub.remove_event_registration($1)",[r]));await actor(leader);await db.query("select lub.remove_event_registration($1)",[r]);expect((await db.query("select status_code from lub.event_registrations where id=$1",[r])).rows[0]).toEqual({status_code:'Cancelled'});await actor(student);expect((await db.query<{status_code:string}>("select status_code from lub.event_registration_history where event_registration_id=$1 order by created_at",[r])).rows.map(x=>x.status_code)).toEqual(expect.arrayContaining(['Accepted','Cancelled']));expect((await db.query("select id from lub.notifications where target_url=$1",[`/events/${event}`])).rows.length).toBeGreaterThanOrEqual(2);await actor(leader);await denied(()=>db.query("select lub.remove_event_registration($1)",[r]));});
+
+it("loads the full organization cache across page boundaries and keeps all reads permission-scoped",async()=>{
+ for(let i=0;i<28;i++){await actor(leader);const event=await create();await publish(event);await actor(student);await register(event);}
+ const paged=await eventWorkspaceOverview(leader,org,0),complete=await eventWorkspaceOverview(leader,org,null),registrations=await eventRegistrants(leader,org,null,"","",null);
+ expect(paged?.events).toHaveLength(26);expect(complete?.events).toHaveLength(28);expect(registrations.items).toHaveLength(28);expect(registrations.options).toHaveLength(28);
+ expect(await eventWorkspaceOverview(student,org,null)).toBeUndefined();expect((await eventRegistrants(student,org,null,"","",null)).items).toHaveLength(0);expect(await organizationEventsVersion(student,org)).toBeNull();
+ const before=await organizationEventsVersion(leader,org);await db.query("select lub.review_event_registrations($1::uuid[],'Rejected','سبب القرار')",[[registrations.items[0].id]]);const after=await organizationEventsVersion(leader,org);expect(before).toHaveLength(32);expect(after).not.toBe(before);
+});

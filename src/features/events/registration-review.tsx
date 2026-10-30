@@ -56,6 +56,8 @@ export function EventRegistrationReview({
     const result = await mutateEvent({}, f);
     if (result.success) {
       setSelected(null);
+      window.dispatchEvent(new Event("organization-events-changed"));
+      window.dispatchEvent(new Event("activity-changed"));
       router.refresh();
     }
     return result;
