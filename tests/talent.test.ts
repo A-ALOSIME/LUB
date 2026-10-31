@@ -316,3 +316,11 @@ it("counts only approved tagged task participation, and denies peers changing ev
  const submission=(await db.query<{id:string}>("select lub.submit_task($1,'مخرج خاص','{}'::uuid[],0,3) as id",[participant])).rows[0].id;expect(await read()).toBe(0);
  await db.query("select lub.review_task_submission($1,'Approved','',null)",[submission]);expect(await read()).toBe(1);
 });
+
+it("translates existing compound security skills without changing the owner's stored spelling",async()=>{
+ const original="أساسيات التشفير وبروتوكولات الأمان (SSL/TLS, VPN)";
+ await db.query("select lub.save_talent_skill($1,true)",[original]);await publish();await visitor();
+ const rows=(await db.query<{skills:Array<Record<string,unknown>>}>("select lub.public_profile_skills($1) as skills",[publicSlug])).rows[0].skills;
+ expect(rows[0]).toMatchObject({key:"cryptography-security-protocols",labelAr:original,labelEn:"Cryptography and Security Protocols (SSL/TLS, VPN)",filterValue:original,category:{key:"security",labelEn:"Information security"}});
+ await actor(owner);const workspace=(await db.query<{data:{skills:Array<{name:string}>}}>("select lub.talent_workspace() as data")).rows[0].data;expect(workspace.skills[0].name).toBe(original);
+});

@@ -313,7 +313,7 @@ export function PublicTalentView({
           </CardFooter>
         </Card>
       </aside>
-      <ProfileSkills initialSkills={p.skillDetails??legacyProfileSkills(p.skills)} slug={p.id} owner={owner} locale={locale}/>
+      <ProfileSkills key={p.id} initialSkills={p.skillDetails??legacyProfileSkills(p.skills)} slug={p.id} owner={owner} locale={locale}/>
       <div className="flex min-w-0 flex-col gap-5">
         {p.organizations.length > 0 ? (
           <Card>

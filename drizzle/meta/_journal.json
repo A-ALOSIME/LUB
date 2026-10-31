@@ -456,6 +456,13 @@
       "when": 1793458800000,
       "tag": "0064_public_skill_sections",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1793458800001,
+      "tag": "0065_security_skill_dictionary",
+      "breakpoints": true
     }
   ]
 }

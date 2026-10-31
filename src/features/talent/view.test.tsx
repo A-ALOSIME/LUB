@@ -78,3 +78,10 @@ it("merges duplicate roles within an organization while retaining leadership as 
  render(<PublicTalentView profile={{...profile,organizations:[{...profile.organizations[0],memberships:[{start_date:"2025-10-01",end_date:"2026-01-01",status_code:"Ended",roles:[{code:"Member",starts:"2025-10-01",ends:"2026-01-01",hours:"1"}]},{start_date:"2026-02-01",end_date:null,status_code:"Active",roles:[{code:"Member",starts:"2026-02-01",ends:null,hours:"2"},{code:"OL",starts:"2026-10-01",ends:null,hours:"3"}]}]}]}} pages={pages}/>);
  expect(screen.getAllByText("عضو")).toHaveLength(1);expect(screen.getByText("قائد النادي")).toBeTruthy();expect(screen.getByText(/1 أكتوبر 2025/)).toBeTruthy();expect(screen.queryByRole("button",{name:/عرض المزيد/})).toBeNull();
 });
+
+it("resets visible skills when navigating between different public profile slugs",()=>{
+ const {rerender}=render(<PublicTalentView profile={{...profile,skills:["Python"]}} pages={pages}/>);
+ expect(screen.getByRole("link",{name:"Python"})).toBeTruthy();
+ rerender(<PublicTalentView profile={{...profile,id:"00000000-0000-4000-8000-000000000003",skills:["SQL"]}} pages={pages}/>);
+ expect(screen.queryByRole("link",{name:"Python"})).toBeNull();expect(screen.getByRole("link",{name:"SQL"})).toBeTruthy();
+});
