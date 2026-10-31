@@ -15,7 +15,7 @@ it("keeps the student panel in one column with participation then submissions th
  expect(screen.queryByText("سجل نسخ المهمة")).toBeNull();expect(screen.queryByText("إعدادات ارتباط الفعالية")).toBeNull();expect(screen.queryByText("إجراءات المهمة")).toBeNull();
  const headings=screen.getAllByRole("heading").map(h=>h.textContent);
  expect(headings.indexOf("مشاركتي")).toBeLessThan(headings.indexOf("تسليماتي"));expect(headings.indexOf("تسليماتي")).toBeLessThan(headings.indexOf("فريق المهمة"));
- expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();expect(screen.getByText("لا توجد تسليمات.").compareDocumentPosition(screen.getByRole("button",{name:"إضافة تسليم"}))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();fireEvent.click(screen.getByRole("button",{name:"إضافة تسليم"}));expect(screen.getByRole("textbox",{name:"وصف التسليم"})).toBeTruthy();
+ expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();expect(screen.getByRole("button",{name:"إضافة تسليم"}).compareDocumentPosition(screen.getByText("لا توجد تسليمات."))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();fireEvent.click(screen.getByRole("button",{name:"إضافة تسليم"}));expect(screen.getByRole("textbox",{name:"وصف التسليم"})).toBeTruthy();
 });
 it("retains manager history, event controls and task actions",()=>{render(<TaskDetailView detail={{...d,canManage:true}} page={0} teamPage={0} participant={null}/>);expect(screen.getByText("سجل نسخ المهمة")).toBeTruthy();expect(screen.getByText("إعدادات ارتباط الفعالية")).toBeTruthy();expect(screen.getByLabelText("إجراءات المهمة")).toBeTruthy();expect(document.querySelector("aside")).toBeNull();});
 
@@ -30,11 +30,11 @@ it("places manager actions, statistics and participants before all submissions i
  const headings=screen.getAllByRole("heading").map(h=>h.textContent);expect(headings.indexOf("المطلوب")).toBeLessThan(headings.indexOf("المنضمون للمهمة"));expect(headings.indexOf("المنضمون للمهمة")).toBeLessThan(headings.indexOf("كل التسليمات"));expect(headings.indexOf("كل التسليمات")).toBeLessThan(headings.indexOf("فريق المهمة"));expect(document.querySelector("aside")).toBeNull();
 });
 
-it("starts with the uncropped poster, then the title, and leaves the submission form below existing work",()=>{
+it("starts with the uncropped poster, then the title, and keeps the add action in the submissions card header",()=>{
  const submission={id:"submission",revision_number:1,message:"المخرج السابق",status_code:"Rejected",submitted_at:"2026-10-30",review_note:"عدّل",reviewed_at:"2026-10-30",task_revision_id:"revision",task_revision_number:1,task_snapshot:d.task,assets:[]};
  render(<TaskDetailView detail={{...d,task:{...d.task,image_asset_id:"poster"},own:{...d.own!,status_code:"In_Progress"},submissions:[submission]}} page={0} teamPage={0} participant={null}/>);
  const poster=screen.getByRole("img"),heading=screen.getByRole("heading",{level:1});
  expect(poster.parentElement?.firstElementChild).toBe(poster);expect(poster.className).toContain("h-auto");expect(poster.className).not.toMatch(/max-h|object-cover|aspect/);expect(poster.nextElementSibling?.contains(heading)).toBe(true);
- expect(screen.getByText("المخرج السابق").compareDocumentPosition(screen.getByRole("button",{name:"إضافة تسليم"}))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();
+ expect(screen.getByRole("button",{name:"إضافة تسليم"}).compareDocumentPosition(screen.getByText("المخرج السابق"))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();
  expect(screen.getByText("قيد العمل").className).toContain("organization-status-badge--positive");
 });

@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { isSuperAdminUser } from "@/features/auth/authorization";
 import { getVerifiedUser } from "@/features/auth/session";
+import {assetStorageName} from "@/features/forms/asset-storage";
 import { inspectAttachment } from "@/features/forms/files";
 import { withUser } from "@/db/client";
 import { getAppOrigin } from "@/lib/env";
@@ -46,6 +47,8 @@ export async function POST(request: NextRequest) {
   if (!file || typeof file === "string" || !file.name || file.name.length > 120 || /[\x00-\x1f/\\]/.test(file.name)) {
     return failure(400, "invalid_file");
   }
+  const displayName=form.get("displayName")??file.name;
+  if(typeof displayName!=="string"||!displayName||displayName.length>120||/[\x00-\x1f/\\]/.test(displayName))return failure(400,"invalid_file");
   if (file.size > maxFileSize) return failure(413, "file_too_large");
   if(purpose && !["image/jpeg","image/png","application/octet-stream", ""].includes(file.type)) return failure(400,"unsupported_poster_type");
 
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if(file.type&&!["application/pdf","image/jpeg","image/png","application/octet-stream"].includes(file.type))return failure(415,"unsupported_file_type");
   let bytes: Uint8Array;
   try {
     bytes = new Uint8Array(await file.arrayBuffer());
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
   }
 
   const id = randomUUID();
-  const key = `${user.id}/${id}`;
+  const key = `${user.id}/${assetStorageName(id,mime)}`;
   let removeUploadedObject: (() => Promise<unknown>) | undefined;
   try {
     const bucket = (await createClient()).storage.from("lub-application-files");
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await withUser(user.id, tx => tx.execute(sql`
-      select lub.register_application_asset(${id}, ${key}, ${file.name}, ${mime}, ${file.size})
+      select lub.register_application_asset(${id}, ${key}, ${displayName}, ${mime}, ${file.size})
     `));
   } catch {
     try { await removeUploadedObject?.(); } catch { /* Keep the response safe if cleanup also fails. */ }
@@ -105,5 +109,5 @@ export async function POST(request: NextRequest) {
     return failure(503, "asset_registration_unavailable");
   }
 
-  return NextResponse.json({ id, name: file.name }, { headers: privateHeaders });
+  return NextResponse.json({ id, name: displayName }, { headers: privateHeaders });
 }

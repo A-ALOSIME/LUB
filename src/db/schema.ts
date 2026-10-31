@@ -272,7 +272,7 @@ export const bulkActionItems = lub.table("bulk_action_items", {
 
 export const applicationAssets = lub.table("application_assets", {
   id: uuid("id").primaryKey().defaultRandom(), ownerUserId: uuid("owner_user_id").notNull().references(() => users.id), objectKey: text("object_key").notNull().unique(), fileName: varchar("file_name", { length: 120 }).notNull(), mimeType: varchar("mime_type", { length: 40 }).notNull(), sizeBytes: integer("size_bytes").notNull(), createdAt: createdAt(),
-}, t => [check("application_asset_type_check", sql`${t.mimeType} in ('application/pdf','image/jpeg','image/png')`), check("application_asset_size_check", sql`${t.sizeBytes} between 1 and 5242880`), check("application_asset_key_check", sql`${t.objectKey} ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}$'`), index("application_asset_owner_idx").on(t.ownerUserId, t.createdAt)]).enableRLS();
+}, t => [check("application_asset_type_check", sql`${t.mimeType} in ('application/pdf','image/jpeg','image/png')`), check("application_asset_size_check", sql`${t.sizeBytes} between 1 and 5242880`), check("application_asset_key_check", sql`${t.objectKey} = ${t.ownerUserId}::text || '/' || ${t.id}::text or ${t.objectKey} = ${t.ownerUserId}::text || '/' || ${t.id}::text || case ${t.mimeType} when 'application/pdf' then '.pdf' when 'image/jpeg' then '.jpg' when 'image/png' then '.png' else '' end`), index("application_asset_owner_idx").on(t.ownerUserId, t.createdAt)]).enableRLS();
 
 export const formResponseAssets = lub.table("form_response_assets", {
   formResponseId: uuid("form_response_id").notNull().references(() => formResponses.id), assetId: uuid("asset_id").notNull().references(() => applicationAssets.id), fieldId: uuid("field_id").notNull(),

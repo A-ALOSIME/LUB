@@ -3,8 +3,8 @@ import {cleanup,fireEvent,render,screen} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 vi.mock("./task-panel-actions",()=>({loadTaskPanel:vi.fn()}));
 vi.mock("./actions",()=>({mutateTask:vi.fn()}));
-vi.mock("./task-panel-action",()=>({TaskPanelAction:({open}:{open?:boolean})=>open?<div role="dialog">Task details</div>:null}));
-import {TaskCardSurface,TaskCardEye} from "./task-card";
+vi.mock("./task-panel-action",()=>({TaskPanelAction:({open,submission}:{open?:boolean;submission?:boolean})=>open?<div role="dialog">Task details</div>:submission?<button aria-label="تسليم العمل"/>:null}));
+import {TaskCardSurface} from "./task-card";
 import {TaskList} from "./task-list";
 import type {TaskCard} from "./repository";
 afterEach(cleanup);
@@ -17,7 +17,7 @@ it("opens the panel from the task rectangle and retains the eye shortcut",()=>{
 });
 
 it("keeps other actions independent of the rectangle button",()=>{
- render(<TaskCardSurface task="task" title="Design" locale="en" actions={<button>Other action</button>}><h2>Design<TaskCardEye locale="en"/></h2></TaskCardSurface>);
+ render(<TaskCardSurface task="task" title="Design" locale="en" actions={<button>Other action</button>}><h2>Design</h2></TaskCardSurface>);
  fireEvent.click(screen.getByRole("button",{name:"Other action"}));expect(screen.queryByRole("dialog")).toBeNull();
  fireEvent.click(screen.getByRole("button",{name:"View details"}));expect(screen.getByRole("dialog")).toBeTruthy();
 });
@@ -27,3 +27,13 @@ it("places the task thumbnail at the start and the status beside the title for l
  const image=container.querySelector('img')!;expect(image.getAttribute("src")).toBe("/files/poster/preview");expect(image.parentElement?.className).toContain("w-20");expect(image.parentElement?.className).toContain("self-stretch");
  const title=screen.getByText("مهمة التصميم");expect(title.closest('[data-slot=card-title]')?.textContent).toContain("مسودة");fireEvent.click(screen.getByRole("button",{name:"عرض المهمة: مهمة التصميم"}));expect(screen.getByRole("dialog")).toBeTruthy();
 });
+
+it("shows only view and join for unjoined students and hides the published badge",()=>{
+ render(<TaskList items={[task]} mode="available"/>);expect(screen.getByRole("button",{name:"الانضمام للمهمة"})).toBeTruthy();expect(screen.getByRole("button",{name:"عرض التفاصيل"})).toBeTruthy();expect(screen.queryByRole("button",{name:"الانسحاب"})).toBeNull();expect(screen.queryByRole("button",{name:"تسليم العمل"})).toBeNull();expect(screen.queryByText("منشورة")).toBeNull();expect(screen.getByText("غير منضم")).toBeTruthy();
+});
+it("uses the same submission and withdrawal actions in available and participation lists",()=>{
+ const joined={...task,participant:{id:"p",user_id:"u",status_code:"Joined",approved_hours_override:null,joined_at:"2026-10-31",closed_at:null}};
+ const view=render(<TaskList items={[joined]} mode="available"/>);expect(screen.getByRole("button",{name:"تسليم العمل"})).toBeTruthy();expect(screen.getByRole("button",{name:"الانسحاب"}).className).toContain("row-action--danger");expect(screen.queryByRole("button",{name:"الانضمام للمهمة"})).toBeNull();expect(screen.queryByText("منشورة")).toBeNull();
+ view.rerender(<TaskList items={[joined]} mode="mine"/>);expect(screen.getByRole("button",{name:"تسليم العمل"})).toBeTruthy();expect(screen.getByRole("button",{name:"الانسحاب"})).toBeTruthy();
+});
+it("keeps historical cards readable and clickable without action icons",()=>{render(<TaskList items={[{...task,historical:true}]} mode="mine"/>);expect(screen.getByText(/من سجلك السابق/)).toBeTruthy();expect(screen.queryByRole("button",{name:"عرض التفاصيل"})).toBeNull();fireEvent.click(screen.getByRole("button",{name:"عرض المهمة: مهمة التصميم"}));expect(screen.getByRole("dialog")).toBeTruthy();});

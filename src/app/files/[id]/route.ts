@@ -1,3 +1,4 @@
+import {assetStorageName} from "@/features/forms/asset-storage";
 import { inspectAttachment } from "@/features/forms/files";
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
@@ -15,7 +16,7 @@ export async function GET(_request: Request,{params}:{params:Promise<{id:string}
   const client=await createClient();const bucket=client.storage.from("lub-application-files");
   const downloaded=await bucket.download(String(asset.object_key));if(downloaded.error||!downloaded.data||downloaded.data.size!==Number(asset.size_bytes))throw new Error("asset content");
   inspectAttachment(new Uint8Array(await downloaded.data.arrayBuffer()),String(asset.mime_type));
-  const {data,error}=await client.storage.from("lub-application-files").createSignedUrl(String(asset.object_key),60,{download:String(asset.file_name)});
+  const {data,error}=await client.storage.from("lub-application-files").createSignedUrl(String(asset.object_key),60,{download:assetStorageName(id,String(asset.mime_type))});
   if(error||!data||new URL(data.signedUrl).origin!==new URL(getAuthConfig()!.url).origin)throw new Error("download");
   return NextResponse.redirect(data.signedUrl,{status:303,headers:{"Cache-Control":"private, no-store","Referrer-Policy":"no-referrer"}});
  } catch { return new NextResponse(null,{status:503,headers:{"Cache-Control":"private, no-store"}}); }

@@ -82,7 +82,7 @@ it("stores an authorized poster as a private image asset", async () => {
 
   expect(response.status).toBe(200);
   expect(mocks.upload).toHaveBeenCalledOnce();
-  expect(mocks.upload.mock.calls[0][0]).toMatch(new RegExp(`^${userId}/[0-9a-f-]{36}$`));
+  expect(mocks.upload.mock.calls[0][0]).toMatch(new RegExp(`^${userId}/[0-9a-f-]{36}\\.png$`));
   expect(mocks.upload.mock.calls[0][2]).toEqual({ contentType: "image/png", upsert: false });
   expect(mocks.execute).toHaveBeenCalledTimes(2);
   expect(response.headers.get("cache-control")).toContain("no-store");
@@ -104,4 +104,13 @@ it("rejects an invalid organization before checking access", async () => {
   expect(response.status).toBe(400);
   expect(mocks.execute).not.toHaveBeenCalled();
   expect(mocks.upload).not.toHaveBeenCalled();
+});
+
+it.each(["submission.pdf","تسليم المهمة.pdf"])("keeps %s as display metadata while uploading only an ASCII UUID filename",async(name)=>{
+ mocks.execute.mockResolvedValueOnce([]);const form=new FormData();form.set("file",new File([new TextEncoder().encode("%PDF-1.4")],name,{type:"application/pdf"}));const response=await POST(new NextRequest("http://127.0.0.1:3000/files/upload",{method:"POST",headers:{origin:"http://127.0.0.1:3000"},body:form}));const result=await response.json();expect(response.status).toBe(200);expect(result.name).toBe(name);expect(mocks.upload.mock.calls[0][0]).toBe(`${userId}/${result.id}.pdf`);expect(mocks.upload.mock.calls[0][0]).not.toContain(name);
+});
+
+it("accepts a separate Arabic display name while the multipart filename remains ASCII",async()=>{
+ mocks.execute.mockResolvedValueOnce([]);const form=new FormData();form.set("displayName","عمل الطالب.pdf");form.set("file",new File([new TextEncoder().encode("%PDF-1.4")],"diagnostic.pdf",{type:"application/pdf"}));
+ const response=await POST(new NextRequest("http://127.0.0.1:3000/files/upload",{method:"POST",headers:{origin:"http://127.0.0.1:3000"},body:form}));expect(response.status).toBe(200);expect((await response.json()).name).toBe("عمل الطالب.pdf");expect(mocks.upload.mock.calls[0][0]).toMatch(/^[a-f0-9-]+\/[a-f0-9-]+\.pdf$/);
 });

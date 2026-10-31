@@ -38,7 +38,7 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
   const assets=z.array(z.uuid()).max(5).parse(f.getAll("asset")),message=text(f,"message",6000,0);
   if(!message&&!assets.length)throw new SubmissionFault("empty");
   if(new Set(assets).size!==assets.length)throw new SubmissionFault("attachment");
-  return sql`select lub.submit_task(${id(f,"participant")},${message},${sql.param(assets)}::uuid[],${z.coerce.number().int().min(0).parse(f.get("lastRevision"))},${revision(f)})`;
+  return sql`select lub.submit_task(${id(f,"participant")},${message},ARRAY[${sql.join(assets.map(asset=>sql`${asset}`),sql`, `)}]::uuid[],${z.coerce.number().int().min(0).parse(f.get("lastRevision"))},${revision(f)})`;
  }
  case "review":return sql`select lub.review_task_submission(${id(f,"submission")},${z.enum(["Approved","Rejected"]).parse(f.get("status"))},${text(f,"note",3000,0)},${f.get("hours")?hours(f):null}::numeric)`;
  case "close":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.close_task_participant(${id(f,"participant")})`;

@@ -435,6 +435,13 @@
       "when": 1793253600000,
       "tag": "0061_talent_skill_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793440800000,
+      "tag": "0062_safe_attachment_keys",
+      "breakpoints": true
     }
   ]
 }

@@ -5,14 +5,16 @@ const messages={
  input:["راجع بيانات التسليم: الوصف حتى 6000 حرف، وبحد أقصى خمسة مرفقات.","Check your submission: a description of up to 6,000 characters and at most five attachments."],
  empty:["أضف وصفًا للتسليم أو أرفق ملفًا قبل الإرسال.","Add a description or attach a file before submitting."],
  attachment:["تعذّر استخدام أحد المرفقات. احذفه وأعد رفعه من حسابك ثم حاول مجددًا.","An attachment could not be used. Remove it, upload it again from your account, and retry."],
+ "file-type":["نوع الملف غير مدعوم. اختر ملف PDF أو صورة JPEG أو PNG.","Unsupported file type. Choose a PDF, JPEG or PNG file."],
+ "file-size":["حجم الملف أكبر من الحد المسموح. الحد الأقصى 5 ميجابايت لكل ملف.","This file is too large. The maximum is 5 MB per file."],
  upload:["تعذّر رفع المرفق. استخدم PDF أو JPEG أو PNG بحجم لا يتجاوز 5 ميجابايت، وبحد أقصى خمسة ملفات.","Upload failed. Use PDF, JPEG or PNG files up to 5 MB each, with at most five files."],
  "task-changed":["تغيّرت المهمة منذ فتحها. أغلق التفاصيل وافتحها مجددًا قبل إرسال تسليمك.","This task has changed. Close and reopen its details before submitting."],
  "submission-changed":["تغيّر سجل تسليماتك. أغلق التفاصيل وافتحها مجددًا لمراجعة آخر تسليم.","Your submissions have changed. Close and reopen the details to review your latest submission."],
  pending:["لديك تسليم بانتظار المراجعة. انتظر قرار المراجع قبل إضافة تسليم جديد.","You already have a submission awaiting review. Wait for the review before submitting again."],
  unavailable:["التسليم غير متاح لحالة المهمة أو مشاركتك الحالية. تواصل مع قائد الجهة إذا كنت تتوقع إتاحته.","Submitting is unavailable for the current task or participation status. Contact your organization leader if this is unexpected."],
  access:["لا تملك صلاحية التسليم لهذه المشاركة. تأكد من استخدام حسابك المنضم للمهمة.","You cannot submit for this participation. Use the account that joined this task."],
- setup:["لا يمكن التسليم حاليًا، تواصل مع قائد الجهة لإكمال إعدادات المهمة.","Submitting is currently unavailable. Contact your organization leader to complete the task settings."],
- service:["تعذّر إرسال التسليم حاليًا. احتفظ بالمحتوى وحاول مجددًا بعد قليل.","Your submission could not be sent right now. Keep your content and try again shortly."],
+ setup:["هذه المهمة تحتاج إعدادًا من قائد الجهة قبل التسليم.","Submitting is currently unavailable. Contact your organization leader to complete the task settings."],
+ service:["تعذّر الإرسال، حاول مجددًا.","Your submission could not be sent right now. Keep your content and try again shortly."],
 } as const;
 export type SubmissionErrorCode=keyof typeof messages;
 export function submissionErrorMessage(code:SubmissionErrorCode,locale:Locale){return messages[code][locale==="en"?1:0];}
@@ -33,5 +35,12 @@ export function classifySubmissionError(error:unknown):SubmissionErrorCode{
   if(value.code==="42501")return "access";
   current=value.cause;
  }
+ return "service";
+}
+
+export function uploadErrorCode(status:number,code?:string):SubmissionErrorCode{
+ if(status===413||code==="file_too_large")return "file-size";
+ if(status===415||code==="unsupported_file_type"||code==="invalid_file")return "file-type";
+ if(status===401||status===403)return "access";
  return "service";
 }

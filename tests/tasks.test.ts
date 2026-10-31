@@ -1,7 +1,8 @@
 import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
-vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);await db.exec("savepoint with_user");try{const result=await operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});await db.exec("release savepoint with_user");return result;}catch(error){await db.exec("rollback to savepoint with_user; release savepoint with_user");throw error;}}}));
+// Production postgres-js disables type discovery and falls back to String(array); mirror that boundary.
+vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);await db.exec("savepoint with_user");try{const result=await operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params.map(value=>Array.isArray(value)?String(value):value))).rows;}});await db.exec("release savepoint with_user");return result;}catch(error){await db.exec("rollback to savepoint with_user; release savepoint with_user");throw error;}}}));
 import {activityRevision} from "../src/features/activity/revision";
 import {listTasks,taskDetail} from "../src/features/tasks/repository";
 import { PGlite } from "@electric-sql/pglite";
@@ -196,4 +197,11 @@ it("rejects another student's attachment without blaming task settings",async()=
  await asUser(other);await db.query("select lub.register_application_asset($1,$2,'work.pdf','application/pdf',100)",[asset,`${other}/${asset}`]);await asUser(member);
  const form=new FormData();for(const [key,value]of Object.entries({operation:"submit",participant,message:"المخرج",revision:"2",lastRevision:"0",asset}))form.set(key,value);
  expect((await mutateTask({},form)).submissionError).toBe("attachment");expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(0);
+});
+
+it.each(["work.pdf","تسليم عربي.pdf"])("registers %s only as display metadata with a UUID extension key",async(name)=>{
+ await asUser(member);const asset="00000000-0000-4000-8000-000000000397",key=`${member}/${asset}.pdf`;
+ await db.query("select lub.register_application_asset($1,$2,$3,'application/pdf',100)",[asset,key,name]);
+ expect((await db.query("select file_name,object_key from lub.application_assets where id=$1",[asset])).rows[0]).toEqual({file_name:name,object_key:key});
+ await denied(()=>db.query("select lub.register_application_asset($1,$2,$3,'application/pdf',100)",["00000000-0000-4000-8000-000000000396",`${member}/تسليم.pdf`,name]));
 });

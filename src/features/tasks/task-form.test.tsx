@@ -50,5 +50,9 @@ it("shows one plain submission failure inside the form without an error toast",a
 it.each(["input","setup"] as const)("explains %s errors without SQL details or a duplicate toast",async(code)=>{
  save.mockResolvedValueOnce({error:"Failed query: private schema details",submissionError:code});const add=vi.spyOn(toast,"add");
  render(<TaskForm operation="submit" label="إرسال" locale="ar"/>);fireEvent.submit(screen.getByRole("button",{name:"إرسال"}).closest("form")!);
- const alert=await screen.findByRole("alert");expect(alert.textContent).toContain(code==="setup"?"تواصل مع قائد الجهة":"راجع بيانات التسليم");expect(alert.textContent).not.toContain("private");expect(alert.className).not.toContain("destructive");expect(alert.querySelector("svg")).toBeTruthy();expect(add).not.toHaveBeenCalled();
+ const alert=await screen.findByRole("alert");expect(alert.textContent).toContain(code==="setup"?"قائد الجهة":"راجع بيانات التسليم");expect(alert.textContent).not.toContain("private");expect(alert.className).not.toContain("destructive");expect(alert.querySelector("svg")).toBeTruthy();expect(add).not.toHaveBeenCalled();
+});
+
+it("converts rejected network calls into one safe warning and retains typed work",async()=>{
+ save.mockRejectedValueOnce(new Error("network internal transport"));render(<TaskForm operation="submit" label="Send" locale="en"><label>Work<textarea name="message"/></label></TaskForm>);fireEvent.change(screen.getByLabelText("Work"),{target:{value:"My retained work"}});fireEvent.submit(screen.getByRole("button",{name:"Send"}).closest("form")!);expect((await screen.findByRole("alert")).textContent).not.toContain("internal");expect((screen.getByLabelText("Work") as HTMLTextAreaElement).value).toBe("My retained work");
 });

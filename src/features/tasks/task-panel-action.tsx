@@ -41,7 +41,7 @@ export function TaskPanelAction({task,title,locale="ar",submission=false,edit=fa
   useEffect(()=>{
     if(open&&submission&&result?.detail)content.current?.querySelector("#submissions")?.scrollIntoView({block:"start"});
   },[open,submission,result]);
-  return <ManagementActionSheet visuallyHideTitle={!edit} rowAction label={label} title={edit?label:title} locale={locale} icon={edit?<Pencil/>:submission?<Upload/>:<Eye/>} presentation={edit?"dialog":"sheet"} width="wide" hideTrigger={hideTrigger} open={open} onOpenChange={setOpen}>
+  return <ManagementActionSheet rowAction label={label} title={edit?label:title} locale={locale} icon={edit?<Pencil/>:submission?<Upload/>:<Eye/>} presentation={edit?"dialog":"sheet"} width="wide" hideTrigger={hideTrigger} open={open} onOpenChange={setOpen}>
     <div ref={content} className="min-w-0">
       {pending&&!result&&<div role="status" aria-label={translateUi((en) ? "en" : "ar", "جارٍ تحميل المهمة", "Loading task")} className="space-y-4"><Skeleton className="h-8 w-2/3"/><Skeleton className="h-40 w-full"/><Skeleton className="h-28 w-full"/></div>}
       {result?.error&&<Alert variant="destructive"><AlertDescription>{actionFeedback(result.error,locale)}</AlertDescription><Button variant="outline" onClick={()=>load(query)}>{translateUi((en) ? "en" : "ar", "إعادة المحاولة", "Retry")}</Button></Alert>}
