@@ -203,5 +203,8 @@ it.each(["work.pdf","تسليم عربي.pdf"])("registers %s only as display me
  await asUser(member);const asset="00000000-0000-4000-8000-000000000397",key=`${member}/${asset}.pdf`;
  await db.query("select lub.register_application_asset($1,$2,$3,'application/pdf',100)",[asset,key,name]);
  expect((await db.query("select file_name,object_key from lub.application_assets where id=$1",[asset])).rows[0]).toEqual({file_name:name,object_key:key});
+ await db.query("insert into storage.objects(bucket_id,name) values('lub-application-files',$1)",[key]);
+ await denied(()=>db.query("insert into storage.objects(bucket_id,name) values('lub-application-files',$1)",[`${other}/${asset}.pdf`]));
+ await denied(()=>db.query("insert into storage.objects(bucket_id,name) values('lub-application-files',$1)",[`${member}/${asset}.exe`]));
  await denied(()=>db.query("select lub.register_application_asset($1,$2,$3,'application/pdf',100)",["00000000-0000-4000-8000-000000000396",`${member}/تسليم.pdf`,name]));
 });

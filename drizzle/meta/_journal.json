@@ -442,6 +442,13 @@
       "when": 1793440800000,
       "tag": "0062_safe_attachment_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793440800001,
+      "tag": "0063_attachment_storage_extensions",
+      "breakpoints": true
     }
   ]
 }
