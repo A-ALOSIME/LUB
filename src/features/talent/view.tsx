@@ -1,3 +1,5 @@
+import {ProfileSkills} from "./profile-skills";
+import {legacyProfileSkills} from "./profile-skills-model";
 
 import {ContentText} from "@/components/content-text";
 import {majorLabel} from "@/lib/display";
@@ -274,8 +276,7 @@ export function PublicTalentView({
   from?: string;
 }) {
   const en = locale === "en",
-    c = createTranslator((en) ? "en" : "ar"),
-    skills = displaySkills(p.skills);
+    c = createTranslator((en) ? "en" : "ar");
   return (
     <div
       className="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-5"
@@ -298,30 +299,6 @@ export function PublicTalentView({
               <bdi>{majorLabel(p.major,locale)}</bdi> · {academicLevel(p.level, locale)}
             </p>
             <ApprovedHours value={p.total ?? 0} locale={locale} />
-            {skills.length > 0 ? (
-              <div
-                className="flex flex-wrap gap-2"
-                aria-label={c("المهارات", "Skills")}
-              >
-                {skills.map((s) => (
-                  <Badge
-                    key={skillKey(s)}
-                    variant="secondary"
-                    render={
-                      <Link
-                        href={`/talent?skill=${encodeURIComponent(skillKey(s))}`}
-                      />
-                    }
-                  >
-                    <bdi>{s}</bdi>
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              owner && (
-                <OwnerPrompt>{c("أضف مهاراتك", "Add your skills")}</OwnerPrompt>
-              )
-            )}
             {p.links.length > 0 && (
               <TalentContactLinks links={p.links} en={en} />
             )}
@@ -336,6 +313,7 @@ export function PublicTalentView({
           </CardFooter>
         </Card>
       </aside>
+      <ProfileSkills initialSkills={p.skillDetails??legacyProfileSkills(p.skills)} slug={p.id} owner={owner} locale={locale}/>
       <div className="flex min-w-0 flex-col gap-5">
         {p.organizations.length > 0 ? (
           <Card>

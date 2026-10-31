@@ -262,3 +262,57 @@ it("stores ESCO English and Arabic aliases and reuses an existing normalized ski
  const rows=await db.query<{name_en:string;aliases:string[]}>("select name_en,aliases from lub.skills where name_ar='Python'");expect(rows.rows[0].name_en).toBe('Python');expect(rows.rows[0].aliases).toContain('بايثون');
  await actor(owner);await publish();await visitor();expect((await db.query<{data:{total:number}}>("select lub.search_talent('{\"q\":\"بايثون\"}') as data")).rows[0].data.total).toBe(1);
 });
+
+it("saves only the owner's ordered featured skills and returns bilingual dictionary labels",async()=>{
+ const selection=[{key:"python",featured:true},{key:"sql",featured:false}];
+ await db.query("select lub.save_profile_skill_selection($1,$2::jsonb)",[publicSlug,JSON.stringify(selection)]);
+ await publish();await visitor();
+ const read=()=>db.query<{skills:Array<Record<string,unknown>>}>("select lub.public_profile_skills($1) as skills",[publicSlug]);
+ const rows=(await read()).rows[0].skills;
+ expect(rows).toMatchObject([{key:"python",labelAr:"بايثون",labelEn:"Python",featured:true,order:0,tasks:0,events:0,category:{key:"programming",labelEn:"Programming"}},{key:"sql",featured:false,order:1}]);
+ expect(JSON.stringify(rows)).not.toContain(owner);
+ await denied(()=>db.query("select lub.own_profile_skills($1)",[publicSlug]));
+ await denied(()=>db.query("select lub.profile_skill_details($1,false)",[owner]));
+ await actor(peer);await denied(()=>db.query("select lub.save_profile_skill_selection($1,'[]')",[publicSlug]));
+ await denied(()=>db.query("select lub.own_profile_skills($1)",[publicSlug]));
+ await actor(owner);
+ for(const invalid of [[...selection,...selection],Array.from({length:6},(_,i)=>({key:["python","sql","react","java","html","css"][i],featured:true})),[{key:"not-a-skill",featured:false}],[{key:"python",featured:false,tasks:99}]]){
+  await denied(()=>db.query("select lub.save_profile_skill_selection($1,$2::jsonb)",[publicSlug,JSON.stringify(invalid)]));
+ }
+ expect((await read()).rows[0].skills).toEqual(rows);
+ await db.query("select lub.save_profile_skill_selection($1,$2::jsonb)",[publicSlug,JSON.stringify([...selection].reverse())]);
+ expect((await read()).rows[0].skills.map(s=>s.key)).toEqual(["sql","python"]);
+ await db.query("select lub.save_profile_skill_selection($1,'[]')",[publicSlug]);expect((await read()).rows[0].skills).toEqual([]);
+});
+it("searches dictionary aliases from two languages without duplicating skills",async()=>{
+ for(const q of ["بايثون","Python"]){expect((await db.query<{skills:Array<{key:string}>}>("select lub.skill_catalog_rows($1) as skills",[q])).rows[0].skills.map(s=>s.key)).toContain("python");}
+ await publish(false);await visitor();expect((await db.query<{skills:unknown[]}>("select lub.public_profile_skills($1) as skills",[publicSlug])).rows[0].skills).toEqual([]);
+});
+it("counts a tagged completed event once only after verified attendance or contribution",async()=>{
+ await db.query("select lub.save_profile_skill_selection($1,'[{\"key\":\"python\",\"featured\":false}]')",[publicSlug]);await publish();
+ await db.exec("reset role");await db.query("insert into lub.organizations(id,type_code,slug,name_ar) values($1,'Club','skills-evidence','نادي المهارات')",[org]);
+ const event=(await db.query<{id:string}>("insert into lub.events(organization_id,created_by_user_id,title,description,location_type_code,location_text,starts_at,ends_at,registration_opens_at,registration_closes_at,status_code,published_at,completed_at) values($1,$2,'فعالية مهارات','وصف','In_Person','القاعة',now()-interval '2 days',now()-interval '1 day',now()-interval '4 days',now()-interval '3 days','Completed',now()-interval '4 days',now()) returning id",[org,owner])).rows[0].id;
+ await db.query("insert into lub.event_skill_tags select $1,id from lub.skills where dictionary_key='python'",[event]);
+ const registration=(await db.query<{id:string}>("insert into lub.event_registrations(event_id,user_id) values($1,$2) returning id",[event,owner])).rows[0].id;
+ const read=async()=> (await db.query<{skills:Array<{events:number}>}>("select lub.public_profile_skills($1) as skills",[publicSlug])).rows[0].skills[0].events;
+ expect(await read()).toBe(0);
+ await db.query("insert into lub.event_attendance(event_registration_id,status_code,checked_in_at,marked_by_user_id) values($1,'Present',now(),$2)",[registration,owner]);expect(await read()).toBe(1);
+ await db.query("insert into lub.event_contributions(event_id,user_id,contribution_type_code,title,verified_by_user_id) values($1,$2,'Trainer','تقديم الورشة',$2)",[event,owner]);expect(await read()).toBe(1);
+});
+it("counts only approved tagged task participation, and denies peers changing evidence tags",async()=>{
+ await db.query("select lub.save_profile_skill_selection($1,'[{\"key\":\"python\",\"featured\":false}]')",[publicSlug]);await publish();
+ await db.exec("reset role");await db.query("insert into lub.organizations(id,type_code,slug,name_ar) values($1,'Club','skill-tasks','نادي المهام')",[org]);
+ const membership=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,owner])).rows[0].id;
+ await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,role_code,is_primary_leader,assigned_by_user_id) values($1,$2,'OL',true,$3)",[membership,org,owner]);
+ await db.exec("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('test','T1','الفصل',current_date-5,current_date+5)");
+ await actor(owner);
+ const task=(await db.query<{id:string}>("select lub.save_task(null,$1,null,null,'عنوان مهمة','وصف المهمة',null,null,0,null) as id",[org])).rows[0].id;
+ await db.query("select lub.set_activity_skill_tags('Task',$1,'[\"python\"]',1)",[task]);
+ await actor(peer);await denied(()=>db.query("select lub.set_activity_skill_tags('Task',$1,'[\"sql\"]',2)",[task]));
+ await actor(owner);await db.query("select lub.change_task_status($1,'Open',2)",[task]);
+ const participant=(await db.query<{id:string}>("select lub.join_task($1) as id",[task])).rows[0].id;
+ const read=async()=> (await db.query<{skills:Array<{tasks:number}>}>("select lub.public_profile_skills($1) as skills",[publicSlug])).rows[0].skills[0].tasks;
+ expect(await read()).toBe(0);
+ const submission=(await db.query<{id:string}>("select lub.submit_task($1,'مخرج خاص','{}'::uuid[],0,3) as id",[participant])).rows[0].id;expect(await read()).toBe(0);
+ await db.query("select lub.review_task_submission($1,'Approved','',null)",[submission]);expect(await read()).toBe(1);
+});

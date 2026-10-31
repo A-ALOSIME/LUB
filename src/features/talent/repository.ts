@@ -3,6 +3,7 @@ import {localOrganizationContent} from "@/features/organizations/local-content";
 import { sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { withUser, withVisitor } from "@/db/client";
+import type {ProfileSkill} from "./profile-skills-model";
 import type { TalentFilters } from "./filters";
 export function talentOrganizationLogo(name:string,logo:string|null|undefined){return logo?.trim()||((localOrganizationContent(name,"Club")??localOrganizationContent(name,"Council"))?.logoSrc??null);}
 export type TalentOrganization = {
@@ -22,6 +23,7 @@ export type TalentCard = {
   avatar_version: string | null;
 };
 export type PublicTalent = Omit<TalentCard, "organizations"> & {
+  skillDetails?:ProfileSkill[];
   indexable?: boolean;
   stats?: { organizations: number; events: number };
   links: Array<{ kind: string; label: string; value: string }>;
@@ -121,10 +123,10 @@ class PublicTalentNotFound extends Error {}
 async function queryPublicTalent(id: string, pages: TalentPages) {
   return withVisitor(async (tx) => {
     const rows = await tx.execute(
-      sql`select lub.public_talent(${id},${pages.organizations * 25},${pages.events * 25},${pages.projects * 25}) as profile`,
+      sql`select lub.public_talent(${id},${pages.organizations * 25},${pages.events * 25},${pages.projects * 25}) as profile,lub.public_profile_skills(${id}) as skill_details`,
     );
     const profile=rows[0]?.profile as PublicTalent|null;
-    return profile?{...profile,organizations:profile.organizations.map(o=>({...o,logo:talentOrganizationLogo(o.name,o.logo)}))}:null;
+    return profile?{...profile,skillDetails:(rows[0]?.skill_details as ProfileSkill[]|undefined)??[],organizations:profile.organizations.map(o=>({...o,logo:talentOrganizationLogo(o.name,o.logo)}))}:null;
   });
 }
 const readPublicTalent = unstable_cache(
@@ -139,7 +141,7 @@ const readPublicTalent = unstable_cache(
     if (!profile) throw new PublicTalentNotFound();
     return profile;
   },
-  ["public-talent-profile-first-page-v6"],
+  ["public-talent-profile-first-page-v7"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export async function publicTalent(id: string, pages: TalentPages) {

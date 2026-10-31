@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { OrganizationPublicProfileContent } from "@/features/organizations/organization-public-profile";
-import { pgSchema, uuid, varchar, text, boolean, timestamp, jsonb, check, index, date, uniqueIndex, unique, foreignKey, primaryKey, integer, numeric, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgSchema, uuid, varchar, text, boolean, timestamp, jsonb, check, index, date, uniqueIndex, unique, foreignKey, primaryKey, smallint, integer, numeric, type AnyPgColumn } from "drizzle-orm/pg-core";
 import type { FormDefinition, Answers } from "@/features/forms/definition";
 
 // Keep private identity data outside Supabase's default exposed public schema.
@@ -354,12 +354,17 @@ export const eventAssets=lub.table("event_assets",{
 export const profileLinks=lub.table("profile_links",{
  id:uuid("id").primaryKey().defaultRandom(),userId:uuid("user_id").notNull().references(()=>users.id),linkType:varchar("link_type",{length:20}).notNull(),label:varchar("label",{length:80}).notNull(),urlOrValue:varchar("url_or_value",{length:2048}).notNull(),isPublic:boolean("is_public").notNull().default(false),
 },t=>[check("talent_link_check",sql`${t.linkType} in ('Email','Phone','Website','LinkedIn','GitHub','X','TikTok','Instagram','Behance') and length(trim(${t.label})) between 1 and 80 and length(trim(${t.urlOrValue}))>0`),index("talent_link_user_idx").on(t.userId)]).enableRLS();
+export const skillCategories=lub.table("skill_categories",{code:text("code").primaryKey(),nameAr:text("name_ar").notNull(),nameEn:text("name_en").notNull()}).enableRLS();
+export const skillDictionary=lub.table("skill_dictionary",{key:text("key").primaryKey(),nameAr:varchar("name_ar",{length:80}).notNull(),nameEn:varchar("name_en",{length:80}).notNull(),categoryCode:text("category_code").notNull().references(()=>skillCategories.code),aliases:jsonb("aliases").$type<string[]>().notNull().default([])}).enableRLS();
 export const skills=lub.table("skills",{
- id:uuid("id").primaryKey().defaultRandom(),nameAr:varchar("name_ar",{length:80}).notNull().unique(),nameEn:varchar("name_en",{length:80}),aliases:jsonb("aliases").$type<string[]>().notNull().default([]),isActive:boolean("is_active").notNull().default(true),
+ id:uuid("id").primaryKey().defaultRandom(),dictionaryKey:text("dictionary_key").references(()=>skillDictionary.key),nameAr:varchar("name_ar",{length:80}).notNull().unique(),nameEn:varchar("name_en",{length:80}),aliases:jsonb("aliases").$type<string[]>().notNull().default([]),isActive:boolean("is_active").notNull().default(true),
 },t=>[check("talent_skill_name_check",sql`length(trim(${t.nameAr})) between 2 and 80`)]).enableRLS();
 export const studentSkills=lub.table("student_skills",{
- userId:uuid("user_id").notNull().references(()=>users.id),skillId:uuid("skill_id").notNull().references(()=>skills.id),sourceCode:varchar("source_code",{length:20}).notNull().default("Self_Declared"),isPublic:boolean("is_public").notNull().default(true),
+ userId:uuid("user_id").notNull().references(()=>users.id),skillId:uuid("skill_id").notNull().references(()=>skills.id),sortOrder:smallint("sort_order").notNull().default(0),isFeatured:boolean("is_featured").notNull().default(false),sourceCode:varchar("source_code",{length:20}).notNull().default("Self_Declared"),isPublic:boolean("is_public").notNull().default(true),
 },t=>[primaryKey({columns:[t.userId,t.skillId]}),check("talent_skill_source_check",sql`${t.sourceCode}='Self_Declared'`)]).enableRLS();
 export const studentProjects=lub.table("student_projects",{
  id:uuid("id").primaryKey().defaultRandom(),userId:uuid("user_id").notNull().references(()=>users.id),taskParticipantId:uuid("task_participant_id").unique().references(()=>taskParticipants.id),eventContributionId:uuid("event_contribution_id").unique().references(()=>eventContributions.id),displayTitle:varchar("display_title",{length:120}).notNull(),displayDescription:varchar("display_description",{length:1000}).notNull().default(""),isFeatured:boolean("is_featured").notNull().default(false),createdAt:createdAt(),updatedAt:updatedAt(),
 },t=>[check("talent_project_source_check",sql`(${t.taskParticipantId} is null)<>(${t.eventContributionId} is null) and length(trim(${t.displayTitle})) between 2 and 120`),index("talent_project_user_idx").on(t.userId,t.isFeatured,t.createdAt)]).enableRLS();
+
+export const taskSkillTags=lub.table("task_skill_tags",{taskId:uuid("task_id").notNull().references(()=>tasks.id),skillId:uuid("skill_id").notNull().references(()=>skills.id)},t=>[primaryKey({columns:[t.taskId,t.skillId]})]).enableRLS();
+export const eventSkillTags=lub.table("event_skill_tags",{eventId:uuid("event_id").notNull().references(()=>events.id),skillId:uuid("skill_id").notNull().references(()=>skills.id)},t=>[primaryKey({columns:[t.eventId,t.skillId]})]).enableRLS();

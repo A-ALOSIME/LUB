@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it,vi } from "vitest";
 import type { PublicTalent, TalentPages } from "./repository";
 import { PublicTalentView, TalentCards } from "./view";
 
+vi.mock("./profile-skill-actions",()=>({loadProfileSkills:vi.fn(),saveProfileSkills:vi.fn(),searchProfileSkillCatalog:vi.fn()}));
 afterEach(cleanup);
 
 const pages: TalentPages = { organizations: 0, events: 0, projects: 0, sources: 0 };

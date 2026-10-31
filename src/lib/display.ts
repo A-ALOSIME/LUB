@@ -5,6 +5,7 @@ import type { Locale } from "./preferences";
 import {formatNumber} from "./i18n";
 
 const countForms = {
+  tasks:{one:"مهمة واحدة",two:"مهمتان",oblique:"مهمتين",plural:"مهام",singular:"مهمة",zero:"لا مهام",en:"task"},
   organizations:{one:"جهة واحدة",two:"جهتان",oblique:"جهتين",plural:"جهات",singular:"جهة",zero:"لا جهات",en:"organization"},
   events:{one:"فعالية واحدة",two:"فعاليتان",oblique:"فعاليتين",plural:"فعاليات",singular:"فعالية",zero:"لا فعاليات",en:"event"},
   applications: {one:"طلب واحد",two:"طلبان",oblique:"طلبين",plural:"طلبات",singular:"طلبًا",zero:"لا طلبات",en:"application"},
