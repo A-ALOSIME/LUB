@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+vi.mock("@/features/talent/activity-skill-actions",()=>({searchActivitySkills:vi.fn().mockResolvedValue([])}));
 import {cleanup,fireEvent,render,screen} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 vi.mock("./task-panel-actions",()=>({loadTaskPanel:vi.fn()}));

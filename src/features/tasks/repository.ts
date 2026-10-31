@@ -2,7 +2,8 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
 export {taskLabels,formatTaskDate} from "./display";
-export type Task={id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null;image_asset_id?:string|null;has_event_poster?:boolean};
+import type {ProfileSkill} from "@/features/talent/profile-skills-model";
+export type Task={skills?:ProfileSkill[];id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null;image_asset_id?:string|null;has_event_poster?:boolean};
 export type Participant={id:string;user_id:string;status_code:string;approved_hours_override:string|null;joined_at:string;closed_at:string|null};
 export type Submission={id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
 export type TaskTemplate={id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
@@ -22,7 +23,7 @@ export async function listTasks(user:string,options:{org?:string;view:"available
  where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and ((${options.view==='all'} and lub.can_manage_task(t.id)) or p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
  union all select r.snapshot_json,(r.snapshot_json->>'organization_id')::uuid,p.joined_at,to_jsonb(p),true from lub.task_participants p join lateral(select r.* from lub.task_revisions r where r.task_id=p.task_id order by r.revision_number desc limit 1) r on true
  where p.user_id=${user} and not exists(select 1 from lub.tasks t where t.id=p.task_id) and (${options.org??null}::uuid is null or (r.snapshot_json->>'organization_id')::uuid=${options.org??null}::uuid))
- select v.task||jsonb_build_object('has_event_poster',(exists(select 1 from lub.public_event_poster((v.task->>'event_id')::uuid)) or exists(select 1 from lub.event_assets a where a.event_id=(v.task->>'event_id')::uuid and a.asset_type_code='Poster'))) as task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
+ select v.task||case when lub.can_manage_task((v.task->>'id')::uuid) then jsonb_build_object('skills',lub.activity_skill_selection('Task',(v.task->>'id')::uuid)) else '{}'::jsonb end||jsonb_build_object('has_event_poster',(exists(select 1 from lub.public_event_poster((v.task->>'event_id')::uuid)) or exists(select 1 from lub.event_assets a where a.event_id=(v.task->>'event_id')::uuid and a.asset_type_code='Poster'))) as task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
  (select jsonb_build_object('status_code',s.status_code) from lub.task_submissions s where s.task_participant_id=(v.participant->>'id')::uuid order by s.revision_number desc limit 1) as latest_submission,
  (select h.hours::text from lub.hour_records h where h.task_participant_id=(v.participant->>'id')::uuid and h.status_code='Approved' limit 1) as approved_hours
  from visible v join lub.organizations o on o.id=v.organization_id
@@ -34,7 +35,7 @@ export async function listTasks(user:string,options:{org?:string;view:"available
 });}
 export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,teamPage=0,eventPage=0){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select
- coalesce((select to_jsonb(t) from lub.tasks t where t.id=${id}),(select r.snapshot_json from lub.task_revisions r where r.task_id=${id} order by r.revision_number desc limit 1)) as task,
+ coalesce((select to_jsonb(t)||case when lub.can_manage_task(t.id) then jsonb_build_object('skills',lub.activity_skill_selection('Task',t.id)) else '{}'::jsonb end from lub.tasks t where t.id=${id}),(select r.snapshot_json from lub.task_revisions r where r.task_id=${id} order by r.revision_number desc limit 1)) as task,
  lub.task_summary(${id}) as summary,lub.can_manage_task(${id}) as "canManage",lub.can_read_task(${id}) as current,
  (select jsonb_build_object('id',e.id,'title',e.title,'status',e.status_code) from lub.events e where e.id=(select t.event_id from lub.tasks t where t.id=${id})) as "linkedEvent",
  case when lub.can_manage_task(${id}) then coalesce((select jsonb_agg(e) from(select e.id,e.title,e.status_code as status from lub.events e where e.organization_id=(select t.organization_id from lub.tasks t where t.id=${id}) and e.status_code<>'Cancelled' order by e.starts_at desc,e.id limit 26 offset ${eventPage*25}) e),'[]') else '[]'::jsonb end as "eventChoices",

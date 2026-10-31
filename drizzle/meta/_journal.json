@@ -463,6 +463,13 @@
       "when": 1793458800001,
       "tag": "0065_security_skill_dictionary",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793458800002,
+      "tag": "0066_activity_skill_fields",
+      "breakpoints": true
     }
   ]
 }

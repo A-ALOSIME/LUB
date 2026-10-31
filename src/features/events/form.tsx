@@ -1,4 +1,5 @@
 "use client";
+import {ActivitySkillField} from "@/features/talent/activity-skill-field";
 import {createTranslator} from "@/lib/i18n";
 import {useRouter} from "next/navigation";
 import {useManagementAction} from "@/components/management-action-sheet";
@@ -32,6 +33,7 @@ export function EventFields({value,templates=[],locale="ar",organization}:{value
   <section><Separator/><h3>{c("الأساسيات","Basics")}</h3><FieldGroup>
    {field("title",c("عنوان الفعالية","Event title"),<Input id={`${id}-title`} name="title" required minLength={2} maxLength={120} defaultValue={value?.title}/>,true)}
    {field("description",c("الوصف","Description"),<Textarea id={`${id}-description`} name="description" maxLength={6000} rows={3} defaultValue={value?.description}/>)}
+   <ActivitySkillField kind="Event" initialSkills={value?.skills} locale={locale}/>
    <EventPosterField organization={organization} locale={locale} event={value?.id} hasPoster={value?.has_poster}/>
   </FieldGroup></section>
   <section><Separator/><h3>{c("الوقت والمكان","Time and place")}</h3><FieldGroup>

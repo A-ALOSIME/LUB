@@ -1,4 +1,5 @@
 "use client";
+import {ActivitySkillField} from "@/features/talent/activity-skill-field";
 import {createTranslator} from "@/lib/i18n";
 import { formatHours } from "@/lib/display";
 
@@ -61,6 +62,7 @@ export function TaskFields({ value, template = false, locale = "ar", rules = [],
 
     <FormField className="sm:col-span-2" label={c("العنوان", "Title")} required><Input name="title" required minLength={2} maxLength={120} defaultValue={value?.title ?? value?.name ?? ""}/></FormField>
     <FormField label={c("وصف العمل والمخرج المطلوب", "Work description and expected deliverable")} required><Textarea name="description" required maxLength={6000} rows={5} defaultValue={value?.description ?? value?.description_template ?? ""}/></FormField>
+    <ActivitySkillField kind="Task" initialSkills={value?.skills} locale={locale} className="sm:col-span-2"/>
     {<>
       <FormField label={c("ساعات المهمة", "Task hours")} required>
         <div className="flex flex-wrap items-center gap-2">

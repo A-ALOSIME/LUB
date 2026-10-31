@@ -1,4 +1,5 @@
 "use server";
+import {activitySkillKeys} from "@/features/talent/activity-skill-input";
 import {z} from "zod";
 import {sql} from "drizzle-orm";
 import {revalidatePath,updateTag} from "next/cache";
@@ -33,7 +34,7 @@ export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<Wo
   const photos=z.array(z.string().url().refine(value=>{const url=new URL(value);return url.protocol==="https:"&&!url.username&&!url.password&&!/\s/.test(value);})).max(4).parse(text(f,"photos",8200).split(/\r?\n/).map(value=>value.trim()).filter(Boolean));
   return sql`select lub.set_event_public_content(${id(f,"event")},${report},array[${sql.join(photos.map(value=>sql`${value}`),sql`, `)}]::text[])`;
  }
- }})();const rows=await withUser(user.id,async tx=>{const rows=await tx.execute(query);if(operation==="save"){const event=z.uuid().parse(rows[0]?.id);if(f.has("approval-present"))await tx.execute(sql`select lub.set_event_registration_policy(${event},${f.get("approval")==="on"},(select revision from lub.events where id=${event}))`);if(f.get("removePoster")==="true")await tx.execute(sql`select lub.remove_event_poster(${event})`);}return rows;});if(operation==="save"||operation==="duplicate")eventId=z.uuid().parse(rows[0]?.id);
+ }})();const rows=await withUser(user.id,async tx=>{const skills=operation==="save"?activitySkillKeys(f):null;const rows=await tx.execute(query);if(operation==="save"){const event=z.uuid().parse(rows[0]?.id);if(skills!==null)await tx.execute(sql`select lub.set_activity_skill_tags('Event',${event},${JSON.stringify(skills)}::jsonb,(select revision from lub.events where id=${event}))`);if(f.has("approval-present"))await tx.execute(sql`select lub.set_event_registration_policy(${event},${f.get("approval")==="on"},(select revision from lub.events where id=${event}))`);if(f.get("removePoster")==="true")await tx.execute(sql`select lub.remove_event_poster(${event})`);}return rows;});if(operation==="save"||operation==="duplicate")eventId=z.uuid().parse(rows[0]?.id);
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات وحدّث الصفحة. التسجيل له موعد وسعة؛ الإكمال يحتاج انتهاء الفعالية ومراجعة الحضور وفصلًا يغطي ساعات الأعضاء."};}
  updateTag("events");updateTag("public-organizations");updateTag("public-talent");revalidatePath("/events","layout");revalidatePath("/activity");revalidatePath("/organizations","layout");revalidatePath("/manage","layout");revalidatePath("/me");revalidatePath("/hours");revalidatePath("/notifications");return{success:"تم حفظ التغيير.",eventId};
 }

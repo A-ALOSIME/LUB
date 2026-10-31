@@ -1,4 +1,5 @@
 "use server";
+import {activitySkillKeys} from "@/features/talent/activity-skill-input";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { revalidatePath, updateTag } from "next/cache";
@@ -65,7 +66,9 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
    await tx.execute(sql`select lub.save_task_template(null,${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000)},${hours(f)}::numeric,true,null,null)`);
    return [];
   }
+  const skills=activitySkillKeys(f);
   const saved=await tx.execute(query);const task=z.uuid().parse(saved[0]?.id);
+  if(skills!==null)await tx.execute(sql`select lub.set_activity_skill_tags('Task',${task},${JSON.stringify(skills)}::jsonb,(select revision from lub.tasks where id=${task}))`);
   if(f.get("poster")||f.get("removePoster")==="true")await tx.execute(sql`select lub.set_task_image(${task},${optionalId(f,"poster")},(select revision from lub.tasks where id=${task}))`);
   if(intent==="publish")await tx.execute(sql`select lub.change_task_status(${task},'Open',(select revision from lub.tasks where id=${task}))`);
   return [{id:task}];

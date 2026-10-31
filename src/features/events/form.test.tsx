@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+vi.mock("@/features/talent/activity-skill-actions",()=>({searchActivitySkills:vi.fn().mockResolvedValue([])}));
 import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 const mocks=vi.hoisted(()=>({mutation:vi.fn()}));
