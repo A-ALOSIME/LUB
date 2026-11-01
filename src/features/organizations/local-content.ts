@@ -699,7 +699,6 @@ const profiles: readonly LocalOrganizationContent[] = [
     typeCode: "Council",
     matches: ["المجلس الطلابي"],
     logoSrc: "/club-logos/student-council.jpg",
-    coverSrc: "/club-logos/student-council-banner.jpg",
     imageTheme: "student-council",
     sections: [],
     links: [

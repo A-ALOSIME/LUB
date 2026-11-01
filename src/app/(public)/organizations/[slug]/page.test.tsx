@@ -87,7 +87,7 @@ it("uses a manager-uploaded organization logo on the public page", async () => {
   expect(logo.getAttribute("src")).toBe("https://logos.example/custom-logo-club.svg");
 });
 
-it("shows a custom logo alongside an existing council cover", async () => {
+it("uses the same logo-and-content hero for the student council as for every other organization", async () => {
   const page = await OrganizationPage({
     params: Promise.resolve({ slug: "student-council" }),
     searchParams: Promise.resolve({}),
@@ -95,7 +95,12 @@ it("shows a custom logo alongside an existing council cover", async () => {
   render(page);
 
   expect(screen.getByAltText("المجلس الطلابي").getAttribute("src")).toBe("https://logos.example/student-council.svg");
-  expect(screen.getByAltText("غلاف المجلس الطلابي")).toBeTruthy();
+  expect(screen.queryByAltText("غلاف المجلس الطلابي")).toBeNull();
+  const hero=document.querySelector("#organization-overview")!;
+  expect(hero.querySelector(".organization-hero-cover")).toBeNull();
+  expect(hero.querySelector(".organization-hero-main")?.className).toBe("organization-hero-main");
+  expect(hero.querySelector(".organization-hero-art img")).toBe(screen.getByAltText("المجلس الطلابي"));
+  expect(hero.querySelectorAll("img")).toHaveLength(1);
 });
 
 it("renders a read-only committee chart with leadership inside the organization root", async () => {
