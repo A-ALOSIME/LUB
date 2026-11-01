@@ -14,7 +14,8 @@ let visitorSelects=0;
 let rawReads=0;
 type Tx = Parameters<Parameters<PgliteDatabase<typeof schema>["transaction"]>[0]>[0];
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache",()=>({unstable_cache:(fn:unknown)=>fn}));
+vi.mock("next/cache",()=>({unstable_cache:(fn:unknown)=>fn,updateTag:vi.fn(),revalidatePath:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:leader})}));
 vi.mock("@/db/client", () => ({
   getDb: () => ({execute: async (query: Parameters<Tx["execute"]>[0]) => { rawReads++; return (await database.execute(query)).rows; }}),
   withUser: async <T>(id: string, operation: (tx: Tx) => Promise<T>) => database.transaction(async tx => {
@@ -132,7 +133,7 @@ it("reads published event discovery anonymously and private event data in one sc
  expect((await eventDetail(admin,e))?.canManage).toBe(false);expect(await eventWorkspace(admin,org,0)).toBeUndefined();
 });
 
-it("combines public organization sections in one select and filters only published upcoming events and open rounds",async()=>{
+it("combines public organization sections in one select and keeps eligibility separate from public data",async()=>{
  const{taskDetail}=await import("@/features/tasks/repository");const{initialDefinition}=await import("@/features/forms/definition");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
  const event=(await engine.query<{id:string}>("select lub.save_event(null,$1,'فعالية عامة','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',5,null,0,null) as id",[org])).rows[0].id;
@@ -143,8 +144,11 @@ it("combines public organization sections in one select and filters only publish
  const template=(await engine.query<{id:string}>("select lub.create_form($1,'نموذج عام',null) as id",[org])).rows[0].id;const version=(await engine.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;
  await engine.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await engine.query("select lub.publish_form_version($1)",[version]);const round=(await engine.query<{id:string}>("select lub.create_registration_round($1,$2,'التسجيل المفتوح',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;await engine.query("select lub.change_round_status($1,'Open')",[round]);await engine.exec("reset role");
  await engine.query("insert into lub.committees(organization_id,name,is_public) select $1,'لجنة '||i,true from generate_series(1,26)i",[org]);
- visitorSelects=0;const detail=await getPublicOrganization('tech');expect(visitorSelects).toBe(1);expect(detail?.upcomingEvents.map(e=>e.id)).toEqual([event]);expect(detail?.rounds).toEqual([{id:round,title:'التسجيل المفتوح',open:true,opens_at:expect.any(String),closes_at:expect.any(String)}]);expect(detail?.moreCommittees).toBe(false);expect(detail?.committees).toHaveLength(27);
+ visitorSelects=0;const detail=await getPublicOrganization('tech');expect(visitorSelects).toBe(1);expect(detail?.upcomingEvents.map(e=>e.id)).toEqual([event]);expect(detail?.rounds).toEqual([{id:round,title:'التسجيل المفتوح',open:true,status_code:'Open',minimum_approved_hours:0,allowed_majors:[],opens_at:expect.any(String),closes_at:expect.any(String)}]);expect(detail?.moreCommittees).toBe(false);expect(detail?.committees).toHaveLength(27);
  expect((await getPublicDirectory(discoverySchema.parse({upcoming:'on',open:'on'}))).organizations.map(o=>o.id)).toEqual([org]);
+ const {registrationReadiness}=await import("@/features/forms/repository");expect(await registrationReadiness(leader,org,round)).toMatchObject({active:true,onboarded:true,hours:0,member:true,application:null});
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_round_status($1,'Closed')",[round]);await engine.exec("reset role");expect((await getPublicOrganization('tech'))?.rounds).toMatchObject([{id:round,open:false,status_code:'Closed'}]);expect((await getPublicDirectory(discoverySchema.parse({open:'on'}))).organizations).toEqual([]);
+
 });
 
 it("exports scoped approved hours directly as CSV without persisting report documents",async()=>{
@@ -459,4 +463,17 @@ it('creates an organization with its optional leader in one transaction and roll
  const created=await createOrganization(admin,input,'leader@example.invalid');expect((await getManagementOrganization(leader,created.id))?.organization.canEdit).toBe(true);expect((await getPublicOrganization(input.slug))?.leadership).toEqual([{fullName:'القائد',roleCode:'OL'}]);
  const {saveOrganizationLogo}=await import('@/features/organizations/management-repository');await saveOrganizationLogo(admin,created.id,'https://example.com/logo.png');expect((await getPublicOrganization(input.slug))?.organization.logoUrl).toBe('https://example.com/logo.png');
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec('set role authenticated');await engine.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-organization-logos',$1,$2)",[`organizations/${created.id}/00000000-0000-4000-8000-000000000888.png`,admin]);await engine.exec('reset role');
+});
+
+
+it("persists leader round requirements atomically with creation and rolls back invalid edits",async()=>{
+ await appointPrimaryLeader(admin,org,"leader@example.invalid");
+ const {mutateWorkflow}=await import("@/features/forms/actions");
+ const form=new FormData();for(const [key,value] of Object.entries({operation:"create-round",org,title:"جولة بشروط",intent:"draft","requirements-present":"on",minimumHours:"12.5"}))form.set(key,value);form.append("allowedMajor","نظم معلومات");
+ expect((await mutateWorkflow({},form)).success).toBeDefined();
+ const [created]=(await database.execute<{id:string;title:string;minimum_approved_hours:string;allowed_majors:string[]}>(sql`select id,title,minimum_approved_hours,allowed_majors from lub.registration_rounds where organization_id=${org}`)).rows;
+ expect(created).toMatchObject({title:"جولة بشروط",minimum_approved_hours:"12.50",allowed_majors:["نظم معلومات"]});
+ form.set("operation","save-round");form.set("round",created.id);form.set("title","لا يُحفظ");form.set("allowedMajor","تخصص غير صالح");expect((await mutateWorkflow({},form)).error).toBeDefined();
+ const [unchanged]=(await database.execute<{title:string;minimum_approved_hours:string;allowed_majors:string[]}>(sql`select title,minimum_approved_hours,allowed_majors from lub.registration_rounds where id=${created.id}`)).rows;expect(unchanged).toMatchObject({title:"جولة بشروط",minimum_approved_hours:"12.50",allowed_majors:["نظم معلومات"]});
+ form.set("title","جولة محدثة");form.delete("allowedMajor");form.set("minimumHours","0");expect((await mutateWorkflow({},form)).success).toBeDefined();const [cleared]=(await database.execute<{minimum_approved_hours:string;allowed_majors:string[]}>(sql`select minimum_approved_hours,allowed_majors from lub.registration_rounds where id=${created.id}`)).rows;expect(cleared).toMatchObject({minimum_approved_hours:"0.00",allowed_majors:[]});
 });

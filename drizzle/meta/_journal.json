@@ -470,6 +470,20 @@
       "when": 1793458800002,
       "tag": "0066_activity_skill_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793534692486,
+      "tag": "0067_talent_privacy_controls",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793534941514,
+      "tag": "0068_registration_requirements",
+      "breakpoints": true
     }
   ]
 }

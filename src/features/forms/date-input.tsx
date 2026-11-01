@@ -426,7 +426,7 @@ export function DateRangeInput({startName,endName,label,startValue="",endValue="
   };
   const summary=startOutput?`${endpoint(startOutput)}${endOutput?` ${en?"→":"←"} ${endpoint(endOutput)}`:""}`:"";
   const message=invalid?(translateUi((en) ? "en" : "ar", "أدخل وقتًا صالحًا، ويجب أن تكون النهاية بعد البداية.", "Enter a valid time; end must be after start.")):touched&&!complete?(translateUi((en) ? "en" : "ar", "اختر بداية الفترة ونهايتها.", "Choose the start and end of the period.")):"";
-  return <Field className="shared-period-field" data-invalid={!!message||undefined}>
+  return <Field className="relative shared-period-field" data-invalid={!!message||undefined}>
     <FieldLabel htmlFor={id}>{label}{required&&<span className="text-destructive" aria-hidden="true">*</span>}</FieldLabel>
     <CalendarPopup open={open} onOpenChange={setOpen} label={label} locale={locale} trigger={<Button id={id} aria-label={label} type="button" variant="outline" className="period-trigger" value={summary} aria-invalid={!!message} aria-required={required} aria-describedby={`${id}-hint`}><CalendarDays/><span>{startOutput?<><bdi>{endpoint(startOutput)}</bdi>{endOutput&&<>{en?<ArrowRight/>:<ArrowLeft/>}<bdi>{endpoint(endOutput)}</bdi></>}</>:translateUi((en) ? "en" : "ar", "اختر الفترة", "Choose a period")}</span></Button>}>
       <div className="period-picker-content">

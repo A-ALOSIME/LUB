@@ -1,19 +1,12 @@
 import {renderToStaticMarkup} from "react-dom/server";
-import {expect,it,vi} from "vitest";
-vi.mock("./repository",()=>({statuses:{Submitted:"قيد المراجعة"}}));
-import {PublicRegistration} from "./public-registration";
-const round={id:"round",title:"جولة جديدة",open:true,opens_at:"2026-10-25T10:00:00Z",closes_at:"2026-10-30T10:00:00Z"};
-it("always renders the closed application section without old-round links",()=>{
- const html=renderToStaticMarkup(<PublicRegistration slug="test" signedIn={false} locale="ar"/>);
- expect(html).toContain("التقديم للانضمام");expect(html).toContain("التسجيل مغلق حاليًا");expect(html).not.toContain("قدّم الآن");
-});
-it("shows one current round with a login return to the application",()=>{
- const html=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn={false} locale="ar"/>);
- expect(html).toContain("قدّم الآن");expect(html).toContain("/login?next=%2Forganizations%2Ftest%2Fapply%2Fround");
-});
-it("shows the opening date for upcoming rounds and the existing request status",()=>{
- const upcoming=renderToStaticMarkup(<PublicRegistration round={{...round,open:false}} slug="test" signedIn locale="ar"/>);
- expect(upcoming).toContain("يفتح التسجيل في");expect(upcoming).not.toContain("قدّم الآن");
- const own=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn locale="ar" application={{id:"own",status_code:"Submitted"}}/>);
- expect(own).toContain("قيد المراجعة");expect(own).not.toContain("قدّم الآن");
-});
+import {expect,it} from "vitest";
+import {PublicRegistration,RegistrationStatusBadge} from "./public-registration";
+import {registrationTiming,registrationEligibility} from "./registration-presentation";
+const now=Date.parse("2026-10-27T10:00:00Z"),round={id:"round",title:"الفصل الدراسي الأول",status_code:"Open",open:true,opens_at:"2026-10-25T10:00:00Z",closes_at:"2026-10-31T10:00:00Z",minimum_approved_hours:5,allowed_majors:["نظم معلومات"]};
+const readiness={active:true,onboarded:true,major:"نظم معلومات",hours:6,member:false,application:null};
+it("always renders the closed application card without old-round apply links",()=>{const html=renderToStaticMarkup(<PublicRegistration slug="test" signedIn={false} locale="ar" now={now}/>);expect(html).toContain("التقديم للانضمام");expect(html).toContain("التسجيل مغلق حاليًا");expect(html).not.toContain("قدّم الآن");expect(html).not.toContain('role="progressbar"');});
+it("shows one visitor login action and one eligible-student apply action",()=>{const visitor=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn={false} locale="ar" now={now}/>);expect(visitor).toContain("سجّل الدخول للتقديم");expect(visitor).toContain("/login?next=%2Forganizations%2Ftest%2Fapply%2Fround");const member=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn readiness={readiness} locale="ar" now={now}/>);expect(member.match(/قدّم الآن/g)).toHaveLength(1);expect(member).toContain('role="progressbar"');expect(member).toContain('aria-valuenow');});
+it("shows the upcoming opening date and preserves a pending request with its view link",()=>{const upcoming=renderToStaticMarkup(<PublicRegistration round={{...round,opens_at:"2026-10-29T10:00:00Z",open:false}} slug="test" signedIn locale="ar" now={now}/>);expect(upcoming).toContain("يفتح في:");expect(upcoming).toContain("29 أكتوبر 2026");expect(upcoming).not.toContain('role="progressbar"');const own=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn locale="ar" now={now} readiness={{...readiness,application:{id:"own",status_code:"Submitted"}}}/>);expect(own).toContain("طلبك قيد المراجعة");expect(own).toContain("عرض طلبي");expect(own).not.toContain("قدّم الآن");});
+it.each(["Accepted","Rejected"])("uses a disabled action for %s rather than another application",status=>{const html=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn locale="en" now={now} readiness={{...readiness,application:{id:"own",status_code:status}}}/>);expect(html).not.toContain('href="/organizations/test/apply');expect(html).toContain(status==="Accepted"?"You are a member":"declined");});
+it("matches the real hours and major requirements without using client claims",()=>{expect(registrationEligibility(round,{...readiness,hours:4}).hoursMet).toBe(false);expect(registrationEligibility(round,{...readiness,major:"علوم حاسب"}).majorMet).toBe(false);const html=renderToStaticMarkup(<PublicRegistration round={round} slug="test" signedIn locale="en" readiness={{...readiness,hours:4}} now={now}/>);expect(html).toContain("Application requirements not met");expect(html).not.toContain('href="/organizations/test/apply');});
+it("distinguishes open, closing, upcoming and closed and caps elapsed progress",()=>{expect(registrationTiming(round,now).status).toBe("open");expect(registrationTiming(round,now+86400000).status).toBe("closing");expect(registrationTiming({...round,open:false,opens_at:"2026-10-29T10:00:00Z"},now).status).toBe("upcoming");expect(registrationTiming(round,Date.parse(round.closes_at)).status).toBe("closed");const badge=renderToStaticMarkup(<RegistrationStatusBadge round={round} locale="ar" now={now+86400000}/>);expect(badge).toContain("organization-status-badge--warning");expect(badge).toContain("3 أيام");});

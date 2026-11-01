@@ -324,3 +324,14 @@ it("translates existing compound security skills without changing the owner's st
  expect(rows[0]).toMatchObject({key:"cryptography-security-protocols",labelAr:original,labelEn:"Cryptography and Security Protocols (SSL/TLS, VPN)",filterValue:original,category:{key:"security",labelEn:"Information security"}});
  await actor(owner);const workspace=(await db.query<{data:{skills:Array<{name:string}>}}>("select lub.talent_workspace() as data")).rows[0].data;expect(workspace.skills[0].name).toBe(original);
 });
+
+it("saves privacy immediately without touching content, and always disables indexing for private profiles",async()=>{
+ await db.query("select lub.save_talent_bio('نبذة محفوظة')");
+ const result=(await db.query<{settings:{enabled:boolean;indexable:boolean;slug:string}}>("select lub.save_talent_privacy(true,true) as settings")).rows[0].settings;expect(result).toEqual({enabled:true,indexable:true,slug:publicSlug});
+ await db.query("select lub.save_talent_bio('نبذة جديدة')");expect((await profile())?.indexable).toBe(true);
+ expect((await db.query<{settings:unknown}>("select lub.save_talent_privacy(false,true) as settings")).rows[0].settings).toMatchObject({enabled:false,indexable:false});
+ await visitor();expect(await profile()).toBeNull();await denied(()=>db.query("select lub.save_talent_privacy(true,true)"));
+ await actor(owner);expect((await db.query<{bio:string}>("select bio from lub.student_profiles where user_id=$1",[owner])).rows[0].bio).toBe('نبذة جديدة');
+ await actor(peer);await db.query("select lub.save_talent_privacy(true,true)");await actor(owner);expect((await db.query<{enabled:boolean;indexable:boolean}>("select public_profile_enabled as enabled,allow_indexing as indexable from lub.profile_settings where user_id=$1",[owner])).rows[0]).toEqual({enabled:false,indexable:false});
+ await db.query("select lub.save_talent_settings('',true,true)");await db.query("select lub.save_talent_settings('',false)");expect((await db.query<{indexable:boolean}>("select allow_indexing as indexable from lub.profile_settings where user_id=$1",[owner])).rows[0].indexable).toBe(false);
+});

@@ -3,6 +3,7 @@ import type { Locale } from "./preferences";
 
 // Server actions return stable Arabic copy; keep the same feedback in either UI language.
 const english: Record<string, string> = {
+  "لا تستوفي شروط الساعات أو التخصص لهذه الجولة. راجع الشروط في صفحة الجهة.":"You do not meet this round’s hours or major requirements. Review them on the organization page.",
   "أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر.": "Complete the round title, published form and registration period before publishing.",
   "توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى.": "This organization already has an open or scheduled registration round. Pause it before publishing another.",
   "انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح.": "This round has expired. Extend its closing date before reopening it.",

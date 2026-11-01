@@ -320,7 +320,8 @@ it("keeps incomplete round drafts private and validates publication",async()=>{
  await denied(()=>db.query("select lub.change_round_status($1,'Open')",[draft]));
  await owner();await db.exec("select set_config('request.jwt.claim.sub','',true);set local role anon");expect((await db.query("select id from lub.registration_rounds where id=$1",[draft])).rows).toHaveLength(0);
  await asUser(leader);await db.query("select lub.change_round_status($1,'Closed')",[round]);
- await db.exec("reset role;select set_config('request.jwt.claim.sub','',true);set local role anon");expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(0);
+ await db.exec("reset role;select set_config('request.jwt.claim.sub','',true);set local role anon");expect((await db.query("select status_code from lub.registration_rounds where id=$1",[round])).rows).toEqual([{status_code:"Closed"}]);
+ await asUser(student);await denied(()=>submit());
 });
 
 it("preserves a rejection reason for the applicant and in the decision timeline",async()=>{const application=await submit();await asUser(leader);await db.query("select lub.decide_application($1,'Rejected','اكتملت المقاعد')",[application]);await asUser(student);expect((await db.query("select reason from lub.application_status_history where application_id=$1 and to_status_code='Rejected'",[application])).rows).toEqual([{reason:'اكتملت المقاعد'}]);await asUser(other);expect((await db.query("select reason from lub.application_status_history where application_id=$1",[application])).rows).toEqual([]);});
@@ -359,4 +360,18 @@ it("does not infer a committee for a new form without an explicit committee ques
  const draft=(await db.query<{id:string}>("select lub.start_form_draft($1) as id",[template])).rows[0].id;await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[draft,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[draft]);
  await asUser(student);const app=(await db.query<{id:string}>("select lub.submit_application($1,$2,$3::jsonb,$4,null,null) as id",[round,draft,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'إجابة'}),committee])).rows[0].id;
  expect((await db.query("select requested_committee_id from lub.membership_applications where id=$1",[app])).rows[0]).toEqual({requested_committee_id:null});
+});
+
+it("enforces round major and approved platform-hours requirements in the database without trusting the client",async()=>{
+ await db.query("select lub.set_round_requirements($1,10,'[\"نظم معلومات\"]')",[round]);
+ await denied(()=>submit());await owner();expect((await db.query("select id from lub.form_responses where respondent_user_id=$1",[student])).rows).toHaveLength(0);
+ await db.query("update lub.student_profiles set major_name='نظم معلومات' where user_id=$1",[student]);
+ const elsewhere=(await db.query<{id:string}>("insert into lub.organizations(type_code,slug,name_ar) values('Club','hours-history','جهة الساعات') returning id")).rows[0].id;
+ const membership=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[elsewhere,student])).rows[0].id;
+ const term=(await db.query<{id:string}>("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('test','T1','الفصل',current_date-5,current_date+5) returning id")).rows[0].id;
+ await db.query("insert into lub.hour_records(organization_id,organization_membership_id,academic_term_id,source_code,hours,activity_date,description,status_code,requested_by_user_id,reviewed_by_user_id,reviewed_at) values($1,$2,$3,'MANUAL',9,current_date,'نشاط معتمد','Approved',$4,$5,now())",[elsewhere,membership,term,student,leader]);
+ await denied(()=>submit());await owner();await db.query("insert into lub.hour_records(organization_id,organization_membership_id,academic_term_id,source_code,hours,activity_date,description,status_code,requested_by_user_id,reviewed_by_user_id,reviewed_at) values($1,$2,$3,'MANUAL',1,current_date,'نشاط إضافي معتمد','Approved',$4,$5,now())",[elsewhere,membership,term,student,leader]);
+ const application=await submit();expect(application).toBeTruthy();
+ await asUser(other);await denied(()=>db.query("select lub.set_round_requirements($1,0,'[]')",[round]));
+ await asUser(leader);await denied(()=>db.query("select lub.set_round_requirements($1,0,'[\"غير معتمد\"]')",[round]));
 });

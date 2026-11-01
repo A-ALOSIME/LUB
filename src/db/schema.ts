@@ -40,7 +40,7 @@ export const profileSettings = lub.table("profile_settings", {
   allowIndexing: boolean("allow_indexing").notNull().default(false),
   completionPromptSeenAt:timestamp("completion_prompt_seen_at",{withTimezone:true}),
   updatedAt: updatedAt(),
-}).enableRLS();
+},t=>[check("profile_indexing_requires_public",sql`not ${t.allowIndexing} or ${t.publicProfileEnabled}`)]).enableRLS();
 
 export const auditLog = lub.table("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -222,6 +222,7 @@ export const formVersions = lub.table("form_versions", {
 }, t => [unique("form_version_number_unique").on(t.formTemplateId, t.versionNumber), uniqueIndex("one_form_draft_idx").on(t.formTemplateId).where(sql`${t.statusCode}='Draft'`), check("form_version_status_check", sql`${t.statusCode} in ('Draft','Published','Retired')`), check("form_version_number_check", sql`${t.versionNumber}>0 and ${t.revision}>0`), check("form_definition_size_check", sql`jsonb_typeof(${t.definition})='object' and octet_length(${t.definition}::text)<=128000`)]).enableRLS();
 
 export const registrationRounds = lub.table("registration_rounds", {
+  minimumApprovedHours:numeric("minimum_approved_hours",{precision:10,scale:2}).notNull().default("0"),allowedMajors:jsonb("allowed_majors").$type<string[]>().notNull().default([]),
   id: uuid("id").primaryKey().defaultRandom(), organizationId: uuid("organization_id").notNull().references(() => organizations.id),
   formTemplateId: uuid("form_template_id").references(() => formTemplates.id), title: varchar("title", { length: 120 }).notNull(),
   opensAt: timestamp("opens_at", { withTimezone: true }), closesAt: timestamp("closes_at", { withTimezone: true }),

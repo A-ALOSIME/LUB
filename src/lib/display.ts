@@ -5,12 +5,13 @@ import type { Locale } from "./preferences";
 import {formatNumber} from "./i18n";
 
 const countForms = {
+  days:{one:"يوم واحد",two:"يومان",oblique:"يومين",plural:"أيام",singular:"يوم",zero:"0 يوم",en:"day"},
   tasks:{one:"مهمة واحدة",two:"مهمتان",oblique:"مهمتين",plural:"مهام",singular:"مهمة",zero:"لا مهام",en:"task"},
   organizations:{one:"جهة واحدة",two:"جهتان",oblique:"جهتين",plural:"جهات",singular:"جهة",zero:"لا جهات",en:"organization"},
   events:{one:"فعالية واحدة",two:"فعاليتان",oblique:"فعاليتين",plural:"فعاليات",singular:"فعالية",zero:"لا فعاليات",en:"event"},
   applications: {one:"طلب واحد",two:"طلبان",oblique:"طلبين",plural:"طلبات",singular:"طلبًا",zero:"لا طلبات",en:"application"},
   registrants: {one:"مسجل واحد",two:"مسجلان",oblique:"مسجلين",plural:"مسجلين",singular:"مسجلًا",zero:"لا مسجلين",en:"registrant"},
-  hours: { one:"ساعة واحدة", two:"ساعتان", oblique:"ساعتين", plural:"ساعات", singular:"ساعة", zero:"لا ساعات", en:"hour" },
+  hours: { one:"ساعة واحدة", two:"ساعتان", oblique:"ساعتين", plural:"ساعات", singular:"ساعة", zero:"0 ساعة", en:"hour" },
   rounds: { one:"جولة واحدة", two:"جولتان", oblique:"جولتين", plural:"جولات", singular:"جولة", zero:"لا جولات", en:"round" },
   versions: { one:"نسخة واحدة", two:"نسختان", oblique:"نسختين", plural:"نسخ", singular:"نسخة", zero:"لا نسخ", en:"version" },
   records: { one:"سجل واحد", two:"سجلان", oblique:"سجلين", plural:"سجلات", singular:"سجلًا", zero:"لا سجلات", en:"record" },

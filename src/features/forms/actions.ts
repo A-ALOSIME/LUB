@@ -6,6 +6,7 @@ import { withUser } from "@/db/client";
 import { requireUser } from "@/features/auth/session";
 import { studentOperationError } from "@/features/auth/authorization";
 import { definitionSchema, validateAnswers } from "./definition";
+import {studentMajors} from "@/lib/student-identity";
 import { getRound } from "./repository";
 export type WorkflowState = { error?: string; success?: string; bulk?: string; templateId?:string;eventId?:string };
 const uuid = (form: FormData, name: string) => z.uuid().parse(form.get(name));
@@ -34,7 +35,7 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
     case "save-round": {
      const opens=form.get("opens")?z.iso.datetime({ offset:true }).parse(form.get("opens")):null; const closes=form.get("closes")?z.iso.datetime({ offset:true }).parse(form.get("closes")):null;
      if (opens&&closes&&new Date(closes)<=new Date(opens)) throw new Error("dates");
-     return sql`select lub.save_registration_round(${optionalUuid(form,"round")},${uuid(form,"org")},${optionalUuid(form,"template")},${z.string().trim().max(120).parse(form.get("title")??"")},${opens}::timestamptz,${closes}::timestamptz,${form.get("withdrawal")==="on"},${form.get("intent")!=="draft"&&(form.get("publish")==="on"||form.get("intent")==="publish"||operation==="create-round")})`;
+     return sql`select lub.save_registration_round(${optionalUuid(form,"round")},${uuid(form,"org")},${optionalUuid(form,"template")},${z.string().trim().max(120).parse(form.get("title")??"")},${opens}::timestamptz,${closes}::timestamptz,${form.get("withdrawal")==="on"},${form.get("intent")!=="draft"&&(form.get("publish")==="on"||form.get("intent")==="publish"||operation==="create-round")}) as id`;
     }
     case "round-status": return sql`select lub.change_round_status(${uuid(form,"round")},${z.enum(["Open","Closed"]).parse(form.get("status"))})`;
     case "submit": {
@@ -54,10 +55,10 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
     }
    }
   })();
-  const result=await withUser(user.id,tx=>tx.execute(query));
+  const result=await withUser(user.id,async tx=>{const result=await tx.execute(query);if(["create-round","save-round"].includes(operation)&&form.has("requirements-present")){const hours=z.coerce.number().finite().min(0).max(100000).multipleOf(.01).parse(form.get("minimumHours")??0),majors=z.array(z.enum(studentMajors)).max(3).refine(v=>new Set(v).size===v.length).parse(form.getAll("allowedMajor"));await tx.execute(sql`select lub.set_round_requirements(${z.uuid().parse(result[0]?.id)},${hours}::numeric,${JSON.stringify(majors)}::jsonb)`);}return result;});
   if(operation==="duplicate-form") templateId=z.uuid().parse(result[0]?.id);
   if (operation==="bulk" && !form.get("undoBulk")) bulk=z.uuid().parse(result[0]?.id);
- } catch (error) { const cause=error instanceof Error && "cause" in error?error.cause:error; const message=cause instanceof Error?cause.message:""; if(message.includes("ROUND_REQUIRED_FIELDS"))return {error:"أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر."}; if(message.includes("ROUND_ACTIVE_EXISTS"))return {error:"توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى."}; if(message.includes("ROUND_EXPIRED"))return {error:"انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح."}; if(message.includes("ROUND_FORM_LOCKED"))return {error:"لا يمكن استبدال النموذج بعد استقبال طلبات. يمكنك تعديل أسئلته في نسخة جديدة."}; if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
+ } catch (error) { const cause=error instanceof Error && "cause" in error?error.cause:error; const message=cause instanceof Error?cause.message:""; if(message.includes("ROUND_REQUIREMENTS_NOT_MET"))return {error:"لا تستوفي شروط الساعات أو التخصص لهذه الجولة. راجع الشروط في صفحة الجهة."}; if(message.includes("ROUND_REQUIRED_FIELDS"))return {error:"أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر."}; if(message.includes("ROUND_ACTIVE_EXISTS"))return {error:"توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى."}; if(message.includes("ROUND_EXPIRED"))return {error:"انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح."}; if(message.includes("ROUND_FORM_LOCKED"))return {error:"لا يمكن استبدال النموذج بعد استقبال طلبات. يمكنك تعديل أسئلته في نسخة جديدة."}; if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
  updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
  return { success: form.get("undoBulk") ? "تم التراجع عن الطلبات التي لم تتغير بعد العملية؛ التغييرات اللاحقة محفوظة." : form.get("operation")==="duplicate-form" ? "تم إنشاء نسخة" : form.get("operation")==="delete-form" ? "تم حذف النموذج" : "تم حفظ التغيير.", bulk, templateId };
 }

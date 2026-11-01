@@ -11,7 +11,6 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatCount } from "@/lib/display";
 import { formatNumber, createTranslator } from "@/lib/i18n";
 import type { Locale } from "@/lib/preferences";
@@ -36,7 +35,6 @@ function SkillBadge({
     alternate = locale === "en" ? skill.labelAr : skill.labelEn;
   const evidence = [
     skill.tasks > 0 ? formatCount(skill.tasks, "tasks", locale) : "",
-    skill.events > 0 ? formatCount(skill.events, "events", locale) : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -46,7 +44,7 @@ function SkillBadge({
         render={
           <Badge
             variant="outline"
-            className={`h-auto max-w-full gap-1.5 px-3 py-2 text-sm leading-relaxed hover:border-foreground/50 hover:bg-muted hover:text-foreground focus-visible:ring-2 ${featured ? "border-foreground/40" : ""}`}
+            className={`h-auto max-w-full whitespace-normal gap-1.5 px-3 py-2 text-sm leading-relaxed hover:border-foreground/50 hover:bg-muted hover:text-foreground focus-visible:ring-2 ${featured ? "border-foreground/40" : ""}`}
             render={
               <Link
                 aria-label={evidence ? `${name} · ${evidence}` : name}
@@ -57,7 +55,7 @@ function SkillBadge({
         }
       >
         {featured && <Star aria-hidden="true" className="shrink-0" />}
-        <bdi className="min-w-0 max-w-48 truncate">{name}</bdi>
+        <bdi className="min-w-0 break-words [overflow-wrap:anywhere]">{name}</bdi>
         {evidence && <span className="shrink-0 text-xs"> · {evidence}</span>}
       </TooltipTrigger>
       <TooltipContent className="max-w-72">
@@ -73,8 +71,8 @@ function SkillBadge({
         {evidence && (
           <p>
             {c(
-              "من مهام اعتمدتها الجهة وفعاليات مكتملة بحضور أو مساهمة موثّقة في المنصة.",
-              "Based on approved tasks and completed events with verified attendance or contributions on the platform.",
+              "من مشاركات صاحب الملف المعتمدة في مهام ربطها القائد بهذه المهارة.",
+              "Based on approved task participations tagged with this skill by the organization leader.",
             )}
           </p>
         )}
@@ -99,10 +97,7 @@ export function ProfileSkills({
     [editing, setEditing] = useState(false),
     [expanded, setExpanded] = useState(false);
   const sorted = orderProfileSkills(skills, locale),
-    hasFeatured = sorted.some((s) => s.featured),
-    featured = hasFeatured
-      ? sorted.filter((s) => s.featured)
-      : sorted.slice(0, 5);
+    featured = sorted.filter((s) => s.featured);
   const remaining = sorted.filter(
       (s) => !featured.some((f) => f.key === s.key),
     ),
@@ -147,13 +142,7 @@ export function ProfileSkills({
           </div>
         ) : (
           <>
-            <ScrollArea
-              className="min-w-0"
-              viewportProps={{
-                "aria-label": c("المهارات المميزة", "Featured skills"),
-              }}
-            >
-              <div className="flex w-max min-w-0 gap-2 pb-3">
+            {featured.length>0&&<div className="flex min-w-0 flex-wrap gap-2" aria-label={c("المهارات المميزة","Featured skills")}>
                 {featured.map((skill) => (
                   <SkillBadge
                     key={skill.key}
@@ -162,9 +151,7 @@ export function ProfileSkills({
                     featured={true}
                   />
                 ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            </div>}
             {groups.map(
               (group) =>
                 group.skills.length > 0 && (

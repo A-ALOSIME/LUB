@@ -13,13 +13,7 @@ export type ProfileSkill = {
 export const skillName = (skill: ProfileSkill, locale: Locale) =>
   locale === "en" ? skill.labelEn : skill.labelAr;
 export function orderProfileSkills(skills: ProfileSkill[], locale: Locale) {
-  const explicit = skills.some((s) => s.featured);
-  return [...skills].sort((a, b) =>
-    explicit
-      ? Number(b.featured) - Number(a.featured) || a.order - b.order
-      : b.tasks - a.tasks ||
-        skillName(a, locale).localeCompare(skillName(b, locale), locale),
-  );
+  return [...skills].sort((a,b)=>Number(b.featured)-Number(a.featured)||(a.featured&&b.featured?a.order-b.order:0)||b.tasks-a.tasks||skillName(a,locale).localeCompare(skillName(b,locale),locale));
 }
 export function legacyProfileSkills(names: string[]): ProfileSkill[] {
   return names.map((name, order) => ({

@@ -3,16 +3,14 @@
 import {t as translateUi} from "@/lib/i18n";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useActionState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Empty, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import {Switch} from "@/components/ui/switch";
 import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
 import { actionFeedback } from "@/lib/action-feedback";
 import type { Locale } from "@/lib/preferences";
@@ -26,7 +24,7 @@ import { PhoneInput } from "@/components/phone-input";
 import { useActionToast } from "@/components/action-toast";
 import { TalentPagination } from "./view";
 import { Textarea } from "@/components/ui/textarea";
-import { ContactVisibilityButton } from "./contact-visibility-button";
+import {TalentPrivacyCard} from "./privacy-card";
 import { SkillCombobox } from "./skill-combobox";
 import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
 
@@ -207,14 +205,13 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
   const [state, action, pending] = useActionState<WorkflowState, FormData>(submit, {});
   useActionToast(state, locale);
   const en = locale === "en";
-  const publishLabel = translateUi((en) ? "en" : "ar", "نشر ملفي في اكتشاف المواهب", "Publish my profile in talent discovery");
   const markDirty = useCallback(() => { setDirty(true); setShowSuccess(false); }, []);
 
   useEffect(() => {
     if (state.error) message.current?.focus();
   }, [state.error]);
   return <form id="talent-settings-form" action={action} dir={en ? "ltr" : "rtl"} className="talent-settings-page min-w-0" onReset={(event) => event.preventDefault()} onInputCapture={markDirty} onChangeCapture={markDirty}>
-    <input type="hidden" name="operation" value="profile" />
+    <input type="hidden" name="operation" value="profile-content" />
     <Card className="overflow-hidden p-0">
       <CardContent className="flex flex-col gap-5 p-4 pt-3">
             <FieldGroup className="gap-4">
@@ -298,24 +295,7 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
       </CardContent>
       {state.error && <p ref={message} tabIndex={-1} role="alert" className="error-message mx-4 mb-3">{actionFeedback(state.error, locale)}</p>}
       {showSuccess && state.success && <p role="status" className="mx-4 mb-3 text-sm text-action">{actionFeedback(state.success, locale)}</p>}
-      <CardFooter className="flex-wrap items-center justify-start gap-3 border-t border-border bg-card p-4">
-        <div className="flex w-fit min-w-fit shrink-0 items-center gap-2">
-          <span className="whitespace-nowrap text-sm font-medium">{translateUi((en) ? "en" : "ar", "نشر ملفي", "Publish my profile")}</span>
-          <ContactVisibilityButton
-            name="enabled"
-            label={publishLabel}
-            visible={data.settings.public_profile_enabled}
-            locale={locale}
-            hideLabel={translateUi((en) ? "en" : "ar", "إيقاف نشر ملفي المهاري", "Unpublish my talent profile")}
-            showLabel={translateUi((en) ? "en" : "ar", "نشر ملفي المهاري", "Publish my talent profile")}
-            onVisibilityChange={markDirty}
-          />
-        </div>
-        <Field orientation="horizontal"><FieldLabel htmlFor="talent-indexing">{translateUi((en) ? "en" : "ar", "السماح لمحركات البحث بفهرسة ملفي العام", "Allow search engines to index my public profile")}</FieldLabel><Switch id="talent-indexing" name="indexable" value="true" defaultChecked={data.settings.allow_indexing??false} onCheckedChange={markDirty}/></Field>
-        {data.settings.public_profile_enabled && data.settings.public_slug && <Button render={<Link href={`/talent/${data.settings.public_slug}`} />} variant="outline" size="sm" className="w-fit shrink-0 gap-1.5 no-underline" aria-label={translateUi((en) ? "en" : "ar", "عرض الملف العام", "View public profile")}>
-          <Eye aria-hidden="true" data-icon="inline-start" /><span>{translateUi((en) ? "en" : "ar", "عرض الملف العام", "View profile")}</span>
-        </Button>}
-      </CardFooter>
+
     </Card>
     <WorkspaceStickySaveBar formId="talent-settings-form" locale={locale} visible={dirty} pending={pending} onUndo={() => window.location.reload()} />
   </form>;
@@ -328,5 +308,6 @@ export function TalentWorkspaceEditor({ data, user, pages, locale = "ar" }: { da
       <h1>{translateUi((en) ? "en" : "ar", "ملفي المهاري", "My talent profile")}</h1>
     </header>
     <ProfileSettingsForm data={data} user={user} pages={pages} locale={locale} />
+    <TalentPrivacyCard initial={{enabled:data.settings.public_profile_enabled,indexable:data.settings.public_profile_enabled&&(data.settings.allow_indexing??false),slug:data.settings.public_slug??""}} locale={locale}/>
   </main>;
 }

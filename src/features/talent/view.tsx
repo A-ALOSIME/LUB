@@ -299,13 +299,12 @@ export function PublicTalentView({
               <bdi>{majorLabel(p.major,locale)}</bdi> · {academicLevel(p.level, locale)}
             </p>
             <ApprovedHours value={p.total ?? 0} locale={locale} />
-            {p.links.length > 0 && (
-              <TalentContactLinks links={p.links} en={en} />
-            )}
+
 
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {p.links.length>0&&<TalentContactLinks links={p.links} en={en}/>}
             <Separator/><section className="flex flex-col gap-2"><h2 className="font-semibold">{c("نبذة", "About")}</h2>{p.bio?<p className="whitespace-pre-wrap break-words leading-relaxed" dir="auto">{p.bio}</p>:owner?<OwnerPrompt>{c("أضف نبذة", "Add a bio")}</OwnerPrompt>:<p className="text-sm text-muted-foreground">{c("لم تُضف نبذة بعد", "No bio added yet")}</p>}</section>
           </CardContent>
           <CardFooter className="grid grid-cols-3 items-center gap-3 border-t border-border pt-4 text-center">

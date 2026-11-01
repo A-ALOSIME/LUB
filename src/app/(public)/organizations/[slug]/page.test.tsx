@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+vi.mock("@/features/forms/repository",()=>({registrationReadiness:vi.fn().mockResolvedValue(null)}));
 vi.mock("server-only", () => ({}));
 vi.mock("@xyflow/react", () => import("../../../../../tests/helpers/react-flow"));
 import { readPublicOrganization } from "@/features/organizations/public-data";

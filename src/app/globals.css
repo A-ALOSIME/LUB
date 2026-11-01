@@ -2317,3 +2317,8 @@ html[dir="ltr"] :where(.organization-contact-value input,.organization-public-pr
 .event-card-organization-logo { padding: 0; }
 
 .organization-logo, .organization-logo [data-slot="avatar-fallback"] { border-radius: var(--radius-lg); }
+
+/* The application card shares its content column and edges with its navigation. */
+.organization-public-tabs-layout:has(#organization-section-panel-applications:not([hidden])) { width:min(100%,56rem); margin-inline:auto; }
+.organization-public-tabs-layout:has(#organization-section-panel-applications:not([hidden])) .organization-section-nav { width:100%; }
+.organization-public-tabs-layout:has(#organization-section-panel-applications:not([hidden])) .organization-section-nav-list { flex:1; justify-content:center; }

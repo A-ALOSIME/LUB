@@ -1,3 +1,4 @@
+import {requestTime} from "@/lib/request-time";
 import {translateContent} from "@/lib/content-translation";
 
 import {ContentText} from "@/components/content-text";
@@ -6,8 +7,8 @@ import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
 import Image from "next/image";
 import {Button} from "@/components/ui/button";
-import {PublicRegistration,RegistrationCallToAction} from "@/features/forms/public-registration";
-import {getRound} from "@/features/forms/repository";
+import {PublicRegistration,RegistrationStatusBadge} from "@/features/forms/public-registration";
+import {registrationReadiness} from "@/features/forms/repository";
 import {PublicAnnouncements} from "@/features/organizations/public-announcements";
 import { ArrowRight, Settings2, Megaphone } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -96,7 +97,8 @@ export default async function OrganizationPage({ params, searchParams }: {
 
   const { organization, committees, contacts, leadership, rounds, upcomingEvents, announcements } = detail;
   const currentRound=rounds[0];
-  const ownRegistration=currentRound&&user?(await getRound(currentRound.id,user.id))?.application:null;
+  const readiness=user&&!superAdmin?await registrationReadiness(user.id,organization.id,currentRound?.id??null).catch(()=>null):null;
+  const registrationNow=requestTime();
   const canManageOrganization = superAdmin || Boolean(user && await canManageOrganizationSettings(user.id, organization.id).catch(() => false));
   const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
   const presentation = buildOrganizationProfilePresentation({ curated: profile, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
@@ -175,7 +177,7 @@ export default async function OrganizationPage({ params, searchParams }: {
           <p className="text-sm font-bold text-action">{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</p>
           <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl"><ContentText value={organization.nameAr}/></h1>
           {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9"><ContentText value={visibleSummary}/></p>}
-          {currentRound&&!superAdmin&&<div className="mt-5"><RegistrationCallToAction round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></div>}
+          <div className="mt-5"><RegistrationStatusBadge round={currentRound} locale={preferences.locale} now={registrationNow}/></div>
           {organization.tags.length > 0 && <ul aria-label={translateUi((en) ? "en" : "ar", "مجالات الجهة", "Organization interests")} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm">{tag}</li>)}</ul>}
           {organization.statusCode !== "Active" && <p className="mt-6 rounded-lg border border-line bg-white p-4 leading-8">{translateUi((en) ? "en" : "ar", `هذه الجهة ${organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}.`, `This organization is ${organization.statusCode.toLowerCase()}.`)}{organization.archivedAt && <> {translateUi((en) ? "en" : "ar", "أُرشفت بتاريخ", "Archived on")} {formatRiyadhDate(organization.archivedAt, preferences.locale)}{translateUi((en) ? "en" : "ar", "، ويبقى هذا الرابط متاحًا لحفظ تاريخها.", ". This link remains available to preserve its history.")}</>}</p>}
           {socialLinks.some(link => link.href) && <section id="organization-contact" className="organization-hero-social organization-section-nav-target" aria-labelledby="organization-social-title">
@@ -186,7 +188,7 @@ export default async function OrganizationPage({ params, searchParams }: {
       </div>
     </header>
 
-    {activeSection && <OrganizationSectionTabs
+    <div className="organization-public-tabs-layout">{activeSection && <OrganizationSectionTabs
       items={orderedNavItems.map(item => ({ ...item, icon: item.id==="announcements"?<Megaphone/>:<OrganizationProfileIcon name={item.icon} /> }))}
       initialSection={activeSection.id}
       label={translateUi((en) ? "en" : "ar", `أقسام ${organization.nameAr}`, `${organization.nameAr} sections`)}
@@ -205,11 +207,11 @@ export default async function OrganizationPage({ params, searchParams }: {
           </div>
         </section>}
         {item.id==="announcements"&&<PublicAnnouncements items={announcements} locale={preferences.locale}/>}
-        {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} application={ownRegistration}/></section>}
+        {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} readiness={readiness} now={registrationNow} blockedReason={superAdmin?translateUi(preferences.locale,"حسابك إداري ولا يمكنه تقديم طلبات عضوية.","Administrative accounts cannot apply for membership."):undefined}/></section>}
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={translateUi((en) ? "en" : "ar", "هيكل الجهة", "Organization structure")}>
           <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "اللجان", "Committees")}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={translateUi((en) ? "en" : "ar", "لا توجد لجان عامة حالياً.", "No public committees yet.")} /></section>
         </section>}
       </OrganizationSectionTabPanel>)}
-    </OrganizationSectionTabs>}
+    </OrganizationSectionTabs>}</div>
   </main></>;
 }

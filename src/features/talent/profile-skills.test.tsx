@@ -65,7 +65,7 @@ it("shows bilingual category labels, hides zero evidence, filters by the origina
       .getByRole("link", { name: /Skill 1 · 3 tasks/ })
       .getAttribute("href"),
   ).toBe(`/talent?skill=${encodeURIComponent("مهارة 1")}`);
-  expect(screen.getAllByRole("link")).toHaveLength(11);
+  expect(screen.getAllByRole("link")).toHaveLength(6);
   fireEvent.click(screen.getByRole("button", { name: "Show all" }));
   expect(screen.getAllByRole("link")).toHaveLength(13);
 });
@@ -105,3 +105,5 @@ it("requires deletion confirmation, sends saved order and features, and rolls ba
   ]);
   expect(document.querySelectorAll("[data-profile-skills] a")).toHaveLength(2);
 });
+
+it("stars only explicitly featured skills and keeps complete long names without truncation",()=>{const long="هذه مهارة طويلة في تحليل البيانات والبرمجة وإدارة المشاريع التقنية";const {rerender}=render(<ProfileSkills initialSkills={[{...skills[0],labelAr:long}]} slug="profile"/>);expect(document.querySelectorAll('svg.lucide-star')).toHaveLength(0);expect(screen.getByText(long).className).not.toMatch(/truncate|line-clamp/);expect(screen.queryByRole("button",{name:"تعديل المهارات"})).toBeNull();rerender(<ProfileSkills key="featured" initialSkills={[{...skills[0],labelAr:long,featured:true}]} slug="other" owner/>);expect(document.querySelectorAll('svg.lucide-star')).toHaveLength(1);});

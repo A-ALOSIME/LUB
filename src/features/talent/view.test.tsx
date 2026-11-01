@@ -85,3 +85,8 @@ it("resets visible skills when navigating between different public profile slugs
  rerender(<PublicTalentView profile={{...profile,id:"00000000-0000-4000-8000-000000000003",skills:["SQL"]}} pages={pages}/>);
  expect(screen.queryByRole("link",{name:"Python"})).toBeNull();expect(screen.getByRole("link",{name:"SQL"})).toBeTruthy();
 });
+
+it("shows equal organization and role hours only once and keeps contacts on a separate row",()=>{
+ const {container}=render(<PublicTalentView profile={{...profile,organizations:[{...profile.organizations[0],hours:"4",memberships:[{...profile.organizations[0].memberships[0],roles:[{code:"Member",starts:"2026-10-12",ends:null,hours:"4"}]}]}],links:[{kind:"GitHub",label:"GitHub",value:"https://github.com/student"}]}} pages={pages}/>);
+ const list=screen.getByText("نادي الاختبار").closest("li")!;expect(list.textContent?.match(/4 ساعات/g)).toHaveLength(1);expect(container.querySelector('[data-slot="card-content"] nav')).toBeTruthy();
+});

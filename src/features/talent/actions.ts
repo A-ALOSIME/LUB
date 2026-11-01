@@ -30,12 +30,14 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
   if (adminError) return { error: adminError };
 
   try {
-    const operation = z.enum(["profile", "link", "update-link", "remove-link", "skill", "remove-skill", "project"]).parse(form.get("operation"));
+    const operation = z.enum(["profile", "profile-content", "link", "update-link", "remove-link", "skill", "remove-skill", "project"]).parse(form.get("operation"));
     const catalog=operation==="skill"&&form.get("escoUri")?await resolveEscoSkill(text(form,"escoUri",120)):null;
     await withUser(user.id, async (tx) => {
       switch (operation) {
-        case "profile": {
-          await tx.execute(sql`select lub.save_talent_settings(${text(form, "bio", 1000)},${checked(form, "enabled")},${checked(form,"indexable")})`);
+        case "profile":
+        case "profile-content": {
+          if(operation==="profile-content")await tx.execute(sql`select lub.save_talent_bio(${text(form,"bio",1000)})`);
+          else await tx.execute(sql`select lub.save_talent_settings(${text(form, "bio", 1000)},${checked(form, "enabled")},${checked(form,"indexable")})`);
 
           const linkIds = z.array(z.uuid()).max(10).parse(form.getAll("linkId"));
           for (const linkId of linkIds) {
@@ -113,4 +115,10 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
   revalidatePath("/account/talent");
   revalidatePath("/me");
   return { success: "تم حفظ الملف المهاري والخصوصية." };
+}
+
+export type TalentPrivacyState={enabled:boolean;indexable:boolean;slug:string};
+export async function saveTalentPrivacy(enabled:boolean,indexable:boolean):Promise<{settings?:TalentPrivacyState;error?:true}>{
+ const user=await requireUser();if(await studentOperationError(user.id))return {error:true};
+ try{const state=z.object({enabled:z.boolean(),indexable:z.boolean()}).parse({enabled,indexable});const settings=await withUser(user.id,async tx=>{const [row]=await tx.execute(sql`select lub.save_talent_privacy(${state.enabled},${state.indexable}) as settings`);return row.settings as TalentPrivacyState;});updateTag("public-talent");revalidatePath("/account/talent");revalidatePath(`/talent/${settings.slug}`);return {settings};}catch{return {error:true};}
 }

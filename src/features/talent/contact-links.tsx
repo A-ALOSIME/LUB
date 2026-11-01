@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { TalentChannelIcon, talentChannelLabel } from "./contact-channel";
 import type { PublicTalent } from "./repository";
 export function TalentContactLinks({links, en}: {links: PublicTalent["links"]; en: boolean}) {
-  return <TooltipProvider><nav className="mt-4 flex flex-wrap gap-2" aria-label={translateUi((en) ? "en" : "ar", "قنوات التواصل المنشورة", "Published contact channels")}>
+  return <TooltipProvider><nav className="flex w-full flex-wrap items-center gap-2" aria-label={translateUi((en) ? "en" : "ar", "قنوات التواصل المنشورة", "Published contact channels")}>
     {links.map((link, index) => {
       const href = link.kind === "Email" ? `mailto:${link.value}` : link.kind === "Phone" ? `tel:${link.value}` : link.value;
       const label = talentChannelLabel(link.kind, en);
