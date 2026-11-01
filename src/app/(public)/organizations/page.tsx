@@ -2,6 +2,7 @@
 import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {Button} from "@/components/ui/button";
+import {Card} from "@/components/ui/card";
 import {Plus} from "lucide-react";
 import {localizedMetadata} from "@/lib/localized-metadata";
 import Link from "next/link";
@@ -42,7 +43,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
           const imageSrc = organization.logoUrl || profile?.logoSrc;
-          return <li key={organization.id} className="organization-card">
+          return <li key={organization.id} className="min-w-0"><Card className="h-full gap-0 py-0 transition-colors hover:bg-muted/40">
             <IntentPrefetchLink href={`/organizations/${organization.slug}`} className="directory-link" aria-label={translateUi((en) ? "en" : "ar", `عرض ${organization.nameAr}`, `View ${organization.nameAr}`)}>
               <span className={`organization-card-art organization-card-art--${profile?.imageTheme ?? "default"}`} aria-hidden="true">
                 <OrganizationLogo name={organization.nameAr} src={imageSrc} className="size-full"/>
@@ -53,7 +54,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
                 {organization.tags.length > 0 && <span className="organization-card-tags">{organization.tags.map(tag => <span key={tag} dir="auto">{tag}</span>)}</span>}
               </span>
             </IntentPrefetchLink>
-          </li>;
+          </Card></li>;
         })}</ul>
       </section>)}
       {(page > 1 || directory.hasNext) && <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات الجهات", "Organization pages")} className="mt-8 flex flex-wrap items-center justify-between gap-4">{page > 1 ? <Link className="button button-secondary" href={`/organizations?page=${page - 1}`}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Link> : <span />}<span className="text-sm text-muted">{translateUi((en) ? "en" : "ar", `الصفحة ${page}`, `Page ${page}`)}</span>{directory.hasNext && <Link className="button button-secondary" href={`/organizations?page=${page + 1}`}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Link>}</nav>}

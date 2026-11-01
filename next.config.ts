@@ -1,6 +1,8 @@
+import {legalContentUpdatedAt} from "./scripts/public-site-build-meta";
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
+  env:{LUB_LEGAL_UPDATED_AT:legalContentUpdatedAt()},
   ...(process.env.LUB_VINEXT_BUILD === "true" ? {} : { output: "standalone" }),
   poweredByHeader: false,
   turbopack: { root: process.cwd() },

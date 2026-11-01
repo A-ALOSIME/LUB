@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("@/features/forms/repository",()=>({registrationReadiness:vi.fn().mockResolvedValue(null)}));
+vi.mock("@/features/organizations/public-background-refresh",()=>({PublicBackgroundRefresh:()=>null}));
 vi.mock("server-only", () => ({}));
 vi.mock("@xyflow/react", () => import("../../../../../tests/helpers/react-flow"));
 import { readPublicOrganization } from "@/features/organizations/public-data";
@@ -29,9 +30,10 @@ vi.mock("@/features/organizations/public-data", () => ({
       archivedAt: null,
       tags: [],
       mission: null,
+      publicProfileContent: slug === "ieee-club" ? {vision:"تأهيل الطلبة",goals:"تمكين الطلاب: تنمية المهارات والخبرات.",programs:"المعسكرات: تجارب مكثفة تجمع المعرفة التقنية بالتطبيق.",fields:"البرمجة",achievements:"أثر النادي"} : slug === "dhaheer-club" ? {goals:"يهدف نادي ظهير إلى تعزيز روح التعاون والمشاركة بين طلاب وطالبات كلية علوم الحاسب والمعلومات بجامعة الإمام محمد بن سعود الإسلامية."} : slug === "cybersecurity-club" ? {vision:"رؤية محفوظة",goals:"نشر الوعي المجتمعي: ترسيخ مفاهيم الأمن السيبراني والتوعية الرقمية."} : {},
     },
     committees: slug === "ieee-club" ? [{ id: "ieee-media", name: "الإعلام", description: "", parentCommitteeId: null, leaderName: null }] : [],
-    contacts: [],
+    contacts: [{id:"x",label:"X",kind:"X" as const,value:"https://x.com/CCISCyberSec",url:"https://x.com/CCISCyberSec"}],
     leadership: [],
     rounds: [],
     upcomingEvents: [],
@@ -175,7 +177,7 @@ it("keeps contact links above section pages and groups the club overview", async
   expect(screen.queryByRole("heading", { name: "برامج النادي" })).toBeNull();
 });
 
-it("keeps IEEE overview content visible with concise section names", async () => {
+it("renders persisted IEEE content without restoring unpersisted curated sections", async () => {
   const page = await OrganizationPage({
     params: Promise.resolve({ slug: "ieee-club" }),
     searchParams: Promise.resolve({}),
@@ -187,7 +189,7 @@ it("keeps IEEE overview content visible with concise section names", async () =>
   expect(screen.getByRole("tab", { name: "البرامج" }).getAttribute("aria-selected")).toBe("false");
   expect(screen.getByRole("tab", { name: "اللجان" }).getAttribute("aria-selected")).toBe("false");
   expect(screen.getByRole("tab", { name: "الإنجازات" }).getAttribute("aria-selected")).toBe("false");
-  expect(screen.getByRole("heading", { name: "IEEE عالميًا" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "IEEE عالميًا" })).toBeNull();
   expect(screen.getByRole("heading", { name: "الأهداف" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "برامج النادي" })).toBeNull();
   expect(screen.queryByRole("heading", { name: "اللجان والفريق" })).toBeNull();
@@ -208,8 +210,8 @@ it("shows Dhaheer goals in the common overview as a concise list", async () => {
   const navigation = screen.getByRole("navigation", { name: "أقسام نادي ظهير" });
   expect(screen.getByRole("tab", { name: "عن الجهة" }).getAttribute("aria-selected")).toBe("true");
   expect(navigation.querySelectorAll('[role="tab"]')).toHaveLength(2);
-  expect(screen.getByRole("heading", { name: "التطوع وخدمة المجتمع" })).toBeTruthy();
-  expect(document.querySelector("#organization-profile-about .organization-profile-items--bulleted")).toBeTruthy();
+  expect(screen.getByText(/^يهدف نادي ظهير إلى تعزيز روح التعاون/)).toBeTruthy();
+  expect(document.querySelectorAll("#organization-profile-about .organization-profile-items > li")).toHaveLength(1);
 });
 
 it("shows IEEE programs and fields in their separate standard tabs", async () => {

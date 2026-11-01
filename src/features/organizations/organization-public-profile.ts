@@ -30,7 +30,7 @@ export function normalizeOrganizationPublicProfileContent(value: unknown): Organ
 }
 
 function entries(value?: string) {
-  return value?.split(/\r?\n/).map(item => item.trim()).filter(Boolean).map(title => ({ title })) ?? [];
+  return value?.split(/\r?\n/).map(item => item.trim()).filter(Boolean).map(value => {const line=value.replace(/^[•-]\s*/,""),match=/^([^:：]{2,80})[:：]\s+(.+)$/.exec(line);return match?{title:match[1],body:match[2]}:{title:line};}) ?? [];
 }
 
 function withSection(sections: OrganizationProfileSection[], title: string, aliases: RegExp, value?: string, image?: OrganizationProfileSection["image"]) {

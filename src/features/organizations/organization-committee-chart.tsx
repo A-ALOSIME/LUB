@@ -120,6 +120,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
   return <TooltipProvider><div className="committee-flow" dir={en ? "ltr" : "rtl"}>
     {mobile?<div className="committee-flow-mobile"><Card><CardContent><p className="font-semibold text-center">{organizationName}</p>{rootDetails.length>0&&<p className="mt-2 text-sm text-center text-muted-foreground">{rootDetails.join(" · ")}</p>}</CardContent></Card><div className="pt-3">{mobileTree(committees)}</div></div>:<div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) * scale }}>
       <ReactFlow<ChartNode> key={`${scale}|${graph.nodes.map(node => node.id).join("|")}`} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
+        onNodeClick={(event,node)=>{if(node.data.committee&&!(event.target as HTMLElement).closest("button,a,[role=button]"))setAction({kind:"details",committee:node.data.committee,descendants:[]});}}
         fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5} proOptions={{ hideAttribution: true }}
         nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false} elementsSelectable={false}
         deleteKeyCode={null} zoomOnDoubleClick={false} zoomOnScroll={false} preventScrolling={false}
@@ -130,7 +131,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     {!committees.length && <WorkspaceEmptyState icon={UsersRound} title={c("لا توجد لجان بعد", "No committees yet")} description={emptyMessage} />}
     {action && (action.kind === "edit" || action.kind === "child") && !readOnly && <CommitteeDialog key={`${action.kind}-${action.committee.id}`} organizationId={organizationId} locale={locale} committee={action.kind === "edit" ? action.committee : undefined} parentCommitteeId={action.kind === "child" ? action.committee.id : undefined} parentOptions={parentOptions.filter(option => !action.descendants.includes(option.id))} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger />}
     <Dialog open={action?.kind === "details"} onOpenChange={open => { if (!open) setAction(null); }}>
-      <DialogContent dir={en ? "ltr" : "rtl"}><DialogHeader><DialogTitle>{action?.committee.name}</DialogTitle><DialogDescription className="whitespace-pre-line">{action?.committee.description.trim() || c("لا توجد تفاصيل إضافية متاحة.", "No additional details are available.")}</DialogDescription></DialogHeader>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto" dir={en ? "ltr" : "rtl"}><DialogHeader><DialogTitle>{action?.committee.name}</DialogTitle><DialogDescription className="whitespace-pre-line leading-relaxed" dir="auto"><ContentText value={action?.committee.description.trim() || c("لا توجد تفاصيل إضافية متاحة.", "No additional details are available.")}/></DialogDescription></DialogHeader>
         {action?.committee.leaderName?.trim() && <p>{c("القائد", "Leader")}: <bdi>{action.committee.leaderName}</bdi></p>}
         {action?.committee.memberCount != null && action.committee.memberCount > 0 && <p>{c("الأعضاء", "Members")}: <NumberText value={action.committee.memberCount}/></p>}
       </DialogContent>

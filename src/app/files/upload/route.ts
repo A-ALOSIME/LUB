@@ -1,3 +1,4 @@
+import {imageDimensions} from "@/lib/image-dimensions";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
@@ -100,9 +101,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await withUser(user.id, tx => tx.execute(sql`
-      select lub.register_application_asset(${id}, ${key}, ${displayName}, ${mime}, ${file.size})
-    `));
+    await withUser(user.id, async tx => {await tx.execute(sql`select lub.register_application_asset(${id}, ${key}, ${displayName}, ${mime}, ${file.size})`);const dimensions=mime.startsWith("image/")?imageDimensions(bytes):null;if(dimensions)await tx.execute(sql`select lub.set_asset_image_dimensions(${id},${dimensions.width},${dimensions.height})`);});
   } catch {
     try { await removeUploadedObject?.(); } catch { /* Keep the response safe if cleanup also fails. */ }
     console.error("File upload registration step failed.");

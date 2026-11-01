@@ -12,12 +12,12 @@ import {registrationReadiness} from "@/features/forms/repository";
 import {PublicAnnouncements} from "@/features/organizations/public-announcements";
 import { ArrowRight, Settings2, Megaphone } from "lucide-react";
 import { notFound } from "next/navigation";
-import { eventDate } from "@/features/events/display";
+import {PublicBackgroundRefresh} from "@/features/organizations/public-background-refresh";
+import { PublicEventGrid } from "@/features/organizations/public-event-grid";
 import { readPublicOrganization as getPublicOrganization } from "@/features/organizations/public-data";
 import { localOrganizationContent } from "@/features/organizations/local-content";
 import { groupOrganizationProfileSections, orderOrganizationTabs, type OrganizationProfileGroup, type OrganizationProfileGroupKind } from "@/features/organizations/section-groups";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
-import { selectOrganizationEventHighlights } from "@/features/organizations/event-highlights";
 import { OrganizationProfileContent, OrganizationProfileIcon, type ProfileIconName } from "@/features/organizations/profile-content";
 import { SocialLinkIcons } from "@/features/organizations/social-links";
 import { organizationContactLabel } from "@/features/organizations/contact-channels";
@@ -101,13 +101,10 @@ export default async function OrganizationPage({ params, searchParams }: {
   const registrationNow=requestTime();
   const canManageOrganization = superAdmin || Boolean(user && await canManageOrganizationSettings(user.id, organization.id).catch(() => false));
   const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
-  const presentation = buildOrganizationProfilePresentation({ curated: profile, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
+  const presentation = buildOrganizationProfilePresentation({ curated: undefined, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
   const savedSocialLinks = contacts.map(contact => ({ label: organizationContactLabel(contact.kind, en), value: contact.value, href: contact.url }));
-  const socialLinks = organization.linksCustomized ? savedSocialLinks : savedSocialLinks.length ? savedSocialLinks : (profile?.links ?? []);
-  const eventHighlights = selectOrganizationEventHighlights(upcomingEvents);
-  const featuredEvent = eventHighlights.find(item => item.featured);
-  const otherEventHighlights = eventHighlights.filter(item => item.id !== featuredEvent?.id);
-  const hasActivity = Boolean(featuredEvent || otherEventHighlights.length);
+  const socialLinks = savedSocialLinks;
+  const hasActivity=upcomingEvents.length>0;
   const profileSectionGroups = groupOrganizationProfileSections(presentation.sections);
   const namedLeadershipDetails = leadership.map(person => `${en
     ? person.roleCode === "OL" ? "Leader" : "Deputy leader"
@@ -129,7 +126,7 @@ export default async function OrganizationPage({ params, searchParams }: {
   const hasOverview = Boolean(aboutProfileGroup?.entries.length || presentation.motto?.trim() || presentation.vision?.trim() || presentation.mission?.trim() || presentation.stats?.length || leadershipInOverview);
   const sectionNavItems: { id: string; label: string; icon: ProfileIconName; profileSectionIndexes: number[] }[] = [
     ...(hasOverview ? [{ id: "about", label: translateUi((en) ? "en" : "ar", "عن الجهة", "About"), icon: "reach" as const, profileSectionIndexes: aboutProfileGroup?.entries.map(entry => entry.index) ?? [] }] : []),
-    ...profileSectionGroups.filter(group => group.kind !== "about" && group.kind !== "structure").map(group => ({
+    ...profileSectionGroups.filter(group => group.kind !== "about" && group.kind !== "structure" && group.kind !== "activities").map(group => ({
       id: group.id,
       label: profileGroupLabel(group, en),
       icon: profileGroupIcon(group.kind),
@@ -158,7 +155,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     catch { return []; }
   });
 
-  return <>{organization.statusCode==="Active"&&<JsonLd data={{
+  return <><PublicBackgroundRefresh/>{organization.statusCode==="Active"&&<JsonLd data={{
     "@context":"https://schema.org",
     "@type":"Organization",
     name:organization.nameAr,
@@ -196,22 +193,16 @@ export default async function OrganizationPage({ params, searchParams }: {
       centered
       showSingleTab
     >
-      {orderedNavItems.map(item => <OrganizationSectionTabPanel key={item.id} id={item.id}>
+      <div className="organization-public-panels">{orderedNavItems.map(item => <OrganizationSectionTabPanel key={item.id} id={item.id}>
         {presentation && item.id !== "structure" && (item.profileSectionIndexes.length > 0 || item.id === "about") && <div id={`organization-profile-${item.id}`} className="organization-section-nav-target"><OrganizationProfileContent profile={presentation} en={en} visibleSectionIndexes={item.profileSectionIndexes} showOverview={item.id === "about"} expandSections /></div>}
         {item.id === "about" && leadershipInOverview && <Card><CardHeader><CardTitle>{translateUi((en) ? "en" : "ar", "قيادة الجهة", "Organization leadership")}</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">{rootLeadershipDetails.map(detail => <p key={detail} dir="auto">{detail}</p>)}</CardContent></Card>}
-        {item.id === "activities" && hasActivity && <section className="organization-section-nav-target mt-8" aria-labelledby="organization-updates-title">
-          <h2 id="organization-updates-title" className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "الفعاليات والمستجدات", "Activities and updates")}</h2>
-          <div className="organization-update-list">
-            {featuredEvent&&<section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعالية مميزة", "Featured event")}</h3><Link className="text-link" href={`/events/${featuredEvent.id}`}><ContentText value={featuredEvent.title}/></Link><p className="mt-2 text-sm text-muted">{eventDate(featuredEvent.starts_at)}</p></section>}
-            {otherEventHighlights.length > 0 && <section className="panel p-6 sm:p-8"><h3 className="text-lg font-bold">{translateUi((en) ? "en" : "ar", "فعاليات مختارة", "Selected events")}</h3><ul className="mt-5 space-y-4">{otherEventHighlights.map(event => <li key={event.id}><Link dir="auto" className="text-link" href={`/events/${event.id}`}><ContentText value={event.title}/></Link><p className="mt-2 text-sm text-muted">{eventDate(event.starts_at)}</p></li>)}</ul>{upcomingEvents.length > eventHighlights.length && <Link className="text-link mt-6 inline-block" href={`/events/discover?org=${organization.id}&period=all`}>{translateUi((en) ? "en" : "ar", "كل فعاليات الجهة", "All organization events")}</Link>}</section>}
-          </div>
-        </section>}
+        {item.id === "activities" && <section className="mt-8"><PublicEventGrid events={upcomingEvents} locale={preferences.locale} now={registrationNow}/></section>}
         {item.id==="announcements"&&<PublicAnnouncements items={announcements} locale={preferences.locale}/>}
         {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} readiness={readiness} now={registrationNow} blockedReason={superAdmin?translateUi(preferences.locale,"حسابك إداري ولا يمكنه تقديم طلبات عضوية.","Administrative accounts cannot apply for membership."):undefined}/></section>}
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={translateUi((en) ? "en" : "ar", "هيكل الجهة", "Organization structure")}>
           <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "اللجان", "Committees")}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={translateUi((en) ? "en" : "ar", "لا توجد لجان عامة حالياً.", "No public committees yet.")} /></section>
         </section>}
-      </OrganizationSectionTabPanel>)}
+      </OrganizationSectionTabPanel>)}</div>
     </OrganizationSectionTabs>}</div>
   </main></>;
 }

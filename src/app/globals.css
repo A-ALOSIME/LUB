@@ -2319,6 +2319,15 @@ html[dir="ltr"] :where(.organization-contact-value input,.organization-public-pr
 .organization-logo, .organization-logo [data-slot="avatar-fallback"] { border-radius: var(--radius-lg); }
 
 /* The application card shares its content column and edges with its navigation. */
-.organization-public-tabs-layout:has(#organization-section-panel-applications:not([hidden])) { width:min(100%,56rem); margin-inline:auto; }
-.organization-public-tabs-layout:has(#organization-section-panel-applications:not([hidden])) .organization-section-nav { width:100%; }
-.organization-public-tabs-layout:has(#organization-section-panel-applications:not([hidden])) .organization-section-nav-list { flex:1; justify-content:center; }
+html { scrollbar-gutter:stable; }
+.organization-public-tabs-layout { width:100%; min-width:0; }
+.organization-public-tabs-layout .organization-section-nav { width:100%; }
+.organization-public-tabs-layout .organization-section-nav .organization-section-nav-list { display:grid; grid-template-columns:repeat(var(--organization-tabs-count),minmax(0,1fr)); flex:1; width:100%; }
+.organization-public-tabs-layout .organization-section-nav-link { min-width:0; white-space:normal; }
+.organization-public-panels { display:grid; min-height:36rem; align-items:start; }
+.organization-public-panels > .organization-section-panel { grid-area:1 / 1; min-width:0; }
+.organization-public-panels > .organization-section-panel[hidden] { display:block!important; visibility:hidden; pointer-events:none; }
+.organization-public-panels > .organization-section-panel:not([hidden]) { animation:organization-panel-fade .15s ease-out; }
+@keyframes organization-panel-fade { from { opacity:0; } to { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .organization-public-panels > .organization-section-panel:not([hidden]) { animation:none; } }
+@media(max-width:639px) { .organization-public-tabs-layout .organization-section-nav .organization-section-nav-list { grid-template-columns:repeat(3,minmax(0,1fr)); } .organization-public-tabs-layout .organization-section-nav-link { flex-direction:column; gap:.25rem; padding:.4rem .15rem; font-size:.75rem; } }

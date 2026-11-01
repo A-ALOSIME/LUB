@@ -1,3 +1,4 @@
+import {legalContentUpdatedAt} from "./scripts/public-site-build-meta";
 import { defineConfig, loadEnv } from "vite";
 import vinext from "vinext";
 import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
@@ -10,6 +11,7 @@ process.env.LUB_VINEXT_BUILD = "true";
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.env.LUB_ENV_DIR ?? process.cwd(), "NEXT_PUBLIC_"), ...process.env };
   const publicValues = {
+    "process.env.LUB_LEGAL_UPDATED_AT":JSON.stringify(legalContentUpdatedAt()),
     "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(env.NEXT_PUBLIC_SUPABASE_URL ?? ""),
     "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? ""),
     "process.env.LUB_SUPABASE_CA_CERT": JSON.stringify(readFileSync(new URL("./config/supabase-prod-ca-2021.crt", import.meta.url), "utf8")),

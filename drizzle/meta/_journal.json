@@ -484,6 +484,20 @@
       "when": 1793534941514,
       "tag": "0068_registration_requirements",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793553843403,
+      "tag": "0069_archival_events_and_poster_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1793554165422,
+      "tag": "0070_restore_markdown_content",
+      "breakpoints": true
     }
   ]
 }

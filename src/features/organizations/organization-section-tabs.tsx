@@ -2,7 +2,7 @@
 
 import {ContentText} from "@/components/content-text";
 
-import { createContext, useCallback, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useSyncExternalStore, type ReactNode, type CSSProperties } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -93,7 +93,7 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
   const hasActionSlot = Boolean(action) || Object.values(sectionActions).some(Boolean);
   const showAction = Boolean(activeAction) && !actionHiddenSections.includes(activeSection);
   const sectionNavigation = (items.length > 1 || showSingleTab) && <nav className={`workspace-segmented-control organization-section-nav${sticky ? "" : " organization-section-nav--static"}`} aria-label={label}>
-    <TabsList className="organization-section-nav-list" aria-label={label} dir={dir}>
+    <TabsList className="organization-section-nav-list" aria-label={label} dir={dir} style={{"--organization-tabs-count":items.length} as CSSProperties}>
       {items.map(item => <TabsTrigger
           key={item.id}
           value={item.id}
@@ -139,5 +139,6 @@ export function OrganizationSectionTabPanel({ id, children, legacyId }: { id: st
     aria-labelledby={`organization-section-tab-${id}`}
     tabIndex={0}
     hidden={activeSection !== id}
+    inert={activeSection !== id}
   >{legacyId && <span id={legacyId} className="organization-section-tab-legacy-anchor" aria-hidden="true" />}{children}</TabsContent>;
 }

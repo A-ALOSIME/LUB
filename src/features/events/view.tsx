@@ -1,4 +1,6 @@
 import Image from "next/image";
+import {EventPinAction} from "./pin-action";
+import {ArchivalEventContent} from "./archival-content";
 import {OrganizationLogo} from "@/components/organization-logo";
 import {displayFileName} from "@/lib/file-name";
 
@@ -14,6 +16,7 @@ import { EventPoster } from "./poster";
 import { Upload, EyeOff } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { EventSecondaryTools } from "./secondary-tools";
 import {
   Pencil,
@@ -71,8 +74,8 @@ export function EventCards({
               e.org_logo_url ||
               localOrganization?.logoSrc;
         return (
-          <li key={e.id}>
-            <Link href={`/events/${e.id}`} className="panel event-card min-w-0">
+          <li key={e.id}><Card className="h-full gap-0 py-0 transition-colors hover:bg-muted/40">
+            <Link href={`/events/${e.id}`} className="event-card flex min-w-0 flex-1 flex-col">
               <EventPoster
                 src={e.has_poster ? `/event-posters/${e.id}` : null}
                 title={e.title}
@@ -91,23 +94,23 @@ export function EventCards({
                     </OrganizationStatusBadge>
                   )}
                 </div>
-                <p className="event-card-meta">
+                {(e.starts_at||e.source_date_text)&&<p className="event-card-meta">
                   <EventIcon name="calendar" />
                   <span>{translateUi((en) ? "en" : "ar", "التاريخ", "Date")}</span>
-                  <time dateTime={e.starts_at}>{day(e.starts_at)}</time>
-                </p>
-                <p className="event-card-meta">
+                  {e.source_date_text?<ContentText value={e.source_date_text}/>:<time dateTime={e.starts_at}>{day(e.starts_at)}</time>}
+                </p>}
+                {e.status_code!=="Archived"&&<p className="event-card-meta">
                   <EventIcon name="clock" />
                   <span>{translateUi((en) ? "en" : "ar", "الوقت", "Time")}</span>
                   <time dateTime={e.starts_at}>{time(e.starts_at)}</time>
-                </p>
-                <p className="event-card-meta">
+                </p>}
+                {(e.location_type_code!=="Unknown"||e.location_text)&&<p className="event-card-meta">
                   <EventIcon name="location" />
                   <span>{e.location_text || labels[e.location_type_code]}</span>
                   <Badge variant="outline">
                     {labels[e.location_type_code]}
                   </Badge>
-                </p>
+                </p>}
               </div>
               <div className="event-card-organization">
                 <OrganizationLogo name={e.org_name} src={logoSrc} className="event-card-organization-logo"/>
@@ -122,7 +125,7 @@ export function EventCards({
                 {translateUi((en) ? "en" : "ar", "عرض الفعالية", "View event")}
               </span>
             </Link>
-          </li>
+          </Card></li>
         );
       })}
     </ul>
@@ -150,6 +153,7 @@ export function EventContent({
   attendeesContent?:ReactNode;
 }) {
   const e = data.event;
+  if(e.status_code==="Archived")return <ArchivalEventContent data={data} locale={locale}/>;
   const base = { event: e.id, revision: String(e.revision) };
   const en = locale === "en";
   const c = createTranslator((en) ? "en" : "ar");
@@ -451,37 +455,10 @@ export function EventContent({
                   </EventForm>
                 </ManagementActionSheet>
               )}
+              {data.canFeature&&["Published","Completed"].includes(e.status_code)&&<EventPinAction id={e.id} pinned={e.is_featured} locale={locale}/>}
               <EventSecondaryTools
                 locale={locale}
                 actions={[
-                  ...(e.status_code === "Published"
-                    ? [
-                        {
-                          id: "feature",
-                          label: c("تمييز الفعالية", "Feature event"),
-                          content: (
-                            <EventForm
-                              operation="feature"
-                              fields={{ event: e.id }}
-                              label={c("حفظ التمييز", "Save featured status")}
-                              locale={locale}
-                            >
-                              <label className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  name="featured"
-                                  defaultChecked={e.is_featured}
-                                />
-                                {c(
-                                  "تمييز الفعالية في صفحة الجهة",
-                                  "Feature on the organization page",
-                                )}
-                              </label>
-                            </EventForm>
-                          ),
-                        },
-                      ]
-                    : []),
                   ...(["Published", "Completed"].includes(e.status_code)
                     ? [
                         {

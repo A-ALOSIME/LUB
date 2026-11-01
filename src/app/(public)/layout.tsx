@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
 
 function PublicHeaderLoading() {
@@ -21,5 +22,6 @@ export default function PublicLayout({ children }: Readonly<{ children: React.Re
   return <>
     <Suspense fallback={<PublicHeaderLoading />}><PublicHeader /></Suspense>
     {children}
+    <PublicFooter/>
   </>;
 }

@@ -87,3 +87,33 @@ it("loads the full organization cache across page boundaries and keeps all reads
  expect(await eventWorkspaceOverview(student,org,null)).toBeUndefined();expect((await eventRegistrants(student,org,null,"","",null)).items).toHaveLength(0);expect(await organizationEventsVersion(student,org)).toBeNull();
  const before=await organizationEventsVersion(leader,org);await db.query("select lub.review_event_registrations($1::uuid[],'Rejected','سبب القرار')",[[registrations.items[0].id]]);const after=await organizationEventsVersion(leader,org);expect(before).toHaveLength(32);expect(after).not.toBe(before);
 });
+
+it("restores only empty source fields, preserves existing values, and keeps undated archives non-registerable and idempotent",async()=>{
+ const payload={slug:'events-test',name:'اسم من الملف',type:'Club',summary:'نبذة المصدر',mission:'رسالة المصدر',profile:{vision:'رؤية المصدر',partners:'شريك المصدر'},contacts:[{kind:'X',url:'https://x.com/source'}],committees:[{name:'لجنة الإعلام',description:'• توثيق الأنشطة.\n• إنتاج المحتوى.',parent:null}],events:[{id:'00000000-0000-4000-8000-000000000900',title:'لقاء أرشيفي',description:'نص الملف فقط',dateText:'25 يناير'}]};
+ await actor(student);await denied(()=>db.query('select lub.restore_markdown_organization($1::jsonb)',[JSON.stringify(payload)]));await db.exec("reset role;select set_config('request.jwt.claim.sub','',true)");await db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)",[leader]);await db.query("update lub.organizations set public_profile_content=$1::jsonb where id=$2",[JSON.stringify({vision:"",partners:"شريك حالي"}),org]);await db.query("select set_config('request.jwt.claim.sub','',true)");
+ const first=(await db.query<{result:{changed:string[];kept:Array<{field:string;current:string}>}}>('select lub.restore_markdown_organization($1::jsonb) as result',[JSON.stringify(payload)])).rows[0].result;expect(first.changed).toContain('mission');expect(first.kept).toContainEqual(expect.objectContaining({field:'name',current:'نادي الاختبار'}));expect(first.kept).toContainEqual(expect.objectContaining({field:'profile.partners',current:'شريك حالي'}));const second=(await db.query<{result:{changed:string[]}}>('select lub.restore_markdown_organization($1::jsonb) as result',[JSON.stringify(payload)])).rows[0].result;expect(second.changed).toEqual([]);
+ await db.exec('reset role');expect((await db.query('select starts_at,ends_at,source_date_text,status_code from lub.events where id=$1',[payload.events[0].id])).rows).toEqual([{starts_at:null,ends_at:null,source_date_text:'25 يناير',status_code:'Archived'}]);expect((await db.query('select description from lub.committees where organization_id=$1',[org])).rows[0]).toEqual({description:'• توثيق الأنشطة.\n• إنتاج المحتوى.'});await actor(student);await denied(()=>register(payload.events[0].id));await db.exec("reset role;set local role anon");expect((await db.query('select id from lub.events')).rows).toHaveLength(1);
+});
+it('limits the committee hierarchy to one subcommittee level',async()=>{await db.exec('reset role');const root=(await db.query<{id:string}>("insert into lub.committees(organization_id,name) values($1,'رئيسية') returning id",[org])).rows[0].id;const child=(await db.query<{id:string}>("insert into lub.committees(organization_id,name,parent_committee_id) values($1,'فرعية',$2) returning id",[org,root])).rows[0].id;await denied(()=>db.query("insert into lub.committees(organization_id,name,parent_committee_id) values($1,'تفصيل مهمة',$2)",[org,child]));});
+
+it('exposes dimensions only for published posters and prevents another user from changing them',async()=>{
+ const event=await create(),asset='00000000-0000-4000-8000-000000000901';
+ await db.query("select lub.register_application_asset($1,$2,'poster.png','image/png',100)",[asset,`${leader}/${asset}.png`]);
+ await db.query('select lub.set_asset_image_dimensions($1,800,1200)',[asset]);
+ await db.query('select lub.set_event_poster($1,$2)',[event,asset]);
+ await denied(()=>db.query('select lub.set_asset_image_dimensions($1,0,1200)',[asset]));
+ await actor(student);await denied(()=>db.query('select lub.set_asset_image_dimensions($1,100,100)',[asset]));
+ await db.exec('reset role;set local role anon');
+ expect((await db.query('select lub.public_event_poster_dimensions($1) as dimensions',[event])).rows[0]).toEqual({dimensions:null});
+ await actor(leader);await publish(event);await db.exec('reset role;set local role anon');
+ expect((await db.query('select lub.public_event_poster_dimensions($1) as dimensions',[event])).rows[0]).toEqual({dimensions:{width:800,height:1200}});
+});
+
+it('keeps pinning exclusive to the active leader even when event management is delegated',async()=>{
+ const event=await create();await publish(event);await db.exec('reset role');
+ const member=(await db.query<{id:string}>('insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id',[org,student])).rows[0].id;
+ await actor(leader);await db.query("select lub.grant_event_permission($1,'EVENTS_MANAGE',null)",[member]);
+ await actor(student);expect((await db.query('select lub.can_feature_event($1) as allowed',[event])).rows[0]).toEqual({allowed:false});await denied(()=>db.query('select lub.set_featured_event($1,true)',[event]));
+ await actor(leader);expect((await db.query('select lub.can_feature_event($1) as allowed',[event])).rows[0]).toEqual({allowed:true});await db.query('select lub.set_featured_event($1,true)',[event]);
+ expect((await db.query('select is_featured from lub.events where id=$1',[event])).rows[0]).toEqual({is_featured:true});
+});
