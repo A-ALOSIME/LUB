@@ -19,7 +19,7 @@ it('fits the diagram when a hidden tab gains a visible canvas width', () => {
   expect(fitChart).not.toHaveBeenCalled();
   flowViewport.width = 1200;
   ui.rerender(<OrganizationCommitteeChart {...props} committees={committees} />);
-  expect(fitChart).toHaveBeenCalledWith({ padding: .15, minZoom: .55, maxZoom: 1 });
+  expect(fitChart).toHaveBeenCalledWith({ padding: .15, maxZoom: 1 });
 });
 it('connects root, siblings, and deeper branches and supports collapsing and reopening', () => {
   render(<OrganizationCommitteeChart {...props} committees={[committee('أ', [committee('فرعية')]), committee('ب')]} />);

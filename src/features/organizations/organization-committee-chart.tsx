@@ -69,7 +69,7 @@ function ChartControls({ en }: { en: boolean }) {
   const height = useStore(state => state.height);
   // A chart mounted in a hidden tab must fit again when its real canvas size is known.
   useEffect(() => {
-    if (width > 0 && height > 0) void fitView({ padding: .15, minZoom: .55, maxZoom: 1 });
+    if (width > 0 && height > 0) void fitView({ padding: .15, maxZoom: 1 });
   }, [fitView, width, height]);
   return <Panel position="bottom-left" className="committee-flow-controls"><div role="group" aria-label={translateUi((en) ? "en" : "ar", "التحكم بالمخطط", "Chart controls")}>
     <Button type="button" variant="outline" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "تكبير المخطط", "Zoom in")} onClick={() => void zoomIn()}><Plus aria-hidden="true" /></Button>
@@ -121,7 +121,7 @@ export function OrganizationCommitteeChart({ organizationId, organizationName, r
     {mobile?<div className="committee-flow-mobile"><Card><CardContent><p className="font-semibold text-center">{organizationName}</p>{rootDetails.length>0&&<p className="mt-2 text-sm text-center text-muted-foreground">{rootDetails.join(" · ")}</p>}</CardContent></Card><div className="pt-3">{mobileTree(committees)}</div></div>:<div className="committee-flow-canvas" style={{ height: Math.min(720, Math.max(360, graph.height + 80)) * scale }}>
       <ReactFlow<ChartNode> key={`${scale}|${graph.nodes.map(node => node.id).join("|")}`} nodes={graph.nodes} edges={graph.edges} nodeTypes={nodeTypes}
         onNodeClick={(event,node)=>{if(node.data.committee&&!(event.target as HTMLElement).closest("button,a,[role=button]"))setAction({kind:"details",committee:node.data.committee,descendants:[]});}}
-        fitView fitViewOptions={{ padding: .15, minZoom: .55, maxZoom: 1 }} minZoom={.15} maxZoom={1.5} proOptions={{ hideAttribution: true }}
+        fitView fitViewOptions={{ padding: .15, maxZoom: 1 }} minZoom={.15} maxZoom={1.5} proOptions={{ hideAttribution: true }}
         nodesDraggable={false} nodesConnectable={false} nodesFocusable={false} edgesFocusable={false} elementsSelectable={false}
         deleteKeyCode={null} zoomOnDoubleClick={false} zoomOnScroll={false} preventScrolling={false}
         role="group" aria-label={c("الهيكل التنظيمي للجان", "Committee organization chart")}>
