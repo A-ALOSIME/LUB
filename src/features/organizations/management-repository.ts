@@ -1,4 +1,7 @@
 import "server-only";
+import type {OrganizationMemberWorkspace,EncryptedMemberWorkspace,MemberFilters} from "./member-types";
+import {initialMemberFilters} from "./member-types";
+import {decodeMemberWorkspace} from "./member-identifiers";
 import { cache } from "react";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb, withUser, type Transaction } from "@/db/client";
@@ -188,18 +191,8 @@ export async function getManagementOrganization(userId: string, organizationId: 
   });
 }
 
-export type OrganizationMemberWorkspace = {
-  canManage: boolean;
-  canGrant: boolean;
-  canAddHours: boolean;
-  terms: Array<{ id: string; name: string; year: string; termCode: string; startDate: string; endDate: string }>;
-  committees: Array<{ id: string; name: string }>;
-  members: Array<{
-    id: string; name: string; major: string; level: string; status: string; startDate: string; endDate: string | null;
-    canManage: boolean; hours: number; roles: Array<{ code: string; committee: string | null }>;
-    committees: Array<{ id: string; name: string }>; hourScopes: Array<{ id: string; name: string }>;
-  }>;
-};
+export type {OrganizationMemberWorkspace} from "./member-types";
+
 
 export type OrganizationPermissionWorkspace = {
   members: Array<{ id: string; name: string }>;
@@ -207,10 +200,10 @@ export type OrganizationPermissionWorkspace = {
   grants: Array<{ id: string; membership: string; member: string; code: string; committee: string | null; ends: string | null }>;
 };
 
-export async function getOrganizationMemberDirectory(userId: string, organizationId: string) {
+export async function getOrganizationMemberDirectory(userId: string, organizationId: string, filters:MemberFilters=initialMemberFilters):Promise<OrganizationMemberWorkspace|undefined> {
   return withUser(userId, async tx => {
-    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
-    return rows[0]?.workspace as OrganizationMemberWorkspace | undefined;
+    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId},${filters.q},${filters.status},${filters.committee}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
+    return rows[0]?.workspace?decodeMemberWorkspace(rows[0].workspace as EncryptedMemberWorkspace):undefined;
   });
 }
 

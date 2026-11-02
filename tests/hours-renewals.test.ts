@@ -113,10 +113,10 @@ it("revokes delegated hours access immediately and forbids committee-scoped rene
  await asUser(member);expect((await db.query<{allowed:boolean}>("select lub.has_org_permission($1,'HOURS_APPROVE') as allowed",[org])).rows[0].allowed).toBe(true);
  await asUser(leader);await db.query("select lub.end_hours_permission($1)",[g]);await asUser(member);expect((await db.query<{allowed:boolean}>("select lub.has_org_permission($1,'HOURS_APPROVE') as allowed",[org])).rows[0].allowed).toBe(false);
 });
-it("does not let a new membership answer the old membership campaign or accept late responses",async()=>{
+it("does not let a reactivated membership answer the old membership campaign or accept late responses",async()=>{
  const c=await campaign();await db.query("select lub.change_renewal_status($1,'Open')",[c]);const rows=(await db.query<{id:string;organization_membership_id:string}>("select id,organization_membership_id from lub.membership_renewals")).rows;
  const own=rows.find(x=>x.organization_membership_id===memberships[1])!,peer=rows.find(x=>x.organization_membership_id===memberships[2])!;
- await db.exec("reset role");await db.query("update lub.organization_memberships set status_code='Ended',end_date=current_date where id=$1",[memberships[1]]);await db.query("insert into lub.organization_memberships(organization_id,user_id) values($1,$2)",[org,member]);
+ await db.exec("reset role");await db.query("update lub.organization_memberships set status_code='Ended',end_date=current_date where id=$1",[memberships[1]]);await db.query("select lub.ensure_current_membership($1,$2)",[org,member]);
  await asUser(member);await denied(()=>db.query("select lub.respond_renewal($1,'Renewed')",[own.id]));
  await db.exec("reset role");await db.query("update lub.renewal_campaigns set closes_at=now()-interval '1 minute' where id=$1",[c]);await asUser(admin);await denied(()=>db.query("select lub.respond_renewal($1,'Renewed')",[peer.id]));
  await asUser(leader);await db.query("select lub.change_renewal_status($1,'Closed')",[c]);expect((await db.query<{response_code:string}>("select response_code from lub.membership_renewals where id=$1",[peer.id])).rows[0].response_code).toBe("No_Response");

@@ -1,5 +1,6 @@
 "use client"
 
+import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {t as translateUi} from "@/lib/i18n";
 import {useSyncExternalStore} from "react"
 import { CalendarDays, ClipboardCheck, Clock3 } from "lucide-react"
@@ -13,7 +14,7 @@ export function ActivityTabs({
   tasks,
   events,
   hours,
-  locale,
+  locale,search,filters,
 }: {
   initialTab: ActivityTab
   tasks: React.ReactNode
@@ -21,6 +22,8 @@ export function ActivityTabs({
   hours: React.ReactNode
   activeHref?: string
   locale: Locale
+  search?:React.ReactNode
+  filters?:React.ReactNode
 }) {
   const en = locale === "en"
   const tab=useSyncExternalStore(subscribe,()=>{
@@ -40,7 +43,7 @@ export function ActivityTabs({
     }}
     className="min-w-0 gap-4"
   >
-    <TabsList className="workspace-segmented-control group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
+    <SearchFilterToolbar search={search}><TabsList className="workspace-segmented-control group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
       <TabsTrigger value="tasks" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
         <ClipboardCheck aria-hidden="true" />{translateUi((en) ? "en" : "ar", "المهام", "Tasks")}
       </TabsTrigger>
@@ -50,7 +53,7 @@ export function ActivityTabs({
       <TabsTrigger value="hours" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
         <Clock3 aria-hidden="true" />{translateUi((en) ? "en" : "ar", "الساعات", "Hours")}
       </TabsTrigger>
-    </TabsList>
+    </TabsList>{filters}</SearchFilterToolbar>
     <TabsContent keepMounted value="tasks" className="min-w-0">{tasks}</TabsContent>
     <TabsContent keepMounted value="events" className="min-w-0">{events}</TabsContent>
     <TabsContent keepMounted value="hours" className="min-w-0">{hours}</TabsContent>

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { OrganizationMemberWorkspace } from "@/features/organizations/management-repository";
 import { MemberDirectory } from "./member-directory";
 
+vi.mock("@/features/organizations/member-data-actions",()=>({loadMemberDirectory:async(_org:string,filters:{status:string})=>({data:{...workspace,members:workspace.members.filter(m=>filters.status==="all"||m.status===filters.status)}}),loadMemberRecord:vi.fn(),loadMemberExportAudit:vi.fn()}));
 vi.mock("next/navigation",()=>({useRouter:()=>({refresh:vi.fn()})}));
 vi.mock("@/features/hours/view", () => ({ HoursFields: () => null }));
 vi.mock("@/features/hours/form", () => ({ HoursForm: () => null }));
@@ -26,7 +27,7 @@ const workspace: OrganizationMemberWorkspace = {
   ],
 };
 
-it("uses a compact unlabeled search and filters members by status", () => {
+it("uses a compact unlabeled search and filters members by status", async () => {
   render(<MemberDirectory organization="org" workspace={workspace} locale="ar" />);
 
   expect(screen.queryByText("بحث في الأعضاء")).toBeNull();
@@ -44,7 +45,7 @@ it("uses a compact unlabeled search and filters members by status", () => {
 
   fireEvent.click(screen.getByRole("tab", { name: "منتهية" }));
 
-  expect(screen.queryAllByText("أحمد محمد")).toHaveLength(0);
+  await waitFor(()=>expect(screen.queryAllByText("أحمد محمد")).toHaveLength(0));
   expect(screen.getAllByText("سارة علي").length).toBeGreaterThan(0);
 });
 

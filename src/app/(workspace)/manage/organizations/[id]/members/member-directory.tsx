@@ -1,4 +1,5 @@
 "use client";
+import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {majorLabel} from "@/lib/display";
 import {NumberText} from "@/components/number-text";
 import {createTranslator} from "@/lib/i18n";
@@ -11,7 +12,15 @@ import { academicLevel,formatHours } from "@/lib/display";
 import { Tooltip,TooltipTrigger,TooltipContent } from "@/components/ui/tooltip";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {loadMemberDirectory,loadMemberRecord} from "@/features/organizations/member-data-actions";
+import {initialMemberFilters,type MemberFilters,type MemberRecord} from "@/features/organizations/member-types";
+import {MemberExportButton} from "@/features/organizations/member-export-button";
+import {MemberDetailSheet} from "@/features/organizations/member-detail-sheet";
+import {Table,TableHeader,TableBody,TableRow,TableHead,TableCell} from "@/components/ui/table";
+import {Card,CardHeader,CardTitle,CardContent} from "@/components/ui/card";
+import {Empty,EmptyHeader,EmptyTitle,EmptyDescription,EmptyMedia} from "@/components/ui/empty";
+import {Users} from "lucide-react";
 import { HoursFields } from "@/features/hours/view";
 import { HoursForm } from "@/features/hours/form";
 import { WorkflowForm } from "@/features/forms/mutation-form";
@@ -35,50 +44,53 @@ const roleNames: Record<string, [string, string]> = { OL: ["قائد الجهة"
 function date(value: string, locale: Locale) { return formatRiyadhDate(value, locale); }
 
 export function MemberDirectory({ organization, workspace, permissions, locale }: { organization: string; workspace: OrganizationMemberWorkspace; permissions?: OrganizationPermissionWorkspace; locale: Locale }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const en = locale === "en";
-  const c = createTranslator(en ? "en" : "ar");
-  const members = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase();
-    return workspace.members.filter(member => {
-      const matchesQuery = !normalized || [member.name, member.major, member.level, ...member.committees.map(x => x.name), ...member.roles.map(x => roleNames[x.code]?.[en ? 1 : 0] ?? x.code)].join(" ").toLocaleLowerCase().includes(normalized);
-      const matchesStatus = status === "all" || member.status === status;
-      return matchesQuery && matchesStatus;
-    });
-  }, [en, query, status, workspace.members]);
-
+  const [filters,setFilters]=useState<MemberFilters>(initialMemberFilters);
+  const [data,setData]=useState(workspace),[failed,setFailed]=useState(false);
+  const [selected,setSelected]=useState<string|null>(null),[record,setRecord]=useState<MemberRecord|null>(null),[recordError,setRecordError]=useState(false);
+  const cache=useMemo(()=>new Map([[JSON.stringify(initialMemberFilters),workspace]]),[workspace]);
+  const key=JSON.stringify(filters),en=locale==="en",c=createTranslator(locale);
+  useEffect(()=>{
+    let current=true;
+    const timer=setTimeout(async()=>{
+      const cached=cache.get(key);
+      if(cached){if(current){setData(cached);setFailed(false);}return;}
+      const response=await loadMemberDirectory(organization,JSON.parse(key) as MemberFilters);
+      if(!current)return;
+      if(response.data){cache.set(key,response.data);setData(response.data);setFailed(false);}else{setFailed(true);}
+    },filters.q?150:0);
+    return()=>{current=false;clearTimeout(timer);};
+  },[cache,key,organization,filters.q]);
+  useEffect(()=>{
+    if(!selected)return;
+    let current=true;
+    void loadMemberRecord(organization,selected).then(result=>{if(current){setRecord(result.data??null);setRecordError(!result.data);}});
+    return()=>{current=false;};
+  },[selected,organization]);
+  function openMember(id:string){setRecord(null);setRecordError(false);setSelected(id);}
+  const members=data.members;
+  function stateBadge(status:string){return <OrganizationStatusBadge status={status==="Active"?"active":status==="Ended"?"ended":"inactive"}>{status==="Active"?c("نشطة","Active"):status==="Ended"?c("منتهية","Ended"):c("غير نشطة","Inactive")}</OrganizationStatusBadge>;}
+  function roleTags(member:OrganizationMemberWorkspace["members"][number]){return <div className="member-directory-tags">{member.roles.length?member.roles.map((role,i)=><Badge key={i} variant="secondary">{roleNames[role.code]?.[en?1:0]??role.code}{role.committee&&<> · <bdi>{role.committee}</bdi></>}</Badge>):<span className="text-sm text-muted-foreground">{c("عضو","Member")}</span>}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(x=><Badge key={x.id} variant="outline">{x.name}</Badge>)}{permissions?.grants.filter(x=>x.membership===member.id).map(x=><Badge key={x.id} variant="secondary">{permissionLabels[x.code]?.[en?1:0]??x.code}</Badge>)}</div>;}
   return <>
-    <div className="member-directory-toolbar mb-6" dir={en ? "ltr" : "rtl"}>
-      <InputGroup className="member-directory-search-wrap">
-        <InputGroupAddon><Search/></InputGroupAddon>
-        <InputGroupInput type="text" role="searchbox" dir={en ? "ltr" : "rtl"} value={query} onChange={event => setQuery(event.target.value)} placeholder={c("الاسم أو التخصص أو اللجنة","Name, major or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search" />
-      </InputGroup>
-      <FilterTabs value={status} ariaLabel={c("تصفية الأعضاء حسب الحالة", "Filter members by status")} dir={en ? "ltr" : "rtl"} size="sm" activeTone="primary" onValueChange={setStatus} options={[
-        { value: "all", label: c("الكل", "All") },
-        { value: "Active", label: c("نشطة", "Active") },
-        { value: "Ended", label: c("منتهية", "Ended") },
-      ]} />
-      {permissions && <ActiveDelegations organization={organization} data={permissions} locale={locale}/>}
-    </div>
+    <SearchFilterToolbar className="member-directory-toolbar mb-4" search={
+      <InputGroup className="member-directory-search-wrap"><InputGroupAddon><Search/></InputGroupAddon><InputGroupInput role="searchbox" dir={en?"ltr":"rtl"} value={filters.q} onChange={event=>setFilters({...filters,q:event.target.value})} placeholder={c("الاسم أو التخصص أو اللجنة","Name, major or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search"/></InputGroup>}>
 
-    {members.length ? <>
-      <div className="hidden overflow-hidden rounded-2xl border border-line bg-[var(--surface)] lg:block">
-        <div className="overflow-x-auto"><table className="member-directory-table w-full min-w-[1200px] text-start"><thead><tr><th>{c("الطالب","Student")}</th><th>{c("العضوية","Membership")}</th><th>{c("الدور واللجان","Role and committees")}</th><th>{c("الساعات المعتمدة","Approved hours")}</th><th>{c("الإجراءات","Actions")}</th></tr></thead><tbody>{members.map(member => <tr key={member.id}>
-          <td><div className="member-directory-identity"><div className="min-w-0"><p className="font-semibold"><bdi>{member.name}</bdi></p><p className="mt-1 text-sm text-muted"><bdi>{majorLabel(member.major,locale)}</bdi> · {academicLevel(member.level,locale)}</p></div></div></td>
-          <td><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge><p className="mt-1 text-sm text-muted">{c("منذ", "Since")} {date(member.startDate, locale)}</p></td>
-          <td><div className="member-directory-tags">{member.roles.length ? member.roles.map((role, i) => <Badge key={i} variant="secondary">{roleNames[role.code]?.[en ? 1 : 0] ?? role.code}{role.committee && <> · <bdi>{role.committee}</bdi></>}</Badge>) : <span className="text-sm text-muted">{c("عضو","Member")}</span>}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(committee => <Badge key={committee.id} variant="outline"><bdi>{committee.name}</bdi></Badge>)}{permissions?.grants.filter(grant => grant.membership === member.id).map(grant => <Badge key={grant.id} variant="secondary">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code}</Badge>)}</div></td>
-          <td className="whitespace-nowrap">{formatHours(member.hours,locale)}</td>
-          <td><MemberActions organization={organization} member={member} workspace={workspace} committees={permissions?.committees ?? []} locale={locale}/></td>
-        </tr>)}</tbody></table></div>
-      </div>
-      <ul className="grid gap-3 lg:hidden">{members.map(member => <li key={member.id} className="member-directory-card panel min-w-0 p-4">
-        <div className="flex items-start justify-between gap-3"><div className="member-directory-identity min-w-0"><div className="min-w-0"><h3 className="break-words font-bold"><bdi>{member.name}</bdi></h3><p className="mt-1 text-sm text-muted"><bdi>{majorLabel(member.major,locale)}</bdi> · {academicLevel(member.level,locale)}</p></div></div><OrganizationStatusBadge status={member.status === "Active" ? "active" : member.status === "Ended" ? "ended" : "inactive"}>{member.status === "Active" ? c("نشطة","Active") : member.status === "Ended" ? c("منتهية","Ended") : c("غير نشطة","Inactive")}</OrganizationStatusBadge></div>
-        <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm"><div><dt className="text-muted">{c("تاريخ الانضمام","Joined")}</dt><dd className="mt-1 font-medium">{c("منذ", "Since")} {date(member.startDate, locale)}</dd></div><div><dt className="text-muted">{c("الساعات","Hours")}</dt><dd className="mt-1">{formatHours(member.hours,locale)}</dd></div></dl>
-        <div className="mt-3 flex flex-wrap gap-2">{member.roles.map((role,i)=><Badge key={i} variant="secondary">{roleNames[role.code]?.[en?1:0]??role.code}{role.committee?` · ${role.committee}`:""}</Badge>)}{permissions?.grants.filter(grant => grant.membership === member.id).map(grant => <Badge key={grant.id} variant="secondary">{permissionLabels[grant.code]?.[en ? 1 : 0] ?? grant.code}</Badge>)}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(committee=><Badge key={committee.id} variant="outline"><bdi>{committee.name}</bdi></Badge>)}</div>
-        <div className="mt-4 lg:hidden"><MemberActions organization={organization} member={member} workspace={workspace} committees={permissions?.committees ?? []} locale={locale} mobile /></div>
-      </li>)}</ul>
-    </> : <p className="workspace-empty">{c("لا يوجد أعضاء مطابقون للبحث.","No members match this search.")}</p>}
+      <FilterTabs value={filters.status} ariaLabel={c("تصفية الأعضاء حسب الحالة","Filter members by status")} dir={en?"ltr":"rtl"} onValueChange={status=>setFilters({...filters,status:status as MemberFilters['status']})} options={[{value:"all",label:c("الكل","All")},{value:"Active",label:c("نشطة","Active")},{value:"Ended",label:c("منتهية","Ended")}]} />
+      <NativeSelect className="w-auto" aria-label={c("تصفية حسب اللجنة","Filter by committee")} value={filters.committee??""} onChange={event=>setFilters({...filters,committee:event.target.value||null})}><option value="">{c("كل اللجان","All committees")}</option>{workspace.committees.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</NativeSelect>
+      {permissions&&<ActiveDelegations organization={organization} data={permissions} locale={locale}/>}
+      <MemberExportButton organization={organization} filters={filters} locale={locale} leader={workspace.canGrant}/>
+    </SearchFilterToolbar>
+    {data.counts&&<div className="mb-5 flex flex-wrap gap-2" aria-live="polite"><Badge variant="outline">{c("الإجمالي","Total")} · {data.counts.total}</Badge><Badge variant="outline">{c("نشطة","Active")} · {data.counts.active}</Badge><Badge variant="outline">{c("منتهية","Ended")} · {data.counts.ended}</Badge></div>}
+    {failed&&<Alert className="mb-4"><AlertDescription>{c("تعذّر تحديث النتائج. حاول مجددًا.","Results could not be updated. Try again.")}</AlertDescription></Alert>}
+    {members.length?<>
+      <div className="hidden rounded-xl border lg:block"><Table><TableHeader><TableRow>{[c("الطالب","Student"),c("الرقم الجامعي","University ID"),c("العضوية","Membership"),c("الدور واللجان","Role and committees"),c("الساعات المعتمدة","Approved hours"),c("الإجراءات","Actions")].map(x=><TableHead key={x}>{x}</TableHead>)}</TableRow></TableHeader><TableBody>{members.map(member=><TableRow key={member.id}>
+        <TableCell className="whitespace-normal"><button className="text-start font-semibold hover:text-primary focus-visible:outline-ring" onClick={()=>openMember(member.id)}><bdi>{member.name}</bdi></button><p className="mt-1 text-sm text-muted-foreground">{majorLabel(member.major,locale)} · {academicLevel(member.level,locale)}</p></TableCell>
+        <TableCell><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi></TableCell>
+        <TableCell>{stateBadge(member.status)}<p className="mt-1 text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p></TableCell>
+        <TableCell className="whitespace-normal">{roleTags(member)}</TableCell><TableCell>{formatHours(member.hours,locale)}</TableCell><TableCell><MemberActions organization={organization} member={member} workspace={data} committees={permissions?.committees??[]} locale={locale}/></TableCell>
+      </TableRow>)}</TableBody></Table></div>
+      <ul className="grid gap-3 lg:hidden">{members.map(member=><li key={member.id}><Card className="cursor-pointer" onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest('button,a,input,[role="button"]'))openMember(member.id);}}><CardHeader><CardTitle><button className="text-start hover:text-primary" onClick={()=>openMember(member.id)}>{member.name}</button></CardTitle>{stateBadge(member.status)}</CardHeader><CardContent className="flex flex-col gap-3"><button type="button" onClick={()=>openMember(member.id)} className="text-start"><p><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi></p><p className="text-sm text-muted-foreground">{majorLabel(member.major,locale)} · {academicLevel(member.level,locale)}</p><p className="text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p><p>{formatHours(member.hours,locale)}</p></button>{roleTags(member)}<MemberActions organization={organization} member={member} workspace={data} committees={permissions?.committees??[]} locale={locale} mobile/></CardContent></Card></li>)}</ul>
+    </>:<Empty><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>{filters.q||filters.status!=="all"||filters.committee?c("لا توجد نتائج مطابقة","No matching results"):c("لا يوجد أعضاء بعد","No members yet")}</EmptyTitle><EmptyDescription>{filters.q||filters.status!=="all"||filters.committee?c("جرّب تغيير البحث أو الفلاتر.","Try another search or filter."):c("ستظهر بيانات الطلاب هنا عند انضمامهم للجهة.","Students will appear here when they join the organization.")}</EmptyDescription></EmptyHeader>{(filters.q||filters.status!=="all"||filters.committee)&&<Button variant="outline" onClick={()=>setFilters(initialMemberFilters)}>{c("مسح الفلاتر","Clear filters")}</Button>}</Empty>}
+    <MemberDetailSheet open={selected!==null} onOpenChange={open=>{if(!open)setSelected(null);}} record={record} error={recordError} locale={locale}/>
   </>;
 }
 

@@ -1,3 +1,4 @@
+import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {createTranslator} from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { formatHours,recordCount } from "@/lib/display";
@@ -27,10 +28,10 @@ export function HoursWorkspaceView({ data, org, filters, locale = "ar" }: { data
   return <div className="min-w-0 space-y-4">
     <LiveFilterForm className="hours-filters">
       <input type="hidden" name="section" value="hours"/><input type="hidden" name="hoursPage" value="0"/>{filters.status&&<input type="hidden" name="hourStatus" value={filters.status}/>}
-      <div className="hours-search"><Search aria-hidden="true"/><Input type="search" name="q" defaultValue={filters.q??""} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>
+      <SearchFilterToolbar search={<div className="hours-search"><Search aria-hidden="true"/><Input type="search" name="q" defaultValue={filters.q??""} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>}>
       {term&&<input type="hidden" name="term" value={term}/ >}{committee&&<input type="hidden" name="committee" value={committee}/ >}
-      <div className="hours-filter-scroll border-s border-border ps-3"><HoursStatusFilters value={filters.status??"all"} locale={locale}/></div>
-    </LiveFilterForm>
+      <div className="min-w-0"><HoursStatusFilters value={filters.status??"all"} locale={locale}/></div>
+    </SearchFilterToolbar></LiveFilterForm>
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale}/>
 

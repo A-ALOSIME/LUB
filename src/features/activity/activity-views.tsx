@@ -52,12 +52,13 @@ export function ActivityEventRows({ events, page, locale,onPageChange }: { event
   </div>
 }
 
-export function ActivityHours({ data, page, term, status, locale,onFiltersChange,onPageChange }: {
+export function ActivityHours({ data, page, term, status, locale,onFiltersChange,onPageChange,hideFilters=false }: {
   data: HoursData
   page: number
   term: string | null
   status: ActivityHourStatus
   locale: Locale
+  hideFilters?:boolean
   onFiltersChange?:(changes:{term?:string|null;status?:ActivityHourStatus})=>void
   onPageChange?:(page:number)=>void
 }) {
@@ -66,15 +67,15 @@ export function ActivityHours({ data, page, term, status, locale,onFiltersChange
   const statusCode = status === "all" ? null : status === "approved" ? "Approved" : status === "pending" ? "Pending" : "Rejected"
 
   return <div className="flex min-w-0 flex-col gap-4">
-    <div className="flex min-w-0 items-center gap-3 overflow-x-auto pb-1">
-      {onFiltersChange?<NativeSelect aria-label={c("الفصل الدراسي","Academic term")} value={term??""} onChange={event=>onFiltersChange({term:event.target.value||null})} className="w-56 shrink-0"><option value="">{c("كل الفصول","All terms")}</option>{data.terms.map(item=><option key={item.id} value={item.id}>{academicTerm(item.name_ar,locale)} · {item.academic_year}</option>)}</NativeSelect>:<LiveFilterForm action="/activity" method="get" className="w-56 shrink-0">
+    {!hideFilters&&<div className="flex min-w-0 flex-wrap items-center gap-3">
+      {onFiltersChange?<NativeSelect aria-label={c("الفصل الدراسي","Academic term")} value={term??""} onChange={event=>onFiltersChange({term:event.target.value||null})} className="w-auto max-w-full shrink-0"><option value="">{c("كل الفصول","All terms")}</option>{data.terms.map(item=><option key={item.id} value={item.id}>{academicTerm(item.name_ar,locale)} · {item.academic_year}</option>)}</NativeSelect>:<LiveFilterForm action="/activity" method="get" className="w-auto max-w-full shrink-0">
         <input type="hidden" name="tab" value="hours" />
         <input type="hidden" name="page" value="0" />
         {statusCode && <input type="hidden" name="hourStatus" value={status} />}
         <TermSelect compact terms={data.terms} all value={term ?? ""} locale={locale} className="w-full min-w-0" />
       </LiveFilterForm>}
       <div className="shrink-0"><ActivityHourFilter value={status} locale={locale} onChange={onFiltersChange?status=>onFiltersChange({status}):undefined}/></div>
-    </div>
+    </div>}
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale} />
     {data.byOrg.length > 0 && <details className="min-w-0 rounded-lg border border-border/70 p-3">

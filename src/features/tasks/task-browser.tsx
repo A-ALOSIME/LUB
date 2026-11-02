@@ -23,7 +23,7 @@ export function TaskBrowser({
   locale = "ar",
   base = "/tasks",
   baseQuery = {},
-  compact = false,onViewChange,onPageChange,
+  compact = false,hideFilters=false,onViewChange,onPageChange,
 }: {
   availableItems: TaskCard[];
   mineItems: TaskCard[];
@@ -34,7 +34,7 @@ export function TaskBrowser({
   locale?: Locale;
   base?: string;
   baseQuery?: Record<string, string>;
-  compact?: boolean;onViewChange?:(view:View)=>void;onPageChange?:(page:number)=>void;
+  compact?: boolean;hideFilters?:boolean;onViewChange?:(view:View)=>void;onPageChange?:(page:number)=>void;
 }) {
   const en = locale === "en";
   const [localView, setView] = useState<View>(initialView);
@@ -43,7 +43,7 @@ export function TaskBrowser({
   const more = view === "available" ? availableMore : mineMore;
 
   return <div dir={en ? "ltr" : "rtl"} className="flex min-w-0 flex-col gap-4">
-    <FilterTabs
+    {!hideFilters&&<FilterTabs
       ariaLabel={translateUi((en) ? "en" : "ar", "تصفية المهام", "Task filters")}
       value={view}
       options={[
@@ -54,7 +54,7 @@ export function TaskBrowser({
       onValueChange={next => {
         if (next === "available" || next === "mine"){if(onViewChange)onViewChange(next);else setView(next);}
       }}
-    />
+    />}
     {items.length ? <TaskList items={items} mode={view} locale={locale} compact={compact} /> : <WorkspaceEmptyState
       icon={ClipboardCheck}
       title={view === "mine" ? translateUi((en) ? "en" : "ar", "ما شاركت في أي مهمة حتى الآن", "No task participation yet") : translateUi((en) ? "en" : "ar", "لا توجد مهام متاحة الآن", "No tasks available right now")}

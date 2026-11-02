@@ -1,4 +1,5 @@
 "use client";
+import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
@@ -127,8 +128,8 @@ export function TalentSearch({
   );
   return (
     <div className="my-6 flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <InputGroup className="flex-1">
+      <SearchFilterToolbar search={
+        <InputGroup>
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -157,7 +158,7 @@ export function TalentSearch({
               </InputGroupButton>
             </InputGroupAddon>
           )}
-        </InputGroup>
+        </InputGroup>}>
         <div className="shrink-0">
           <Sheet>
             <SheetTrigger render={<Button variant="outline" />}>
@@ -181,7 +182,7 @@ export function TalentSearch({
             </SheetContent>
           </Sheet>
         </div>
-      </div>
+      </SearchFilterToolbar>
       {chips.length > 0 && (
         <div
           className="flex flex-wrap items-center gap-2"

@@ -4,3 +4,7 @@ project_id = "lub"
 # an atomic shared usage budget; no account or private submission data is accepted.
 [functions.translate-content]
 verify_jwt = false
+
+# The handler validates JWTs with Supabase Auth before every scoped RPC.
+[functions.export-members]
+verify_jwt = false

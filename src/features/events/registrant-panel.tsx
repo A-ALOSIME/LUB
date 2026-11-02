@@ -1,3 +1,4 @@
+import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
@@ -58,7 +59,7 @@ export async function EventRegistrantPanel({
       <LiveFilterForm className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="section" value={section} />
         <input type="hidden" name="review" value={status} />
-        <InputGroup className="min-w-48 flex-1">
+        <SearchFilterToolbar search={<InputGroup>
           <InputGroupAddon><Search/></InputGroupAddon>
           <InputGroupInput
             name="q"
@@ -68,7 +69,7 @@ export async function EventRegistrantPanel({
             placeholder={c("ابحث باسم الطالب", "Search student name")}
             aria-label={c("البحث باسم الطالب", "Search by student name")}
           />
-        </InputGroup>
+        </InputGroup>}>
         {!event && (
           <NativeSelect
             name="eventFilter"
@@ -83,7 +84,6 @@ export async function EventRegistrantPanel({
             ))}
           </NativeSelect>
         )}
-      </LiveFilterForm>
       <ApplicationReviewStatusFilters
         value={status}
         locale={locale}
@@ -115,6 +115,7 @@ export async function EventRegistrantPanel({
           },
         ]}
       />
+      </SearchFilterToolbar></LiveFilterForm>
       <EventRegistrationReview items={data.items} locale={locale} />
       {(page > 0 || data.items.length > 25) && (
         <nav className="flex gap-4">

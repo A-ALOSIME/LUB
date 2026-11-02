@@ -1,3 +1,4 @@
+import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
@@ -81,17 +82,18 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
   };
 
   return <section className="min-w-0 space-y-4" aria-label={c("طلبات الانضمام", "Join requests")}>
+    <SearchFilterToolbar search={
+      <LiveFilterForm action={searchApplications} className="application-review-search-form">
+        <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="round" value={filters.round??""}/><input type="hidden" name="page" value="1"/>
+        <Input name="q" type="search" dir={en ? "ltr" : "rtl"} className={en ? "text-left" : "text-right"} maxLength={120} defaultValue={filters.q} placeholder={c("ابحث بالاسم…", "Search by name…")} aria-label={c("بحث باسم الطالب", "Search by student name")} />
+      </LiveFilterForm>}>
     <ApplicationReviewStatusFilters value={filters.status} locale={locale} options={filterStatuses.map(status => ({
       value: status,
       label: status ? statuses[status] : c("الكل", "All"),
       count: status === "" ? statusCounts.all : statusCounts[status.toLowerCase() as "submitted" | "accepted" | "rejected" | "interview" | "withdrawn"]??0,
       href: statusLink(status),
     })).map(option => ({ ...option, count: option.count > 0 ? option.count : undefined }))} />
-    <div className="application-review-controls" dir={en ? "ltr" : "rtl"}>
-      <LiveFilterForm action={searchApplications} className="application-review-search-form">
-        <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="round" value={filters.round??""}/><input type="hidden" name="page" value="1"/>
-        <Input name="q" type="search" dir={en ? "ltr" : "rtl"} className={en ? "text-left" : "text-right"} maxLength={120} defaultValue={filters.q} placeholder={c("ابحث بالاسم…", "Search by name…")} aria-label={c("بحث باسم الطالب", "Search by student name")} />
-      </LiveFilterForm>
+
       <Popover>
         <PopoverTrigger render={<Button type="button" variant="outline" size="default"><Filter aria-hidden="true"/>{c("فلاتر", "Filters")}</Button>}/>
         <PopoverContent align={en ? "end" : "start"} className="w-[min(24rem,calc(100vw-1.5rem))] p-4">
@@ -108,7 +110,7 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
           </LiveFilterForm>
         </PopoverContent>
       </Popover>
-    </div>
+    </SearchFilterToolbar>
     <ApplicationSelection rows={rows.slice(0, 25)} locale={locale} canBulk={workspace.allowed.includes("APPLICATIONS_BULK_ACTION")} selectedApplication={detail ? { detail, name: rows.find(application => application.id === detail.id)?.name ?? c("تفاصيل الطلب", "Application details") } : undefined} query={queryString}/>
     <nav aria-label={c("صفحات الطلبات", "Application pages")} className="flex gap-4">{filters.page > 1 && <Link className="text-link" href={pageHref(filters.page - 1)}>{c("السابق", "Previous")}</Link>}{rows.length > 25 && <Link className="text-link" href={pageHref(filters.page + 1)}>{c("التالي", "Next")}</Link>}</nav>
   </section>;

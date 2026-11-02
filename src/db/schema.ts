@@ -139,6 +139,7 @@ export const committees = lub.table("committees", {
 ]).enableRLS();
 
 export const organizationMemberships = lub.table("organization_memberships", {
+  mergedInto: uuid("merged_into"),
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "restrict" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
@@ -151,6 +152,10 @@ export const organizationMemberships = lub.table("organization_memberships", {
   createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [
   unique("membership_org_identity_unique").on(t.id, t.organizationId),
+  unique("membership_identity_scope_unique").on(t.id,t.organizationId,t.userId),
+  foreignKey({name:"membership_canonical_scope_fk",columns:[t.mergedInto,t.organizationId,t.userId],foreignColumns:[t.id,t.organizationId,t.userId]}),
+  check("membership_canonical_not_self",sql`${t.mergedInto} is null or ${t.mergedInto}<>${t.id}`),
+  uniqueIndex("membership_one_canonical_idx").on(t.userId,t.organizationId).where(sql`${t.mergedInto} is null`),
   uniqueIndex("one_active_membership_idx").on(t.organizationId, t.userId).where(sql`${t.statusCode} = 'Active' and ${t.endDate} is null`),
   check("membership_status_check", sql`${t.statusCode} in ('Active', 'Inactive', 'Ended')`),
   check("membership_dates_check", sql`${t.endDate} is null or ${t.endDate} >= ${t.startDate}`),
@@ -242,8 +247,8 @@ export const membershipApplications = lub.table("membership_applications", {
   formResponseId: uuid("form_response_id").notNull().unique().references(() => formResponses.id),
   statusCode: varchar("status_code", { length: 20 }).notNull().default("Submitted"), submittedAt: createdAt(),
   decidedAt: timestamp("decided_at", { withTimezone: true }), decidedByUserId: uuid("decided_by_user_id").references(() => users.id),
-  acceptedMembershipId: uuid("accepted_membership_id").unique().references(() => organizationMemberships.id),
-}, t => [uniqueIndex("one_active_application_per_round_idx").on(t.registrationRoundId, t.applicantUserId).where(sql`${t.statusCode}<>'Withdrawn'`), check("application_status_check", sql`${t.statusCode} in ('Submitted','Interview','Accepted','Rejected','Withdrawn')`), check("application_membership_check", sql`(${t.statusCode}='Accepted')=(${t.acceptedMembershipId} is not null)`), index("application_round_status_idx").on(t.registrationRoundId, t.statusCode), index("application_user_time_idx").on(t.applicantUserId, t.submittedAt)]).enableRLS();
+  acceptedMembershipId: uuid("accepted_membership_id").references(() => organizationMemberships.id),
+}, t => [uniqueIndex("one_active_application_per_round_idx").on(t.registrationRoundId, t.applicantUserId).where(sql`${t.statusCode}<>'Withdrawn'`), check("application_status_check", sql`${t.statusCode} in ('Submitted','Interview','Accepted','Rejected','Withdrawn')`), check("application_membership_check", sql`(${t.statusCode}='Accepted')=(${t.acceptedMembershipId} is not null)`), index("application_accepted_membership_idx").on(t.acceptedMembershipId).where(sql`${t.acceptedMembershipId} is not null`), index("application_round_status_idx").on(t.registrationRoundId, t.statusCode), index("application_user_time_idx").on(t.applicantUserId, t.submittedAt)]).enableRLS();
 
 export const committeeMemberships = lub.table("committee_memberships", {
   id: uuid("id").primaryKey().defaultRandom(), organizationId: uuid("organization_id").notNull(), organizationMembershipId: uuid("organization_membership_id").notNull(), committeeId: uuid("committee_id").notNull(),
@@ -378,3 +383,12 @@ export const translations=lub.table("translations",{
 export const translationRequests=lub.table("translation_requests",{
  id:uuid("id").primaryKey().defaultRandom(),sourceHash:text("source_hash").notNull(),targetLang:text("target_lang").notNull(),characters:integer("characters").notNull(),createdAt:createdAt(),leaseUntil:timestamp("lease_until",{withTimezone:true}).notNull().default(sql`now()+interval '60 seconds'`),completedAt:timestamp("completed_at",{withTimezone:true}),success:boolean("success"),
 },t=>[index("translation_requests_time_idx").on(t.createdAt),uniqueIndex("translation_requests_pending_idx").on(t.sourceHash,t.targetLang).where(sql`${t.completedAt} is null`),check("translation_requests_target_lang_check",sql`${t.targetLang}='EN'`),check("translation_requests_characters_check",sql`${t.characters} between 1 and 10000`),check("translation_request_completion",sql`(${t.completedAt} is null)=(${t.success} is null)`)]).enableRLS();
+
+export const membershipEvents=lub.table("membership_events",{
+ id:uuid("id").primaryKey().defaultRandom(),membershipId:uuid("membership_id").notNull().references(()=>organizationMemberships.id),sourceMembershipId:uuid("source_membership_id").notNull().references(()=>organizationMemberships.id),eventCode:text("event_code").notNull(),occurredAt:timestamp("occurred_at",{withTimezone:true}).notNull(),actorUserId:uuid("actor_user_id").references(()=>users.id),imported:boolean("imported").notNull().default(false),statusCode:text("status_code").notNull(),
+},t=>[index("membership_events_timeline_idx").on(t.membershipId,t.occurredAt,t.id),uniqueIndex("membership_events_import_idx").on(t.sourceMembershipId,t.eventCode).where(sql`${t.imported}`),check("membership_events_event_code_check",sql`${t.eventCode} in ('Joined','Ended','Rejoined','StatusChanged')`),check("membership_events_status_code_check",sql`${t.statusCode} in ('Active','Inactive','Ended')`)]).enableRLS();
+
+// Short-lived authenticated download tickets and non-sensitive export audit metadata; no CSV contents.
+export const memberExports=lub.table("member_exports",{
+ id:uuid("id").primaryKey().defaultRandom(),ownerUserId:uuid("owner_user_id").notNull().references(()=>users.id),organizationId:uuid("organization_id").notNull().references(()=>organizations.id),query:text("query").notNull(),status:text("status").notNull(),committeeId:uuid("committee_id").references(()=>committees.id),createdAt:timestamp("created_at",{withTimezone:true}).notNull().default(sql`clock_timestamp()`),expiresAt:timestamp("expires_at",{withTimezone:true}).notNull().default(sql`clock_timestamp()+interval '5 minutes'`),usedAt:timestamp("used_at",{withTimezone:true}),rowCount:integer("row_count"),
+},t=>[index("member_exports_owner_time_idx").on(t.ownerUserId,t.createdAt),index("member_exports_org_time_idx").on(t.organizationId,t.createdAt),check("member_exports_query_check",sql`length(${t.query})<=120`),check("member_exports_status_check",sql`${t.status} in ('all','Active','Ended','Inactive')`),check("member_exports_row_count_check",sql`${t.rowCount} is null or ${t.rowCount} between 0 and 500`)]).enableRLS();

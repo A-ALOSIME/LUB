@@ -14,6 +14,8 @@ let visitorSelects=0;
 let rawReads=0;
 type Tx = Parameters<Parameters<PgliteDatabase<typeof schema>["transaction"]>[0]>[0];
 vi.mock("server-only", () => ({}));
+// Repository fixtures deliberately use non-cryptographic envelopes; crypto has its own round-trip tests.
+vi.mock("@/lib/identifiers",()=>({decryptIdentifier:()=>"0441234567"}));
 vi.mock("next/cache",()=>({unstable_cache:(fn:unknown)=>fn,updateTag:vi.fn(),revalidatePath:vi.fn()}));
 vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:leader})}));
 vi.mock("@/db/client", () => ({
