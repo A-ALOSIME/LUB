@@ -11,7 +11,7 @@ function fixture(overrides:Record<string,string|undefined>={}){
   if(url.startsWith('https://api-free.deepl.com/')||url.startsWith('https://api.deepl.com/'))return provider();
   if(url.endsWith('/translation_lookup'))return Response.json(cache.get(body.p_hash)??null);
   if(url.endsWith('/translation_reserve'))return Response.json(limited?{state:'limited'}:{state:'reserved',request_id:'00000000-0000-4000-8000-000000000001'});
-  if(url.endsWith('/translation_finish')){if(body.p_translated!==null)cache.set(body.p_hash,body.p_translated);return Response.json(null);}
+  if(url.endsWith('/translation_finish')){if(body.p_translated!==null)cache.set(body.p_hash,body.p_translated);return new Response(null,{status:204});}
   throw Error('Unexpected endpoint');
  });
  return{handler:createTranslationHandler({env:name=>env[name],fetcher}),provider,fetcher,cache,limit:()=>{limited=true;}};

@@ -16,6 +16,8 @@ export function createTranslationHandler({env,fetcher}:Dependencies){
   const url=env("SUPABASE_URL"),key=env("SUPABASE_SERVICE_ROLE_KEY");
   if(!url||!key)throw new RpcError("configuration");
   const response=await fetcher(`${url}/rest/v1/rpc/${name}`,{method:"POST",headers:{apikey:key,Authorization:`Bearer ${key}`,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
+  // PostgREST returns no JSON body for a successful RETURNS void RPC.
+  if(response.ok&&name==="translation_finish"){await response.body?.cancel();return null;}
   const result=await limitedJson(response.body,200000);
   if(!response.ok)throw new RpcError(record(result)&&typeof result.code==="string"?result.code:"storage");
   return result;
