@@ -9,9 +9,28 @@ const source='نادي التقنية';
 beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`);await storageFixture(db);await applyMigrations(db);},30000);
 beforeEach(async()=>{await db.exec('begin');await db.query("insert into lub.organizations(type_code,slug,name_ar,summary) values('Club','translation-test',$1,'وصف النادي المنشور')",[source]);});
 afterEach(async()=>{await db.exec('rollback');});afterAll(async()=>{await db.close();});
-async function reserve(text=source){return(await db.query<{result:{state:string;request_id:string}}>('select public.translation_reserve($1,$2,$3) result',[text,hash(text),'EN'])).rows[0].result;}
+async function reserve(text=source){return(await db.query<{result:{state:string;request_id:string;source_kind?:string}}>('select public.translation_reserve($1,$2,$3) result',[text,hash(text),'EN'])).rows[0].result;}
 async function finish(id:string,text:string|null){await db.query('select public.translation_finish($1,$2,$3,$4)',[id,source,hash(source),text]);}
 async function denied(operation:()=>Promise<unknown>){await db.exec('savepoint denied');await expect(operation()).rejects.toThrow();await db.exec('rollback to savepoint denied;release savepoint denied');}
+it('translates only published student names and bios, and withdraws access when the profile becomes private',async()=>{
+ const user='00000000-0000-4000-8000-000000000071';await db.query('insert into auth.users values($1)',[user]);await db.query("insert into lub.users(id,email,email_verified_at) values($1,'published-profile@example.invalid',now())",[user]);
+ await db.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level,bio) values($1,'محمد عبدالله','encrypted',$2,'الحاسب','5','طالب مهتم بتطوير البرمجيات')",[user,'7'.repeat(64)]);
+ await db.query('insert into lub.profile_settings(user_id,public_profile_enabled) values($1,false)',[user]);
+ await denied(()=>reserve('محمد عبدالله'));await denied(()=>reserve('طالب مهتم بتطوير البرمجيات'));
+ await db.query('update lub.profile_settings set public_profile_enabled=true where user_id=$1',[user]);
+ expect(await reserve('محمد عبدالله')).toMatchObject({state:'reserved',source_kind:'person_name'});
+ expect(await reserve('طالب مهتم بتطوير البرمجيات')).toMatchObject({state:'reserved',source_kind:'content'});
+ await db.query('update lub.profile_settings set public_profile_enabled=false where user_id=$1',[user]);await denied(()=>reserve('محمد عبدالله'));
+});
+it('translates a public registration round title but refuses a draft round title',async()=>{
+ const org=(await db.query<{id:string}>("select id from lub.organizations where slug='translation-test'")).rows[0].id;
+ const template=(await db.query<{id:string}>("insert into lub.form_templates(organization_id,name) values($1,'نموذج التقديم') returning id",[org])).rows[0].id;
+ await db.query("insert into lub.form_versions(form_template_id,version_number,status_code,definition,published_at) values($1,1,'Published','{\"sections\":[]}',now())",[template]);
+ const id=(await db.query<{id:string}>("insert into lub.registration_rounds(organization_id,form_template_id,title) values($1,$2,'تسجيل في المجلس للترم الاول') returning id",[org,template])).rows[0].id;
+ await denied(()=>reserve('تسجيل في المجلس للترم الاول'));
+ await db.query("update lub.registration_rounds set status_code='Open',opens_at=now(),closes_at=now()+interval '1 day' where id=$1",[id]);
+ expect((await reserve('تسجيل في المجلس للترم الاول')).state).toBe('reserved');
+});
 it('caches successful translations, deduplicates in-flight requests and never caches failures',async()=>{
  const first=await reserve();expect(first.state).toBe('reserved');expect((await reserve()).state).toBe('busy');await finish(first.request_id,null);
  expect((await db.query('select * from lub.translations')).rows).toHaveLength(0);

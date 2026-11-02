@@ -512,6 +512,13 @@
       "when": 1793606401000,
       "tag": "0072_consistent_english_organization_names",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793606402000,
+      "tag": "0073_public_profile_registration_translations",
+      "breakpoints": true
     }
   ]
 }

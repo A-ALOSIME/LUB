@@ -47,9 +47,10 @@ export function createTranslationHandler({env,fetcher}:Dependencies){
    if(reservation.state==="busy")return Response.json({error:{code:"translation_pending",message:"الترجمة قيد التجهيز."}},{status:202,headers:{...headers,"Retry-After":"1"}});
    if(reservation.state!=="reserved"||typeof reservation.request_id!=="string")throw Error("Invalid reservation");
    requestId=reservation.request_id;
+   const context=reservation.source_kind==="person_name"?"This is a student's personal name. Transliterate it naturally into the English Latin alphabet, keeping the name order. Do not translate the meaning of the name.":"Student clubs and councils at a university. Organization names are proper nouns.";
    // Legacy API Free keys end in :fx; current Developer keys use the main API.
    const endpoint=key.endsWith(":fx")?"https://api-free.deepl.com/v2/translate":"https://api.deepl.com/v2/translate";
-   const response=await fetcher(endpoint,{method:"POST",headers:{Authorization:`DeepL-Auth-Key ${key}`,"content-type":"application/json"},body:JSON.stringify({text:[protectNames(source)],source_lang:"AR",target_lang:"EN",tag_handling:"xml",ignore_tags:["keep"],preserve_formatting:true,context:"Student clubs and councils at a university. Organization names are proper nouns."}),signal:AbortSignal.timeout(12000)});
+   const response=await fetcher(endpoint,{method:"POST",headers:{Authorization:`DeepL-Auth-Key ${key}`,"content-type":"application/json"},body:JSON.stringify({text:[protectNames(source)],source_lang:"AR",target_lang:"EN",tag_handling:"xml",ignore_tags:["keep"],preserve_formatting:true,context}),signal:AbortSignal.timeout(12000)});
    if(!response.ok)throw Error("Translation provider unavailable");
    const body=await limitedJson(response.body,200000),translations=record(body)&&Array.isArray(body.translations)?body.translations:null;
    const translated=translations?.[0];if(!record(translated)||typeof translated.text!=="string")throw Error("Invalid translation response");

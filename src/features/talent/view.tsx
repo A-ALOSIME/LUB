@@ -155,7 +155,7 @@ export function TalentCards({
                   </Avatar>
                   <div className="min-w-0">
                     <h2 className="break-words font-semibold">
-                      <bdi>{t.name}</bdi>
+                      <bdi><ContentText autoTranslate value={t.name}/></bdi>
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       <bdi>{majorLabel(t.major,locale)}</bdi> · {academicLevel(t.level, locale)}
@@ -294,7 +294,7 @@ export function PublicTalentView({
               <AvatarFallback className="text-3xl">{p.name.trim().slice(0, 1)}</AvatarFallback>
             </Avatar>
             <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
-            <div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-2xl font-semibold"><bdi>{p.name}</bdi></h1><OrganizationAvatars items={p.organizations.filter(o=>!o.archived && o.memberships.some(m=>m.status_code==="Active"&&!m.end_date))} locale={locale}/></div>
+            <div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-2xl font-semibold"><bdi><ContentText autoTranslate value={p.name}/></bdi></h1><OrganizationAvatars items={p.organizations.filter(o=>!o.archived && o.memberships.some(m=>m.status_code==="Active"&&!m.end_date))} locale={locale}/></div>
             <p className="text-muted-foreground">
               <bdi>{majorLabel(p.major,locale)}</bdi> · {academicLevel(p.level, locale)}
             </p>
@@ -305,7 +305,7 @@ export function PublicTalentView({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {p.links.length>0&&<TalentContactLinks links={p.links} en={en}/>}
-            <Separator/><section className="flex flex-col gap-2"><h2 className="font-semibold">{c("نبذة", "About")}</h2>{p.bio?<p className="whitespace-pre-wrap break-words leading-relaxed" dir="auto">{p.bio}</p>:owner?<OwnerPrompt>{c("أضف نبذة", "Add a bio")}</OwnerPrompt>:<p className="text-sm text-muted-foreground">{c("لم تُضف نبذة بعد", "No bio added yet")}</p>}</section>
+            <Separator/><section className="flex flex-col gap-2"><h2 className="font-semibold">{c("نبذة", "About")}</h2>{p.bio?<p className="whitespace-pre-wrap break-words leading-relaxed" dir="auto"><ContentText autoTranslate value={p.bio}/></p>:owner?<OwnerPrompt>{c("أضف نبذة", "Add a bio")}</OwnerPrompt>:<p className="text-sm text-muted-foreground">{c("لم تُضف نبذة بعد", "No bio added yet")}</p>}</section>
           </CardContent>
           <CardFooter className="grid grid-cols-3 items-center gap-3 border-t border-border pt-4 text-center">
             {[{value:p.total??0,unit:"hours",Icon:Clock},{value:p.stats?.organizations??p.organizations.length,unit:"organizations",Icon:Building2},{value:p.stats?.events??p.events.length,unit:"events",Icon:Calendar}].map(({value,unit,Icon})=><p key={unit} className="flex flex-wrap items-center justify-center gap-2 text-sm"><Icon className="size-4 text-muted-foreground" aria-hidden="true"/><CountStatistic value={value} unit={unit as "hours"|"organizations"|"events"} locale={locale}/></p>)}
