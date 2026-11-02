@@ -25,6 +25,7 @@ beforeEach(async()=>{
  await db.exec(readFileSync('drizzle/0074_canonical_membership_records.sql','utf8'));
  await db.exec(readFileSync('drizzle/0075_member_directory_details.sql','utf8'));
  await db.exec(readFileSync('drizzle/0076_member_exports.sql','utf8'));
+ await db.exec(readFileSync('drizzle/0077_imported_membership_rejoins.sql','utf8'));
 });
 afterEach(async()=>{await db.exec('rollback');});afterAll(async()=>{await db.close();});
 it('retains legacy IDs while enforcing one canonical membership per user and organization',async()=>{
@@ -85,4 +86,8 @@ it('expires export tickets, rechecks revocation and limits exports per actor per
 
 it('does not let a deputy self-grant member access even with a legacy permission-management grant',async()=>{
  await db.exec('reset role');await db.query("insert into lub.permission_grants(organization_membership_id,organization_id,permission_code,granted_by_user_id) values($1,$2,'PERMISSIONS_GRANT',$3)",[deputyMember,org,leader]);await actor(deputy);await denied(()=>db.query("select lub.grant_organization_permission($1,'MEMBERS_VIEW',null,null)",[deputyMember]));
+});
+
+it('labels an imported later period as a return only when a previous ending exists, preserving all event IDs',async()=>{
+ const events=(await db.query<{event_code:string;imported:boolean}>("select event_code,imported from lub.membership_events where membership_id=$1 order by occurred_at",[currentMember])).rows;expect(events.map(x=>x.event_code)).toEqual(['Joined','Ended','Rejoined']);expect(events.every(x=>x.imported)).toBe(true);
 });

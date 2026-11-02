@@ -540,6 +540,13 @@
       "when": 1793606405000,
       "tag": "0076_member_exports",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793606406000,
+      "tag": "0077_imported_membership_rejoins",
+      "breakpoints": true
     }
   ]
 }
