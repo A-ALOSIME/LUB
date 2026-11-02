@@ -35,11 +35,11 @@ export function FilePickerInput({
       ref={inputRef}
       id={id}
       type="file"
+      hidden
       accept={accept}
       disabled={disabled}
       tabIndex={-1}
       aria-label={ariaLabel ?? (translateUi((en) ? "en" : "ar", "اختيار ملف", "Choose a file"))}
-      className="sr-only"
       onChange={event => { setFileName(event.target.files?.[0]?.name ?? ""); onChange(event); }}
     />
     <Button type="button" variant="outline" disabled={disabled} onClick={choose}>
