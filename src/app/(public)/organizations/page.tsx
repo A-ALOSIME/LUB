@@ -50,7 +50,7 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
               </span>
               <span className="organization-card-copy">
                 {organization.statusCode !== "Active" && <span className="mb-2 block text-sm text-muted">{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>}
-                <span dir="auto" className="organization-card-title"><ContentText value={organization.nameAr}/></span>
+                <span dir="auto" className="organization-card-title"><ContentText autoTranslate value={organization.nameAr}/></span>
                 {organization.tags.length > 0 && <span className="organization-card-tags">{organization.tags.map(tag => <span key={tag} dir="auto">{tag}</span>)}</span>}
               </span>
             </IntentPrefetchLink>

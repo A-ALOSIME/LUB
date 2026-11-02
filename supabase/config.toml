@@ -1,0 +1,6 @@
+project_id = "lub"
+
+# Public, read-only source content only. SQL validates visibility, language and
+# an atomic shared usage budget; no account or private submission data is accepted.
+[functions.translate-content]
+verify_jwt = false

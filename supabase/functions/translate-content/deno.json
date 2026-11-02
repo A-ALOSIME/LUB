@@ -1,0 +1,3 @@
+{
+  "imports": { "saxes": "npm:saxes@6.0.0" }
+}

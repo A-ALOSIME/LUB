@@ -498,6 +498,13 @@
       "when": 1793554165422,
       "tag": "0070_restore_markdown_content",
       "breakpoints": true
+    },
+    {
+      "when": 1793606400000,
+      "tag": "0071_public_content_translations",
+      "version": "7",
+      "breakpoints": true,
+      "idx": 71
     }
   ]
 }

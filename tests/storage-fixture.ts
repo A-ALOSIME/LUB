@@ -2,7 +2,8 @@ import type { PGlite } from "@electric-sql/pglite";
 import { readdirSync, readFileSync } from "node:fs";
 // Isolated test model of the Supabase Storage tables used by our policies.
 export async function storageFixture(db: PGlite) {
-  await db.exec(`create schema storage;
+  await db.exec(`create role service_role;
+    create schema storage;
     create function storage.allow_any_operation(expected_operations text[]) returns boolean language sql stable as $$
       select exists(select 1 from unnest(expected_operations) op where regexp_replace(current_setting('storage.operation',true),'^storage[.]','')=regexp_replace(op,'^storage[.]',''));
     $$;
