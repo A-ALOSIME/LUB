@@ -1,4 +1,4 @@
-import {MAX_TRANSLATION_CHARACTERS,protectNames,readTranslationXml} from "./policy.ts";
+import {MAX_TRANSLATION_CHARACTERS,protectNames,readTranslationXml,normalizeEnglishNames} from "./policy.ts";
 
 type Dependencies={env:(name:string)=>string|undefined;fetcher:typeof fetch};
 class RpcError extends Error {constructor(readonly code:string){super("Translation storage unavailable");}}
@@ -33,7 +33,7 @@ export function createTranslationHandler({env,fetcher}:Dependencies){
   let input:unknown;try{input=await limitedJson(request.body,65536);}catch{return error(400,"invalid_input","تعذّر قراءة النص.");}
   if(!record(input)||typeof input.text!=="string"||!input.text.trim()||input.text.length>MAX_TRANSLATION_CHARACTERS||!/[\u0621-\u064a]/u.test(input.text)||typeof input.target_lang!=="string"||input.target_lang.toUpperCase()!=="EN"||(input.source_lang!==undefined&&input.source_lang!=="AR"))return error(400,"invalid_input","الترجمة متاحة من العربية إلى الإنجليزية لنص لا يتجاوز 10000 حرف.");
   const source=input.text,hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(source))),b=>b.toString(16).padStart(2,"0")).join("");
-  const success=(translated_text:string,cached:boolean)=>Response.json({translated_text,source_hash:hash,source_lang:"AR",target_lang:"EN",cached},{headers});
+  const success=(translated_text:string,cached:boolean)=>Response.json({translated_text:normalizeEnglishNames(source,translated_text),source_hash:hash,source_lang:"AR",target_lang:"EN",cached},{headers});
   let requestId:string|undefined;
   try{
    const cached=await rpc("translation_lookup",{p_source:source,p_hash:hash,p_target:"EN"});

@@ -9,6 +9,7 @@ import {EventContent} from "@/features/events/view";
 import {getPreferences} from "@/lib/preferences";
 import {JsonLd} from "@/lib/json-ld";
 import {toMetaDescription} from "@/lib/seo";
+import {translatePublicContent} from "@/lib/public-content-translation";
 
 export async function generateMetadata({params}:{params:Promise<{id:string}>}){
  const {id}=await params;
@@ -17,8 +18,10 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
   const event=await publicEventMetadata(id);
   if(!event||event.status_code==="Draft")return localizedMetadata("تفاصيل الفعالية","Event details");
   const description=toMetaDescription(event.description,`فعالية منشورة من ${event.org_name} على منصة لُبّ.`);
-  const title=`${event.title} | ${event.org_name}`;
-  return localizedMetadata(title,title,{}, {index:true,canonical:`/events/${event.id}`,description:{ar:description,en:description}});
+  const title=`${event.title} | ${event.org_name}`,{locale}=await getPreferences();
+  const [englishTitle,englishOrganizer,englishDescription]=locale==='en'?await Promise.all([translatePublicContent(event.title),translatePublicContent(event.org_name),translatePublicContent(event.description)]):[event.title,event.org_name,event.description];
+  const englishSummary=toMetaDescription(englishDescription,`An event by ${englishOrganizer} on LUB.`);
+  return localizedMetadata(title,`${englishTitle} | ${englishOrganizer}`,{}, {index:true,canonical:`/events/${event.id}`,description:{ar:description,en:englishSummary}});
  }catch{return localizedMetadata("تفاصيل الفعالية","Event details");}
 }
 

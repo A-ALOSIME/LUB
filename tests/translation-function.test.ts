@@ -1,6 +1,6 @@
 import {expect,it,vi} from "vitest";
 import {createTranslationHandler} from "../supabase/functions/translate-content/handler";
-import {protectNames,readTranslationXml} from "../supabase/functions/translate-content/policy";
+import {protectNames,readTranslationXml,normalizeEnglishNames} from "../supabase/functions/translate-content/policy";
 
 function fixture(overrides:Record<string,string|undefined>={}){
  const cache=new Map<string,string>(),provider=vi.fn(async()=>Response.json({translations:[{text:'<text>Technology Club</text>'}]}));
@@ -28,5 +28,6 @@ it.each([['', 'EN'],['x'.repeat(10001),'EN'],['نادي التقنية','AR']])(
 it('does not expose keys or cache a provider failure',async()=>{const f=fixture();f.provider.mockResolvedValue(Response.json({message:'internal provider details'},{status:403}));const response=await f.handler(request());expect(response.status).toBe(502);const body=await response.text();expect(body).not.toContain('test-key');expect(body).not.toContain('internal provider');expect(f.cache.size).toBe(0);});
 it('keeps cache misses uncached when the key is disabled or missing',async()=>{for(const env of [{DEEPL_TRANSLATION_ENABLED:'false'},{DEEPL_API_KEY:''}]){const f=fixture(env);expect((await f.handler(request())).status).toBe(503);expect(f.provider).not.toHaveBeenCalled();expect(f.cache.size).toBe(0);}});
 it('honors the shared server rate limit without calling DeepL',async()=>{const f=fixture();f.limit();expect((await f.handler(request())).status).toBe(429);expect(f.provider).not.toHaveBeenCalled();});
-it('escapes untrusted XML and preserves the exact special names',()=>{const source='لُـبّ مع إنجاز وتكنيشن <script> & نص';const xml=protectNames(source);expect(xml).toContain('<keep>لُـبّ</keep>');expect(xml).toContain('<keep>إنجاز</keep>');expect(xml).toContain('<keep>تكنيشن</keep>');expect(xml).toContain('&lt;script&gt;');expect(readTranslationXml(xml,source)).toBe(source);expect(()=>readTranslationXml('<text>Names removed</text>',source)).toThrow();});
+it('escapes untrusted XML and preserves consistent Latin names in English',()=>{const source='لُـبّ مع إنجاز وتكنيشن <script> & نص';const xml=protectNames(source);expect(xml).toContain('<keep>LUB</keep>');expect(xml).toContain('<keep>Enjaz</keep>');expect(xml).toContain('<keep>TechNation</keep>');expect(xml).toContain('&lt;script&gt;');expect(readTranslationXml(xml,source)).toBe('LUB مع Enjaz وTechNation <script> & نص');expect(()=>readTranslationXml('<text>Names removed</text>',source)).toThrow();});
+it.each([['نادي تكنيشن','تكنيشن Club','TechNation Club'],['نادي الإنجاز','الإنجاز Club','Enjaz Club'],['نادي ظهير','Defender Club','Dhaheer Club']])('normalizes earlier cached names for %s', (source,cached,english)=>{expect(normalizeEnglishNames(source,cached)).toBe(english);expect(protectNames(source)).toBe(`<text><keep>${english}</keep></text>`);});
 it('rejects unrelated website origins',async()=>{const f=fixture();const req=request();const other=new Request(req,{headers:{'content-type':'application/json',origin:'https://other.example'}});expect((await f.handler(other)).status).toBe(403);expect(f.fetcher).not.toHaveBeenCalled();});

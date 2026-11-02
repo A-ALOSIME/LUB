@@ -1,9 +1,17 @@
 import {t} from "./i18n";
 import {expect,it} from "vitest";
 import {translateContent} from "./content-translation";
+it.each([
+ ["الأهداف","Goals"],["المجالات","Fields"],["البرامج","Programs"],
+ ["الإنجازات","Achievements"],["الشركاء","Partners"],["قيمنا","Our values"],
+ ["المسارات","Tracks"],["العضوية","Membership"],["الأثر","Impact"],
+])("translates the shared organization section heading %s without a provider request",(source,english)=>{
+ expect(translateContent(source,"en")).toBe(english);
+ expect(translateContent(source,"ar")).toBe(source);
+});
 it("uses saved translations without changing Arabic source values",()=>{
  const source="نادي تكنيشن";
- expect(translateContent(source,"en")).toBe("Technician Club");
+ expect(translateContent(source,"en")).toBe("TechNation Club");
  expect(translateContent(source,"ar")).toBe(source);
  expect(source).toBe("نادي تكنيشن");
  expect(translateContent("المجلس الاستشاري الطلابي لنظم المعلومات","en")).toBe("Information Systems Student Advisory Council");
@@ -17,7 +25,7 @@ it("preserves unknown authored content and never translates URLs or personal ide
 it.each([
  ["نادي إنجاز","Enjaz Club"],
  ["نادي الإنجاز","Enjaz Club"],
- ["نادي تكنيشن","Technician Club"],
+ ["نادي تكنيشن","TechNation Club"],
  ["نادي طويق","Tuwaiq Club"],
  ["نادي ظهير","Dhaheer Club"],
 ])("renders the English name of %s consistently in content and interface text",(source,english)=>{

@@ -1,5 +1,6 @@
 import {PGlite} from "@electric-sql/pglite";
 import {createHash} from "node:crypto";
+import {readFileSync} from "node:fs";
 import {afterAll,afterEach,beforeAll,beforeEach,expect,it} from "vitest";
 import {applyMigrations,storageFixture} from "./storage-fixture";
 let db:PGlite;
@@ -16,6 +17,12 @@ it('caches successful translations, deduplicates in-flight requests and never ca
  expect((await db.query('select * from lub.translations')).rows).toHaveLength(0);
  const retry=await reserve();await finish(retry.request_id,'Technology Club');expect((await reserve()).state).toBe('cached');
  expect((await db.query('select * from lub.translations')).rows).toHaveLength(1);
+});
+it('repairs mixed-script cached names without changing the Arabic source or cache identity',async()=>{
+ const source='نادي تكنيشن',sourceHash=hash(source);
+ await db.query("insert into lub.translations(source_hash,source_lang,target_lang,source_text,translated_text) values($1,'AR','EN',$2,'تكنيشن Club')",[sourceHash,source]);
+ await db.exec(readFileSync('drizzle/0072_consistent_english_organization_names.sql','utf8'));
+ expect((await db.query('select source_text,source_hash,translated_text from lub.translations')).rows).toEqual([{source_text:source,source_hash:sourceHash,translated_text:'TechNation Club'}]);
 });
 it('denies arbitrary private text, forged hashes and reverse translation',async()=>{
  await denied(()=>db.query("select public.translation_lookup('بيانات طالب خاصة',$1,'EN')",[hash('بيانات طالب خاصة')]));
