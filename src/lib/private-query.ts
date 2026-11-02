@@ -1,0 +1,1 @@
+export async function privateJson<T>(url:string,signal:AbortSignal):Promise<T>{const response=await fetch(url,{signal,cache:"no-store",headers:{accept:"application/json"}});if(!response.ok)throw new Error("Details unavailable");return response.json() as Promise<T>;}

@@ -1,0 +1,5 @@
+import {z} from "zod";
+import {getVerifiedUser} from "@/features/auth/session";
+import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
+const input=z.object({q:z.string().trim().max(120),status:z.enum(["all","Active","Ended","Inactive"]),committee:z.uuid().nullable()});
+export async function GET(request:Request,context:RouteContext<"/api/organizations/[id]/members">){const headers={"Cache-Control":"private, no-store"};const user=await getVerifiedUser();if(!user)return Response.json({error:"Unauthorized"},{status:401,headers});try{const org=z.uuid().parse((await context.params).id),q=new URL(request.url).searchParams;const filters=input.parse({q:q.get("q")??"",status:q.get("status")??"all",committee:q.get("committee")||null});request.signal.throwIfAborted();const data=await getOrganizationMemberDirectory(user.id,org,filters);request.signal.throwIfAborted();return data?Response.json(data,{headers}):Response.json({error:"Unavailable"},{status:403,headers});}catch{return Response.json({error:"Unavailable"},{status:403,headers});}}

@@ -60,6 +60,7 @@ export function RequestReviewTable({
   rows,
   locale = "ar",
   onOpen,
+  onPrefetch,
   onDecision,
   bulkDecisions,
   showCommittee = false,
@@ -68,6 +69,7 @@ export function RequestReviewTable({
   rows: ReviewRow[];
   locale?: Locale;
   onOpen: (id: string) => void;
+  onPrefetch?: (id:string)=>void;
   onDecision: (
     ids: string[],
     decision: ReviewDecision,
@@ -158,7 +160,7 @@ export function RequestReviewTable({
       >
         <RowAction
           label={c("عرض التفاصيل", "View details")}
-          onClick={() => onOpen(row.id)}
+          onMouseEnter={()=>onPrefetch?.(row.id)} onTouchStart={()=>onPrefetch?.(row.id)} onClick={() => onOpen(row.id)}
         >
           <Eye />
         </RowAction>
@@ -255,6 +257,7 @@ export function RequestReviewTable({
               <TableBody>
                 {rows.map((row) => (
                   <TableRow
+                    onMouseEnter={()=>onPrefetch?.(row.id)} onFocus={()=>onPrefetch?.(row.id)} onTouchStart={()=>onPrefetch?.(row.id)}
                     key={row.id}
                     tabIndex={0}
                     className={`cursor-pointer border-border hover:bg-muted/20 ${checked.includes(row.id) ? "bg-primary/5" : ""}`}
@@ -313,7 +316,7 @@ export function RequestReviewTable({
                     {selection(row)}
                     <button
                       className="min-w-0 flex-1 text-start"
-                      onClick={() => onOpen(row.id)}
+                      onMouseEnter={()=>onPrefetch?.(row.id)} onTouchStart={()=>onPrefetch?.(row.id)} onClick={() => onOpen(row.id)}
                     >
                       <span className="block font-medium" dir="auto">
                         {row.name}

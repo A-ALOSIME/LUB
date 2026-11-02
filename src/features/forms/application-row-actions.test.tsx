@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { ApplicationRowActions } from "./application-row-actions";
+
+import {PrivateQueryProvider} from "@/components/private-query-provider";
+import type {ReactElement} from "react";
+const render=(ui:ReactElement)=>rtlRender(<PrivateQueryProvider actorId="test-actor">{ui}</PrivateQueryProvider>);
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
@@ -12,7 +16,7 @@ vi.mock("./mutation-form", () => ({
   WorkflowForm: ({ label }: { label: string }) => <button type="button">{label}</button>,
 }));
 
-afterEach(cleanup);
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 
 const baseProps = {
   applicationId: "00000000-0000-4000-8000-000000000001",
@@ -47,3 +51,6 @@ it("does not show withdrawal when the request is not eligible", async () => {
   expect(await screen.findByRole("button", { name: /عرض التفاصيل/ })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /سحب الطلب/ })).toBeNull();
 });
+
+
+beforeEach(()=>vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response("{}",{status:403}))));

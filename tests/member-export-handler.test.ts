@@ -11,3 +11,9 @@ it('forwards the verified caller token to the scoped RPC and exposes no database
  const handle=createMemberExportHandler({env,fetcher}),response=await handle(new Request('https://edge.invalid',{method:'POST',headers:{authorization:'Bearer real','content-type':'application/json'},body:JSON.stringify({org:'org',q:'',state:'all',committee:null})}));
  expect(response.status).toBe(403);expect(await response.text()).not.toContain('private');expect(fetcher.mock.calls[1][1]?.headers).toMatchObject({authorization:'Bearer real'});
 });
+
+it("downloads an XLSX workbook from a verified scoped ticket without exposing the payload",async()=>{
+ const secret=Buffer.alloc(32,3).toString("base64");const fetcher=vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({id:"real-user"})).mockResolvedValueOnce(Response.json({records:[],slug:"test-club",filter:"all"}));
+ const handler=createMemberExportHandler({env:name=>name==="IDENTIFIER_ENCRYPTION_KEY"?secret:env(name),fetcher});const response=await handler(new Request("https://edge.invalid?ticket=00000000-0000-4000-8000-000000000001",{headers:{authorization:"Bearer real"}}));
+ expect(response.status).toBe(200);expect(response.headers.get("Content-Type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");expect(response.headers.get("Content-Disposition")).toMatch(/filename="test-club-all-\d{4}-\d{2}-\d{2}\.xlsx"/);const bytes=new Uint8Array(await response.arrayBuffer());expect(Array.from(bytes.slice(0,2))).toEqual([80,75]);expect(response.headers.get("Cache-Control")).toBe("no-store");
+});

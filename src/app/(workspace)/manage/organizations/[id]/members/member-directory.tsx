@@ -12,15 +12,17 @@ import { academicLevel,formatHours } from "@/lib/display";
 import { Tooltip,TooltipTrigger,TooltipContent } from "@/components/ui/tooltip";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
-import { useEffect, useMemo, useState } from "react";
-import {loadMemberDirectory,loadMemberRecord} from "@/features/organizations/member-data-actions";
-import {initialMemberFilters,type MemberFilters,type MemberRecord} from "@/features/organizations/member-types";
+import { useEffect, useState } from "react";
+import {useQuery,useQueryClient,keepPreviousData} from "@tanstack/react-query";
+import {useQueryActor} from "@/components/private-query-provider";
+import {memberListQuery,memberDetailQuery,memberPreview} from "@/features/organizations/member-queries";
+import {initialMemberFilters,type MemberFilters} from "@/features/organizations/member-types";
 import {MemberExportButton} from "@/features/organizations/member-export-button";
 import {MemberDetailSheet} from "@/features/organizations/member-detail-sheet";
 import {Table,TableHeader,TableBody,TableRow,TableHead,TableCell} from "@/components/ui/table";
 import {Card,CardHeader,CardTitle,CardContent} from "@/components/ui/card";
 import {Empty,EmptyHeader,EmptyTitle,EmptyDescription,EmptyMedia} from "@/components/ui/empty";
-import {Users} from "lucide-react";
+import {Users,Eye} from "lucide-react";
 import { HoursFields } from "@/features/hours/view";
 import { HoursForm } from "@/features/hours/form";
 import { WorkflowForm } from "@/features/forms/mutation-form";
@@ -45,28 +47,16 @@ function date(value: string, locale: Locale) { return formatRiyadhDate(value, lo
 
 export function MemberDirectory({ organization, workspace, permissions, locale }: { organization: string; workspace: OrganizationMemberWorkspace; permissions?: OrganizationPermissionWorkspace; locale: Locale }) {
   const [filters,setFilters]=useState<MemberFilters>(initialMemberFilters);
-  const [data,setData]=useState(workspace),[failed,setFailed]=useState(false);
-  const [selected,setSelected]=useState<string|null>(null),[record,setRecord]=useState<MemberRecord|null>(null),[recordError,setRecordError]=useState(false);
-  const cache=useMemo(()=>new Map([[JSON.stringify(initialMemberFilters),workspace]]),[workspace]);
-  const key=JSON.stringify(filters),en=locale==="en",c=createTranslator(locale);
-  useEffect(()=>{
-    let current=true;
-    const timer=setTimeout(async()=>{
-      const cached=cache.get(key);
-      if(cached){if(current){setData(cached);setFailed(false);}return;}
-      const response=await loadMemberDirectory(organization,JSON.parse(key) as MemberFilters);
-      if(!current)return;
-      if(response.data){cache.set(key,response.data);setData(response.data);setFailed(false);}else{setFailed(true);}
-    },filters.q?150:0);
-    return()=>{current=false;clearTimeout(timer);};
-  },[cache,key,organization,filters.q]);
-  useEffect(()=>{
-    if(!selected)return;
-    let current=true;
-    void loadMemberRecord(organization,selected).then(result=>{if(current){setRecord(result.data??null);setRecordError(!result.data);}});
-    return()=>{current=false;};
-  },[selected,organization]);
-  function openMember(id:string){setRecord(null);setRecordError(false);setSelected(id);}
+  const actor=useQueryActor(),client=useQueryClient();
+  const [selected,setSelected]=useState<string|null>(null);
+  const list=useQuery({...memberListQuery(actor,organization,filters),placeholderData:keepPreviousData,initialData:filters===initialMemberFilters?workspace:undefined});
+  useEffect(()=>{client.setQueryData(memberListQuery(actor,organization,initialMemberFilters).queryKey,workspace);},[actor,client,organization,workspace]);
+  const data=list.data??workspace,failed=list.isError,en=locale==="en",c=createTranslator(locale);
+  const preview=data.members.find(row=>row.id===selected);
+  const detail=useQuery({...memberDetailQuery(actor,organization,selected),enabled:selected!==null,placeholderData:preview?memberPreview(preview):undefined});
+  const record=detail.data??null,recordError=detail.isError;
+  function prefetchMember(id:string){void client.prefetchQuery(memberDetailQuery(actor,organization,id));}
+  function openMember(id:string){setSelected(id);}
   const members=data.members;
   function stateBadge(status:string){return <OrganizationStatusBadge status={status==="Active"?"active":status==="Ended"?"ended":"inactive"}>{status==="Active"?c("نشطة","Active"):status==="Ended"?c("منتهية","Ended"):c("غير نشطة","Inactive")}</OrganizationStatusBadge>;}
   function roleTags(member:OrganizationMemberWorkspace["members"][number]){return <div className="member-directory-tags">{member.roles.length?member.roles.map((role,i)=><Badge key={i} variant="secondary">{roleNames[role.code]?.[en?1:0]??role.code}{role.committee&&<> · <bdi>{role.committee}</bdi></>}</Badge>):<span className="text-sm text-muted-foreground">{c("عضو","Member")}</span>}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(x=><Badge key={x.id} variant="outline">{x.name}</Badge>)}{permissions?.grants.filter(x=>x.membership===member.id).map(x=><Badge key={x.id} variant="secondary">{permissionLabels[x.code]?.[en?1:0]??x.code}</Badge>)}</div>;}
@@ -82,53 +72,55 @@ export function MemberDirectory({ organization, workspace, permissions, locale }
     {data.counts&&<div className="mb-5 flex flex-wrap gap-2" aria-live="polite"><Badge variant="outline">{c("الإجمالي","Total")} · {data.counts.total}</Badge><Badge variant="outline">{c("نشطة","Active")} · {data.counts.active}</Badge><Badge variant="outline">{c("منتهية","Ended")} · {data.counts.ended}</Badge></div>}
     {failed&&<Alert className="mb-4"><AlertDescription>{c("تعذّر تحديث النتائج. حاول مجددًا.","Results could not be updated. Try again.")}</AlertDescription></Alert>}
     {members.length?<>
-      <div className="hidden rounded-xl border lg:block"><Table><TableHeader><TableRow>{[c("الطالب","Student"),c("الرقم الجامعي","University ID"),c("العضوية","Membership"),c("الدور واللجان","Role and committees"),c("الساعات المعتمدة","Approved hours"),c("الإجراءات","Actions")].map(x=><TableHead key={x}>{x}</TableHead>)}</TableRow></TableHeader><TableBody>{members.map(member=><TableRow key={member.id}>
-        <TableCell className="whitespace-normal"><button className="text-start font-semibold hover:text-primary focus-visible:outline-ring" onClick={()=>openMember(member.id)}><bdi>{member.name}</bdi></button><p className="mt-1 text-sm text-muted-foreground">{majorLabel(member.major,locale)} · {academicLevel(member.level,locale)}</p></TableCell>
+      <div className="hidden rounded-xl border lg:block"><Table><TableHeader><TableRow>{[c("الطالب","Student"),c("الرقم الجامعي","University ID"),c("العضوية","Membership"),c("الدور واللجان","Role and committees"),c("الساعات المعتمدة","Approved hours"),c("الإجراءات","Actions")].map(x=><TableHead key={x}>{x}</TableHead>)}</TableRow></TableHeader><TableBody>{members.map(member=><TableRow key={member.id} tabIndex={0} className="group cursor-pointer focus-visible:outline-ring" onMouseEnter={()=>prefetchMember(member.id)} onTouchStart={()=>prefetchMember(member.id)} onFocus={()=>prefetchMember(member.id)} onClick={()=>openMember(member.id)} onKeyDown={event=>{if(event.key==="Enter"&&event.target===event.currentTarget){event.preventDefault();openMember(member.id);}}}>
+        <TableCell className="whitespace-normal"><button className="text-start font-semibold group-hover:underline hover:text-primary focus-visible:outline-ring" onClick={()=>openMember(member.id)}><bdi>{member.name}</bdi></button><p className="mt-1 text-sm text-muted-foreground">{majorLabel(member.major,locale)} · {academicLevel(member.level,locale)}</p></TableCell>
         <TableCell><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi></TableCell>
         <TableCell>{stateBadge(member.status)}<p className="mt-1 text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p></TableCell>
-        <TableCell className="whitespace-normal">{roleTags(member)}</TableCell><TableCell>{formatHours(member.hours,locale)}</TableCell><TableCell><MemberActions organization={organization} member={member} workspace={data} committees={permissions?.committees??[]} locale={locale}/></TableCell>
+        <TableCell className="whitespace-normal">{roleTags(member)}</TableCell><TableCell>{formatHours(member.hours,locale)}</TableCell><TableCell onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}><MemberActions organization={organization} member={member} workspace={data} onView={()=>openMember(member.id)} committees={permissions?.committees??[]} locale={locale}/></TableCell>
       </TableRow>)}</TableBody></Table></div>
-      <ul className="grid gap-3 lg:hidden">{members.map(member=><li key={member.id}><Card className="cursor-pointer" onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest('button,a,input,[role="button"]'))openMember(member.id);}}><CardHeader><CardTitle><button className="text-start hover:text-primary" onClick={()=>openMember(member.id)}>{member.name}</button></CardTitle>{stateBadge(member.status)}</CardHeader><CardContent className="flex flex-col gap-3"><button type="button" onClick={()=>openMember(member.id)} className="text-start"><p><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi></p><p className="text-sm text-muted-foreground">{majorLabel(member.major,locale)} · {academicLevel(member.level,locale)}</p><p className="text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p><p>{formatHours(member.hours,locale)}</p></button>{roleTags(member)}<MemberActions organization={organization} member={member} workspace={data} committees={permissions?.committees??[]} locale={locale} mobile/></CardContent></Card></li>)}</ul>
+      <ul className="grid gap-3 lg:hidden">{members.map(member=><li key={member.id}><Card tabIndex={0} className="group cursor-pointer hover:bg-muted/30 focus-visible:outline-ring" onMouseEnter={()=>prefetchMember(member.id)} onTouchStart={()=>prefetchMember(member.id)} onKeyDown={event=>{if(event.key==="Enter"&&event.target===event.currentTarget)openMember(member.id);}} onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest('button,a,input,[role="button"]'))openMember(member.id);}}><CardHeader><CardTitle><button className="text-start hover:text-primary" onClick={()=>openMember(member.id)}>{member.name}</button></CardTitle>{stateBadge(member.status)}</CardHeader><CardContent className="flex flex-col gap-3"><button type="button" onClick={()=>openMember(member.id)} className="text-start"><p><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi></p><p className="text-sm text-muted-foreground">{majorLabel(member.major,locale)} · {academicLevel(member.level,locale)}</p><p className="text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p><p>{formatHours(member.hours,locale)}</p></button>{roleTags(member)}<MemberActions organization={organization} member={member} workspace={data} onView={()=>openMember(member.id)} committees={permissions?.committees??[]} locale={locale} mobile/></CardContent></Card></li>)}</ul>
     </>:<Empty><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>{filters.q||filters.status!=="all"||filters.committee?c("لا توجد نتائج مطابقة","No matching results"):c("لا يوجد أعضاء بعد","No members yet")}</EmptyTitle><EmptyDescription>{filters.q||filters.status!=="all"||filters.committee?c("جرّب تغيير البحث أو الفلاتر.","Try another search or filter."):c("ستظهر بيانات الطلاب هنا عند انضمامهم للجهة.","Students will appear here when they join the organization.")}</EmptyDescription></EmptyHeader>{(filters.q||filters.status!=="all"||filters.committee)&&<Button variant="outline" onClick={()=>setFilters(initialMemberFilters)}>{c("مسح الفلاتر","Clear filters")}</Button>}</Empty>}
     <MemberDetailSheet open={selected!==null} onOpenChange={open=>{if(!open)setSelected(null);}} record={record} error={recordError} locale={locale}/>
   </>;
 }
 
-function MemberActions({ organization, member, workspace, committees, locale, mobile = false }: { organization: string; member: OrganizationMemberWorkspace["members"][number]; workspace: OrganizationMemberWorkspace; committees: OrganizationPermissionWorkspace["committees"]; locale: Locale; mobile?: boolean }) {
+function MemberActions({ organization, member, workspace, committees, locale, onView, mobile = false }: { organization: string; member: OrganizationMemberWorkspace["members"][number]; workspace: OrganizationMemberWorkspace; committees: OrganizationPermissionWorkspace["committees"]; locale: Locale; onView:()=>void; mobile?: boolean }) {
   const en = locale === "en";
   const c = createTranslator(en ? "en" : "ar");
   const canAddHours = workspace.canAddHours || member.hourScopes.length > 0;
   const [action, setAction] = useState<"hours" | "grant" | "move" | "end" | null>(null);
-  const router=useRouter();
+  const router=useRouter(),client=useQueryClient(),actor=useQueryActor();
+  function refreshMembers(){void client.invalidateQueries({queryKey:["members",actor,organization]});router.refresh();}
   const hasCommitteeRole=member.roles.some(role=>["CL","CD"].includes(role.code));
   const canGrant = workspace.canGrant && member.status === "Active";
   return <>
-    <div className={`member-directory-actions${mobile ? " member-directory-actions--mobile" : ""}`}>
+    <div onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()} className={`member-directory-actions${mobile ? " member-directory-actions--mobile" : ""}`}>
+      <RowAction label={c("عرض التفاصيل","View details")} onClick={onView}><Eye/></RowAction>
       <RowAction label={c("منح صلاحية","Grant permission")} disabled={!canGrant} onClick={()=>setAction("grant")}><ShieldPlus/></RowAction>
       <RowAction label={c("إضافة ساعات","Add hours")} disabled={member.status!=="Active"||!canAddHours} onClick={()=>setAction("hours")}><Clock/></RowAction>
       <RowAction label={c("نقل إلى لجنة","Move to committee")} disabled={member.status!=="Active"||!member.canManage} onClick={()=>setAction("move")}><FolderInput/></RowAction>
       <RowAction danger className="member-directory-action--end" label={c("إنهاء العضوية","End membership")} disabled={member.status!=="Active"||!member.canManage} onClick={()=>setAction("end")}><UserRoundMinus/></RowAction>
     </div>
-    {action==="move"&&<ManagementActionSheet label="" title={c(`نقل ${member.name} إلى لجنة`,`Move ${member.name} to a committee`)} locale={locale} open hideTrigger mobileBottomSheet onOpenChange={open=>{if(!open)setAction(null);}}><WorkflowForm operation="move-member" fields={{org:organization,member:member.id}} label={c("تأكيد النقل","Confirm move")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>{setAction(null);router.refresh();}}><FormField label={c("اللجنة","Committee")}><NativeSelect name="committee" defaultValue={member.committees[0]?.id??""}><option value="">{c("بدون لجنة","No committee")}</option>{committees.map(committee=><option key={committee.id} value={committee.id}>{committee.name}</option>)}</NativeSelect></FormField>{member.committees.length>1&&<p className="text-sm text-muted-foreground">{c("سيحل الاختيار محل لجان العضو الحالية.","This selection replaces the member's current committees.")}</p>}{hasCommitteeRole&&<><Alert><AlertDescription>{c("النقل ينهي أي دور قيادي أو تفويض في اللجان السابقة؛ لا يمنح دورًا قياديًا تلقائيًا في اللجنة الجديدة.","Moving ends leadership and scoped permissions in previous committees; it does not grant leadership in the new committee.")}</AlertDescription></Alert><label className="flex items-center gap-2"><Checkbox name="confirmRoleChange" value="on" required/>{c("أوافق على تغيير أدوار اللجان السابقة","Confirm previous committee role changes")}</label></>}</WorkflowForm></ManagementActionSheet>}
-    {action === "grant" && <PermissionGrantDialog organization={organization} member={member} committees={committees} locale={locale} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger/>}
-    {action === "hours" && <ManagementActionSheet label="" title={c("إضافة ساعات للعضو","Add member hours")} locale={locale} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger><HoursForm operation="add" fields={{ member: member.id }} label={c("حفظ الساعات","Save hours")} locale={locale}>
+    {action==="move"&&<ManagementActionSheet label="" title={c(`نقل ${member.name} إلى لجنة`,`Move ${member.name} to a committee`)} locale={locale} open hideTrigger mobileBottomSheet onOpenChange={open=>{if(!open)setAction(null);}}><WorkflowForm operation="move-member" fields={{org:organization,member:member.id}} label={c("تأكيد النقل","Confirm move")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>{setAction(null);refreshMembers();}}><FormField label={c("اللجنة","Committee")}><NativeSelect name="committee" defaultValue={member.committees[0]?.id??""}><option value="">{c("بدون لجنة","No committee")}</option>{committees.map(committee=><option key={committee.id} value={committee.id}>{committee.name}</option>)}</NativeSelect></FormField>{member.committees.length>1&&<p className="text-sm text-muted-foreground">{c("سيحل الاختيار محل لجان العضو الحالية.","This selection replaces the member's current committees.")}</p>}{hasCommitteeRole&&<><Alert><AlertDescription>{c("النقل ينهي أي دور قيادي أو تفويض في اللجان السابقة؛ لا يمنح دورًا قياديًا تلقائيًا في اللجنة الجديدة.","Moving ends leadership and scoped permissions in previous committees; it does not grant leadership in the new committee.")}</AlertDescription></Alert><label className="flex items-center gap-2"><Checkbox name="confirmRoleChange" value="on" required/>{c("أوافق على تغيير أدوار اللجان السابقة","Confirm previous committee role changes")}</label></>}</WorkflowForm></ManagementActionSheet>}
+    {action === "grant" && <PermissionGrantDialog organization={organization} member={member} committees={committees} locale={locale} open onOpenChange={open => { if (!open) setAction(null); }} onSuccess={()=>{setAction(null);refreshMembers();}} hideTrigger/>}
+    {action === "hours" && <ManagementActionSheet label="" title={c("إضافة ساعات للعضو","Add member hours")} locale={locale} open onOpenChange={open => { if (!open) setAction(null); }} hideTrigger><HoursForm operation="add" fields={{ member: member.id }} label={c("حفظ الساعات","Save hours")} locale={locale} onSuccess={()=>{setAction(null);refreshMembers();}}>
       {(workspace.canAddHours || member.hourScopes.length > 0) && <FormField  label={<>{c("اللجنة (اختياري)","Committee (optional)")}</>}><NativeSelect name="committee" required={!workspace.canAddHours} defaultValue=""><option value="">{workspace.canAddHours ? c("الجهة بالكامل","Whole organization") : c("اختر لجنة","Choose a committee")}</option>{member.hourScopes.map(scope => <option key={scope.id} value={scope.id} dir="auto">{scope.name}</option>)}</NativeSelect></FormField>}
       <HoursFields locale={locale}/>
     </HoursForm></ManagementActionSheet>}
     <AlertDialog open={action==="end"} onOpenChange={open=>{if(!open)setAction(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}>
       <AlertDialogHeader><AlertDialogTitle>{c(`إنهاء عضوية ${member.name}؟`,`End membership for ${member.name}?`)}</AlertDialogTitle><AlertDialogDescription>{c("ستنتهي أدوار العضو وصلاحياته النشطة، مع الاحتفاظ بسجله وساعاته.","Active roles and grants will end while membership and hours history remain.")}</AlertDialogDescription></AlertDialogHeader>
-      <WorkflowForm operation="end-member" buttonClassName="button-danger" fields={{org:organization,member:member.id,confirm:"on"}} label={c("إنهاء العضوية","End membership")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>setAction(null)} secondaryAction={<AlertDialogCancel>{c("إلغاء","Cancel")}</AlertDialogCancel>}>
+      <WorkflowForm operation="end-member" buttonClassName="button-danger" fields={{org:organization,member:member.id,confirm:"on"}} label={c("إنهاء العضوية","End membership")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>{setAction(null);refreshMembers();}} secondaryAction={<AlertDialogCancel>{c("إلغاء","Cancel")}</AlertDialogCancel>}>
         <FormField label={c("سبب الإنهاء","Reason")} required><textarea name="reason" minLength={3} maxLength={500} rows={3} required/></FormField>
       </WorkflowForm>
     </AlertDialogContent></AlertDialog>
   </>;
 }
 
-function PermissionGrantDialog({ organization, member, committees, locale, open, onOpenChange, hideTrigger = false }: { organization: string; member: OrganizationMemberWorkspace["members"][number]; committees: OrganizationPermissionWorkspace["committees"]; locale: Locale; open?: boolean; onOpenChange?: (open: boolean) => void; hideTrigger?: boolean }) {
+function PermissionGrantDialog({ organization, member, committees, locale, open, onOpenChange, onSuccess, hideTrigger = false }: { organization: string; member: OrganizationMemberWorkspace["members"][number]; committees: OrganizationPermissionWorkspace["committees"]; locale: Locale; open?: boolean; onOpenChange?: (open: boolean) => void; onSuccess?:()=>void; hideTrigger?: boolean }) {
   const [capability, setCapability] = useState("MEMBERS_VIEW");
   const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   return <ManagementActionSheet label={c("منح صلاحية", "Grant access")} title={c(`تفويض ${member.name}`, `Grant access to ${member.name}`)} locale={locale} icon={<ShieldPlus aria-hidden="true" />} open={open} onOpenChange={onOpenChange} hideTrigger={hideTrigger}>
-    <WorkflowForm operation="grant" fields={{ org: organization, member: member.id }} label={c("حفظ التفويض", "Save permission")} mutation={mutateOrganizationMembers} locale={locale}>
+    <WorkflowForm operation="grant" fields={{ org: organization, member: member.id }} label={c("حفظ التفويض", "Save permission")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={onSuccess}>
       <FormField  label={<>{c("الصلاحية", "Permission")}</>}><NativeSelect name="capability" value={capability} onChange={event => setCapability(event.target.value)}>{Object.entries(permissionLabels).map(([code, labels]) => <option key={code} value={code}>{labels[en ? 1 : 0]}</option>)}</NativeSelect></FormField>
       {scopedPermissions.has(capability) ? <FormField  label={<>{c("النطاق", "Scope")}</>}><NativeSelect name="committee" defaultValue=""><option value="">{c("الجهة بالكامل", "Entire organization")}</option>{committees.map(committee => <option key={committee.id} value={committee.id} dir="auto">{committee.name}</option>)}</NativeSelect></FormField> : <input type="hidden" name="committee" value=""/>}
       <DateInput name="ends" label={c("تاريخ الانتهاء (اختياري)", "Expiry date (optional)")} locale={locale}/>

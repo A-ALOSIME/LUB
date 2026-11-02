@@ -49,3 +49,9 @@ it("exposes section actions directly without a menu",()=>{
  const definition=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as FormDefinition;
  expect(definition.sections.length).toBe(2);expect(definition.sections[0].id).not.toBe(definition.sections[1].id);
 });
+
+it("drags question backgrounds while protecting fields and direct actions",()=>{
+ open();const cards=document.querySelectorAll<HTMLElement>('[data-question-draggable="true"]');expect(cards).toHaveLength(2);
+ const transfer={setData:vi.fn(),effectAllowed:""};fireEvent.mouseDown(cards[0]);expect(cards[0].draggable).toBe(true);fireEvent.dragStart(cards[0],{dataTransfer:transfer});fireEvent.drop(cards[1],{dataTransfer:transfer});expect(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/})).toBeTruthy();
+ fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/}));const field=screen.getByRole("textbox",{name:"السؤال"});const card=field.closest<HTMLElement>('[data-question-draggable="true"]')!;fireEvent.mouseDown(field);expect(card.draggable).toBe(false);fireEvent.change(field,{target:{value:"كتابة طبيعية"}});expect((field as HTMLInputElement).value).toBe("كتابة طبيعية");const button=screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"});fireEvent.mouseDown(button);expect(card.draggable).toBe(false);fireEvent.click(button);expect(document.querySelectorAll('[data-question-draggable="true"]')).toHaveLength(3);
+});

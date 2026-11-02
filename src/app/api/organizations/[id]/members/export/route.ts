@@ -20,7 +20,7 @@ async function proxy(request:Request,context:RouteContext<"/api/organizations/[i
   const response=await fetch(endpoint,{method:request.method,headers,body,cache:'no-store',signal:AbortSignal.timeout(30000)});
   if(!response.ok)return fail([400,401,403,429,503].includes(response.status)?response.status:502);
   if(request.method==='POST'){const data=await response.json(),ticket=z.uuid().safeParse(data.ticket);if(!ticket.success)return fail(502);return Response.json({ticket:ticket.data,expires_at:data.expires_at},{headers:{'Cache-Control':'no-store'}});}
-  return new Response(response.body,{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="lub-members.csv"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+  return new Response(response.body,{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':response.headers.get('Content-Disposition')??'attachment; filename="members.xlsx"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
  }catch{return fail(502);}
 }
 export const POST=proxy;

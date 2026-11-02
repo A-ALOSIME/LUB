@@ -91,3 +91,11 @@ it('does not let a deputy self-grant member access even with a legacy permission
 it('labels an imported later period as a return only when a previous ending exists, preserving all event IDs',async()=>{
  const events=(await db.query<{event_code:string;imported:boolean}>("select event_code,imported from lub.membership_events where membership_id=$1 order by occurred_at",[currentMember])).rows;expect(events.map(x=>x.event_code)).toEqual(['Joined','Ended','Rejoined']);expect(events.every(x=>x.imported)).toBe(true);
 });
+
+it("exports unique non-test students, earliest join date and combined hours with the original committee scope",async()=>{
+ await db.exec(readFileSync("drizzle/0078_cached_details_xlsx.sql","utf8"));await db.query("update lub.users set is_test_account=true where id=$1",[other]);
+ await actor(leader);const ticket=(await db.query<{data:{ticket:string}}>("select public.prepare_member_export($1,'','all',null) data",[org])).rows[0].data.ticket;
+ const payload=(await db.query<{data:{records:Array<{userId:string;startDate:string;hours:number;avatar?:string;events?:unknown}>;slug:string;filter:string}}>("select public.consume_member_export($1) data",[ticket])).rows[0].data;
+ expect(payload.slug).toBe("membership-test");expect(payload.records.some(row=>row.userId===other)).toBe(false);expect(new Set(payload.records.map(row=>row.userId)).size).toBe(payload.records.length);const row=payload.records.find(row=>row.userId===student)!;expect(row.startDate).toBe("2025-01-01");expect(Number(row.hours)).toBe(10);expect(row.avatar).toBeUndefined();expect(row.events).toBeUndefined();
+ await actor(cl);const scoped=(await db.query<{data:{ticket:string}}>("select public.prepare_member_export($1,'','all',null) data",[org])).rows[0].data.ticket;const data=(await db.query<{data:{records:Array<{userId:string}>}}>("select public.consume_member_export($1) data",[scoped])).rows[0].data;expect(data.records.map(row=>row.userId)).toEqual([cl,student]);expect(data.records.some(row=>[leader,deputy,other].includes(row.userId))).toBe(false);
+});

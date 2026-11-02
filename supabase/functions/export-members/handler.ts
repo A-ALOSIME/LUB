@@ -1,5 +1,4 @@
-import {membersCsv} from "./csv.ts";
-import type {EncryptedMemberRecord} from "../../../src/features/organizations/member-types.ts";
+import {membersXlsx,exportFilename,type MemberExportRecord} from "./xlsx.ts";
 type Dependencies={env:(key:string)=>string|undefined;fetcher:typeof fetch};
 export function createMemberExportHandler({env,fetcher}:Dependencies){return async(request:Request)=>{
  const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
@@ -23,7 +22,7 @@ export function createMemberExportHandler({env,fetcher}:Dependencies){return asy
   if(!ticket||!/^[-0-9a-f]{36}$/i.test(ticket))return fail(400);
   const secret=env('IDENTIFIER_ENCRYPTION_KEY');if(!secret)return fail(503);
   const response=await rpc('consume_member_export',{target:ticket});if(!response.ok)return fail(403);
-  const rows:EncryptedMemberRecord[]=await response.json();if(!Array.isArray(rows)||rows.length>500)return fail(502);
-  const csv=await membersCsv(rows,secret,locale);return new Response(csv,{headers:{...headers,'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="lub-members.csv"'}});
+  const data:{records:MemberExportRecord[];slug:string;filter:string}=await response.json();if(!Array.isArray(data.records)||data.records.length>500||typeof data.slug!=="string"||typeof data.filter!=="string")return fail(502);
+  const bytes=await membersXlsx(data.records,secret,locale);return new Response(bytes,{headers:{...headers,'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':`attachment; filename="${exportFilename(data.slug,data.filter)}"`}});
  }catch{return fail(502);}
 };}

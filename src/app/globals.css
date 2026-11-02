@@ -2353,3 +2353,10 @@ html { scrollbar-gutter:stable; }
  .search-filter-search[data-open=true]{display:block;}
  .search-filter-controls{flex-basis:100%;order:2;}
 }
+
+/* Question background is a drag handle; controls retain text selection and normal clicks. */
+[data-question-draggable="true"] { cursor: grab; }
+[data-question-draggable="true"][data-dragging="true"] { cursor: grabbing; box-shadow: var(--shadow-sm); }
+[data-question-draggable="true"][data-dragging="true"] * { cursor: grabbing; }
+[data-question-draggable] :is(input,textarea,[contenteditable="true"]) { cursor: text; }
+[data-question-draggable] :is(button,a,[role="combobox"],[role="switch"],[role="checkbox"]) { cursor: pointer; }

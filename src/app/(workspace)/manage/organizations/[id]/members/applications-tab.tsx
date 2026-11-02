@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LiveFilterForm } from "@/components/live-filter-form";
-import { getApplicationDetail, listApplications, countOrganizationApplicationStatuses, statuses, type Filters, type OrganizationRegistrationWorkspace } from "@/features/forms/repository";
+import { listApplications, countOrganizationApplicationStatuses, statuses, type Filters, type OrganizationRegistrationWorkspace } from "@/features/forms/repository";
 import { ApplicationSelection } from "@/features/forms/application-selection";
 import { ApplicationReviewStatusFilters } from "@/features/forms/application-review-status-filters";
 import { DateRangeInput } from "@/features/forms/date-input";
@@ -54,15 +54,13 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
     activity: ["prior", "first"].includes(value("activity")) ? value("activity") : "",
   };
   const selectedId = z.uuid().safeParse(value("application")).success ? value("application") : "";
-  const [rows, statusCounts, detail] = await Promise.all([
+  const [rows, statusCounts] = await Promise.all([
     listApplications(userId, organization, filters),
     countOrganizationApplicationStatuses(userId, organization, { ...filters, status: "", page: 1 }),
-    selectedId ? getApplicationDetail(userId, selectedId) : Promise.resolve(undefined),
   ]);
   if (workspace.accountStatus === "Inactive") redirect("/account-unavailable");
   if (!workspace.onboarded) redirect("/onboarding");
   if (!workspace.allowed.some(code => ["APPLICATIONS_VIEW", "APPLICATIONS_REVIEW", "APPLICATIONS_BULK_ACTION"].includes(code))) notFound();
-  if (selectedId && (!detail || detail.organization_id !== organization || !detail.canStaff)) notFound();
 
   const query = new URLSearchParams({ section: "applications" });
   for (const key of ["q", "status", "round","committee", "major", "level", "from", "to", "activity", "page"]) if (value(key)) query.set(key, value(key));
@@ -111,7 +109,7 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
         </PopoverContent>
       </Popover>
     </SearchFilterToolbar>
-    <ApplicationSelection rows={rows.slice(0, 25)} locale={locale} canBulk={workspace.allowed.includes("APPLICATIONS_BULK_ACTION")} selectedApplication={detail ? { detail, name: rows.find(application => application.id === detail.id)?.name ?? c("تفاصيل الطلب", "Application details") } : undefined} query={queryString}/>
+    <ApplicationSelection rows={rows.slice(0, 25)} locale={locale} canBulk={workspace.allowed.includes("APPLICATIONS_BULK_ACTION")} organization={organization} initialSelectedId={selectedId||undefined} query={queryString}/>
     <nav aria-label={c("صفحات الطلبات", "Application pages")} className="flex gap-4">{filters.page > 1 && <Link className="text-link" href={pageHref(filters.page - 1)}>{c("السابق", "Previous")}</Link>}{rows.length > 25 && <Link className="text-link" href={pageHref(filters.page + 1)}>{c("التالي", "Next")}</Link>}</nav>
   </section>;
 }

@@ -47,12 +47,7 @@ export async function getRound(round: string, user?: string) {
  };
  return user ? withUser(user, read) : withVisitor(read);
 }
-export async function getApplicationDetail(user: string, application: string) {
- return withUser(user, async tx => {
-  const rows = await tx.execute(sql`select ${detailColumns} from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.form_responses f on f.id=a.form_response_id join lub.form_versions v on v.id=f.form_version_id where a.id=${application}`);
-  return rows[0] as unknown as Detail | undefined;
- });
-}
+export async function getApplicationDetail(user:string,application:string){return withUser(user,async tx=>{const rows=await tx.execute<{detail:Detail&{campaign_title:string;created_at:string}|null}>(sql`select lub.application_detail(${application},false) detail`);return rows[0]?.detail??undefined;});}
 export async function ownApplication(user: string, round: string) {
  return withUser(user, async tx => { const rows = await tx.execute(sql`select id from lub.membership_applications where applicant_user_id=${user} and registration_round_id=${round}`); return rows[0]?.id as string | undefined; });
 }
@@ -126,13 +121,7 @@ export async function listApplications(user: string, org?: string, filters?: Fil
  });
 }
 
-export async function getOwnApplicationDetail(user:string,application:string){
- return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select ${detailColumns},r.title as campaign_title,a.created_at from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.form_responses f on f.id=a.form_response_id join lub.form_versions v on v.id=f.form_version_id where a.id=${application} and a.applicant_user_id=${user}`);
- const detail=rows[0] as unknown as (Detail&{campaign_title:string;created_at:string})|undefined;
- return detail?{...detail,notes:[],canReview:false,canStaff:false}:undefined;
- });
-}
+export async function getOwnApplicationDetail(user:string,application:string){return withUser(user,async tx=>{const rows=await tx.execute<{detail:(Detail&{campaign_title:string;created_at:string})|null}>(sql`select lub.application_detail(${application},true) detail`);return rows[0]?.detail??undefined;});}
 
 export type RegistrationReadiness={active:boolean;onboarded:boolean;hours:number;major:string|null;member:boolean;application:{id:string;status_code:string}|null};
 export async function registrationReadiness(user:string,organization:string,round:string|null):Promise<RegistrationReadiness>{

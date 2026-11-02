@@ -1,0 +1,8 @@
+import {expect,it,vi,afterEach} from "vitest";
+import {QueryClient} from "@tanstack/react-query";
+import {memberDetailQuery,memberKeys} from "../src/features/organizations/member-queries";
+import {applicationDetailQuery} from "../src/features/forms/application-queries";
+afterEach(()=>vi.unstubAllGlobals());
+function client(){return new QueryClient({defaultOptions:{queries:{staleTime:90_000,retry:false}}});}
+it("reuses prefetched member details across reopen and isolates actor and organization",async()=>{const fetcher=vi.fn().mockResolvedValue(Response.json({id:"member",name:"Student"}));vi.stubGlobal("fetch",fetcher);const cache=client(),query=memberDetailQuery("actor","org","member");await cache.prefetchQuery(query);expect(await cache.fetchQuery(query)).toMatchObject({id:"member"});expect(await cache.fetchQuery(query)).toMatchObject({name:"Student"});expect(fetcher).toHaveBeenCalledOnce();expect(cache.getQueryData(memberKeys.detail("other","org","member"))).toBeUndefined();expect(cache.getQueryData(memberKeys.detail("actor","other","member"))).toBeUndefined();cache.clear();});
+it("passes cancellation to fetch and does not cache aborted application details",async()=>{let signal:AbortSignal|undefined;vi.stubGlobal("fetch",vi.fn((_url:string,options:{signal:AbortSignal})=>{signal=options.signal;return new Promise((_resolve,reject)=>options.signal.addEventListener("abort",()=>reject(new DOMException("Aborted","AbortError"))));}));const cache=client(),query=applicationDetailQuery("actor","org","application");const pending=cache.fetchQuery(query).catch(()=>null);await cache.cancelQueries({queryKey:query.queryKey});await pending;expect(signal?.aborted).toBe(true);expect(cache.getQueryData(query.queryKey)).toBeUndefined();cache.clear();});

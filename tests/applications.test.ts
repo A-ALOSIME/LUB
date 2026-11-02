@@ -375,3 +375,10 @@ it("enforces round major and approved platform-hours requirements in the databas
  await asUser(other);await denied(()=>db.query("select lub.set_round_requirements($1,0,'[]')",[round]));
  await asUser(leader);await denied(()=>db.query("select lub.set_round_requirements($1,0,'[\"غير معتمد\"]')",[round]));
 });
+
+it("reads scoped details once, hides internal notes from students and denies another student",async()=>{
+ const id=await submit();await asUser(leader);await db.query("select lub.add_application_note($1,'للمراجعين')",[id]);
+ const staff=(await db.query<{data:{canStaff:boolean;canReview:boolean;notes:unknown[];answers:unknown}}>("select lub.application_detail($1,false) data",[id])).rows[0].data;expect(staff.canStaff).toBe(true);expect(staff.canReview).toBe(true);expect(staff.notes).toHaveLength(1);
+ await asUser(student);const own=(await db.query<{data:{canStaff:boolean;canReview:boolean;notes:unknown[];answers:unknown}}>("select lub.application_detail($1,true) data",[id])).rows[0].data;expect(own.canStaff).toBe(false);expect(own.canReview).toBe(false);expect(own.notes).toEqual([]);expect(own.answers).toEqual(staff.answers);
+ await asUser(other);expect((await db.query<{data:unknown}>("select lub.application_detail($1,false) data",[id])).rows[0].data).toBeNull();await owner();await db.query("update lub.users set status_code='Inactive' where id=$1",[student]);await asUser(student);expect((await db.query<{data:unknown}>("select lub.application_detail($1,true) data",[id])).rows[0].data).toBeNull();
+});

@@ -547,6 +547,13 @@
       "when": 1793606406000,
       "tag": "0077_imported_membership_rejoins",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793606407000,
+      "tag": "0078_cached_details_xlsx",
+      "breakpoints": true
     }
   ]
 }

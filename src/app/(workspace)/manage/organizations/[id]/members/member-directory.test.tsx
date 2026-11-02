@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import type { OrganizationMemberWorkspace } from "@/features/organizations/management-repository";
 import { MemberDirectory } from "./member-directory";
+
+import {PrivateQueryProvider} from "@/components/private-query-provider";
+import type {ReactElement} from "react";
+const render=(ui:ReactElement)=>rtlRender(<PrivateQueryProvider actorId="test-actor">{ui}</PrivateQueryProvider>);
 
 vi.mock("@/features/organizations/member-data-actions",()=>({loadMemberDirectory:async(_org:string,filters:{status:string})=>({data:{...workspace,members:workspace.members.filter(m=>filters.status==="all"||m.status===filters.status)}}),loadMemberRecord:vi.fn(),loadMemberExportAudit:vi.fn()}));
 vi.mock("next/navigation",()=>({useRouter:()=>({refresh:vi.fn()})}));
@@ -13,7 +17,7 @@ vi.mock("@/features/organizations/members-actions", () => ({ mutateOrganizationM
 vi.mock("@/features/forms/date-input", () => ({ DateInput: () => null }));
 vi.mock("../permissions/permission-editor", () => ({ permissionLabels: {}, scopedPermissions: new Set() }));
 
-afterEach(cleanup);
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 
 const workspace: OrganizationMemberWorkspace = {
   canManage: false,
@@ -83,10 +87,13 @@ it("keeps all action positions visible for every member and disables unavailable
   const actionRows = document.querySelectorAll(".member-directory-actions");
   expect(actionRows).toHaveLength(workspace.members.length * 2);
   for (const row of actionRows) {
-    expect(row.querySelectorAll('[data-slot="button"]')).toHaveLength(4);
+    expect(row.querySelectorAll('[data-slot="button"]')).toHaveLength(5);
     expect(row.textContent).toContain("منح صلاحية");
     expect(row.textContent).toContain("إضافة ساعات");
     expect(row.textContent).toContain("إنهاء العضوية");
   }
   expect(document.querySelectorAll(".member-directory-actions--mobile .member-directory-action--end")).toHaveLength(workspace.members.length);
 });
+
+
+beforeEach(()=>{vi.stubGlobal("fetch",vi.fn(async(url:string)=>{const status=new URL(url,"http://local").searchParams.get("status")??"all";return Response.json({...workspace,members:workspace.members.filter(m=>status==="all"||m.status===status)});}));});

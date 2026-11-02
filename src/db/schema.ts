@@ -151,6 +151,8 @@ export const organizationMemberships = lub.table("organization_memberships", {
   sourceApplicationId: uuid("source_application_id"),
   createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [
+  index("member_org_user_read_idx").on(t.organizationId,t.userId),
+  index("member_user_org_read_idx").on(t.userId,t.organizationId),
   unique("membership_org_identity_unique").on(t.id, t.organizationId),
   unique("membership_identity_scope_unique").on(t.id,t.organizationId,t.userId),
   foreignKey({name:"membership_canonical_scope_fk",columns:[t.mergedInto,t.organizationId,t.userId],foreignColumns:[t.id,t.organizationId,t.userId]}),
@@ -232,7 +234,7 @@ export const registrationRounds = lub.table("registration_rounds", {
   formTemplateId: uuid("form_template_id").references(() => formTemplates.id), title: varchar("title", { length: 120 }).notNull(),
   opensAt: timestamp("opens_at", { withTimezone: true }), closesAt: timestamp("closes_at", { withTimezone: true }),
   statusCode: varchar("status_code", { length: 20 }).notNull().default("Draft"), allowWithdrawal: boolean("allow_withdrawal").notNull().default(true), createdAt: createdAt(),
-}, t => [check("round_status_check", sql`${t.statusCode} in ('Draft','Open','Closed','Archived')`), check("round_dates_check", sql`${t.closesAt}>${t.opensAt}`), check("round_title_check", sql`length(${t.title})<=120 and (${t.statusCode}='Draft' or length(trim(${t.title}))>=2)`), check("round_publication_check",sql`${t.statusCode}='Draft' or (${t.formTemplateId} is not null and ${t.opensAt} is not null and ${t.closesAt} is not null)`), index("round_org_status_idx").on(t.organizationId, t.statusCode)]).enableRLS();
+}, t => [check("round_status_check", sql`${t.statusCode} in ('Draft','Open','Closed','Archived')`), check("round_dates_check", sql`${t.closesAt}>${t.opensAt}`), check("round_title_check", sql`length(${t.title})<=120 and (${t.statusCode}='Draft' or length(trim(${t.title}))>=2)`), check("round_publication_check",sql`${t.statusCode}='Draft' or (${t.formTemplateId} is not null and ${t.opensAt} is not null and ${t.closesAt} is not null)`), index("registration_round_org_read_idx").on(t.organizationId,t.id), index("round_org_status_idx").on(t.organizationId, t.statusCode)]).enableRLS();
 
 export const formResponses = lub.table("form_responses", {
   id: uuid("id").primaryKey().defaultRandom(), formVersionId: uuid("form_version_id").notNull().references(() => formVersions.id),
@@ -248,7 +250,7 @@ export const membershipApplications = lub.table("membership_applications", {
   statusCode: varchar("status_code", { length: 20 }).notNull().default("Submitted"), submittedAt: createdAt(),
   decidedAt: timestamp("decided_at", { withTimezone: true }), decidedByUserId: uuid("decided_by_user_id").references(() => users.id),
   acceptedMembershipId: uuid("accepted_membership_id").references(() => organizationMemberships.id),
-}, t => [uniqueIndex("one_active_application_per_round_idx").on(t.registrationRoundId, t.applicantUserId).where(sql`${t.statusCode}<>'Withdrawn'`), check("application_status_check", sql`${t.statusCode} in ('Submitted','Interview','Accepted','Rejected','Withdrawn')`), check("application_membership_check", sql`(${t.statusCode}='Accepted')=(${t.acceptedMembershipId} is not null)`), index("application_accepted_membership_idx").on(t.acceptedMembershipId).where(sql`${t.acceptedMembershipId} is not null`), index("application_round_status_idx").on(t.registrationRoundId, t.statusCode), index("application_user_time_idx").on(t.applicantUserId, t.submittedAt)]).enableRLS();
+}, t => [uniqueIndex("one_active_application_per_round_idx").on(t.registrationRoundId, t.applicantUserId).where(sql`${t.statusCode}<>'Withdrawn'`), check("application_status_check", sql`${t.statusCode} in ('Submitted','Interview','Accepted','Rejected','Withdrawn')`), check("application_membership_check", sql`(${t.statusCode}='Accepted')=(${t.acceptedMembershipId} is not null)`), index("application_accepted_membership_idx").on(t.acceptedMembershipId).where(sql`${t.acceptedMembershipId} is not null`), index("application_round_user_read_idx").on(t.registrationRoundId,t.applicantUserId), index("application_round_status_idx").on(t.registrationRoundId, t.statusCode), index("application_user_time_idx").on(t.applicantUserId, t.submittedAt)]).enableRLS();
 
 export const committeeMemberships = lub.table("committee_memberships", {
   id: uuid("id").primaryKey().defaultRandom(), organizationId: uuid("organization_id").notNull(), organizationMembershipId: uuid("organization_membership_id").notNull(), committeeId: uuid("committee_id").notNull(),
@@ -386,7 +388,7 @@ export const translationRequests=lub.table("translation_requests",{
 
 export const membershipEvents=lub.table("membership_events",{
  id:uuid("id").primaryKey().defaultRandom(),membershipId:uuid("membership_id").notNull().references(()=>organizationMemberships.id),sourceMembershipId:uuid("source_membership_id").notNull().references(()=>organizationMemberships.id),eventCode:text("event_code").notNull(),occurredAt:timestamp("occurred_at",{withTimezone:true}).notNull(),actorUserId:uuid("actor_user_id").references(()=>users.id),imported:boolean("imported").notNull().default(false),statusCode:text("status_code").notNull(),
-},t=>[index("membership_events_timeline_idx").on(t.membershipId,t.occurredAt,t.id),uniqueIndex("membership_events_import_idx").on(t.sourceMembershipId,t.eventCode).where(sql`${t.imported}`),check("membership_events_event_code_check",sql`${t.eventCode} in ('Joined','Ended','Rejoined','StatusChanged')`),check("membership_events_status_code_check",sql`${t.statusCode} in ('Active','Inactive','Ended')`)]).enableRLS();
+},t=>[index("membership_events_actor_read_idx").on(t.actorUserId).where(sql`${t.actorUserId} is not null`),index("membership_events_timeline_idx").on(t.membershipId,t.occurredAt,t.id),uniqueIndex("membership_events_import_idx").on(t.sourceMembershipId,t.eventCode).where(sql`${t.imported}`),check("membership_events_event_code_check",sql`${t.eventCode} in ('Joined','Ended','Rejoined','StatusChanged')`),check("membership_events_status_code_check",sql`${t.statusCode} in ('Active','Inactive','Ended')`)]).enableRLS();
 
 // Short-lived authenticated download tickets and non-sensitive export audit metadata; no CSV contents.
 export const memberExports=lub.table("member_exports",{
