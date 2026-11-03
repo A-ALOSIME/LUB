@@ -1,318 +1,48 @@
 "use client";
-
-import {RemoveEventRegistration} from "./remove-registration";
-import {ContentText} from "@/components/content-text";
-import {createTranslator} from "@/lib/i18n";
-import {majorLabel} from "@/lib/display";
-
-import { useQuery,useQueryClient,queryOptions } from "@tanstack/react-query";
+import {useState} from "react";
+import {useRouter} from "next/navigation";
+import {useQuery,useQueryClient,queryOptions} from "@tanstack/react-query";
+import {MicVocal,Presentation,HandHelping,LockKeyhole} from "lucide-react";
 import {useQueryActor} from "@/components/private-query-provider";
 import {privateJson} from "@/lib/private-query";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { X, LockKeyhole } from "lucide-react";
-import {
-  RequestReviewTable,
-  type ReviewDecision,
-} from "@/features/forms/request-review-table";
-import { RequestStatusBadge } from "@/features/forms/request-status-badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetClose,
-} from "@/components/ui/sheet";
-
-import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
-import { FormField } from "@/components/form-field";
-import { EventForm } from "./form";
-import { Button } from "@/components/ui/button";
-import { formatRiyadhDateTime } from "@/lib/datetime";
-import { academicLevel } from "@/lib/display";
-import type { Locale } from "@/lib/preferences";
-import type { EventRegistrant } from "./review-repository";
-import { mutateEvent } from "./actions";
-
-export function EventRegistrationReview({
-  items,
-  locale,organization,
-}: {
-  organization?:string;
-  items: EventRegistrant[];
-  locale: Locale;
-}) {
-  const [selected, setSelected] = useState<string | null>(null),
-    router = useRouter(),
-    c = createTranslator((locale === "en") ? "en" : "ar");
-  const actor=useQueryActor(),client=useQueryClient();
-  const detailOptions=(id:string|null)=>queryOptions({queryKey:["event-registrant",actor,organization,id],queryFn:({signal})=>privateJson<EventRegistrant>(`/api/organizations/${organization}/registrants/${id}`,signal)});
-  const result=useQuery({...detailOptions(selected),enabled:!!selected&&!!organization});
-  const detail=result.data??items.find((r) => r.id === selected);
-  async function decide(
-    ids: string[],
-    status: ReviewDecision,
-    message: string,
-  ) {
-    const f = new FormData();
-    f.set("operation", "review");
-    f.set("status", status);
-    f.set("message", message);
-    f.set("confirm", "on");
-    ids.forEach((id) => f.append("selected", id));
-    const result = await mutateEvent({}, f);
-    if (result.success) {
-      void client.invalidateQueries({queryKey:["event-registrant",actor,organization]});
-      setSelected(null);
-      window.dispatchEvent(new CustomEvent("organization-events-changed",{detail:{organization}}));
-      window.dispatchEvent(new Event("activity-changed"));
-      router.refresh();
-    }
-    return result;
-  }
-  return (
-    <RequestReviewTable
-      locale={locale}
-      decisionSlots={["Accepted","Rejected"]}
-      rows={items.slice(0, 25).map((r) => ({
-        id: r.id,
-        extraAction:<RemoveEventRegistration organization={organization} id={r.id} name={r.name} allowed={r.canReview} locale={locale} onSuccess={()=>setSelected(null)}/>,
-        name: r.name,
-        subtitle: r.title,
-        status: r.review_status_code,
-        createdAt: r.created_at,
-        completedDecisions: r.review_status_code === "Accepted" ? ["Accepted"] : [],
-        selectable: r.canReview && r.review_status_code !== "Rejected",
-        decisions: r.canReview
-          ? r.review_status_code === "Pending"
-            ? ["Accepted", "Rejected"]
-            : r.review_status_code === "Accepted"
-              ? ["Rejected"]
-              : []
-          : [],
-      }))}
-      onOpen={setSelected}
-      onPrefetch={id=>{if(organization)void client.prefetchQuery(detailOptions(id));}}
-      onDecision={decide}
-      bulkDecisions={
-        items.some((r) => r.canReview) ? ["Accepted", "Rejected"] : []
-      }
-    >
-      {(choose) =>
-        detail && (
-          <Sheet
-            open
-            onOpenChange={(open) => {
-              if (!open) setSelected(null);
-            }}
-          >
-            <SheetContent
-              side="left"
-              showCloseButton={false}
-              className="management-action-sheet gap-0 overflow-hidden p-0"
-              dir={locale === "en" ? "ltr" : "rtl"}
-            >
-              <SheetHeader className="management-action-header">
-                <SheetTitle>{detail.name}</SheetTitle>
-                <p className="text-sm text-muted-foreground">
-                  <bdi>{majorLabel(detail.major,locale)}</bdi> ·{" "}
-                  {academicLevel(detail.level, locale)}
-                </p>
-                <RequestStatusBadge
-                  status={detail.review_status_code}
-                  locale={locale}
-                />
-                <p className="text-sm text-muted-foreground">
-                  <ContentText value={detail.title}/> ·{" "}
-                  {formatRiyadhDateTime(detail.created_at, locale)}
-                </p>
-                <SheetClose
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="absolute end-3 top-3"
-                      aria-label={c("إغلاق", "Close")}
-                    />
-                  }
-                >
-                  <X />
-                </SheetClose>
-              </SheetHeader>
-              <div className="management-action-scroll flex flex-col gap-5">
-                <dl className="space-y-5">
-                  {detail.definition?.sections
-                    .flatMap((s) => s.fields)
-                    .filter((f) => detail.answers?.[f.id] !== undefined)
-                    .map((f) => (
-                      <div key={f.id}>
-                        <dt className="text-sm text-muted-foreground">
-                          <ContentText value={f.label}/>
-                        </dt>
-                        <dd className="mt-1 whitespace-pre-wrap break-words leading-relaxed">
-                          {f.type === "File" ? (
-                            <a
-                              className="text-primary"
-                              href={`/files/${detail.answers?.[f.id]}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {c("تنزيل المرفق", "Download attachment")}
-                            </a>
-                          ) : f.options.length ? (
-                            (Array.isArray(detail.answers?.[f.id])
-                              ? (detail.answers![f.id] as string[])
-                              : [String(detail.answers?.[f.id])]
-                            )
-                              .map(
-                                (value) =>
-                                  f.options.find((o) => o.value === value)
-                                    ?.label ?? value,
-                              )
-                              .join("، ")
-                          ) : (
-                            String(detail.answers?.[f.id])
-                          )}
-                        </dd>
-                      </div>
-                    ))}
-                </dl>
-                {!detail.definition && (
-                  <p className="text-muted-foreground">
-                    {c(
-                      "لا توجد أسئلة إضافية لهذا التسجيل.",
-                      "No additional registration questions.",
-                    )}
-                  </p>
-                )}
-                {detail.review_note && (
-                  <section>
-                    <h3 className="text-sm text-muted-foreground">
-                      {c(
-                        "سبب القرار — يظهر للطالب",
-                        "Decision reason — visible to the student",
-                      )}
-                    </h3>
-                    <p className="whitespace-pre-wrap">{detail.review_note}</p>
-                  </section>
-                )}
-                <section>
-                  <h3 className="mb-3 font-medium">
-                    {c("سجل الطلب", "Request history")}
-                  </h3>
-                  <ol className="space-y-4 border-s border-border ps-4">
-                    {detail.history.map((h, i) => (
-                      <li key={i} className="relative">
-                        <span className="absolute -start-5 top-2 size-2 rounded-full bg-muted-foreground" />
-                        <RequestStatusBadge
-                          status={h.status_code}
-                          locale={locale}
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          {formatRiyadhDateTime(h.created_at, locale)}
-                        </p>
-                        {h.reason && (
-                          <p className="whitespace-pre-wrap">{h.reason}</p>
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-                {detail.canAttend &&
-                  detail.attendanceOpen &&
-                  detail.review_status_code === "Accepted" && (
-                    <EventForm
-                      operation="attendance"
-                      fields={{ registration: detail.id }}
-                      label={c("حفظ الحضور", "Save attendance")}
-                      locale={locale}
-                    >
-                      <FormField label={c("الحضور", "Attendance")}>
-                        <NativeSelect
-                          name="status"
-                          defaultValue={detail.attendance}
-                        >
-                          <option value="Pending">
-                            {c(
-                              "بانتظار تأكيد الحضور",
-                              "Awaiting attendance confirmation",
-                            )}
-                          </option>
-                          <option value="Present">{c("حضر", "Present")}</option>
-                          <option value="Absent">
-                            {c("لم يحضر", "Absent")}
-                          </option>
-                          <option value="Excused">
-                            {c("معذور", "Excused")}
-                          </option>
-                        </NativeSelect>
-                      </FormField>
-                    </EventForm>
-                  )}
-                {detail.canContribute &&
-                  detail.review_status_code === "Accepted" && (
-                    <EventForm
-                      operation="contribution"
-                      fields={{ registration: detail.id }}
-                      label={c("إثبات المساهمة", "Record contribution")}
-                      locale={locale}
-                    >
-                      <FormField label={c("نوع المساهمة", "Contribution type")}>
-                        <NativeSelect name="kind">
-                          <option value="Presenter">
-                            {c("مقدم", "Presenter")}
-                          </option>
-                          <option value="Trainer">
-                            {c("مدرب", "Trainer")}
-                          </option>
-                          <option value="Core_Contributor">
-                            {c("مساهم أساسي", "Core contributor")}
-                          </option>
-                        </NativeSelect>
-                      </FormField>
-                      <FormField
-                        label={c("وصف المساهمة", "Contribution description")}
-                      >
-                        <Input
-                          name="title"
-                          required
-                          minLength={2}
-                          maxLength={120}
-                        />
-                      </FormField>
-                    </EventForm>
-                  )}
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <LockKeyhole className="size-4" />
-                  {c(
-                    "الحضور يُراجع بعد الفعالية بشكل منفصل.",
-                    "Attendance is reviewed separately after the event.",
-                  )}
-                </p>
-              </div>
-              {detail.canReview && (
-                <div className="management-action-footer is-modal-footer">
-                  {detail.review_status_code === "Pending" && (
-                    <Button onClick={() => choose([detail.id], "Accepted")}>
-                      {c("قبول", "Accept")}
-                    </Button>
-                  )}
-                  {detail.review_status_code !== "Rejected" && (
-                    <Button
-                      variant="danger-outline"
-                      onClick={() => choose([detail.id], "Rejected")}
-                    >
-                      {c("رفض", "Reject")}
-                    </Button>
-                  )}
-                  <RemoveEventRegistration organization={organization} full id={detail.id} name={detail.name} allowed={detail.canReview} locale={locale} onSuccess={()=>setSelected(null)}/>
-                </div>
-              )}
-            </SheetContent>
-          </Sheet>
-        )
-      }
-    </RequestReviewTable>
-  );
+import {ManagementActionSheet} from "@/components/management-action-sheet";
+import {RowAction} from "@/components/row-action";
+import {ContentText} from "@/components/content-text";
+import {Button} from "@/components/ui/button";
+import {Textarea} from "@/components/ui/textarea";
+import {NativeSelect} from "@/components/ui/native-select";
+import {FormField} from "@/components/form-field";
+import {RequestReviewTable,type ReviewDecision} from "@/features/forms/request-review-table";
+import {RequestStatusBadge} from "@/features/forms/request-status-badge";
+import {formatRiyadhDateTime} from "@/lib/datetime";
+import {majorLabel,academicLevel} from "@/lib/display";
+import {createTranslator} from "@/lib/i18n";
+import {EventForm} from "./form";
+import {RemoveEventRegistration} from "./remove-registration";
+import {mutateEvent} from "./actions";
+import type {EventRegistrant} from "./review-repository";
+import type {Locale} from "@/lib/preferences";
+export function EventRegistrationReview({items,locale,organization,pagination}:{pagination?:import("@/components/data-table").DataTablePagination;organization?:string;items:EventRegistrant[];locale:Locale}){
+ const [selected,setSelected]=useState<string|null>(null),[contribution,setContribution]=useState<{row:EventRegistrant;kind:string}|null>(null),router=useRouter(),c=createTranslator(locale),actor=useQueryActor(),client=useQueryClient();
+ const options=(id:string|null)=>queryOptions({queryKey:["event-registrant",actor,organization,id],queryFn:({signal})=>privateJson<EventRegistrant>(`/api/organizations/${organization}/registrants/${id}`,signal)});
+ const result=useQuery({...options(selected),enabled:!!selected&&!!organization}),detail=result.data??items.find(row=>row.id===selected);
+ const changed=()=>{void client.invalidateQueries({queryKey:["event-registrant",actor,organization]});setSelected(null);setContribution(null);window.dispatchEvent(new CustomEvent("organization-events-changed",{detail:{organization}}));window.dispatchEvent(new Event("activity-changed"));router.refresh();};
+ async function decide(ids:string[],status:ReviewDecision,message:string){const form=new FormData();form.set("operation","review");form.set("status",status);form.set("message",message);form.set("confirm","on");if(organization)form.set("org",organization);ids.forEach(id=>form.append("selected",id));const result=await mutateEvent({},form);if(result.success)changed();return result;}
+ const kinds=[{kind:"Presenter",label:c("مقدم","Presenter"),Icon:MicVocal},{kind:"Trainer",label:c("مدرب","Trainer"),Icon:Presentation},{kind:"Core_Contributor",label:c("مساهم أساسي","Core contributor"),Icon:HandHelping}];
+ const contributionActions=(row:EventRegistrant)=><div className="flex flex-wrap items-center gap-1"><span role="separator" aria-orientation="vertical" className="mx-1 h-5 border-s border-border"/>{kinds.map(({kind,label,Icon})=><RowAction key={kind} label={c("إثبات مساهمة: ","Record contribution: ")+label} disabled={!row.canContribute||row.review_status_code!=="Accepted"} hint={!row.canContribute?c("تحتاج صلاحية إثبات المساهمات","Contribution verification permission is required"):c("يجب قبول التسجيل قبل إثبات المساهمة","Accept the registration before recording a contribution")} onClick={()=>{setSelected(null);setContribution({row,kind});}}><Icon/></RowAction>)}<RemoveEventRegistration organization={organization} id={row.id} name={row.name} allowed={row.canReview} locale={locale} onSuccess={changed}/></div>;
+ return <><RequestReviewTable pagination={pagination} locale={locale} actionsClassName="w-80" decisionSlots={["Accepted","Rejected"]} rows={items.slice(0,25).map(row=>({id:row.id,name:row.name,subtitle:[majorLabel(row.major,locale),academicLevel(row.level,locale)].filter(Boolean).join(" · "),status:row.has_contribution&&row.review_status_code==="Accepted"?"Recorded":row.review_status_code,createdAt:row.created_at,selectable:row.canReview&&row.review_status_code!=="Rejected",decisions:row.canReview?(row.review_status_code==="Pending"?["Accepted","Rejected"]:row.review_status_code==="Accepted"?["Rejected"]:[]):[],completedDecisions:row.review_status_code==="Accepted"?["Accepted"]:[],extraAction:contributionActions(row)}))} onOpen={setSelected} onPrefetch={id=>{if(organization)void client.prefetchQuery(options(id));}} onDecision={decide} bulkDecisions={items.some(row=>row.canReview)?["Accepted","Rejected"]:[]}>
+ {choose=><ManagementActionSheet label="" hideTrigger title={detail?.name??c("تفاصيل التسجيل","Registration details")} locale={locale} open={Boolean(selected)} onOpenChange={open=>{if(!open)setSelected(null);}} footer={detail?.canReview?<><Button disabled={detail.review_status_code!=="Pending"} onClick={()=>choose([detail.id],"Accepted")}>{c("قبول","Accept")}</Button><Button variant="danger-outline" disabled={detail.review_status_code==="Rejected"} onClick={()=>choose([detail.id],"Rejected")}>{c("رفض","Reject")}</Button></>:undefined}>
+  {detail&&<div className="flex flex-col gap-5"><p className="text-sm text-muted-foreground"><bdi>{majorLabel(detail.major,locale)}</bdi> · {academicLevel(detail.level,locale)}</p><RequestStatusBadge status={detail.has_contribution&&detail.review_status_code==="Accepted"?"Recorded":detail.review_status_code} locale={locale}/><p className="text-sm text-muted-foreground"><ContentText value={detail.title}/> · {formatRiyadhDateTime(detail.created_at,locale)}</p>
+  {result.isError&&<p role="alert">{c("تعذّر تحديث التفاصيل. أغلق النافذة وحاول مجددًا.","Details could not be refreshed. Close and try again.")}</p>}
+  <dl className="space-y-5">{detail.definition?.sections.flatMap(section=>section.fields).filter(field=>detail.answers?.[field.id]!==undefined).map(field=><div key={field.id}><dt className="text-sm text-muted-foreground"><ContentText value={field.label}/></dt><dd className="mt-1 whitespace-pre-wrap break-words">{field.type==="File"?<a className="text-primary" href={`/files/${detail.answers?.[field.id]}`} target="_blank" rel="noopener noreferrer">{c("تنزيل المرفق","Download attachment")}</a>:field.options.length?(Array.isArray(detail.answers?.[field.id])?detail.answers![field.id] as string[]:[String(detail.answers?.[field.id])]).map(value=>field.options.find(option=>option.value===value)?.label??value).join("، "):String(detail.answers?.[field.id])}</dd></div>)}</dl>
+  {!detail.definition&&<p className="text-sm text-muted-foreground">{c("لا توجد أسئلة إضافية لهذا التسجيل.","No additional registration questions.")}</p>}
+  {detail.review_note&&<section><h3 className="text-sm text-muted-foreground">{c("سبب القرار — يظهر للطالب","Decision reason — visible to the student")}</h3><p className="whitespace-pre-wrap">{detail.review_note}</p></section>}
+  {!!detail.contributions?.length&&<section><h3 className="mb-2 font-medium">{c("المساهمات المرصودة","Recorded contributions")}</h3>{detail.contributions.map(item=><p key={item.kind}>{kinds.find(kind=>kind.kind===item.kind)?.label} · {item.title}</p>)}</section>}
+  <section><h3 className="mb-3 font-medium">{c("سجل الطلب","Request history")}</h3><ol className="space-y-4 border-s border-border ps-4">{[...detail.history].sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)).map((event,index)=><li key={index} className="relative"><span className="absolute -start-5 top-2 size-2 rounded-full bg-muted-foreground"/><RequestStatusBadge status={event.status_code} locale={locale}/><p className="text-sm text-muted-foreground">{formatRiyadhDateTime(event.created_at,locale)}</p>{event.reason&&<p className="whitespace-pre-wrap">{event.reason}</p>}</li>)}</ol></section>
+  {detail.canAttend&&detail.attendanceOpen&&detail.review_status_code==="Accepted"&&<EventForm operation="attendance" fields={{registration:detail.id,...(organization?{org:organization}:{})}} label={c("حفظ الحضور","Save attendance")} locale={locale} onSuccess={changed}><FormField label={c("الحضور","Attendance")}><NativeSelect name="status" defaultValue={detail.attendance}><option value="Pending">{c("بانتظار تأكيد الحضور","Awaiting attendance confirmation")}</option><option value="Present">{c("حضر","Present")}</option><option value="Absent">{c("لم يحضر","Absent")}</option><option value="Excused">{c("معذور","Excused")}</option></NativeSelect></FormField></EventForm>}
+  {contributionActions(detail)}<p className="flex items-center gap-2 text-sm text-muted-foreground"><LockKeyhole className="size-4"/>{c("الحضور يُراجع بعد الفعالية بشكل منفصل.","Attendance is reviewed separately after the event.")}</p></div>}
+ </ManagementActionSheet>}
+ </RequestReviewTable>
+ <ManagementActionSheet hideTrigger label="" title={c("إثبات المساهمة","Record contribution")} locale={locale} open={Boolean(contribution)} onOpenChange={open=>{if(!open)setContribution(null);}}>{contribution&&<EventForm operation="contribution" fields={{registration:contribution.row.id,kind:contribution.kind,...(organization?{org:organization}:{})}} label={c("إثبات المساهمة","Record contribution")} locale={locale} onSuccess={changed}><p>{contribution.row.name} · {kinds.find(kind=>kind.kind===contribution.kind)?.label}</p><FormField label={c("وصف المساهمة","Contribution description")} required><Textarea name="title" required minLength={2} maxLength={120} defaultValue={contribution.row.contributions?.find(item=>item.kind===contribution.kind)?.title??""}/></FormField></EventForm>}</ManagementActionSheet>
+ </>;
 }

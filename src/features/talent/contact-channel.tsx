@@ -10,5 +10,5 @@ export function TalentChannelIcon({ kind, className = "size-4" }: { kind: string
 }
 
 export function talentChannelLabel(kind: string, en: boolean) {
-  const label=organizationContactLabel(kind,en);return translateUi((en) ? "en" : "ar", kind==="Website"?"الموقع الشخصي":kind==="Email"?"البريد الإلكتروني":`حساب ${label}`, label);
+  const label=organizationContactLabel(kind,en);return translateUi((en) ? "en" : "ar", kind==="Website"?"الموقع الشخصي":kind==="Email"?"الإيميل":`حساب ${label}`, label);
 }

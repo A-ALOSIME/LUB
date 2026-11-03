@@ -11,7 +11,7 @@ export async function generateMetadata() { return localizedMetadata("المها�
 
 export default async function LegacyManageHoursPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; term?: string; committee?: string; memberPage?: string; rulePage?: string }>;
+  searchParams: Promise<{ page?: string; term?: string; committee?: string; memberPage?: string }>;
 }) {
   const [{ id }, query, user, { locale }] = await Promise.all([params, searchParams, requireUser(), getPreferences()]);
   if (!z.uuid().safeParse(id).success) notFound();
@@ -22,7 +22,6 @@ export default async function LegacyManageHoursPage({ params, searchParams }: {
   const workspace = await hoursWorkspace(user.id, id, {
     page: number(query.page),
     memberPage: number(query.memberPage),
-    rulePage: number(query.rulePage),
     term,
     committee,
   });
@@ -32,7 +31,6 @@ export default async function LegacyManageHoursPage({ params, searchParams }: {
     const target = new URLSearchParams({ section: "hours" });
     if (query.page) target.set("hoursPage", query.page);
     if (query.memberPage) target.set("memberPage", query.memberPage);
-    if (query.rulePage) target.set("rulePage", query.rulePage);
     if (term) target.set("term", term);
     if (committee) target.set("committee", committee);
     redirect(`/manage/organizations/${id}/tasks?${target}`);

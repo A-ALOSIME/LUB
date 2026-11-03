@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
   // Never accept an identity forwarded by the browser. Only set this after
   // Supabase has verified the session token below.
   requestHeaders.delete("x-lub-verified-user-id");
-  requestHeaders.set("x-lub-area", request.nextUrl.pathname === "/manage" || request.nextUrl.pathname.startsWith("/manage/") ? "management" : "student");
+  requestHeaders.set("x-lub-area", request.nextUrl.pathname === "/manage" || (request.nextUrl.pathname.startsWith("/manage/") || request.nextUrl.pathname.startsWith("/registration/renewal/")) ? "management" : "student");
   requestHeaders.set("x-lub-management-view", request.nextUrl.pathname === "/manage/organizations" ? "organizations" : request.nextUrl.pathname === "/manage" ? "dashboard" : request.nextUrl.pathname === "/manage/account" ? "account" : "other");
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);

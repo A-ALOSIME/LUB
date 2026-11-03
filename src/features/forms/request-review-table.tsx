@@ -5,21 +5,7 @@ import {NumberText} from "@/components/number-text";
 import { useId, useState, useTransition, type ReactNode } from "react";
 import { Eye, Check, X, CalendarDays, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import {DataTable,type DataTablePagination} from "@/components/data-table";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -59,6 +45,7 @@ export type ReviewRow = {
 };
 export function RequestReviewTable({
   rows,
+  actionsClassName="w-48",pagination,
   locale = "ar",
   onOpen,
   onPrefetch,
@@ -68,6 +55,7 @@ export function RequestReviewTable({
   decisionSlots=["Accepted","Rejected","Interview"],
   children,
 }: {
+  actionsClassName?:string;pagination?:DataTablePagination;
   rows: ReviewRow[];
   locale?: Locale;
   onOpen: (id: string) => void;
@@ -108,13 +96,6 @@ export function RequestReviewTable({
     setInterviewPast(false);
     setDecision({ ids, status });
   }
-  function toggle(target: string, value: boolean) {
-    setSelected((current) =>
-      value
-        ? [...new Set([...current, target])]
-        : current.filter((v) => v !== target),
-    );
-  }
   function execute() {
     if (!decision) return;
     if(decision.status === "Interview" && (!interviewAt || interviewIsPast(interviewAt))){setInterviewPast(true);return;}
@@ -143,17 +124,6 @@ export function RequestReviewTable({
         });
       }
     });
-  }
-  function selection(row: ReviewRow) {
-    return (
-      <Checkbox
-        checked={checked.includes(row.id)}
-        disabled={!row.selectable}
-        className={!row.selectable ? "opacity-35" : ""}
-        aria-label={c(`تحديد طلب ${row.name}`, `Select ${row.name}'s request`)}
-        onCheckedChange={(value) => toggle(row.id, value)}
-      />
-    );
   }
   function actions(row: ReviewRow) {
     return (
@@ -195,136 +165,14 @@ export function RequestReviewTable({
         </div>
       ) : (
         <>
-          <div className="hidden @[48rem]:block">
-            <Table className="table-fixed">
-              <TableHeader>
-                <TableRow className="bg-transparent hover:bg-transparent">
-                  <TableHead className="w-12">
-                    <Checkbox
-                      aria-label={c("تحديد الكل", "Select all")}
-                      checked={
-                        checked.length > 0 &&
-                        checked.length === selectable.length
-                      }
-                      indeterminate={
-                        checked.length > 0 && checked.length < selectable.length
-                      }
-                      disabled={!selectable.length}
-                      onCheckedChange={(value) =>
-                        setSelected(value ? selectable.map((r) => r.id) : [])
-                      }
-                    />
-                  </TableHead>
-                  <TableHead>{c("الطالب", "Student")}</TableHead>
-                  {showCommittee && (
-                    <TableHead className="w-[18%]">
-                      {c("اللجنة", "Committee")}
-                    </TableHead>
-                  )}
-                  <TableHead className="w-36">
-                    {c("الحالة", "Status")}
-                  </TableHead>
-                  <TableHead className="w-40">
-                    {c("تاريخ التقديم", "Submitted")}
-                  </TableHead>
-                  <TableHead className="w-48">
-                    {c("الإجراءات", "Actions")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow
-                    onMouseEnter={()=>onPrefetch?.(row.id)} onFocus={()=>onPrefetch?.(row.id)} onTouchStart={()=>onPrefetch?.(row.id)}
-                    key={row.id}
-                    tabIndex={0}
-                    className={`cursor-pointer hover:bg-muted/20 ${checked.includes(row.id) ? "bg-primary/5" : ""}`}
-                    onClick={(e) => {
-                      if (
-                        !(e.target as HTMLElement).closest(
-                          'button,a,input,[role="checkbox"]',
-                        )
-                      )
-                        onOpen(row.id);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && e.target === e.currentTarget)
-                        onOpen(row.id);
-                    }}
-                  >
-                    <TableCell>{selection(row)}</TableCell>
-                    <TableCell>
-                      <p className="break-words font-medium" dir="auto">
-                        {row.name}
-                      </p>
-                      <p
-                        className="mt-1 break-words text-sm text-muted-foreground"
-                        dir="auto"
-                      >
-                        {row.subtitle}
-                      </p>
-                    </TableCell>
-                    {showCommittee && (
-                      <TableCell>
-                        <bdi>{row.committee ?? "—"}</bdi>
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <RequestStatusBadge status={row.status} locale={locale} />
-                    </TableCell>
-                    <TableCell>
-                      <time dateTime={row.createdAt}>
-                        {formatRiyadhDate(row.createdAt, locale)}
-                      </time>
-                      <p className="text-sm text-muted-foreground">
-                        {formatRiyadhTime(row.createdAt, locale)}
-                      </p>
-                    </TableCell>
-                    <TableCell>{actions(row)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <ul className="request-review-mobile flex flex-col gap-3 @[48rem]:hidden">
-            {rows.map((row) => (
-              <li key={row.id}>
-                <Card>
-                  <CardHeader className="flex flex-row items-start gap-3">
-                    {selection(row)}
-                    <button
-                      className="min-w-0 flex-1 text-start"
-                      onMouseEnter={()=>onPrefetch?.(row.id)} onTouchStart={()=>onPrefetch?.(row.id)} onClick={() => onOpen(row.id)}
-                    >
-                      <span className="block font-medium" dir="auto">
-                        {row.name}
-                      </span>
-                      <span
-                        className="text-sm text-muted-foreground"
-                        dir="auto"
-                      >
-                        {row.subtitle}
-                      </span>
-                    </button>
-                    <RequestStatusBadge status={row.status} locale={locale} />
-                  </CardHeader>
-                  <CardContent>
-                    {row.committee && <p>{row.committee}</p>}
-                    <time
-                      className="text-sm text-muted-foreground"
-                      dateTime={row.createdAt}
-                    >
-                      {formatRiyadhDate(row.createdAt, locale)} ·{" "}
-                      {formatRiyadhTime(row.createdAt, locale)}
-                    </time>
-                  </CardContent>
-                  <CardFooter>
-                    {actions(row)}
-                  </CardFooter>
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <DataTable pagination={pagination} items={rows} locale={locale} tableKey="requests" label={c("عرض تفاصيل الطلب","View request details")} onOpen={row=>onOpen(row.id)} onPrefetch={row=>onPrefetch?.(row.id)} selection={{selected:new Set(checked),onChange:ids=>setSelected([...ids]),disabled:row=>!row.selectable,reason:row=>["Accepted","Rejected"].includes(row.status)?c("الطلبات المقبولة والمرفوضة ما تدخل في الإجراء الجماعي","Accepted and rejected requests cannot be included in bulk actions"):c("يتطلب صلاحية الإجراء الجماعي وحالة طلب قابلة للمراجعة","Requires bulk-review permission and a reviewable request")}} columns={[
+            {id:"name",label:c("الطالب","Student"),render:row=><div><p className="font-medium" dir="auto">{row.name}</p><p className="text-sm text-muted-foreground" dir="auto">{row.subtitle}</p></div>},
+            ...(showCommittee?[{id:"committee",label:c("اللجنة","Committee"),className:"w-40",render:(row:ReviewRow)=><bdi>{row.committee??"—"}</bdi>}]:[]),
+            {id:"status",label:c("الحالة","Status"),className:"w-32",render:row=><RequestStatusBadge status={row.status} locale={locale}/>},
+            {id:"date",label:c("تاريخ التقديم","Submitted"),className:"w-40",render:row=><><time dateTime={row.createdAt}>{formatRiyadhDate(row.createdAt,locale)}</time><p className="text-sm text-muted-foreground"><bdi>{formatRiyadhTime(row.createdAt,locale)}</bdi></p></>},
+            {id:"actions",label:c("الإجراءات","Actions"),className:actionsClassName,render:actions}
+          ]}/>
+
         </>
       )}
       <WorkspaceStickySaveBar

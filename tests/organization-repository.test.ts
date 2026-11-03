@@ -28,6 +28,7 @@ vi.mock("@/db/client", () => ({
   }),
 }));
 import { getPublicDirectory, getPublicOrganization } from "@/features/organizations/public-repository";
+import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
 import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getManagementOverview, getAssignedManagementOrganizations, getAdminOrganizations, getAdminAccountProfile, updateAdminAccountName, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
 
 const admin = "00000000-0000-4000-8000-000000000001";
@@ -39,6 +40,14 @@ async function createLearner() {
  await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'learner@example.invalid',now())",[learner]);
  await engine.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,'الطالب','private',$2,'نظم معلومات','5')",[learner,"9".repeat(64)]);
 }
+it("keeps the test member in rows and physical pagination while excluding it from summaries, with server-side date sorting",async()=>{
+ await createLearner();
+ const lead=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id,start_date) values($1,$2,'2026-10-01') returning id",[org,leader])).rows[0].id;
+ const test=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id,start_date) values($1,$2,'2026-10-02') returning id",[org,learner])).rows[0].id;
+ await engine.query("insert into lub.role_assignments(organization_membership_id,organization_id,role_code,is_primary_leader,assigned_by_user_id) values($1,$2,'OL',true,$3)",[lead,org,leader]);await engine.query("update lub.users set is_test_account=true where id=$1",[learner]);
+ const data=await getOrganizationMemberDirectory(leader,org,{q:"",status:"all",committee:null,sort:"date:desc"});
+ expect(data?.members.map(row=>row.id)).toEqual([test,lead]);expect(data?.rowTotal).toBe(2);expect(data?.counts?.total).toBe(1);expect(data?.statusCounts?.all).toBe(1);expect(data?.members.some(row=>row.id===test)).toBe(true);
+});
 
 beforeEach(async () => {
   selectedReads=0;
@@ -161,7 +170,7 @@ it("exports scoped approved hours directly as CSV without persisting report docu
  const adminMember=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");const term=(await engine.query<{id:string}>("select lub.create_academic_term('2026','T1','الفصل الأول',current_date-5,current_date+5) as id")).rows[0].id;
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);await engine.query("select lub.grant_report_permission($1,null,null)",[member]);await engine.query("select lub.grant_report_permission($1,null,null)",[adminMember]);await engine.exec("reset role");
- scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0,rulePage:0})).toBeUndefined();
+ scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0})).toBeUndefined();
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[exporter]);await engine.exec("set role authenticated");const exported=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,$2) as csv",[org,term])).rows[0].csv;expect(exported).toContain('"الاسم","الساعات المعتمدة"');expect(exported).toContain('2.50');expect(exported).not.toContain('storage_key');await engine.exec("reset role");
  const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(false);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
 });
@@ -180,7 +189,7 @@ it("reads hours and renewals with scoped totals, bounded lists and the genuine r
  await engine.query("select lub.change_renewal_status($1,'Open')",[c]);await engine.exec("reset role");
  scopedReads=0;const own=await myHours(learner,term,0);expect(scopedReads).toBe(1);expect(own?.account.onboarded).toBe(true);expect(own?.total).toBe("40.50");expect(own?.records).toHaveLength(26);expect(own?.records[0].decisions).toHaveLength(0);const {getHourRecord}=await import("@/features/hours/repository");expect((await getHourRecord(learner,own!.records[0].id))?.decisions).toHaveLength(1);expect(await getHourRecord(admin,own!.records[0].id)).toBeUndefined();expect((await myHours(learner,term,1))?.records).toHaveLength(2);
  expect((await myHours(leader,term,0))?.records).toHaveLength(0);
- const filters={term,committee:null,page:0,memberPage:0,rulePage:0};scopedReads=0;const workspace=await hoursWorkspace(leader,org,filters);expect(scopedReads).toBe(1);expect(workspace?.total).toBe("40.50");expect(workspace?.scopes[0].approve).toBe(true);expect(workspace?.members).toHaveLength(2);expect(workspace?.records[0].owner).toBe("الطالب");expect(await hoursWorkspace(admin,org,filters)).toBeUndefined();
+ const filters={term,committee:null,page:0,memberPage:0};scopedReads=0;const workspace=await hoursWorkspace(leader,org,filters);expect(scopedReads).toBe(1);expect(workspace?.total).toBe("41");expect(workspace?.scopes[0].approve).toBe(true);expect(workspace?.members).toHaveLength(2);expect(workspace?.records[0].owner).toBe("الطالب");expect(await hoursWorkspace(admin,org,filters)).toBeUndefined();
  expect((await termWorkspace(admin))?.canManage).toBe(true);expect((await termWorkspace(leader))?.canManage).toBe(false);
  scopedReads=0;const renewals=await myRenewals(learner,0);expect(scopedReads).toBe(1);expect(renewals?.items).toHaveLength(1);expect(renewals?.items[0].response.canRespond).toBe(true);
  scopedReads=0;const renew=await renewalWorkspace(leader,org,c,0,0);expect(scopedReads).toBe(1);expect(renew?.selected?.id).toBe(c);expect(renew?.responses).toHaveLength(2);expect(renew?.counts[0].count).toBe(2);expect(await renewalWorkspace(admin,org,c,0,0)).toBeUndefined();
@@ -205,6 +214,8 @@ it("reads scoped tasks, selected submissions, personal summaries and former-memb
  const submission=(await engine.query<{id:string}>("select lub.submit_task($1,'مخرج',array[]::uuid[],0,2) as id",[participant])).rows[0].id;await engine.exec("reset role");
  const joinedTasks=await listTasks(admin,{view:"available",page:0});expect(joinedTasks.items.find(x=>x.task.id===task)?.participant?.id).toBe(participant);expect(joinedTasks.items.find(x=>x.task.id===task)?.latest_submission?.status_code).toBe("Submitted");
  const detail=await taskDetail(leader,task,participant);expect(detail?.selected?.id).toBe(participant);expect(detail?.submissions[0].id).toBe(submission);expect(detail?.submissions[0].task_snapshot.description).toBe("وصفها");expect(detail?.team[0].name).toBe("المشرف");
+ const studentView=await taskDetail(leader,task,null,0,0,"student");expect(studentView?.canManage).toBe(false);expect(studentView?.history).toEqual([]);expect(studentView?.submissions).toEqual([]);expect(studentView?.linkedEvent).toBeNull();expect(studentView?.eventChoices).toEqual([]);
+
  expect((await getMyPageData(admin)).tasks[0].id).toBe(task);
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.review_task_submission($1,'Rejected','تعديل',null)",[submission]);await engine.exec("reset role");
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_task_status($1,'Completed',2)",[task]);await engine.exec("reset role");
@@ -442,7 +453,7 @@ it('excludes active system administrators from member lists, public counts, hour
  for(const [member,hours] of [[leaderMember,2],[adminMember,20]])await engine.query("insert into lub.hour_records(organization_id,organization_membership_id,academic_term_id,source_code,hours,activity_date,description,status_code,requested_by_user_id,reviewed_by_user_id,reviewed_at) values($1,$2,$3,'MANUAL',$4,current_date,'عمل','Approved',$5,$5,now())",[org,member,term,hours,leader]);
  const {getOrganizationMemberDirectory}=await import('@/features/organizations/management-repository');const {hoursWorkspace}=await import('@/features/hours/repository');
  expect((await getOrganizationMemberDirectory(leader,org))?.members.map(m=>m.name)).toEqual(['القائد']);expect((await getPublicOrganization('tech'))?.organization.memberCount).toBe(1);
- const hours=await hoursWorkspace(leader,org,{term:null,committee:null,page:0,memberPage:0,rulePage:0});expect(hours?.total).toBe('2.00');expect(hours?.records).toHaveLength(1);expect(hours?.members.map(m=>m.name)).not.toContain('المشرف');
+ const hours=await hoursWorkspace(leader,org,{term:null,committee:null,page:0,memberPage:0});expect(hours?.total).toBe('2');expect(hours?.records).toHaveLength(1);expect(hours?.members.map(m=>m.name)).not.toContain('المشرف');
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec('set role authenticated');const csv=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,null,null,'') as csv",[org])).rows[0].csv;expect(csv).not.toContain('المشرف');await engine.exec('reset role');
  expect((await engine.query('select id from lub.organization_memberships where id=$1',[adminMember])).rows).toHaveLength(1);expect((await engine.query('select id from lub.hour_records where organization_membership_id=$1',[adminMember])).rows).toHaveLength(1);
 });

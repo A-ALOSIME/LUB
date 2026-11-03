@@ -8,7 +8,7 @@ const record:MemberRecord={id:'membership',name:'طالب',major:'الحاسب',
 it('copies identifiers, phone and a complete section without changing their raw values',async()=>{
  const writeText=vi.fn().mockResolvedValue(undefined);Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText}});
  render(<MemberDetailSheet open onOpenChange={()=>{}} record={record} error={false} locale="ar"/>);
- for(const [label,value]of [['نسخ الرقم الجامعي','0441234567'],['نسخ رقم الهوية أو الإقامة','1000000000'],['نسخ البريد الجامعي','student@example.invalid'],['نسخ رقم الجوال','+966551234567']]){fireEvent.click(screen.getByRole('button',{name:label}));await waitFor(()=>expect(writeText).toHaveBeenLastCalledWith(value));}
+ for(const [label,value]of [['نسخ الرقم الجامعي','0441234567'],['نسخ رقم الهوية أو الإقامة','1000000000'],['نسخ الإيميل','student@example.invalid'],['نسخ رقم الجوال','+966551234567']]){fireEvent.click(screen.getByRole('button',{name:label}));await waitFor(()=>expect(writeText).toHaveBeenLastCalledWith(value));}
  fireEvent.click(screen.getAllByRole('button',{name:'نسخ القسم كاملاً'})[1]);await waitFor(()=>expect(writeText).toHaveBeenLastCalledWith('الرقم الجامعي: 0441234567\nرقم الهوية أو الإقامة: 1000000000\nالتخصص: الحاسب\nالمستوى الدراسي: المستوى الخامس'));
  expect(document.querySelector('[data-slot=sheet-content]')?.getAttribute('data-side')).toBe('left');expect(screen.getByText('عاد إلى الجهة')).toBeTruthy();
 });

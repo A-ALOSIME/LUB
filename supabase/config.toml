@@ -12,3 +12,6 @@ verify_jwt = false
 # XLSX generation stays off the free-tier Worker CPU budget; Auth and SQL scope are checked again.
 [functions.export-hours]
 verify_jwt = false
+
+[functions.export-registrants]
+verify_jwt = false

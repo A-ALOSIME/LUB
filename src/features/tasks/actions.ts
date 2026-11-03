@@ -23,24 +23,24 @@ export async function readTaskNotification(notification:string):Promise<TaskStat
 export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskState>{
  const user=await requireUser();let target:string|undefined;
  try{
- const operation=z.enum(["save-task","delete","withdraw","link-event","status","template","join","start","submit","review","close","read","read-all"]).parse(f.get("operation"));
- if(["join","start","submit","withdraw","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return operation==="submit"?{error:submissionErrorMessage("access","ar"),submissionError:"access"}:{error:adminError};}
+ const operation=z.enum(["save-task","delete","withdraw","link-event","status","template","join","submit","review","review-decision","close","read","read-all"]).parse(f.get("operation"));
+ if(["join","submit","withdraw","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return operation==="submit"?{error:submissionErrorMessage("access","ar"),submissionError:"access"}:{error:adminError};}
  const query=(()=>{
  switch(operation){
  case "delete":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.delete_task(${id(f,"task")},${revision(f)})`;
  case "withdraw":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.withdraw_task_participation(${id(f,"participant")})`;
  case "link-event":return sql`select lub.link_task_event(${id(f,"task")},${optionalId(f,"event")},${revision(f)})`;
- case "save-task":if(f.get("rule")){if(f.get("task"))throw new Error();return sql`select lub.save_task_with_rule(${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"title",120,2)},${text(f,"description",6000)},${date(f,"starts")}::timestamptz,${date(f,"due")}::timestamptz,${id(f,"rule")}) as id`;}return sql`select lub.save_task(${optionalId(f,"task")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"title",120,2)},${text(f,"description",6000)},${date(f,"starts")}::timestamptz,${date(f,"due")}::timestamptz,${hours(f)}::numeric,${f.get("task")?revision(f):null}::int) as id`;
+ case "save-task":return sql`select lub.save_task(${optionalId(f,"task")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"title",120,2)},${text(f,"description",6000)},${date(f,"starts")}::timestamptz,${date(f,"due")}::timestamptz,${hours(f)}::numeric,${f.get("task")?revision(f):null}::int) as id`;
  case "status":{const status=z.enum(["Open","Completed","Cancelled"]).parse(f.get("status"));if(status!=="Open"&&f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.change_task_status(${id(f,"task")},${status},${revision(f)})`;}
- case "template":return sql`select lub.save_task_template(${optionalId(f,"template")},${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000,f.get("source")?0:1)},${hours(f)}::numeric,${f.get("active")==="on"},${f.get("template")?revision(f):null}::int,${optionalId(f,"source")})`;
+ case "template":return sql`select lub.save_task_template_bundle(${optionalId(f,"template")},${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000,f.get("source")?0:1)},${hours(f)}::numeric,${f.get("active")==="on"},${f.get("template")?revision(f):null}::int,${optionalId(f,"source")},${optionalId(f,"poster")},${activitySkillKeys(f)===null?null:JSON.stringify(activitySkillKeys(f))}::jsonb,${Boolean(f.get("poster")||f.get("removePoster")==="true")})`;
  case "join":return sql`select lub.join_task(${id(f,"task")})`;
- case "start":return sql`select lub.start_task_participation(${id(f,"participant")})`;
  case "submit":{
   const assets=z.array(z.uuid()).max(5).parse(f.getAll("asset")),message=text(f,"message",6000,0);
   if(!message&&!assets.length)throw new SubmissionFault("empty");
   if(new Set(assets).size!==assets.length)throw new SubmissionFault("attachment");
   return sql`select lub.submit_task(${id(f,"participant")},${message},ARRAY[${sql.join(assets.map(asset=>sql`${asset}`),sql`, `)}]::uuid[],${z.coerce.number().int().min(0).parse(f.get("lastRevision"))},${revision(f)})`;
  }
+ case "review-decision":{const decision=z.enum(["Approved","Changes_Requested","Rejected"]).parse(f.get("decision"));return sql`select lub.review_task_submission_decision(${id(f,"submission")},${decision},${text(f,"note",3000,decision==="Approved"?0:1)})`;}
  case "review":return sql`select lub.review_task_submission(${id(f,"submission")},${z.enum(["Approved","Rejected"]).parse(f.get("status"))},${text(f,"note",3000,0)},${f.get("hours")?hours(f):null}::numeric)`;
  case "close":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.close_task_participant(${id(f,"participant")})`;
  case "read":return sql`select lub.read_task_notification(${id(f,"notification")})`;
@@ -63,11 +63,12 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
   const intent=z.enum(["draft","publish","template"]).parse(f.get("intent")||"draft");
   if(intent==="template"){
    if(f.get("task"))throw new Error("New templates only");
-   await tx.execute(sql`select lub.save_task_template(null,${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000)},${hours(f)}::numeric,true,null,null)`);
+   await tx.execute(sql`select lub.save_task_template_bundle(null,${id(f,"org")},${optionalId(f,"committee")},${text(f,"title",120,2)},${text(f,"description",6000)},${hours(f)}::numeric,true,null,null,${optionalId(f,"poster")},${activitySkillKeys(f)===null?null:JSON.stringify(activitySkillKeys(f))}::jsonb,${Boolean(f.get("poster"))})`);
    return [];
   }
   const skills=activitySkillKeys(f);
   const saved=await tx.execute(query);const task=z.uuid().parse(saved[0]?.id);
+  if(!f.get("task")&&f.get("template"))await tx.execute(sql`select lub.apply_task_template_media(${task},${id(f,"template")},(select revision from lub.tasks where id=${task}))`);
   if(skills!==null)await tx.execute(sql`select lub.set_activity_skill_tags('Task',${task},${JSON.stringify(skills)}::jsonb,(select revision from lub.tasks where id=${task}))`);
   if(f.get("poster")||f.get("removePoster")==="true")await tx.execute(sql`select lub.set_task_image(${task},${optionalId(f,"poster")},(select revision from lub.tasks where id=${task}))`);
   if(intent==="publish")await tx.execute(sql`select lub.change_task_status(${task},'Open',(select revision from lub.tasks where id=${task}))`);

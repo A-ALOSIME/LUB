@@ -23,11 +23,13 @@ type ApplicationRowActionsProps = {
   canWithdraw: boolean;
   locale: Locale;
   preview: boolean;
+  open?:boolean;
+  onOpenChange?:(open:boolean)=>void;
 };
 
-export function ApplicationRowActions({ applicationId, organization, canWithdraw, locale, preview }: ApplicationRowActionsProps) {
+export function ApplicationRowActions({ applicationId, organization, canWithdraw, locale, preview,open,onOpenChange }: ApplicationRowActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [detailsOpen,setDetailsOpen]=useState(false);
+  const [localDetails,setLocalDetails]=useState(false);const detailsOpen=open??localDetails,setDetailsOpen=onOpenChange??setLocalDetails;
   const actor=useQueryActor(),client=useQueryClient();
   const result=useQuery({...applicationDetailQuery(actor,null,applicationId),enabled:detailsOpen&&!preview});
   const loading=result.isPending;
@@ -37,7 +39,7 @@ export function ApplicationRowActions({ applicationId, organization, canWithdraw
   return <>
     <div className="flex flex-wrap items-center gap-1"><RowAction label={translateUi((en) ? "en" : "ar", "عرض التفاصيل", "View details")} disabled={preview} onClick={()=>setDetailsOpen(true)}><Eye/></RowAction>{canWithdraw?<RowAction danger label={translateUi((en) ? "en" : "ar", "سحب الطلب", "Withdraw application")} disabled={preview} onClick={()=>setConfirmOpen(true)}><Undo2/></RowAction>:<span className="row-action-space"/>}</div>
 
-    <ManagementActionSheet label={translateUi((en) ? "en" : "ar", "تفاصيل الطلب", "Application details")} title={organization} locale={locale} presentation="sheet" open={detailsOpen} onOpenChange={setDetailsOpen} hideTrigger mobileBottomSheet width="wide">
+    <ManagementActionSheet label={translateUi((en) ? "en" : "ar", "تفاصيل الطلب", "Application details")} title={organization} locale={locale} open={detailsOpen} onOpenChange={setDetailsOpen} hideTrigger mobileBottomSheet width="wide">
       {loading?<Skeleton className="h-40 w-full"/>:result.data?<div className="flex flex-col gap-4"><h2 className="font-semibold">{result.data.campaign_title}</h2><ApplicationDetail detail={result.data} locale={locale}/></div>:result.isError?<Alert variant="destructive"><AlertDescription>{translateUi((en) ? "en" : "ar", "تعذّر عرض الطلب. حاول مرة ثانية.", "Unable to load this application. Please try again.")}</AlertDescription></Alert>:null}
     </ManagementActionSheet>
     {!preview && <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

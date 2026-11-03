@@ -3,7 +3,7 @@
 import {t as translateUi} from "@/lib/i18n";
 import {Spinner} from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -16,6 +16,13 @@ type Presentation = "dialog" | "sheet";
 const ManagementActionContext = createContext<{ close: () => void; locale: Locale; inlineForms?:boolean;refresh?:()=>void|Promise<void> } | null>(null);
 
 export function useManagementAction() { return useContext(ManagementActionContext); }
+
+/** Run after feedback effects so closing a modal cannot swallow its success toast. */
+export function useCloseOnSuccess<T extends {success?:unknown}>(state:T,onSuccess?:(state:T)=>void){
+  const action=useManagementAction(),handled=useRef<T|null>(null);
+  useEffect(()=>{if(!state.success||handled.current===state)return;handled.current=state;onSuccess?.(state);action?.close();},[state,onSuccess,action]);
+}
+
 
 export function ManagementActionProvider({ locale, close, children,inlineForms=false,refresh }: { locale: Locale; close: () => void; children: ReactNode;inlineForms?:boolean;refresh?:()=>void|Promise<void> }) {
   return <ManagementActionContext.Provider value={{ close, locale,inlineForms,refresh }}>{children}</ManagementActionContext.Provider>;
@@ -40,7 +47,9 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   </div>;
 }
 
-export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction, sheetClassName, visuallyHideTitle = false, footer }: {
+export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction, sheetClassName, visuallyHideTitle = false, footer,disabled=false,hint }: {
+  disabled?:boolean;
+  hint?:string;
   label: string;
   title: string;
   children: ReactNode;
@@ -72,8 +81,8 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   const body = <ManagementActionProvider locale={locale} close={() => setOpen(false)}>
     <div className="management-action-scroll" data-management-action-scroll>{children}</div>
   </ManagementActionProvider>;
-  const trigger = <Button type="button" variant={variant === "destructive" ? "danger-outline" : variant} size={triggerSize} aria-label={triggerAriaLabel} title={triggerAriaLabel}>{icon ?? <Plus aria-hidden="true" />}{label}</Button>;
-  const directTrigger = !hideTrigger && rowAction ? <RowAction label={label || triggerAriaLabel || title} danger={variant === "destructive"} onClick={() => setOpen(true)}>{icon ?? <Plus aria-hidden="true" />}</RowAction> : null;
+  const trigger = <Button type="button" variant={variant === "destructive" ? "danger-outline" : variant} size={triggerSize} disabled={disabled} aria-label={triggerAriaLabel} title={triggerAriaLabel}>{icon ?? <Plus aria-hidden="true" />}{label}</Button>;
+  const directTrigger = !hideTrigger && rowAction ? <RowAction disabled={disabled} hint={hint} label={label || triggerAriaLabel || title} danger={variant === "destructive"} onClick={() => setOpen(true)}>{icon ?? <Plus aria-hidden="true" />}</RowAction> : null;
 
   if (presentation === "sheet" || mobile) return <Sheet open={open} onOpenChange={setOpen}>
     {directTrigger ?? (!hideTrigger && <SheetTrigger render={trigger} />)}

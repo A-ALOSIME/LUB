@@ -13,26 +13,13 @@ import { TaskFields } from "./task-fields";
 afterEach(cleanup);
 
 describe("task hours field", () => {
-  it("switches the same field between manual hours and a rule", () => {
-    const { container } = render(<TaskFields locale="ar" rules={[{
-      id: "rule-1",
-      name: "تنظيم فعالية",
-      default_hours: "8",
-      committee_id: null,
-      task_template_id: null,
-    }]} />);
-
+  it("keeps direct numeric hours without the retired rules selector", () => {
+    const {container}=render(<TaskFields locale="ar" value={{default_hours:"8"}}/>);
+    const input=screen.getByRole("spinbutton") as HTMLInputElement;
     expect(container.querySelectorAll('input[type="number"]')).toHaveLength(1);
-    expect(container.querySelector('select[name="rule"]')).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "استخدم قاعدة" }));
-    expect(container.querySelectorAll('input[type="number"]')).toHaveLength(0);
-    expect((container.querySelector('select[name="rule"]') as HTMLSelectElement).value).toBe("rule-1");
-    expect((container.querySelector('input[name="hours"]') as HTMLInputElement).value).toBe("8");
-
-    fireEvent.click(screen.getByRole("button", { name: "أدخل رقمًا" }));
-    expect(container.querySelectorAll('input[type="number"]')).toHaveLength(1);
-    expect(container.querySelector('input[name="rule"]')).toBeTruthy();
-    expect(container.querySelector('select[name="rule"]')).toBeNull();
+    expect(input.value).toBe("8");fireEvent.change(input,{target:{value:"5"}});expect(input.value).toBe("5");
+    expect(container.querySelector('[name="rule"]')).toBeNull();
+    expect(screen.queryByRole("button",{name:"استخدم قاعدة"})).toBeNull();
+    expect(screen.queryByRole("button",{name:"أدخل رقمًا"})).toBeNull();
   });
 });

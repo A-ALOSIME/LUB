@@ -43,6 +43,7 @@ function pageTitle(pathname: string, locale: Locale) {
     renewals: ["التسجيل والتجديد", "Registration and renewal"], events: ["الفعاليات والإعلانات", "Events and announcements"],
     tasks: ["المهام والساعات", "Tasks and hours"], hours: ["المهام والساعات", "Tasks and hours"],
   };
+  if (pathname.startsWith("/registration/renewal/")) return translateUi(locale,"نتائج التجديد","Renewal results");
   if (pathname.startsWith("/tasks/")) return translateUi((en) ? "en" : "ar", "تفاصيل المهمة", "Task details");
   const exact = labels[pathname];
   if (exact) return exact[en ? 1 : 0];

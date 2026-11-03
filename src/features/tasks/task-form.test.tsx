@@ -31,13 +31,14 @@ it("requires a confirmation and retains the chosen creation intent",async()=>{
  expect(save.mock.calls[0][1].get("intent")).toBe("template");expect(save.mock.calls[0][1].get("title")).toBe("تصميم منشور");
 });
 
-it("shows joined status optimistically, keeps the panel open, and refreshes the confirmed participation",async()=>{
+it("closes a successful join modal without an extra Start work step",async()=>{
  let finish!:(state:{success:string})=>void;save.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));const close=vi.fn(),refresh=vi.fn();
  render(<ManagementActionProvider locale="en" close={close} inlineForms refresh={refresh}><TaskForm operation="join" fields={{task:"task"}} label="Join task" locale="en"/></ManagementActionProvider>);
  fireEvent.submit(screen.getByRole("button",{name:"Join task"}).closest("form")!);
- await waitFor(()=>expect(save).toHaveBeenCalledOnce());expect(screen.getByRole("status").textContent).toBe("Status: Joined");expect((screen.getByRole("button",{name:"Start work"}) as HTMLButtonElement).disabled).toBe(true);expect(close).not.toHaveBeenCalled();
- finish({success:"تم حفظ التغيير."});await waitFor(()=>expect(refresh).toHaveBeenCalledOnce());expect(close).not.toHaveBeenCalled();expect(screen.queryByRole("button",{name:"Join task"})).toBeNull();
+ await waitFor(()=>expect(save).toHaveBeenCalledOnce());expect(screen.getByRole("status").textContent).toBe("Joining…");expect(screen.queryByRole("button",{name:"Start work"})).toBeNull();expect(close).not.toHaveBeenCalled();
+ finish({success:"تم حفظ التغيير."});await waitFor(()=>expect(close).toHaveBeenCalledOnce());expect(refresh).not.toHaveBeenCalled();expect(screen.queryByRole("button",{name:"Join task"})).toBeNull();
 });
+
 it("rolls an unsuccessful optimistic join back to the join action",async()=>{
  const close=vi.fn();render(<ManagementActionProvider locale="en" close={close} inlineForms><TaskForm operation="join" label="Join task" locale="en"/></ManagementActionProvider>);
  fireEvent.submit(screen.getByRole("button",{name:"Join task"}).closest("form")!);await screen.findByRole("alert");expect(screen.getByRole("button",{name:"Join task"})).toBeTruthy();expect(screen.queryByText("Status: Joined")).toBeNull();expect(close).not.toHaveBeenCalled();

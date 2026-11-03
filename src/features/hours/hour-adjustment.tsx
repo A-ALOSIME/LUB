@@ -12,7 +12,7 @@ import type {HourRecord} from "./repository";
 import type {Locale} from "@/lib/preferences";
 import { FormField } from "@/components/form-field";
 
-export function HourAdjustment({record,locale,onSuccess}:{record:HourRecord;locale:Locale;onSuccess:()=>void}) {
+export function HourAdjustment({record,locale,onSuccess}:{record:Pick<HourRecord,"id"|"hours">;locale:Locale;onSuccess:()=>void}) {
  const [direction,setDirection]=useState("increase"),[amount,setAmount]=useState(""),[note,setNote]=useState("");
  const en=locale==="en",c=createTranslator(en ? "en" : "ar");
  const numeric=Number(amount),delta=numeric*(direction==="increase"?1:-1),next=Math.round((Number(record.hours)+delta)*100)/100;

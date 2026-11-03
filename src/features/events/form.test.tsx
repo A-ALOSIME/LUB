@@ -4,7 +4,7 @@ import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 const mocks=vi.hoisted(()=>({mutation:vi.fn()}));
 vi.mock("./actions",()=>({mutateEvent:mocks.mutation}));
-vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn()})}));
+vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn(),refresh:vi.fn()})}));
 vi.mock("@/features/forms/actions",()=>({mutateWorkflow:vi.fn()}));
 import {ManagementActionProvider} from "@/components/management-action-sheet";
 import {EventForm,EventRegistrationForm} from "./form";

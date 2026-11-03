@@ -1,13 +1,22 @@
 import ExcelJS from "exceljs";
-type Locale="ar"|"en";
-function academicTerm(value:string,locale:Locale){if(locale==="en")return value;return value.replace(/(?:الترم|الفصل(?: الدراسي)?)\s*(?:الاول|الأول|1)/g,"الفصل الدراسي الأول").replace(/(?:الترم|الفصل(?: الدراسي)?)\s*(?:الثاني|2)/g,"الفصل الدراسي الثاني").replace(/(?:الترم|الفصل(?: الدراسي)?)\s*(?:الثالث|3)/g,"الفصل الدراسي الثالث");}
-export type HoursExport={organization:string;slug:string;records:Array<{name:string;committee:string|null;description:string;hours:string;activity_date:string;term:string;status_code:string;source_code:string;added_by:string|null}>};
-export async function hoursWorkbook(data:HoursExport,locale:Locale){
+import {decryptExportIdentifier} from "../export-members/csv.ts";
+
+export type HoursExport={organization:string;slug:string;period?:string;state?:string|null;records:Array<{userId:string;name:string;universityCiphertext:string|null;hours:string;firstDate:string|null;lastDate:string|null;isTest:boolean}>};
+export async function hoursWorkbook(data:HoursExport,locale:"ar"|"en",secret:string){
+ const key=await crypto.subtle.importKey("raw",Uint8Array.from(atob(secret),c=>c.charCodeAt(0)),"AES-GCM",false,["decrypt"]);
  const c=(ar:string,en:string)=>locale==="ar"?ar:en,book=new ExcelJS.Workbook(),sheet=book.addWorksheet(c("الساعات","Hours"),{views:[{state:"frozen",ySplit:1,rightToLeft:locale==="ar"}]});
- sheet.columns=[["name",c("العضو","Member")],["committee",c("اللجنة","Committee")],["description",c("السبب","Reason")],["hours",c("الساعات","Hours")],["date",c("التاريخ","Date")],["term",c("الفصل الدراسي","Academic term")],["status",c("الحالة","Status")],["source",c("المصدر","Source")],["actor",c("أضافها","Added by")]].map(([key,header])=>({key,header}));
- const status:Record<string,string>={Approved:c("معتمدة","Approved"),Pending:c("بانتظار الاعتماد","Pending approval"),Rejected:c("مرفوضة","Rejected"),Voided:c("مبطلة","Voided")},source:Record<string,string>={MANUAL:c("إضافة يدوية","Manual entry"),SELF_REPORTED:c("طلب ذاتي","Self-reported"),TASK:c("مهمة","Task"),EVENT:c("فعالية","Event")};
- for(const record of data.records){const row=sheet.addRow([record.name,record.committee||null,record.description||null,Number(record.hours),new Date(`${record.activity_date.slice(0,10)}T00:00:00Z`),academicTerm(record.term,locale),status[record.status_code]??record.status_code,source[record.source_code]??record.source_code,record.added_by||null]);row.getCell(5).numFmt="yyyy-mm-dd";row.height=22;}
- sheet.getRow(1).font={bold:true};sheet.autoFilter={from:{row:1,column:1},to:{row:sheet.rowCount,column:9}};
- sheet.columns.forEach(column=>{let width=12;column.eachCell?.({includeEmpty:false},cell=>{width=Math.max(width,Math.min(String(cell.value??"").length+2,48));});column.width=width;});
+ const state=data.state,hours=state==="Approved"?c("الساعات المعتمدة","Approved hours"):state==="Pending"?c("الساعات بانتظار الاعتماد","Pending hours"):state==="Rejected"?c("الساعات المرفوضة","Rejected hours"):c("الساعات","Hours");
+ sheet.addRow([c("الاسم","Name"),c("الرقم الجامعي","University ID"),hours,c("أول نشاط","First activity"),c("آخر نشاط","Last activity")]).font={bold:true};
+ const seen=new Set<string>();
+ for(const record of data.records){
+  if(record.isTest!==false)continue;
+  if(seen.has(record.userId))throw new Error("Expected one aggregate per member");seen.add(record.userId);
+  const university=record.universityCiphertext?await decryptExportIdentifier(record.universityCiphertext,record.userId,"university-id",key):null;
+  const row=sheet.addRow([record.name,university,Math.round(Number(record.hours)),record.firstDate?new Date(`${record.firstDate.slice(0,10)}T00:00:00Z`):null,record.lastDate?new Date(`${record.lastDate.slice(0,10)}T00:00:00Z`):null]);
+  row.getCell(2).numFmt="@";row.getCell(3).numFmt="0";row.getCell(4).numFmt="yyyy-mm-dd";row.getCell(5).numFmt="yyyy-mm-dd";
+ }
+ sheet.eachRow(row=>row.eachCell({includeEmpty:true},cell=>{cell.alignment={horizontal:"right",vertical:"middle",wrapText:false};}));
+ sheet.autoFilter={from:{row:1,column:1},to:{row:sheet.rowCount,column:5}};
+ sheet.columns.forEach(column=>{let width=12;column.eachCell?.({includeEmpty:false},cell=>{width=Math.max(width,cell.value instanceof Date?12:Math.min(String(cell.value??"").length+2,48));});column.width=width;});
  return new Uint8Array(await book.xlsx.writeBuffer());
 }

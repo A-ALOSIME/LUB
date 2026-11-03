@@ -21,7 +21,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { ManagementActionFooter } from "@/components/management-action-sheet";
+import { ManagementActionFooter,useManagementAction,useCloseOnSuccess } from "@/components/management-action-sheet";
 import { Button } from "@/components/ui/button";
 import { useActionToast } from "@/components/action-toast";
 
@@ -46,6 +46,7 @@ export function HoursForm({
   disabled?: boolean;
   policyFooter?: boolean;
 }) {
+  const management=useManagementAction();
   const [state, action, pending] = useActionState<HoursState, FormData>(
     mutateHours,
     {},
@@ -57,9 +58,9 @@ export function HoursForm({
       null,
     );
   useActionToast(state, locale);
+  useCloseOnSuccess(state,()=>{window.dispatchEvent(new Event("activity-changed"));onSuccess?.();});
   useEffect(() => {
     if (state.error) alert.current?.focus();
-    if (state.success){window.dispatchEvent(new Event("activity-changed"));onSuccess?.();}
   }, [state, onSuccess]);
   return (
     <>
@@ -69,14 +70,26 @@ export function HoursForm({
           submitted.current = new FormData(event.currentTarget);
         }}
         onReset={event=>{event.preventDefault();if(policyFooter)setResetGeneration(value=>value+1);}}
-        className="space-y-4"
+        className={management?"workflow-split-form":"space-y-4"}
       >
         <input type="hidden" name="operation" value={operation} />
         {Object.entries(fields).map(([k, v]) => (
           <input key={k} type="hidden" name={k} value={v} />
         ))}
-        <fieldset key={resetGeneration} disabled={pending} className="min-w-0 space-y-4">
+        <fieldset key={resetGeneration} disabled={pending} className={management?"workflow-form-body min-w-0 space-y-4":"min-w-0 space-y-4"}>
           {children}
+
+        {state.error && (
+          <p ref={alert} role="alert" tabIndex={-1} className="error-message">
+            {actionFeedback(state.error, locale)}
+          </p>
+        )}
+        {state.success && (
+          <p role="status" className="text-action">
+            {actionFeedback(state.success, locale)}
+          </p>
+        )}
+        </fieldset>
           <ManagementActionFooter
             label={
               pending ? (translateUi((locale === "en") ? "en" : "ar", "جارٍ الحفظ…", "Saving…")) : label
@@ -88,17 +101,6 @@ export function HoursForm({
             showCancel={!policyFooter}
             secondaryAction={policyFooter?<Button type="reset" variant="ghost" disabled={pending}>{translateUi((locale==="en") ? "en" : "ar", "إلغاء", "Cancel")}</Button>:undefined}
           />
-        </fieldset>
-        {state.error && (
-          <p ref={alert} role="alert" tabIndex={-1} className="error-message">
-            {actionFeedback(state.error, locale)}
-          </p>
-        )}
-        {state.success && (
-          <p role="status" className="text-action">
-            {actionFeedback(state.success, locale)}
-          </p>
-        )}
       </form>
       <AlertDialog
         open={Boolean(state.duplicate && state !== dismissedDuplicate)}

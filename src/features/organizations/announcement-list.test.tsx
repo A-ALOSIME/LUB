@@ -3,6 +3,7 @@ import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 const mutation=vi.hoisted(()=>vi.fn<(previous:unknown,form:FormData)=>Promise<{success:string}>>(async()=>({success:"تم الحفظ"})));
 vi.mock("./actions",()=>({mutateOrganization:mutation}));
+vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn(),refresh:vi.fn(),prefetch:vi.fn()})}));
 import {AnnouncementList} from "./announcement-list";
 const items=[{id:"first",title:"الإعلان المنشور",body:"تفاصيل الإعلان",published:true,pinned:true,createdAt:"2026-10-27T12:00:00Z"},{id:"second",title:"مسودة جديدة",body:"محتوى المسودة",published:false,pinned:false,createdAt:"2026-10-27T12:00:00Z"}];
 beforeEach(()=>{mutation.mockClear();window.history.replaceState(null,"","/");});afterEach(cleanup);

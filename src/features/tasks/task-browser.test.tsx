@@ -6,6 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { TaskCard } from "./repository";
 import { TaskBrowser } from "./task-browser";
 
+vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn(),prefetch:vi.fn()})}));
 vi.mock("./task-panel-actions",()=>({loadTaskPanel:vi.fn()}));
 vi.mock("./actions",()=>({mutateTask:async()=>({success:"تم الحفظ"})}));
 

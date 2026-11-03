@@ -32,7 +32,7 @@ export function RowAction({
       <TooltipTrigger
         render={
           <span
-            className="inline-flex"
+            className="inline-flex min-w-0 max-w-full"
             tabIndex={props.disabled ? 0 : undefined}
           />
         }
@@ -46,7 +46,7 @@ export function RowAction({
           onKeyDown={event=>{event.stopPropagation();props.onKeyDown?.(event);}}
           aria-label={label}
           className={cn(
-            "row-action",
+            "row-action min-w-0 max-w-full whitespace-normal",
             danger && "row-action--danger",
             className,
           )}

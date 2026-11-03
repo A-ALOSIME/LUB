@@ -48,14 +48,14 @@ export function SignupFlow({ available, returnTo, locale }: { available: boolean
 
   return emailToVerify ? <div className="space-y-5">
     <p role="status" className="leading-8 text-muted">{translateUi((en) ? "en" : "ar", "إذا كان البريد مؤهلًا للتسجيل، سيصلك رمز تحقق من 6 أرقام على ", "If this email is eligible for sign-up, a 6-digit verification code will arrive at ")}<bdi className="font-medium text-ink">{emailToVerify}</bdi>{translateUi((en) ? "en" : "ar", ". أدخله أدناه، أو استخدم رابط التأكيد في نفس الرسالة لإكمال حسابك.", ". Enter it below, or follow the confirmation link in the same email to complete your account.")}</p>
-    <p className="text-sm leading-7 text-muted">{translateUi((en) ? "en" : "ar", "إذا لم يصلك الرمز خلال دقيقة، تحقّق من مجلد البريد العشوائي (Spam) أو الرسائل المحجوزة في بريد الجامعة، ثم اضغط «تعديل البيانات أو طلب رمز جديد» للمحاولة مرة أخرى.", "If the code does not arrive within a minute, check your spam folder or your university email quarantine, then choose “Change details or request a new code” to try again.")}</p>
+    <p className="text-sm leading-7 text-muted">{translateUi((en) ? "en" : "ar", "إذا لم يصلك الرمز خلال دقيقة، تحقّق من مجلد البريد العشوائي (Spam) أو الرسائل المحجوزة في بريد الجامعة، ثم اضغط «تعديل البيانات أو طلب رمز جديد» للمحاولة مرة أخرى.", "If the code does not arrive within a minute, check your spam folder or your email quarantine, then choose “Change details or request a new code” to try again.")}</p>
     <SignupOtpForm email={emailToVerify} returnTo={returnTo} locale={locale} />
     <button type="button" onClick={() => setChangeDetails(true)} className="text-link">{translateUi((en) ? "en" : "ar", "تعديل البيانات أو طلب رمز جديد", "Change details or request a new code")}</button>
   </div> : <form action={send} onSubmit={() => setChangeDetails(false)} className="space-y-5">
     <input type="hidden" name="returnTo" value={returnTo} />
     <input type="hidden" name="mode" value="signup" />
     <div>
-      <label htmlFor="signup-email">{translateUi((en) ? "en" : "ar", "البريد الإلكتروني", "Email address")}</label>
+      <label htmlFor="signup-email">{translateUi((en) ? "en" : "ar", "الإيميل", "Email address")}</label>
       <input id="signup-email" name="email" type="email" dir="ltr" autoComplete="email" placeholder="you@example.com" required maxLength={254} value={draft.email} onChange={event => updateText("email", event.currentTarget.value)} aria-invalid={Boolean(error("email"))} aria-describedby={error("email") ? "email-error" : "email-help"} />
       <p id="email-help" className="mt-2 text-sm leading-7 text-muted">{translateUi((en) ? "en" : "ar", "بعد إرسال بياناتك، نرسل لك رمز تحقق من 6 أرقام إلى بريدك.", "After you send your details, we will email a 6-digit verification code.")}</p>
       {fieldError("email")}

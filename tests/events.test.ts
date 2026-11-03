@@ -22,6 +22,36 @@ beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role 
 beforeEach(async()=>{await db.exec("begin");for(const [i,id] of [leader,student,peer].entries()){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into lub.users(id,email,email_verified_at) values($1,$2,now())",[id,`event${i}@example.invalid`]);await db.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,$2,'private',$3,'الحاسب','4')",[id,`طالب ${i}`,String(i).repeat(64)]);}await db.query("insert into lub.organizations(id,type_code,slug,name_ar) values($1,'Club','events-test','نادي الاختبار')",[org]);const m=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,leader])).rows[0].id;await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,role_code,is_primary_leader,assigned_by_user_id) values($1,$2,'OL',true,$3)",[m,org,leader]);await actor(leader);});
 afterEach(async()=>{await db.exec("rollback");});afterAll(async()=>{await db.close();});
 async function create(capacity=1){return(await db.query<{id:string}>("select lub.save_event(null,$1,'ورشة الاختبار','وصف الفعالية','In_Person','القاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',$2,null,2,null) as id",[org,capacity])).rows[0].id;}
+it("exports accepted and recorded registrants through expiring owner-bound tickets and excludes test accounts at source",async()=>{
+ const event=await create(10);await db.query("select lub.change_event_status($1,'Published',1)",[event]);await actor(student);
+ const registration=(await db.query<{id:string}>("select lub.register_event($1,null,'{}',null) as id",[event])).rows[0].id;
+ await actor(leader);await db.query("select lub.review_event_registrations(array[$1]::uuid[],'Accepted','')",[registration]);
+ const prepare=()=>db.query<{value:{ticket:string}}>("select public.prepare_registrant_export($1,$2,null,'','') as value",[org,event]);
+ const ticket=(await prepare()).rows[0].value.ticket;
+ await actor(peer);await denied(()=>db.query("select public.consume_registrant_export($1)",[ticket]));await denied(()=>prepare());await actor(leader);
+ const read=async(id:string)=>(await db.query<{value:{records:Array<{userId:string;isTest:boolean;status:string}>}}>("select public.consume_registrant_export($1) as value",[id])).rows[0].value;
+ expect((await read(ticket)).records).toEqual([expect.objectContaining({userId:student,isTest:false,status:"Accepted"})]);await denied(()=>read(ticket));
+ await db.query("select lub.verify_registration_contribution($1,'Presenter','شرح الورشة')",[registration]);
+ expect((await read((await prepare()).rows[0].value.ticket)).records[0].status).toBe("Recorded");
+ const list=await eventRegistrants(leader,org,event,"","Recorded",0,false);expect(list.items).toHaveLength(1);expect(list.recorded).toBe(1);expect(list.accepted).toBe(0);
+ await db.exec("reset role");await db.query("update lub.users set is_test_account=true where id=$1",[student]);await actor(leader);
+ expect((await read((await prepare()).rows[0].value.ticket)).records).toEqual([]);const counted=await eventRegistrants(leader,org,event,"","",0,false);expect(counted.items).toHaveLength(1);expect(counted.recorded).toBe(0);
+});
+it("restricts a delegated registrant export to its committee and rejects expired tickets and exhausted quota",async()=>{
+ const event=await create(10);await db.query("select lub.change_event_status($1,'Published',1)",[event]);
+ const ids=[];for(const user of [student,peer,leader]){await actor(user);ids.push((await db.query<{id:string}>("select lub.register_event($1,null,'{}',null) as id",[event])).rows[0].id);}
+ await actor(leader);await db.query("select lub.review_event_registrations($1::uuid[],'Accepted','')",[ids]);
+ await db.exec("reset role");const committee=(await db.query<{id:string}>("insert into lub.committees(organization_id,name) values($1,'التقنية') returning id",[org])).rows[0].id;
+ const membership=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,student])).rows[0].id;
+ const peerMembership=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,peer])).rows[0].id;
+ await db.query("insert into lub.committee_memberships(organization_id,organization_membership_id,committee_id) values($1,$2,$3)",[org,peerMembership,committee]);
+ await db.query("insert into lub.committee_memberships(organization_id,organization_membership_id,committee_id) values($1,$2,$3)",[org,membership,committee]);
+ await actor(leader);await db.query("select lub.grant_report_permission($1,$2,null)",[membership,committee]);await actor(student);
+ const prepare=async()=>(await db.query<{value:{ticket:string}}>("select public.prepare_registrant_export($1,$2,null,'','') as value",[org,event])).rows[0].value.ticket;
+ const ticket=await prepare(),payload=(await db.query<{value:{records:Array<{userId:string}>}}>("select public.consume_registrant_export($1) as value",[ticket])).rows[0].value;expect(payload.records.map(row=>row.userId).sort()).toEqual([student,peer].sort());expect(payload.records.some(row=>row.userId===leader)).toBe(false);
+ const expired=await prepare();await db.exec("reset role");await db.query("update lub.data_exports set expires_at=now()-interval '1 second' where id=$1",[expired]);await actor(student);await denied(()=>db.query("select public.consume_registrant_export($1)",[expired]));
+ for(let i=0;i<4;i++)await prepare();await denied(()=>prepare());
+});
 async function publish(event:string){await db.query("select lub.change_event_status($1,'Published',1)",[event]);}
 async function register(event:string){return(await db.query<{id:string}>("select lub.register_event($1,null,'{}',null) as id",[event])).rows[0].id;}
 

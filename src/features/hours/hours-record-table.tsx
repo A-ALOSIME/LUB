@@ -9,20 +9,12 @@ import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useState } from "react";
 import { Check, Eye, SlidersHorizontal, X, ChevronDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {HourAdjustment} from "./hour-adjustment";
 import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
 import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import {DataTable} from "@/components/data-table";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { RowAction } from "@/components/row-action";
@@ -314,11 +306,11 @@ function RecordActions({
 export function HoursRecordTable({
   items,
   locale = "ar",
-  personal = false,
+  personal = false,pagination,
 }: {
   items: HourRecord[];
   locale?: Locale;
-  personal?: boolean;
+  personal?: boolean;pagination?:import("@/components/data-table").DataTablePagination;
 }) {
   const [selected,setSelected]=useState<HourRecord|null>(null);
   const en = locale === "en",
@@ -351,110 +343,18 @@ export function HoursRecordTable({
       className="hours-ledger min-w-0"
       aria-label={c("سجلات الساعات", "Hours records")}
     >
-      <div className="hours-ledger-table">
-        <Table className="hours-table"><colgroup><col/>{!personal&&<><col className="hours-column-committee"/><col className="hours-column-reason"/></>}<col className="hours-column-value"/><col className="hours-column-date"/>{personal&&<col className="hours-column-source"/>}<col className="hours-column-status"/><col className="hours-column-actions"/></colgroup>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                {personal ? c("الجهة", "Organization") : c("العضو", "Member")}
-              </TableHead>
-              {!personal && (
-                <>
-                  <TableHead>{c("اللجنة", "Committee")}</TableHead>
-                  <TableHead>{c("السبب", "Reason")}</TableHead>
-                </>
-              )}
-              <TableHead>{c("الساعات", "Hours")}</TableHead>
-              <TableHead>
-                {personal
-                  ? c("التاريخ", "Date")
-                  : c("التاريخ والفصل", "Date and term")}
-              </TableHead>
-              {personal && <TableHead>{c("المصدر", "Source")}</TableHead>}
-              <TableHead>{c("الحالة", "Status")}</TableHead>
-              <TableHead>{c("الإجراءات", "Actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.map((record) => (
-              <TableRow key={record.id} tabIndex={0} className="cursor-pointer" onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest("button,a,input"))setSelected(record);}} onKeyDown={event=>{if(event.key==="Enter"&&event.target===event.currentTarget)setSelected(record);}}>
-                <TableCell>{identity(record)}</TableCell>
-                {!personal && (
-                  <>
-                    <TableCell>
-                      {record.context?.committee_name ??
-                        c("بدون لجنة", "No committee")}
-                    </TableCell>
-                    <TableCell>
-                      <p dir="auto" className="break-words">
-                        <ContentText value={record.description}/>
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {source(record)}
-                      </p>
-                    </TableCell>
-                  </>
-                )}
-                <TableCell>{formatHours(record.hours, locale)}</TableCell>
-                <TableCell>
-                  <time dateTime={record.activity_date}>
-                    {formatRiyadhDate(record.activity_date, locale)}
-                  </time>
-                  {!personal && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {academicTerm(record.term_name, locale)}
-                    </p>
-                  )}
-                </TableCell>
-                {personal && <TableCell>{source(record)}</TableCell>}
-                <TableCell>
-                  <HourStatus status={record.status_code} locale={locale} />
-                </TableCell>
-                <TableCell>
-                  <RecordActions record={record} locale={locale} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <ul className="hours-ledger-cards">
-        {records.map((record) => (
-          <li key={record.id}>
-            <Card tabIndex={0} className="cursor-pointer hover:bg-muted/50" onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest("button,a,input"))setSelected(record);}} onKeyDown={event=>{if(event.key==="Enter"&&event.target===event.currentTarget)setSelected(record);}}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <CardTitle>{identity(record)}</CardTitle>
-                  <HourStatus status={record.status_code} locale={locale} />
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  <strong>{formatHours(record.hours, locale)}</strong>
-                  <span><ContentText value={record.context?.committee_name}/></span>
-                  <time dateTime={record.activity_date}>
-                    {formatRiyadhDate(record.activity_date, locale)}
-                  </time>
-                </div>
-                {!personal && (
-                  <p className="text-sm text-muted-foreground">
-                    {academicTerm(record.term_name, locale)}
-                  </p>
-                )}
-                <p dir="auto" className="break-words">
-                  <ContentText value={record.description}/>
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {source(record)}
-                </p>
-                <div className="border-t border-border pt-3">
-                  <RecordActions record={record} locale={locale} />
-                </div>
-              </CardContent>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <DataTable pagination={pagination} items={records} locale={locale} tableKey="hours" label={c("تفاصيل سجل الساعات","Hours record details")} onOpen={setSelected} columns={[
+        {id:"name",label:personal?c("الجهة","Organization"):c("العضو","Member"),render:identity},
+        ...(!personal?[
+          {id:"committee",label:c("اللجنة","Committee"),className:"w-32",render:(record:HourRecord)=>record.context?.committee_name??c("بدون لجنة","No committee")},
+          {id:"description",label:c("السبب","Reason"),className:"w-48",render:(record:HourRecord)=><><p><ContentText value={record.description}/></p><p className="text-sm text-muted-foreground">{source(record)}</p></>}
+        ]:[]),
+        {id:"hours",label:c("الساعات","Hours"),className:"w-28",render:record=>formatHours(record.hours,locale)},
+        {id:"date",label:personal?c("التاريخ","Date"):c("التاريخ والفصل","Date and term"),className:"w-40",render:record=><><time>{formatRiyadhDate(record.activity_date,locale)}</time>{!personal&&<p className="text-sm text-muted-foreground">{academicTerm(record.term_name,locale)}</p>}</>},
+        ...(personal?[{id:"source",label:c("المصدر","Source"),className:"w-40",render:source}]:[]),
+        {id:"status",label:c("الحالة","Status"),className:"w-36",render:record=><HourStatus status={record.status_code} locale={locale}/>},
+        {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:record=><RecordActions record={record} locale={locale}/>}
+      ]}/>
       {selected&&<RecordActions key={selected.id} record={selected} locale={locale} initialDetails hideActions onClose={()=>setSelected(null)}/>}
     </section>
   );

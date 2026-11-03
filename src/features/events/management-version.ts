@@ -8,6 +8,7 @@ export async function organizationEventsVersion(user:string,org:string){return w
  (select coalesce(jsonb_agg(jsonb_build_array(to_jsonb(e),e.ends_at<=statement_timestamp()) order by e.id),'[]')::text from lub.events e where e.organization_id=o.id),
  (select coalesce(jsonb_agg(to_jsonb(r) order by r.id),'[]')::text from lub.event_registrations r join lub.events e on e.id=r.event_id where e.organization_id=o.id),
  (select coalesce(jsonb_agg(to_jsonb(a) order by a.event_registration_id),'[]')::text from lub.event_attendance a join lub.event_registrations r on r.id=a.event_registration_id join lub.events e on e.id=r.event_id where e.organization_id=o.id),
+ (select coalesce(jsonb_agg(to_jsonb(c) order by c.id),'[]')::text from lub.event_contributions c join lub.events e on e.id=c.event_id where e.organization_id=o.id),
  (select coalesce(jsonb_agg(to_jsonb(a) order by a.event_id,a.asset_id),'[]')::text from lub.event_assets a join lub.events e on e.id=a.event_id where e.organization_id=o.id),
  (select coalesce(jsonb_agg(to_jsonb(a) order by a.id),'[]')::text from lub.announcements a where a.organization_id=o.id),
  (select coalesce(jsonb_agg(to_jsonb(p) order by p.registration_id),'[]')::text from lub.event_registration_profiles(o.id) p),

@@ -98,7 +98,7 @@ export function PublicEventRegistration({
   if (active)
     control = (
       <div className="flex flex-wrap items-center gap-3">
-        <RequestStatusBadge status={own?.review_status_code??"Accepted"} locale={locale}/>
+        <RequestStatusBadge status={own?.review_status_code==="Accepted"&&own.contributions?.length?"Recorded":own?.review_status_code??"Accepted"} locale={locale}/>
         <Button
           variant="outline"
           disabled={!open || pending}
@@ -194,7 +194,7 @@ export function PublicEventRegistration({
     );
   return (
     <div className="public-event-registration">
-      <div className="public-event-cta">{control}</div>{active&&own.review_status_code==="Rejected"&&own.review_note&&<p className="mt-2 text-sm text-muted-foreground">{own.review_note}</p>}
+      <div className="public-event-cta">{control}</div>{active&&!!own.contributions?.length&&<ul className="mt-3 space-y-1 text-sm text-muted-foreground" aria-label={c("مساهماتك المرصودة","Your recorded contributions")}>{own.contributions.map(contribution=><li key={contribution.kind}>{contribution.title}</li>)}</ul>}{active&&own.review_status_code==="Rejected"&&own.review_note&&<p className="mt-2 text-sm text-muted-foreground">{own.review_note}</p>}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

@@ -1,52 +1,34 @@
 // @vitest-environment jsdom
 import {cleanup,render,screen,fireEvent,within} from "@testing-library/react";
 import {afterEach,it,expect,vi} from "vitest";
-vi.mock("./task-composer",()=>({TaskComposer:()=>null}));
-vi.mock("./task-decision",()=>({TaskDecision:({kind}:{kind:string})=><button>{kind}</button>}));
-vi.mock("./task-form",()=>({TaskForm:({label}:{label:string})=><button>{label}</button>}));
-vi.mock("./submission-form",()=>({SubmissionForm:()=> <label>وصف التسليم<textarea/></label>}));
-vi.mock("./event-link",()=>({TaskEventLink:()=> <div>إعدادات ارتباط الفعالية</div>}));
+vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn(),refresh:vi.fn(),prefetch:vi.fn()})}));
+vi.mock("./page-forms",()=>({TaskPageSubmission:()=> <label>وصف التسليم<textarea/></label>,TaskPageForm:({label}:{label:string})=><button>{label}</button>}));
+vi.mock("./task-form",()=>({TaskForm:({label,children}:{label:string;children:React.ReactNode})=><form>{children}<button>{label}</button></form>}));
+vi.mock("@/features/hours/actions",()=>({mutateHours:vi.fn()}));
 import {TaskDetailView} from "./task-detail";
-import type {TaskDetail} from "./repository";
-afterEach(cleanup);
-const d:TaskDetail={task:{id:"task",organization_id:"org",committee_id:null,title:"تصميم الملصق",description:"وصف المهمة",starts_at:null,due_at:null,default_hours:"2",status_code:"Open",revision:1,task_template_id:null},canManage:false,current:true,own:{id:"participation",user_id:"student",status_code:"Joined",approved_hours_override:null,joined_at:"2026-10-20",closed_at:null},selected:null,lastRevision:0,team:[],submissions:[],history:[],linkedEvent:null,eventChoices:[]};
-it("keeps the student panel in one column with participation then submissions then team, without management history or settings",()=>{
- render(<TaskDetailView detail={{...d,summary:{participants:7,submitted:4},linkedEvent:{id:"event",title:"فعالية مرتبطة",status:"Published"},history:[{id:"revision",revision_number:1,snapshot_json:d.task,changed_at:"2026-10-12"}]}} page={0} teamPage={0} participant={null}/>);
- expect(screen.queryByText("سجل نسخ المهمة")).toBeNull();expect(screen.queryByText("إعدادات ارتباط الفعالية")).toBeNull();expect(screen.queryByText("إجراءات المهمة")).toBeNull();
- const headings=screen.getAllByRole("heading").map(h=>h.textContent);
- expect(headings.indexOf("مشاركتي")).toBeLessThan(headings.indexOf("تسليماتي"));expect(headings.indexOf("تسليماتي")).toBeLessThan(headings.indexOf("فريق المهمة"));
- expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();expect(screen.getByRole("button",{name:"إضافة تسليم"}).compareDocumentPosition(screen.getByText("لا توجد تسليمات."))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();fireEvent.click(screen.getByRole("button",{name:"إضافة تسليم"}));expect(screen.getByRole("textbox",{name:"وصف التسليم"})).toBeTruthy();
+import type {TaskDetail,Submission} from "./repository";
+const d:TaskDetail={asOf:"2026-10-25T12:00:00Z",task:{id:"task",organization_id:"org",committee_id:null,title:"تصميم الملصق",description:"وصف المهمة",starts_at:null,due_at:null,default_hours:"2",status_code:"Open",revision:1,task_template_id:null},canManage:false,current:true,own:{id:"participation",user_id:"student",status_code:"In_Progress",approved_hours_override:null,joined_at:"2026-10-20",closed_at:null},selected:null,lastRevision:0,team:[],submissions:[],history:[],linkedEvent:null,eventChoices:[]};
+const submission:Submission={id:"submission",name:"سارة",major:"الحاسب",level:"5",revision_number:1,message:"السطر الأول\nالسطر الثاني",status_code:"Submitted",submitted_at:"2026-10-24T10:00:00Z",review_note:null,reviewed_at:null,task_revision_id:"revision",task_revision_number:7,task_snapshot:d.task,assets:[{id:"asset",name:"%D9%85%D9%84%D9%81%20%D8%B9%D9%85%D9%84.pdf"}]};
+afterEach(()=>{cleanup();window.history.replaceState(null,"","/");});
+function show(detail:TaskDetail=d){return render(<TaskDetailView detail={detail} page={0} teamPage={0} participant={null}/>);}
+it("shows a full-width task and immediately visible submission form without the removed participation/settings/actions sections",()=>{
+ show({...d,linkedEvent:{id:"event",title:"فعالية",status:"Published"},summary:{participants:4,submitted:2},history:[{id:"revision",revision_number:1,snapshot_json:d.task,changed_at:"2026-10-22"}]});
+ expect(screen.getByRole("heading",{level:1}).textContent).toBe("تصميم الملصق");expect(screen.getByRole("textbox",{name:"وصف التسليم"})).toBeTruthy();expect(screen.queryByRole("button",{name:"إضافة تسليم"})).toBeNull();
+ for(const label of ["مشاركتي","الفعالية المرتبطة","نسبة التسليم","إجراءات المهمة","سجل نسخ المهمة"])expect(screen.queryByText(label)).toBeNull();expect(screen.queryByRole("button",{name:"بدء العمل"})).toBeNull();expect(document.querySelector("aside")).toBeNull();
 });
-it("retains manager history, event controls and task actions",()=>{render(<TaskDetailView detail={{...d,canManage:true}} page={0} teamPage={0} participant={null}/>);expect(screen.getByText("سجل نسخ المهمة")).toBeTruthy();expect(screen.getByText("إعدادات ارتباط الفعالية")).toBeTruthy();expect(screen.getByLabelText("إجراءات المهمة")).toBeTruthy();expect(document.querySelector("aside")).toBeNull();});
-
-it("hides task version metadata from students even on past submissions and displays participation status only once",()=>{
- const submission={id:"submission",revision_number:1,message:"Work",status_code:"Submitted",submitted_at:"2026-10-30",review_note:null,reviewed_at:null,task_revision_id:"revision",task_revision_number:7,task_snapshot:d.task,assets:[{id:"asset",name:"%D9%85%D9%84%D9%81%20%D8%B9%D9%85%D9%84.pdf"}]};
- render(<TaskDetailView detail={{...d,submissions:[submission]}} page={0} teamPage={0} participant={null}/>);
- expect(screen.queryByText(/نسخة المهمة/)).toBeNull();expect(screen.queryByText("وصف المهمة وقت التسليم")).toBeNull();expect(screen.queryByRole("button",{name:"تفاصيل تقنية"})).toBeNull();expect(screen.getAllByText(/حالة المشاركة/)).toHaveLength(1);expect(screen.getByRole("link",{name:"ملف عمل.pdf"}).getAttribute("href")).toBe("/files/asset");expect(screen.queryByRole("button",{name:"حفظ قرار المراجعة"})).toBeNull();
+it("shows the uncropped poster before the heading and derives deadline progress from the server clock",()=>{
+ const {container}=show({...d,task:{...d.task,image_asset_id:"poster",starts_at:"2026-10-24T12:00:00Z",due_at:"2026-10-26T12:00:00Z"}});const image=screen.getByRole("img");expect(container.firstElementChild?.firstElementChild).toBe(image);expect(image.className).toContain("h-auto");expect(image.className).not.toMatch(/object-cover|max-h|aspect/);expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
 });
-it("places manager actions, statistics and participants before all submissions in a full-width column",()=>{
- render(<TaskDetailView detail={{...d,canManage:true,summary:{participants:2,submitted:1}}} page={0} teamPage={0} participant={null}/>);
- const actions=screen.getByLabelText("إجراءات المهمة"),stats=screen.getByText("نسبة التسليم");expect(actions.compareDocumentPosition(stats)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
- const headings=screen.getAllByRole("heading").map(h=>h.textContent);expect(headings.indexOf("المطلوب")).toBeLessThan(headings.indexOf("المنضمون للمهمة"));expect(headings.indexOf("المنضمون للمهمة")).toBeLessThan(headings.indexOf("كل التسليمات"));expect(headings.indexOf("كل التسليمات")).toBeLessThan(headings.indexOf("فريق المهمة"));expect(document.querySelector("aside")).toBeNull();
+it("offers joining again only for an own withdrawal and preserves final closures",()=>{
+ const view=show({...d,own:{...d.own!,status_code:"Closed",withdrawn_at:"2026-10-25",closed_at:"2026-10-25"}});expect(screen.getByRole("button",{name:"الانضمام للمهمة"})).toBeTruthy();view.rerender(<TaskDetailView detail={{...d,own:{...d.own!,status_code:"Closed",withdrawn_at:null,closed_at:"2026-10-25"}}} page={0} teamPage={0} participant={null}/>);expect(screen.queryByRole("button",{name:"الانضمام للمهمة"})).toBeNull();
 });
-
-it("starts with the uncropped poster, then the title, and keeps the add action in the submissions card header",()=>{
- const submission={id:"submission",revision_number:1,message:"المخرج السابق",status_code:"Rejected",submitted_at:"2026-10-30",review_note:"عدّل",reviewed_at:"2026-10-30",task_revision_id:"revision",task_revision_number:1,task_snapshot:d.task,assets:[]};
- render(<TaskDetailView detail={{...d,task:{...d.task,image_asset_id:"poster"},own:{...d.own!,status_code:"In_Progress"},submissions:[submission]}} page={0} teamPage={0} participant={null}/>);
- const poster=screen.getByRole("img"),heading=screen.getByRole("heading",{level:1});
- expect(poster.parentElement?.firstElementChild).toBe(poster);expect(poster.className).toContain("h-auto");expect(poster.className).not.toMatch(/max-h|object-cover|aspect/);expect(poster.nextElementSibling?.contains(heading)).toBe(true);
- expect(screen.getByRole("button",{name:"إضافة تسليم"}).compareDocumentPosition(screen.getByText("المخرج السابق"))&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();
- expect(screen.getByText("قيد العمل").className).toContain("organization-status-badge--positive");
+it("keeps student submission details owner-visible with original file names and without task-version metadata",()=>{
+ show({...d,submissions:[submission]});fireEvent.click(screen.getByRole("tab",{name:"تسليماتي"}));const table=within(screen.getByRole("table"));fireEvent.click(table.getAllByRole("row")[1]);const dialog=within(screen.getByRole("dialog"));expect(dialog.getByText("السطر الأول السطر الثاني")).toBeTruthy();expect(dialog.getByRole("link",{name:"ملف عمل.pdf"}).getAttribute("href")).toBe("/files/asset");expect(dialog.queryByText(/نسخة المهمة/)).toBeNull();expect(dialog.queryByText("وصف المهمة وقت التسليم")).toBeNull();expect(table.queryByRole("button",{name:"اعتماد"})).toBeNull();
 });
-
-it("keeps submission rows in a single flat card with status badges and file icons",()=>{
- const submission={id:"first",revision_number:1,message:"السطر الأول\nالسطر الثاني",status_code:"Submitted",submitted_at:"2026-10-30T10:00:00Z",review_note:null,reviewed_at:null,task_revision_id:"r",task_revision_number:7,task_snapshot:d.task,assets:[{id:"asset",name:"عمل.pdf"}]};
- const {container}=render(<TaskDetailView detail={{...d,submissions:[submission,{...submission,id:"second",revision_number:2,status_code:"Approved"},{...submission,id:"third",revision_number:3,status_code:"Rejected"}]}} page={0} teamPage={0} participant={null}/>);
- const section=container.querySelector("#submissions")!;expect(section.querySelectorAll('[data-slot="card"]')).toHaveLength(1);expect(section.querySelectorAll("article")).toHaveLength(3);expect(section.querySelectorAll('[data-slot="separator"]')).toHaveLength(2);expect(section.querySelector("article.panel")).toBeNull();
- expect(within(section as HTMLElement).getByText("قيد المراجعة").className).toContain("organization-status-badge--warning");expect(within(section as HTMLElement).getByText("معتمد").className).toContain("organization-status-badge--positive");expect(within(section as HTMLElement).getByText("مرفوض").className).toContain("organization-status-badge--negative");
- expect(within(section as HTMLElement).getAllByRole("link",{name:"عمل.pdf"})[0].querySelector("svg")).toBeTruthy();expect(section.querySelector("article p[dir=auto]")?.textContent).toBe(submission.message);expect(within(section as HTMLElement).queryByText("وصف المهمة وقت التسليم")).toBeNull();
+it("renders participants and all submissions as tables, with decision icons and no hours or decision select in the review dialog",()=>{
+ show({...d,canManage:true,submissions:[submission],team:[{id:"p",name:"سارة",major:"الحاسب",level:"5",joinedAt:"2026-10-20",status:"Submitted"}]});expect(screen.getByRole("tab",{name:"المنضمون للمهمة"})).toBeTruthy();expect(screen.queryByText("الفعالية المرتبطة")).toBeNull();expect(screen.queryByLabelText("إجراءات المهمة")).toBeNull();
+ fireEvent.click(screen.getByRole("tab",{name:"كل التسليمات"}));const table=within(screen.getByRole("table"));expect(table.getAllByRole("columnheader").map(cell=>cell.textContent)).toEqual(["","الطالب","وقت التسليم","الحالة","الإجراءات"]);expect(table.getByRole("button",{name:"طلب تعديل وإعادة تسليم"})).toBeTruthy();fireEvent.click(table.getByRole("button",{name:"رفض"}));const dialog=within(screen.getByRole("alertdialog"));expect(dialog.getByRole("textbox",{name:/الملاحظة/})).toBeTruthy();expect(dialog.queryByRole("combobox")).toBeNull();expect(dialog.queryByRole("spinbutton")).toBeNull();
 });
-it("keeps pinned revision metadata collapsed for reviewers",()=>{
- const submission={id:"submission",revision_number:1,message:"المخرج",status_code:"Submitted",submitted_at:"2026-10-30T10:00:00Z",review_note:null,reviewed_at:null,task_revision_id:"r",task_revision_number:7,task_snapshot:d.task,assets:[]};
- render(<TaskDetailView detail={{...d,canManage:true,submissions:[submission]}} page={0} teamPage={0} participant={null}/>);const row=screen.getByRole("article");expect(within(row).queryByText(/نسخة المهمة/)).toBeNull();expect(within(row).getByRole("button",{name:"حفظ قرار المراجعة"})).toBeTruthy();fireEvent.click(within(row).getByRole("button",{name:"تفاصيل تقنية"}));expect(within(row).getByText(/نسخة المهمة/).textContent).toContain("7");
+it("keeps management version history collapsed and out of the student presentation",()=>{
+ const {container}=show({...d,canManage:true,history:[{id:"revision",revision_number:7,snapshot_json:{...d.task,description:"وصف محفوظ"},changed_at:"2026-10-22"}]});expect(container.textContent).not.toContain("وصف محفوظ");fireEvent.click(screen.getByRole("button",{name:"سجل نسخ المهمة"}));expect(screen.getByText("وصف محفوظ")).toBeTruthy();
 });

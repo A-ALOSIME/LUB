@@ -15,14 +15,13 @@ const amount=(f:FormData)=>z.coerce.number().finite().min(0).max(1000).multipleO
 export async function mutateHours(_previous:HoursState,f:FormData):Promise<HoursState>{
  const user=await requireUser();
  try{
- const op=z.enum(["term","add","self","review","adjust","rule","self-policy","import","campaign","exclude","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
+ const op=z.enum(["term","add","self","review","adjust","self-policy","import","campaign","exclude","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":{const starts=day(f,"starts"),ends=day(f,"ends");if(ends<starts)throw new Error("Term dates reversed");return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${starts}::date,${ends}::date)`;}
  case "add":case "self":{const activityDay=day(f,"day");return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},(select id from lub.academic_terms where ${activityDay}::date between start_date and end_date),${amount(f)}::numeric,${activityDay}::date,${text(f,"reason",3000)},${op==="self"},${f.get("confirmDuplicate")==="on"})`;}
  case "review":{const status=z.enum(["Approved","Rejected","Voided"]).parse(f.get("status"));if(status==="Voided"&&f.get("confirm")!=="on")throw new Error();return sql`select lub.review_hours(${id(f,"record")},${status},${text(f,"note",3000,status==="Approved"?0:1)})`;}
  case "adjust":return sql`select lub.adjust_hours(${id(f,"record")},${z.coerce.number().finite().min(-1000).max(1000).multipleOf(0.01).refine(n=>n!==0).parse(f.get("delta"))}::numeric,${z.coerce.number().finite().min(0).max(1000).parse(f.get("expected"))}::numeric,${text(f,"note",1000,0)})`;
- case "rule":return sql`select lub.save_hour_rule(${optionalId(f,"rule")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"name",120,2)},${amount(f)}::numeric,${day(f,"starts")}::date,${f.get("ends")?day(f,"ends"):null}::date,${f.get("active")==="on"},${f.get("rule")?z.coerce.number().int().positive().parse(f.get("revision")):null}::int)`;
  case "self-policy":return sql`select lub.set_self_report_hours(${id(f,"org")},${f.get("enabled")==="on"})`;
  case "import":return sql`select lub.import_task_hours(${id(f,"participant")})`;
  case "campaign":return sql`select lub.create_renewal(${id(f,"org")},${id(f,"term")},${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("leaders")==="on"})`;

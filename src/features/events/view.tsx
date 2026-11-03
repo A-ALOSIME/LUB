@@ -1,35 +1,19 @@
 import Image from "next/image";
-import {EventPinAction} from "./pin-action";
 import {ArchivalEventContent} from "./archival-content";
 import {OrganizationLogo} from "@/components/organization-logo";
-import {displayFileName} from "@/lib/file-name";
 
 import {ContentText} from "@/components/content-text";
 import {t as translateUi,createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
-import {
-  OrganizationSectionTabs,
-  OrganizationSectionTabPanel,
-} from "@/features/organizations/organization-section-tabs";
 import { PublicEventRegistration } from "./public-registration";
 import { EventPoster } from "./poster";
-import { Upload, EyeOff } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { EventSecondaryTools } from "./secondary-tools";
-import {
-  Pencil,
-  Copy,
-  SlidersHorizontal,
-} from "lucide-react";
 import { formatHours } from "@/lib/display";
-import { NativeSelect } from "@/components/ui/native-select";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ManagementActionSheet } from "@/components/management-action-sheet";
 import type { EventCard, EventDetail } from "./repository";
-import { EventForm, EventFields, EventAttachment } from "./form";
 import { EventIcon } from "./icon";
 import { localOrganizationContent } from "@/features/organizations/local-content";
 
@@ -45,8 +29,6 @@ import {
 } from "./display";
 import type { Locale } from "@/lib/preferences";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
-import {Switch} from "@/components/ui/switch";
-import { FormField } from "@/components/form-field";
 export { eventDate, eventLabels } from "./display";
 export { EventIcon } from "./icon";
 export function EventCards({
@@ -140,21 +122,14 @@ export function EventContent({
   user,
   superAdmin = false,
   locale = "ar",
-  initialAction,
-  management = false,
-  attendeesContent,
 }: {
   data: EventDetail;
   user: boolean;
   superAdmin?: boolean;
   locale?: Locale;
-  initialAction?: "edit" | "settings";
-  management?: boolean;
-  attendeesContent?:ReactNode;
 }) {
   const e = data.event;
   if(e.status_code==="Archived")return <ArchivalEventContent data={data} locale={locale}/>;
-  const base = { event: e.id, org:e.organization_id, revision: String(e.revision) };
   const en = locale === "en";
   const c = createTranslator((en) ? "en" : "ar");
   const labels = en ? eventLabelsEn : eventLabels;
@@ -313,218 +288,13 @@ export function EventContent({
               {labels[e.status_code]}
             </OrganizationStatusBadge>
           </div>
-          {!management && facts}
-          {!management && e.description && (
+          {facts}
+          {e.description && (
             <p dir="auto" className="event-detail-description">
               <ContentText autoTranslate={e.status_code!=="Draft"} value={e.description}/>
             </p>
           )}
-          {management && data.canManage && (
-            <nav
-              className="flex flex-wrap items-center gap-2"
-              aria-label={c("أدوات الفعالية", "Event tools")}
-            >
-              {["Draft", "Published"].includes(e.status_code) && (
-                <ManagementActionSheet
-                  icon={<Pencil />}
-                  initiallyOpen={initialAction === "edit"}
-                  label={c("تعديل", "Edit")}
-                  title={c("تعديل الفعالية", "Edit event")}
-                  locale={locale}
-                  width="wide"
-                  mobileBottomSheet
-                >
-                  <EventForm
-                    operation="save"
-                    fields={{ ...base, org: e.organization_id }}
-                    label={c("حفظ التعديلات", "Save changes")}
-                    locale={locale}
-                  >
-                    <EventFields
-                      value={e}
-                      organization={e.organization_id}
-                      locale={locale}
-                    />
-                  </EventForm>
-                </ManagementActionSheet>
-              )}
-              <ManagementActionSheet
-                icon={<SlidersHorizontal />}
-                initiallyOpen={initialAction === "settings"}
-                label={c("الإعدادات", "Settings")}
-                title={c("إعدادات الفعالية", "Event settings")}
-                locale={locale}
-                mobileBottomSheet
-              >
-                {["Draft","Published"].includes(e.status_code)&&<EventForm operation="policy" fields={base} label={c("حفظ الإعدادات","Save settings")} locale={locale}><FormField label={c("التسجيل يتطلب موافقة","Registration requires approval")} hint={c("عند إيقافه تُقبل التسجيلات الجديدة تلقائيًا.","When off, new registrations are accepted automatically.")}><Switch name="approval" value="on" defaultChecked={e.requires_approval??false} aria-label={c("التسجيل يتطلب موافقة","Registration requires approval")}/></FormField></EventForm>}
-                <EventForm
-                  operation="status"
-                  fields={base}
-                  label={c("حفظ الحالة", "Save status")}
-                  locale={locale}
-                >
-                  <FormField label={c("الإجراء", "Action")}>
-                    <NativeSelect name="status">
-                      {e.status_code === "Draft" ? (
-                        <option value="Published">
-                          {c("نشر الفعالية", "Publish event")}
-                        </option>
-                      ) : (
-                        <option value="Completed">
-                          {c(
-                            "إكمال الفعالية واعتماد ساعات الحضور",
-                            "Complete event and approve attendance hours",
-                          )}
-                        </option>
-                      )}
-                      <option value="Cancelled">
-                        {c("إلغاء الفعالية", "Cancel event")}
-                      </option>
-                    </NativeSelect>
-                  </FormField>
-                  <label className="flex items-center gap-2">
-                    <input name="confirm" type="checkbox" required />
-                    {c(
-                      "راجعت البيانات والحضور والموافقة الخارجية اللازمة",
-                      "I reviewed details, attendance and required external approval",
-                    )}
-                  </label>
-                </EventForm>
-              </ManagementActionSheet>
-              <ManagementActionSheet
-                icon={<Copy />}
-                label={c("تكرار", "Duplicate")}
-                title={c(
-                  "تكرار الفعالية إلى مسودة",
-                  "Duplicate event as a draft",
-                )}
-                locale={locale}
-                mobileBottomSheet
-              >
-                <EventForm
-                  operation="duplicate"
-                  fields={{ event: e.id,org:e.organization_id }}
-                  label={c("إنشاء نسخة", "Create copy")}
-                  locale={locale}
-                >
-                  <p>
-                    {c(
-                      "ستُنشأ مسودة مستقلة دون تغيير الفعالية الأصلية.",
-                      "A separate draft will be created; the original event stays unchanged.",
-                    )}
-                  </p>
-                </EventForm>
-              </ManagementActionSheet>
-              {["Draft", "Published"].includes(e.status_code) && (
-                <ManagementActionSheet
-                  icon={e.status_code === "Draft" ? <Upload /> : <EyeOff />}
-                  label={
-                    e.status_code === "Draft"
-                      ? c("نشر", "Publish")
-                      : c("إلغاء النشر", "Unpublish")
-                  }
-                  title={
-                    e.status_code === "Draft"
-                      ? c(`نشر «${e.title}»؟`, `Publish “${e.title}”?`)
-                      : c(`إلغاء نشر «${e.title}»؟`, `Unpublish “${e.title}”?`)
-                  }
-                  locale={locale}
-                  mobileBottomSheet
-                >
-                  <EventForm
-                    operation="status"
-                    fields={{
-                      ...base,
-                      status: e.status_code === "Draft" ? "Published" : "Draft",
-                      confirm: "on",
-                    }}
-                    label={c("تأكيد", "Confirm")}
-                    locale={locale}
-                  >
-                    <p>
-                      {e.status_code === "Draft"
-                        ? c(
-                            "ستظهر الفعالية للجميع ويُفتح التسجيل في موعده.",
-                            "The event becomes public and registration opens at its scheduled time.",
-                          )
-                        : c(
-                            "ستختفي الفعالية من العرض العام ويتوقف التسجيل، مع الاحتفاظ بالمسجلين.",
-                            "The event becomes private and registration pauses; existing registrations are preserved.",
-                          )}
-                    </p>
-                  </EventForm>
-                </ManagementActionSheet>
-              )}
-              {data.canFeature&&["Published","Completed"].includes(e.status_code)&&<EventPinAction id={e.id} pinned={e.is_featured} locale={locale}/>}
-              <EventSecondaryTools
-                locale={locale}
-                actions={[
-                  ...(["Published", "Completed"].includes(e.status_code)
-                    ? [
-                        {
-                          id: "updates",
-                          label: c("التحديثات العامة", "Public updates"),
-                          content: (
-                            <EventForm
-                              operation="public-content"
-                              fields={{ event: e.id }}
-                              label={c("حفظ", "Save")}
-                              locale={locale}
-                            >
-                              <FormField
-                                label={c("ملخص أو تقرير عام", "Public report")}
-                              >
-                                <textarea
-                                  name="report"
-                                  defaultValue={e.public_report}
-                                  rows={5}
-                                  maxLength={5000}
-                                />
-                              </FormField>
-                              <FormField
-                                label={c(
-                                  "روابط الصور العامة",
-                                  "Public photo URLs",
-                                )}
-                              >
-                                <textarea
-                                  name="photos"
-                                  defaultValue={
-                                    e.public_photos?.join("\n") ?? ""
-                                  }
-                                  rows={4}
-                                  dir="ltr"
-                                />
-                              </FormField>
-                            </EventForm>
-                          ),
-                        },
-                      ]
-                    : []),
-                  {
-                    id: "attachments",
-                    label: c("المرفقات", "Attachments"),
-                    content: (
-                      <>
-                        <EventAttachment event={e.id} locale={locale} />
-                        {data.assets.map((asset) => (
-                          <p key={asset.id}>
-                            <a
-                              href={`/files/${asset.id}`}
-                              className="text-link"
-                            >
-                              {displayFileName(asset.file_name)}
-                            </a>
-                          </p>
-                        ))}
-                      </>
-                    ),
-                  },
-                ]}
-              />
-            </nav>
-          )}
-          {!management && !superAdmin && (
+          {!superAdmin && (
             <PublicEventRegistration
               event={{
                 id: e.id,
@@ -551,17 +321,11 @@ export function EventContent({
               size="sm"
               render={
                 <Link
-                  href={
-                    management
-                      ? `/events/${e.id}`
-                      : `/manage/organizations/${e.organization_id}/events/${e.id}`
-                  }
+                  href={`/manage/organizations/${e.organization_id}/events`}
                 />
               }
             >
-              {management
-                ? c("عرض الصفحة العامة", "View public page")
-                : c("إدارة الفعالية", "Manage event")}
+              {c("إدارة الفعالية", "Manage event")}
             </Button>
           )}
         </div>
@@ -575,39 +339,7 @@ export function EventContent({
         </figure>
       </section>
 
-      {management ? (
-        <OrganizationSectionTabs
-          items={[
-            { id: "details", label: c("التفاصيل", "Details") },
-            {
-              id: "attendees",
-              label: c("المسجلون والحضور", "Registrants and attendance"),
-            },
-          ]}
-          initialSection="details"
-          defaultSection="details"
-          label={c("إدارة الفعالية", "Event management")}
-          dir={en ? "ltr" : "rtl"}
-          sticky={false}
-        >
-          <OrganizationSectionTabPanel id="details">
-            <section className="panel flex flex-col gap-5">
-              {facts}
-              {e.description && (
-                <p dir="auto" className="whitespace-pre-wrap leading-relaxed">
-                  <ContentText autoTranslate={e.status_code!=="Draft"} value={e.description}/>
-                </p>
-              )}
-            </section>
-            {updates}
-          </OrganizationSectionTabPanel>
-          <OrganizationSectionTabPanel id="attendees">
-            {attendeesContent}
-          </OrganizationSectionTabPanel>
-        </OrganizationSectionTabs>
-      ) : (
-        updates
-      )}
+      {updates}
     </div>
   );
 }

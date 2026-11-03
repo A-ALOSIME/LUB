@@ -26,7 +26,7 @@ function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
       data-slot="toast-viewport"
       aria-label={t("الإشعارات","Notifications")}
       className={cn(
-        "pointer-events-none fixed inset-x-4 top-16 z-50 mx-auto w-auto max-w-sm outline-none",
+        "pointer-events-none fixed inset-x-4 top-16 z-[10000] mx-auto w-auto max-w-sm outline-none",
         className
       )}
       {...props}
@@ -118,10 +118,11 @@ function ToastClose({
   render = <Button variant="ghost" size="icon-sm" />,
   ...props
 }: ToastPrimitive.Close.Props) {
+  const {t}=useI18n();
   return (
     <ToastPrimitive.Close
       data-slot="toast-close"
-      aria-label="Close toast"
+      aria-label={t("إغلاق الإشعار","Close toast")}
       render={render}
       className={cn(
         "relative shrink-0 text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:text-foreground",

@@ -25,7 +25,6 @@ export const permissionLabels: Record<string, [string, string]> = {
   APPLICATIONS_BULK_ACTION: ["الإجراءات الجماعية للطلبات", "Bulk application actions"],
   TASKS_MANAGE: ["إدارة المهام", "Manage tasks"],
   TASK_TEMPLATES_MANAGE: ["إدارة قوالب المهام", "Manage task templates"],
-  HOUR_RULES_MANAGE: ["إدارة قواعد الساعات", "Manage hour rules"],
   HOURS_APPROVE: ["اعتماد الساعات", "Approve hours"],
   HOURS_MANUAL_ADD: ["إضافة الساعات يدويًا", "Add hours manually"],
   RENEWALS_MANAGE: ["إدارة تجديد العضويات", "Manage renewals"],
@@ -34,7 +33,7 @@ export const permissionLabels: Record<string, [string, string]> = {
   EVENT_ATTENDANCE_MANAGE: ["إدارة حضور الفعاليات", "Manage event attendance"],
   EVENT_CONTRIBUTIONS_MANAGE: ["توثيق المساهمات", "Verify contributions"],
 };
-export const scopedPermissions = new Set(["COMMITTEE_PROFILE_MANAGE", "MEMBERS_VIEW", "APPLICATIONS_VIEW", "APPLICATIONS_REVIEW", "APPLICATIONS_BULK_ACTION", "TASKS_MANAGE", "TASK_TEMPLATES_MANAGE", "HOUR_RULES_MANAGE", "HOURS_APPROVE", "HOURS_MANUAL_ADD", "REPORTS_GENERATE"]);
+export const scopedPermissions = new Set(["COMMITTEE_PROFILE_MANAGE", "MEMBERS_VIEW", "APPLICATIONS_VIEW", "APPLICATIONS_REVIEW", "APPLICATIONS_BULK_ACTION", "TASKS_MANAGE", "TASK_TEMPLATES_MANAGE", "HOURS_APPROVE", "HOURS_MANUAL_ADD", "REPORTS_GENERATE"]);
 
 export function PermissionEditor({ organization, workspace, committees, locale }: {
   organization: string;

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {cleanup,fireEvent,render as rtlRender,screen,waitFor} from "@testing-library/react";
+import {cleanup,fireEvent,render as rtlRender,screen} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 const mocks=vi.hoisted(()=>({load:vi.fn()}));
 vi.mock("./task-panel-actions",()=>({loadTaskPanel:mocks.load}));
@@ -14,15 +14,9 @@ vi.mock("@/lib/private-query",()=>({privateJson:vi.fn((url:string)=>{const searc
 import {TaskPanelAction} from "./task-panel-action";
 afterEach(()=>{cleanup();mocks.load.mockReset();vi.mocked(privateJson).mockClear();});
 const detail={task:{organization_id:"org"},canManage:true};
-it("opens details and paginates inside a left sheet without changing the URL",async()=>{
- mocks.load.mockResolvedValue({detail});const url=window.location.href;
+it("opens details through a full-page link without requesting or mounting a sheet",()=>{
  render(<TaskPanelAction task="task" title="التصميم"/>);
- fireEvent.click(screen.getByRole("button",{name:"عرض التفاصيل"}));
- expect(await screen.findByText("تفاصيل المهمة كاملة")).toBeTruthy();
- expect(screen.getByRole("dialog").getAttribute("data-side")).toBe("left");
- fireEvent.click(screen.getByRole("button",{name:"صفحة التسليم التالية"}));
- await waitFor(()=>expect(mocks.load).toHaveBeenLastCalledWith("task",{page:1,teamPage:0,eventPage:0,participant:null}));
- expect(window.location.href).toBe(url);
+ expect(screen.getByRole("link",{name:"عرض التفاصيل"}).getAttribute("href")).toBe("/tasks/task");expect(screen.queryByRole("dialog")).toBeNull();expect(mocks.load).not.toHaveBeenCalled();
 });
 it("opens the authorized prefilled editor in a dialog",async()=>{
  mocks.load.mockResolvedValue({detail,workspace:{name:"org"}});
@@ -40,10 +34,7 @@ it("keeps a failed request retryable and prevents editing without server permiss
  expect(screen.queryByRole("textbox")).toBeNull();
 });
 
-it("translates server-returned panel errors in the selected language",async()=>{
- mocks.load.mockResolvedValue({error:"المهمة غير متاحة أو لا تملك صلاحية عرضها."});
- render(<TaskPanelAction task="task" title="Design" locale="en"/>);
- fireEvent.click(screen.getByRole("button",{name:"View details"}));
- expect(await screen.findByText("This task is unavailable or you do not have access to it.")).toBeTruthy();
- expect(screen.queryByText("المهمة غير متاحة أو لا تملك صلاحية عرضها.")).toBeNull();
+it("shows a localized retryable editor error without leaking the server text",async()=>{
+ mocks.load.mockResolvedValue({error:"Private service error"});render(<TaskPanelAction task="task" title="Design" locale="en" edit/>);fireEvent.click(screen.getByRole("button",{name:"Edit task"}));
+ expect(await screen.findByText("The task could not be loaded. Try again.")).toBeTruthy();expect(screen.queryByText("Private service error")).toBeNull();expect(screen.getByRole("button",{name:"Retry"})).toBeTruthy();
 });

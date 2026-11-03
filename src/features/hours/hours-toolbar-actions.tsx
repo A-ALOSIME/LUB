@@ -3,13 +3,12 @@
 import {createTranslator} from "@/lib/i18n";
 import { Tooltip,TooltipTrigger,TooltipContent } from "@/components/ui/tooltip";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { FileSpreadsheet, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import type { HoursExportScope } from "./repository";
 import type { Locale } from "@/lib/preferences";
 
-export function HoursToolbarActions({ org, committee, term, exportScopes, locale, filtersAction, hasRecords, canAddHours,status,search }: {
+export function HoursToolbarActions({ org, committee, term, exportScopes, locale, hasRecords, canAddHours,status,search }: {
   status?:string|null;
   search?:string;
   org: string;
@@ -17,7 +16,6 @@ export function HoursToolbarActions({ org, committee, term, exportScopes, locale
   term: string | null;
   exportScopes: HoursExportScope[];
   locale: Locale;
-  filtersAction?: ReactNode;
   hasRecords: boolean;
   canAddHours: boolean;
 }) {
@@ -34,7 +32,6 @@ export function HoursToolbarActions({ org, committee, term, exportScopes, locale
 
   return <div className="hours-toolbar-actions flex min-w-0 flex-wrap items-center gap-2">
     {hasRecords && canAddHours && <Link href={`/manage/organizations/${org}/members`} className={buttonVariants({ size: "sm" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link>}
-    {hasRecords && canExportSelectedScope && <Tooltip><TooltipTrigger render={<Link href={exportHref} className={buttonVariants({ variant: "outline", size: "sm" })}/>}><FileSpreadsheet data-icon="inline-start" aria-hidden="true" />{c("تصدير Excel", "Export Excel")}</TooltipTrigger><TooltipContent>{c("تصدير النتائج بحسب الفلاتر الحالية","Export the currently filtered results")}</TooltipContent></Tooltip>}
-    {filtersAction}
+    {hasRecords && canExportSelectedScope && <Tooltip><TooltipTrigger render={<Link href={exportHref} aria-label={c("تصدير Excel","Export Excel")} className={buttonVariants({ variant:"outline",size:"icon" })}/>}><FileSpreadsheet aria-hidden="true"/></TooltipTrigger><TooltipContent>{c("تصدير Excel","Export Excel")}</TooltipContent></Tooltip>}
   </div>;
 }

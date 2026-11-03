@@ -1,17 +1,24 @@
-
+"use client";
+import {useState} from "react";
+import {useQuery,useQueryClient} from "@tanstack/react-query";
+import {useRouter} from "next/navigation";
+import {Link2} from "lucide-react";
+import {ManagementActionSheet} from "@/components/management-action-sheet";
+import {RowAction} from "@/components/row-action";
+import {FormField} from "@/components/form-field";
+import {NativeSelect} from "@/components/ui/native-select";
+import {Alert,AlertDescription} from "@/components/ui/alert";
+import {Button} from "@/components/ui/button";
+import {Skeleton} from "@/components/ui/skeleton";
+import {useQueryActor} from "@/components/private-query-provider";
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
-import {Button} from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
-import Link from "next/link";
-import type {TaskDetail} from "./repository";
-import {TaskForm} from "./task-form";
-import {eventLabels,eventLabelsEn} from "@/features/events/display";
 import type {Locale} from "@/lib/preferences";
-import { FormField } from "@/components/form-field";
-export function TaskEventLink({detail:d,eventPage,query,locale="ar",onEventPageChange}:{detail:TaskDetail;eventPage:number;query:Record<string,string>;locale?:Locale;onEventPageChange?:(page:number)=>void}){
- const en=locale==="en",c=createTranslator(en ? "en" : "ar"),labels=en?eventLabelsEn:eventLabels;
- const choices=d.eventChoices,linked=d.linkedEvent,t=d.task,editable=d.canManage&&['Draft','Open'].includes(t.status_code);
- const href=(page:number)=>`/tasks/${t.id}?${new URLSearchParams({...query,eventPage:String(page)})}`;
- return <section className="flex flex-col gap-3 border-t border-border pt-4"><h2 className="text-xl font-semibold">{c("الفعالية المرتبطة","Linked event")}</h2>{linked?<Link href={`/events/${linked.id}`} className="text-link"><bdi><ContentText value={linked.title}/></bdi> · {labels[linked.status]}</Link>:<p className="text-muted">{t.event_id?c('تفاصيل الفعالية متاحة حسب صلاحية عرضها.','Event details are available according to your access.'):c('مهمة مستقلة.','Independent task.')}</p>}{editable&&<><TaskForm operation="link-event" fields={{task:t.id,revision:String(t.revision)}} label={c("حفظ ارتباط الفعالية","Save event link")} locale={locale}><FormField  label={<>{c("الفعالية","Event")}</>}><NativeSelect name="event" defaultValue={t.event_id??''}><option value="">{c("مهمة مستقلة","Independent task")}</option>{t.event_id&&!choices.slice(0,25).some(e=>e.id===t.event_id)&&<option value={t.event_id} dir="auto">{linked?.title??c('الفعالية الحالية','Current event')}</option>}{choices.slice(0,25).map(e=><option key={e.id} value={e.id} dir="auto"><ContentText value={e.title}/> · {labels[e.status]}</option>)}</NativeSelect></FormField></TaskForm><nav aria-label={c("صفحات اختيار الفعاليات","Event selection pages")} className="flex flex-wrap gap-4">{eventPage>0&&<Button variant="link" {...(onEventPageChange?{onClick:()=>onEventPageChange(eventPage-1)}:{render:<Link href={href(eventPage-1)}/>,nativeButton:false,role:"link" as const})}>{c("فعاليات سابقة","Previous events")}</Button>}{choices.length>25&&<Button variant="link" {...(onEventPageChange?{onClick:()=>onEventPageChange(eventPage+1)}:{render:<Link href={href(eventPage+1)}/>,nativeButton:false,role:"link" as const})}>{c("فعاليات أخرى","More events")}</Button>}</nav></>}</section>;
+import {taskPanelQuery,initialTaskPanelQuery} from "./panel-query";
+import {TaskForm} from "./task-form";
+export function TaskEventLinkAction({task,enabled,locale}:{task:string;enabled:boolean;locale:Locale}){
+ const [open,setOpen]=useState(false),actor=useQueryActor(),client=useQueryClient(),router=useRouter(),t=createTranslator(locale),result=useQuery({...taskPanelQuery(actor,task,{...initialTaskPanelQuery,purpose:"link"}),enabled:open}),detail=result.data?.detail;
+ return <><RowAction label={t("ربط بفعالية","Link to event")} disabled={!enabled} hint={t("يتطلب صلاحية إدارة مهمة مفتوحة أو مسودة.","Requires permission to manage an open task or draft.")} onClick={()=>setOpen(true)}><Link2/></RowAction><ManagementActionSheet label="" title={t("ربط بفعالية","Link to event")} locale={locale} open={open} onOpenChange={setOpen} hideTrigger mobileBottomSheet>
+ {result.isPending?<Skeleton className="h-10 w-full"/>:detail?.canManage?<TaskForm operation="link-event" fields={{task,revision:String(detail.task.revision)}} label={t("حفظ","Save")} locale={locale} onSuccess={()=>{void client.invalidateQueries({queryKey:["task-panel",actor,task]});router.refresh();}}><FormField label={t("الفعالية","Event")}><NativeSelect name="event" defaultValue={detail.task.event_id??""}><option value="">{t("بدون فعالية","No event")}</option>{detail.task.event_id&&!detail.eventChoices.some(event=>event.id===detail.task.event_id)&&<option value={detail.task.event_id}>{detail.linkedEvent?.title??t("الفعالية الحالية","Current event")}</option>}{detail.eventChoices.map(event=><option key={event.id} value={event.id}><ContentText value={event.title}/></option>)}</NativeSelect></FormField></TaskForm>:<Alert><AlertDescription>{t("تعذّر تحميل الخيارات أو لا تملك صلاحية تعديل المهمة.","Options could not be loaded or you cannot edit this task.")}</AlertDescription><Button variant="outline" onClick={()=>void result.refetch()}>{t("إعادة المحاولة","Retry")}</Button></Alert>}
+ </ManagementActionSheet></>;
 }

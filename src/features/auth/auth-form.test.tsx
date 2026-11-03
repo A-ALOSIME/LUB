@@ -15,7 +15,7 @@ describe("OTP form interactions", () => {
     actions.requestCode.mockResolvedValue({ email: "student@example.com" });
     actions.verifyCode.mockResolvedValue({ error: "الرمز غير صحيح." });
     render(<AuthForm mode="login" available />);
-    fireEvent.change(screen.getByLabelText("البريد الإلكتروني"), { target: { value: "student@example.com" } });
+    fireEvent.change(screen.getByLabelText("الإيميل"), { target: { value: "student@example.com" } });
     fireEvent.submit(screen.getByRole("button", { name: "إرسال رمز التحقق" }).closest("form")!);
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("رمز تحقق"));
     expect(screen.getByLabelText("رمز التحقق")).toBeTruthy();
@@ -48,7 +48,7 @@ describe("OTP form interactions", () => {
   it("explains where to look when the signup code does not arrive", async () => {
     actions.requestCode.mockResolvedValue({ email: "student@example.com" });
     render(<AuthForm mode="signup" available />);
-    fireEvent.change(screen.getByLabelText("البريد الإلكتروني"), { target: { value: "student@example.com" } });
+    fireEvent.change(screen.getByLabelText("الإيميل"), { target: { value: "student@example.com" } });
     fireEvent.change(screen.getByLabelText("الاسم الكامل بالعربية"), { target: { value: "أحمد محمد" } });
     fireEvent.change(screen.getByLabelText("الرقم الجامعي"), { target: { value: "202612345" } });
     fireEvent.change(screen.getByLabelText("التخصص"), { target: { value: "نظم المعلومات" } });

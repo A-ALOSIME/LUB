@@ -3,7 +3,7 @@ import {decryptIdentifier} from "@/lib/identifiers";
 import type {EncryptedMemberWorkspace,EncryptedMemberRecord,OrganizationMemberWorkspace,MemberRecord} from "./member-types";
 /** Called only after the database has authorized the requesting staff member. */
 export function decodeMemberWorkspace(raw:EncryptedMemberWorkspace):OrganizationMemberWorkspace{
- return {canManage:raw.canManage,canGrant:raw.canGrant,canAddHours:raw.canAddHours,terms:raw.terms,committees:raw.committees,counts:raw.counts,statusCounts:raw.statusCounts,
+ return {rowTotal:raw.rowTotal,canManage:raw.canManage,canGrant:raw.canGrant,canAddHours:raw.canAddHours,terms:raw.terms,committees:raw.committees,counts:raw.counts,statusCounts:raw.statusCounts,
  members:raw.members.map(m=>({id:m.id,name:m.name,major:m.major,level:m.level,status:m.status,startDate:m.startDate,endDate:m.endDate,universityId:decryptIdentifier(m.universityCiphertext,m.userId),canManage:m.canManage,hours:m.hours,roles:m.roles,committees:m.committees,hourScopes:m.hourScopes}))};
 }
 export function decodeMemberRecord(raw:EncryptedMemberRecord):MemberRecord{

@@ -14,7 +14,7 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("./application-row-actions", () => ({
-  ApplicationRowActions: ({ preview }: { preview: boolean }) => <button type="button" aria-label="إجراءات الطلب" disabled={preview}>•••</button>,
+  ApplicationRowActions: ({ preview }: { preview: boolean }) => <button type="button" aria-label="إجراءات الطلب" disabled={preview}>عين</button>,
 }));
 
 afterEach(cleanup);
@@ -31,6 +31,7 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
   expect(screen.getByRole("note").textContent).toContain("بيانات تجريبية");
   expect(screen.getByRole("table")).toBeTruthy();
   expect(screen.getAllByRole("columnheader").map(header => header.textContent)).toEqual([
+    "",
     "الجهة",
     "تاريخ التقديم",
     "الحالة",
@@ -44,7 +45,7 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
   expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toContain("1");
   expect(screen.getByRole("tab", { name: /الكل/ }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("tablist", { name: "تصفية الطلبات حسب الحالة" }).parentElement?.getAttribute("dir")).toBe("rtl");
-  expect(screen.getAllByRole("row")[0].className).toContain("border-border/60");
+  expect(screen.getAllByRole("row")[0].className).toContain("border-border");
   expect(screen.getAllByRole("button", { name: "إجراءات الطلب" }).every(button => button.hasAttribute("disabled"))).toBe(true);
   expect(screen.queryByText("المراجع")).toBeNull();
   expect(screen.queryByText("السحب والإفلات")).toBeNull();

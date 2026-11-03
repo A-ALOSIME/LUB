@@ -5,6 +5,7 @@ import type { Event } from "./repository";
 
 export type EventWorkspace = {
   name: string;
+  slug?: string;
   status: string | null;
   onboarded: boolean;
   canViewEvents: boolean;
@@ -19,7 +20,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
   return withUser(user, async tx => {
     const rows = await tx.execute(sql`
       select
-        o.name_ar as name,
+        o.name_ar as name,o.slug,
         (select status_code from lub.users where id=${user}) as status,
         exists(select 1 from lub.student_profiles where user_id=${user}) as onboarded,
         lub.has_event_access(o.id) as "canViewEvents",
@@ -29,7 +30,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
           select jsonb_agg(e) from (
             select e.id, e.organization_id,e.title, coalesce(e.starts_at::text,'') as starts_at, coalesce(e.ends_at::text,'') as ends_at, e.status_code,e.revision,e.location_text,e.location_type_code,
               exists(select 1 from lub.event_assets ea where ea.event_id=e.id and ea.asset_type_code='Poster') as has_poster,
-              (select count(*)::int from lub.event_registrations r where r.event_id=e.id) as registrant_count
+              (select count(*)::int from lub.event_registrations r where r.event_id=e.id and r.status_code='Registered' and lub.is_counted_student(r.user_id)) as registrant_count
             from lub.events e where e.organization_id=o.id
               and (${!filters}::boolean or (${filters?.eventStatus??'all'}='all' and e.status_code<>'Archived') or e.status_code=${filters?.eventStatus??'all'})
               and position(lub.arabic_search_key(${filters?.eventSearch??''}) in lub.arabic_search_key(e.title||' '||coalesce(e.location_text,'')))>0

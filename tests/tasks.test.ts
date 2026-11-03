@@ -40,6 +40,24 @@ beforeEach(async()=>{
 });
 afterEach(async()=>{await db.exec("rollback");});afterAll(async()=>{await db.close();});
 async function create(scope:string|null=null){return(await db.query<{id:string}>("select lub.save_task(null,$1,$2,null,'تصميم الهوية','وصف المهمة',null,now()-interval '1 hour',2,null) as id",[org,scope])).rows[0].id;}
+it("saves template media and canonical skills, copies them and applies them without transferring asset ownership",async()=>{
+ const asset="00000000-0000-4000-8000-000000000399",key=`${leader}/${asset}`;
+ await db.query("select lub.register_application_asset($1,$2,'template.png','image/png',100)",[asset,key]);
+ const bundle="select lub.save_task_template_bundle($1,$2,$3,$4,'مخرج القالب',3,true,$5,$6,$7,$8::jsonb,$9) as id";
+ const source=(await db.query<{id:string}>(bundle,[null,org,null,"قالب التصميم",null,null,asset,'["python"]',true])).rows[0].id;
+ expect((await db.query("select image_asset_id,skill_keys from lub.task_templates where id=$1",[source])).rows[0]).toEqual({image_asset_id:asset,skill_keys:["python"]});
+ expect((await db.query<{value:boolean}>("select lub.can_delete_application_object($1) as value",[key])).rows[0].value).toBe(false);
+ const copy=(await db.query<{id:string}>(bundle,[null,org,null,"نسخة مستقلة",null,source,null,null,false])).rows[0].id;
+ expect((await db.query("select image_asset_id,skill_keys from lub.task_templates where id=$1",[copy])).rows[0]).toEqual({image_asset_id:asset,skill_keys:["python"]});
+ const task=(await db.query<{id:string}>("select lub.save_task(null,$1,null,$2,'مهمة من القالب','وصف المهمة',null,null,3,null) as id",[org,source])).rows[0].id;
+ await db.query("select lub.apply_task_template_media($1,$2,1)",[task,source]);
+ expect((await db.query<{image_asset_id:string}>("select image_asset_id from lub.tasks where id=$1",[task])).rows[0].image_asset_id).toBe(asset);
+ expect((await db.query<{value:Array<{key:string}>}>("select lub.activity_skill_selection('Task',$1) as value",[task])).rows[0].value[0].key).toBe("python");
+ await asUser(member);await denied(()=>db.query(bundle,[source,org,null,"لا يسمح",1,null,null,'[]',false]));
+ await denied(()=>db.query("select lub.apply_task_template_media($1,$2,3)",[task,source]));
+ await asUser(leader);await denied(()=>db.query(bundle,[source,org,null,"قديم",9,null,null,'[]',false]));
+ await denied(()=>db.query(bundle,[null,org,null,"غير صالح",null,null,null,'["not-a-skill"]',false]));
+});
 it("creates private drafts, denies member edits and anonymous reads, and derives overdue without closing",async()=>{
  const task=await create();expect((await db.query("select revision_number from lub.task_revisions where task_id=$1",[task])).rows).toHaveLength(1);
  await asUser(member);expect((await db.query("select id from lub.tasks")).rows).toHaveLength(0);await denied(()=>create());
@@ -51,7 +69,7 @@ async function openTask(scope:string|null=null){const id=await create(scope);awa
 async function join(task:string,user=member){await asUser(user);return(await db.query<{id:string}>("select lub.join_task($1) as id",[task])).rows[0].id;}
 async function submit(participant:string,rev=0,message="المخرج الأول",assets:string[]=[]){return(await db.query<{id:string}>("select lub.submit_task($1,$2,$3::uuid[],$4,2) as id",[participant,message,assets,rev])).rows[0].id;}
 it("joins once, preserves rejected versions, pins task revision, and reviews participants independently",async()=>{
- const task=await openTask();const p=await join(task);await denied(()=>join(task));await db.query("select lub.start_task_participation($1)",[p]);
+ const task=await openTask();const p=await join(task);await denied(()=>join(task));expect((await db.query<{status_code:string}>("select status_code from lub.task_participants where id=$1",[p])).rows[0].status_code).toBe("In_Progress");await denied(()=>db.query("select lub.start_task_participation($1)",[p]));
  const s=await submit(p);await denied(()=>submit(p));await asUser(leader);
  await denied(()=>db.query("select lub.review_task_submission($1,'Rejected','',null)",[s]));
  await db.query("select lub.review_task_submission($1,'Rejected','أكمل المخرج',null)",[s]);
@@ -207,4 +225,23 @@ it.each(["work.pdf","تسليم عربي.pdf"])("registers %s only as display me
  await denied(()=>db.query("insert into storage.objects(bucket_id,name) values('lub-application-files',$1)",[`${other}/${asset}.pdf`]));
  await denied(()=>db.query("insert into storage.objects(bucket_id,name) values('lub-application-files',$1)",[`${member}/${asset}.exe`]));
  await denied(()=>db.query("select lub.register_application_asset($1,$2,$3,'application/pdf',100)",["00000000-0000-4000-8000-000000000396",`${member}/تسليم.pdf`,name]));
+});
+
+it("rejoins an own withdrawal, preserves the earlier submission and accepts a new version",async()=>{
+ const task=await openTask(),participant=await join(task),original=await submit(participant);
+ await db.query("select lub.withdraw_task_participation($1)",[participant]);
+ const old=(await db.query<{id:string;message:string;withdrawn_at:string;reviewed_at:string|null}>("select id,message,withdrawn_at,reviewed_at from lub.task_submissions where id=$1",[original])).rows[0];expect(old.message).toBe("المخرج الأول");expect(old.withdrawn_at).not.toBeNull();expect(old.reviewed_at).toBeNull();
+ const available=await listTasks(member,{view:"available",page:0});expect(available.items.find(row=>row.task.id===task)?.participant).toBeNull();expect((await listTasks(member,{view:"mine",page:0})).items).toHaveLength(0);
+ await asUser(other);await denied(()=>db.query("select lub.withdraw_task_participation($1)",[participant]));
+ expect(await join(task)).toBe(participant);const fresh=await submit(participant,1,"نسخة جديدة بعد العودة");expect(fresh).not.toBe(original);
+ expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(2);expect((await db.query("select id from lub.task_submissions where task_participant_id=$1 and status_code='Submitted' and withdrawn_at is null",[participant])).rows).toHaveLength(1);
+ await asUser(leader);await db.query("select lub.close_task_participant($1)",[participant]);await asUser(member);await denied(()=>db.query("select lub.join_task($1)",[task]));
+});
+it("distinguishes a request to resubmit from a final rejection and protects both decisions",async()=>{
+ const task=await openTask(),participant=await join(task),first=await submit(participant);await asUser(other);await denied(()=>db.query("select lub.review_task_submission_decision($1,'Approved','')",[first]));
+ await asUser(leader);await denied(()=>db.query("select lub.review_task_submission_decision($1,'Changes_Requested','')",[first]));await db.query("select lub.review_task_submission_decision($1,'Changes_Requested','أكمل التوضيح')",[first]);
+ expect((await db.query<{status_code:string}>("select status_code from lub.task_participants where id=$1",[participant])).rows[0].status_code).toBe("In_Progress");expect((await db.query<{review_decision_code:string}>("select review_decision_code from lub.task_submissions where id=$1",[first])).rows[0].review_decision_code).toBe("Changes_Requested");
+ await asUser(member);const second=await submit(participant,1);await asUser(leader);await db.query("select lub.review_task_submission_decision($1,'Rejected','لا يحقق المطلوب')",[second]);
+ expect((await db.query<{status_code:string;withdrawn_at:string|null}>("select status_code,withdrawn_at from lub.task_participants where id=$1",[participant])).rows[0]).toEqual({status_code:"Closed",withdrawn_at:null});
+ await denied(()=>db.query("select lub.review_task_submission_decision($1,'Approved','')",[second]));await asUser(member);await denied(()=>join(task));await denied(()=>submit(participant,2));
 });

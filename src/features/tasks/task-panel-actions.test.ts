@@ -8,7 +8,7 @@ beforeEach(()=>{vi.resetAllMocks();mocks.user.mockResolvedValue({id:"authenticat
 it("loads student details through the authenticated actor without loading management data",async()=>{
  const detail={task:{organization_id:"org"},canManage:false};mocks.detail.mockResolvedValue(detail);
  expect(await loadTaskPanel(task,{page:1})).toEqual({detail,workspace:undefined});
- expect(mocks.detail).toHaveBeenCalledWith("authenticated-user",task,null,1,0,0);
+ expect(mocks.detail).toHaveBeenCalledWith("authenticated-user",task,null,1,0,"management",false,false);
  expect(mocks.workspace).not.toHaveBeenCalled();
 });
 it("loads the editor workspace only after the repository confirms management permission",async()=>{

@@ -32,7 +32,7 @@ export default async function EventPage({params}:{params:Promise<{id:string}>}){
 
  const superAdmin=user?await isSuperAdminUser(user.id):false;
  const data=await eventDetail(superAdmin?null:user?.id??null,id);
- if(!data||data.event.status_code==="Draft")notFound();
+ if(!data||(data.event.status_code==="Draft"&&!data.canManage))notFound();
 
  const event=data.event;
  const schemaStatus:Record<string,string>={Published:"EventScheduled",Cancelled:"EventCancelled"};

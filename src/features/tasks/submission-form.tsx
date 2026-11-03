@@ -13,7 +13,7 @@ import {FormField} from "@/components/form-field";
 import {TaskForm} from "./task-form";
 import {uploadErrorCode,type SubmissionErrorCode} from "./submission-errors";
 type Attachment={key:string;file:File;asset?:string};
-export function SubmissionForm({participant,revision,lastRevision,locale="ar"}:{participant:string;revision:number;lastRevision:number;locale?:Locale}){
+export function SubmissionForm({participant,revision,lastRevision,locale="ar",onSuccess}:{participant:string;revision:number;lastRevision:number;locale?:Locale;onSuccess?:()=>void}){
  const c=createTranslator(locale),items=useRef<Attachment[]>([]);
  const [attachments,setAttachments]=useState<Attachment[]>([]),[message,setMessage]=useState("");
  const [uploading,setUploading]=useState(false),[error,setError]=useState<SubmissionErrorCode>();
@@ -38,7 +38,7 @@ export function SubmissionForm({participant,revision,lastRevision,locale="ar"}:{
   for(const item of items.current){if(!item.asset){const failure=await upload(item);if(failure)return failure;}}
   form.delete("asset");for(const item of items.current){if(item.asset)form.append("asset",item.asset);}
  }
- return <TaskForm operation="submit" fields={{participant,revision:String(revision),lastRevision:String(lastRevision)}} label={c("إرسال نسخة التسليم","Submit deliverable version")} disabled={uploading} locale={locale} onSubmitStart={()=>setError(undefined)} uploadError={error} beforeAction={prepare} onSuccess={()=>{setMessage("");update([]);}}>
+ return <TaskForm operation="submit" fields={{participant,revision:String(revision),lastRevision:String(lastRevision)}} label={c("إرسال نسخة التسليم","Submit deliverable version")} disabled={uploading} locale={locale} onSubmitStart={()=>setError(undefined)} uploadError={error} beforeAction={prepare} onSuccess={()=>{setMessage("");update([]);onSuccess?.();}}>
   <FormField label={c("وصف المخرج","Deliverable description")}><Textarea name="message" value={message} onChange={event=>setMessage(event.target.value)} maxLength={6000} rows={5}/></FormField>
   <FormField label={c("مرفق التسليم","Submission attachment")}><FilePickerInput accept="application/pdf,image/jpeg,image/png" locale={locale} ariaLabel={c("مرفق التسليم","Submission attachment")} onChange={event=>void select(event.target.files?.[0])}/></FormField>
   <p role="status" className="text-sm text-muted-foreground">{uploading?c("جارٍ رفع المرفق…","Uploading attachment…"):c("حتى خمسة ملفات، كل ملف حتى 5 ميجابايت.","Up to five files, each up to 5 MB.")}</p>

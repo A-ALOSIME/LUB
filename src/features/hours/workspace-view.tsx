@@ -6,17 +6,16 @@ import {useListQuery} from "@/lib/list-query";
 import {privateJson} from "@/lib/private-query";
 import {ListEmpty} from "@/components/list-empty";
 import {HoursToolbarActions} from "./hours-toolbar-actions";
-import {HoursAdvancedFilters} from "./hours-advanced-filters";
-import {HoursSettingsAction} from "./hours-settings-action";
+import {NativeSelect} from "@/components/ui/native-select";
+import {SelfReportPolicy} from "./self-report-policy";
 import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {createTranslator} from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { formatHours,recordCount } from "@/lib/display";
+import { formatHours,recordCount,academicTerm } from "@/lib/display";
 import Link from "next/link";
 import { HoursForm } from "./form";
 import { HoursRecordTable } from "./hours-record-table";
 import type { HoursWorkspace } from "./repository";
-import { TaskPagination } from "@/features/tasks/task-list";
 import type { Locale } from "@/lib/preferences";
 import { Clock3, Plus, Search } from "lucide-react";
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
@@ -24,7 +23,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { HoursStatusFilters, type HoursStatusFilter } from "./hours-status-filters";
 import { HoursStatusSummary } from "./hours-status-summary";
 
-export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; rulePage: number; q?:string };
+export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; q?:string };
 
 function hoursListQuery(actor:string|null,org:string,f:HoursFilters){return queryOptions({queryKey:["organization-hours",actor,org,{term:f.term,committee:f.committee,status:f.status,q:f.q??"",page:f.page}],queryFn:({signal})=>{const query=new URLSearchParams({q:f.q??"",page:String(f.page)});if(f.term)query.set("term",f.term);if(f.committee)query.set("committee",f.committee);if(f.status)query.set("status",f.status);return privateJson<Pick<HoursWorkspace,"records"|"hoursByStatus"|"total"|"filteredCount"|"filteredTotal">>(`/api/organizations/${org}/hours?${query}`,signal);}});}
 export function HoursWorkspaceView({ data:initial, org, filters:initialFilters, locale = "ar" }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale?: Locale }) {
@@ -41,23 +40,27 @@ export function HoursWorkspaceView({ data:initial, org, filters:initialFilters, 
   const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   const base = `/manage/organizations/${org}/tasks`;
   const membersHref = `/manage/organizations/${org}/members`;
-  const { term, committee, page, memberPage, rulePage } = filters;
-  const query = { ...(filters.q?{q:filters.q}:{}), section: "hours", ...(term ? { term } : {}), ...(committee ? { committee } : {}), ...(filters.status ? { hourStatus: filters.status } : {}), memberPage: String(memberPage), rulePage: String(rulePage) };
+  const { term, committee, page, memberPage } = filters;
+  const query = { ...(filters.q?{q:filters.q}:{}), section: "hours", ...(term ? { term } : {}), ...(committee ? { committee } : {}), ...(filters.status ? { hourStatus: filters.status } : {}), memberPage: String(memberPage) };
   const selected = data.scopes.find(scope => scope.id === committee);
   const canAddHours = data.scopes.some(scope => scope.manual);
   return <div className="min-w-0 space-y-4">
     <SearchFilterToolbar search={<div className="hours-search"><Search aria-hidden="true"/><Input type="search" value={filters.q??""} onChange={event=>update({q:event.target.value},true)} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>}>
       <HoursStatusFilters value={filters.status??"all"} locale={locale} onChange={value=>update({hourStatus:value==="all"?null:value})}/>
-      <HoursToolbarActions org={org} committee={committee} term={term} status={filters.status} search={filters.q} exportScopes={data.exportScopes} locale={locale} hasRecords={Boolean(data.records.length)} canAddHours={canAddHours} filtersAction={<HoursAdvancedFilters data={data} filters={filters} locale={locale} onChange={values=>update(values)} settingsAction={<HoursSettingsAction data={data} org={org} filters={filters} locale={locale}/>}/>}/>
+      <NativeSelect value={term??""} aria-label={c("الفصل الدراسي","Academic term")} onChange={event=>update({term:event.target.value||null})}><option value="">{c("كل الفصول","All terms")}</option>{data.terms.map(item=><option key={item.id} value={item.id}>{academicTerm(item.name_ar,locale)} · {item.academic_year}</option>)}</NativeSelect>
+      <NativeSelect value={committee??""} aria-label={c("اللجنة","Committee")} onChange={event=>update({committee:event.target.value||null})}><option value="">{c("كل اللجان","All committees")}</option>{data.scopes.filter(scope=>scope.id).map(scope=><option key={scope.id} value={scope.id!}>{scope.name}</option>)}</NativeSelect>
+      {data.canPolicy&&<SelfReportPolicy org={org} enabled={data.selfEnabled} locale={locale}/>}
+      <HoursToolbarActions org={org} committee={committee} term={term} status={filters.status} search={filters.q} exportScopes={data.exportScopes} locale={locale} hasRecords={Boolean(data.records.length)} canAddHours={canAddHours}/>
+
     </SearchFilterToolbar>
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale}/>
 
     {data.records.length
-      ? <HoursRecordTable items={data.records} locale={locale}/>
+      ? <HoursRecordTable pagination={{page,more:data.records.length>25,onChange:value=>change({hoursPage:String(value)})}} items={data.records} locale={locale}/>
       : (filters.q||filters.term||filters.committee||filters.status)?<ListEmpty filtered clear={()=>update({q:null,term:null,committee:null,hourStatus:null})} icon={Clock3} title="" description=""/>:<WorkspaceEmptyState icon={Clock3} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("تُسجّل الساعات من صفحة الأعضاء.", "Hours are entered from the members page.")} action={canAddHours ? <Link href={membersHref} className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link> : undefined} />}
     <p className="text-sm text-muted-foreground">{c("الإجمالي","Total")} {formatHours(data.filteredTotal??data.records.slice(0,25).reduce((sum,record)=>sum+Number(record.hours),0),locale)} · {recordCount(data.filteredCount??Math.min(25,data.records.length),locale)}</p>
-    <TaskPagination page={page} more={data.records.length > 25} base={base} query={query} locale={locale} pageParam="hoursPage" onPageChange={page=>change({hoursPage:String(page)})}/>
+
 
     {selected?.manual && <nav aria-label={c("صفحات اختيار العضو", "Member selection pages")} className="flex flex-wrap gap-3 text-sm">
       {memberPage > 0 && <Link className="text-link" href={`${base}?${new URLSearchParams({ ...query, page: String(page), memberPage: String(memberPage - 1) })}`}>{c("الأعضاء السابقون", "Previous members")}</Link>}

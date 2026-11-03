@@ -36,7 +36,7 @@ it("uses a compact unlabeled search and filters members by status", async () => 
 
   expect(screen.queryByText("بحث في الأعضاء")).toBeNull();
   expect(screen.queryByText("2 / 2")).toBeNull();
-  expect(screen.getByPlaceholderText("الاسم أو التخصص أو اللجنة")).toBeTruthy();
+  expect(screen.getByPlaceholderText("الاسم أو الرقم الجامعي أو اللجنة")).toBeTruthy();
   expect(document.querySelector("[data-slot=avatar],img")).toBeNull();
   const search = screen.getByRole("searchbox", { name: "بحث الأعضاء" });
   expect(search.getAttribute("dir")).toBe("rtl");

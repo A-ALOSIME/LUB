@@ -3,10 +3,11 @@
 import {ContentText} from "@/components/content-text";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import {NativeSelect} from "@/components/ui/native-select";
+import {useRouter} from "next/navigation";
 import Link from "next/link"
 import { CalendarDays, Clock, ChevronDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import {Button, buttonVariants } from "@/components/ui/button"
+import {buttonVariants } from "@/components/ui/button"
 import {ItemTable,ItemTitle} from "@/components/item-table";
 import {ListThumbnail} from "@/components/list-thumbnail";
 import {RowAction} from "@/components/row-action";
@@ -24,11 +25,10 @@ import { HoursForm } from "@/features/hours/form"
 import {formatRiyadhDate} from "@/lib/datetime"
 
 import type {EventCard} from "@/features/events/repository";
-import { TaskPagination } from "@/features/tasks/task-list"
 import type { Locale } from "@/lib/preferences"
 import { FormField } from "@/components/form-field";
 
-type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; review_status?:string;attendance: string;org_name?:string;has_poster?:boolean }
+type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; review_status?:string;contributions?:Array<{kind:string;title:string}>;attendance: string;org_name?:string;has_poster?:boolean }
 
 function statusVariant(status: string): "secondary" | "outline" | "destructive" {
   if (["Approved", "Present", "Completed", "Registered"].includes(status)) return "secondary"
@@ -37,14 +37,15 @@ function statusVariant(status: string): "secondary" | "outline" | "destructive" 
 }
 
 export function ActivityEventRows({ events, page, locale,onPageChange,hidePagination=false,empty }: { empty?:React.ReactNode;hidePagination?:boolean;events: MyEvent[]; page: number; locale: Locale;onPageChange?:(page:number)=>void }) {
+  const router=useRouter();
   const en = locale === "en"
   const date=(value:string)=>formatRiyadhDate(value,locale)
-  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "أُلغي التسجيل", "Registration cancelled"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
+  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "أُلغي التسجيل", "Registration cancelled"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.review_status==="Recorded"?translateUi(locale,"مرصودة","Recorded"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
 
   return <div className="flex min-w-0 flex-col gap-3">
-    {events.length ? <ItemTable items={events.slice(0,25)} href={event=>`/events/${event.id}`} label={translateUi(locale,"عرض تفاصيل الفعالية","View event details")} columns={[
-      {id:"name",label:translateUi(locale,"الفعالية","Event"),render:event=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={CalendarDays} src={event.has_poster?`/event-posters/${event.id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={event.title}/></ItemTitle>{event.org_name&&<p className="text-sm text-muted-foreground"><ContentText value={event.org_name}/></p>}</div></div>},
-      {id:"status",label:translateUi(locale,"الحالة","Status"),className:"w-44",render:event=><Badge variant={statusVariant(event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge>},
+    {events.length ? <ItemTable pagination={hidePagination?undefined:{page,more:events.length>25,onChange:value=>{if(onPageChange)onPageChange(value);else router.push(`/activity?tab=events&page=${value}`);}}} items={events.slice(0,25)} href={event=>`/events/${event.id}`} label={translateUi(locale,"عرض تفاصيل الفعالية","View event details")} columns={[
+      {id:"name",label:translateUi(locale,"الفعالية","Event"),render:event=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={CalendarDays} src={event.has_poster?`/event-posters/${event.id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={event.title}/></ItemTitle>{event.org_name&&<p className="text-sm text-muted-foreground"><ContentText value={event.org_name}/></p>}{event.contributions?.map(contribution=><p key={contribution.kind} className="text-sm text-muted-foreground">{contribution.title}</p>)}</div></div>},
+      {id:"status",label:translateUi(locale,"الحالة","Status"),className:"w-44",render:event=><Badge variant={statusVariant(event.review_status==='Recorded'?'Registered':event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge>},
       {id:"date",label:translateUi(locale,"التاريخ","Date"),className:"w-40",render:event=><time>{date(event.starts_at)}</time>},
       {id:"actions",label:translateUi(locale,"الإجراءات","Actions"),className:"w-16",render:event=><RowAction label={translateUi(locale,"عرض التفاصيل","View details")} href={`/events/${event.id}`}><Eye/></RowAction>}
     ]}/> : empty??<WorkspaceEmptyState
@@ -53,10 +54,7 @@ export function ActivityEventRows({ events, page, locale,onPageChange,hidePagina
       description={translateUi((en) ? "en" : "ar", "تصفح الفعاليات القادمة للعثور على فعالية تناسبك.", "Browse upcoming events to find one to join.")}
       action={<Link href="/events" className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><CalendarDays data-icon="inline-start" aria-hidden="true" />{translateUi((en) ? "en" : "ar", "تصفح الفعاليات", "Browse events")}</Link>}
     />}
-    {!hidePagination&&(page > 0 || events.length > 25) && <nav aria-label={translateUi((en) ? "en" : "ar", "صفحات فعالياتي", "My event pages")} className="flex flex-wrap gap-3">
-      {page > 0 && <Button variant="outline" size="sm" {...(onPageChange?{onClick:()=>onPageChange(page-1)}:{render:<Link href={`/activity?tab=events&page=${page-1}`}/>,nativeButton:false})}>{translateUi((en) ? "en" : "ar", "السابق", "Previous")}</Button>}
-      {events.length > 25 && <Button variant="outline" size="sm" {...(onPageChange?{onClick:()=>onPageChange(page+1)}:{render:<Link href={`/activity?tab=events&page=${page+1}`}/>,nativeButton:false})}>{translateUi((en) ? "en" : "ar", "التالي", "Next")}</Button>}
-    </nav>}
+
   </div>
 }
 
@@ -81,6 +79,7 @@ export function ActivityHours({ data, page, term, status, locale,onFiltersChange
   onFiltersChange?:(changes:{term?:string|null;status?:ActivityHourStatus})=>void
   onPageChange?:(page:number)=>void
 }) {
+  const router=useRouter();
   const en = locale === "en"
   const c = createTranslator(en ? "en" : "ar")
   const statusCode = status === "all" ? null : status === "approved" ? "Approved" : status === "pending" ? "Pending" : "Rejected"
@@ -106,9 +105,9 @@ export function ActivityHours({ data, page, term, status, locale,onFiltersChange
       </ul>
     </details>}
     {data.records.length
-      ? <HoursRecordTable items={data.records} locale={locale} personal />
+      ? <HoursRecordTable pagination={hidePagination?undefined:{page,more:data.records.length>25,onChange:value=>{if(onPageChange)onPageChange(value);else router.push(`/activity?${new URLSearchParams({tab:"hours",page:String(value),...(term?{term}:{}),...(statusCode?{hourStatus:status}:{})})}`);}}} items={data.records} locale={locale} personal />
       : empty??<WorkspaceEmptyState icon={Clock} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("لا توجد سجلات لهذه الفترة والحالة.", "No records match this term and status.")} />}
-    {!hidePagination&&(page > 0 || data.records.length > 25) && <TaskPagination page={page} more={data.records.length > 25} base="/activity" onPageChange={onPageChange} query={{ tab: "hours", ...(term ? { term } : {}), ...(statusCode ? { hourStatus: status } : {}) }} locale={locale} />}
+
 
     {data.memberships.filter(membership => membership.self).map(membership => <details key={membership.id} className="rounded-lg border border-border/70 p-3">
       <summary className="cursor-pointer text-sm font-medium">{c("طلب ساعات ذاتي", "Self-reported hours request")} · <bdi>{membership.name}</bdi></summary>

@@ -7,7 +7,7 @@ import type { MutationOperation, MutationState } from "./validation";
 import type {Locale} from "@/lib/preferences";
 import {actionFeedback} from "@/lib/action-feedback";
 import { ProfileFormContext } from "./profile-form-state";
-import { ManagementActionFooter } from "@/components/management-action-sheet";
+import { ManagementActionFooter,useCloseOnSuccess } from "@/components/management-action-sheet";
 import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
 import { useActionToast } from "@/components/action-toast";
 import { Button } from "@/components/ui/button";
@@ -155,7 +155,7 @@ export function MutationForm({ operation, fields = {}, submitLabel, confirmLabel
     };
   }, [dirty, locale, stickySaveBar]);
   useEffect(() => { if (state.error) pendingSubmission.current = null; }, [state.error]);
-  useEffect(() => { if (state.success) onSuccess?.(); }, [state.success, onSuccess]);
+  useCloseOnSuccess(state,onSuccess);
   useEffect(() => {
     if (!stickySaveBar || !state.success || !formRef.current) return;
     const frame = window.requestAnimationFrame(() => {

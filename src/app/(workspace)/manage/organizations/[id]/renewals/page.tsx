@@ -1,5 +1,3 @@
-import {CampaignLifecycleControls} from "@/features/renewals/lifecycle-controls";
-import {RenewalDraftForm} from "@/features/renewals/draft-form";
 
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
@@ -18,7 +16,6 @@ import { renewalWorkspace } from "@/features/renewals/repository";
 import { checkReadiness } from "@/features/hours/view";
 import { HoursForm } from "@/features/hours/form";
 import { DateRangeInput } from "@/features/forms/date-input";
-import { RenewalWorkspaceView } from "@/features/renewals/view";
 import { getPreferences } from "@/lib/preferences";
 import { getWorkspace } from "@/features/forms/repository";
 import { RegistrationManagement } from "@/features/forms/registration-management";
@@ -94,9 +91,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
           <section aria-label={c("قائمة الجولات والحملات", "Rounds and campaigns list")} className="space-y-3">
             <CampaignList rounds={rounds} templates={publishedTemplates} campaigns={campaigns} organization={id} locale={locale} canManageRounds={canCreateRound} canManageCampaigns={canCreateCampaign} terms={renewals?.terms??[]} emptyAction={(canCreateRound || canCreateCampaign) ? createActions("menu") : undefined}/>
           </section>
-          {renewals?.selected && <ManagementActionSheet label="" title={`${c("حملة التجديد", "Renewal campaign")} · ${renewals.selected.name}`} locale={locale} presentation="sheet" initiallyOpen hideTrigger footer={<CampaignLifecycleControls kind="renewal" id={renewals.selected.id} title={renewals.selected.name} status={renewals.selected.status_code} organization={id} locale={locale} allowed={renewals.allowed} editForm={<RenewalDraftForm campaign={renewals.selected} terms={renewals.terms} locale={locale}/>}/>}>
-            <RenewalWorkspaceView hideCampaignActions data={renewals} org={id} page={page} memberPage={memberPage} locale={locale} hideNewCampaign hideCampaignList/>
-          </ManagementActionSheet>}
+
         </div>
       </OrganizationSectionTabPanel>}
       {canManageForms && registration && <OrganizationSectionTabPanel id="forms">

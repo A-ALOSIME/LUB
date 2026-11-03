@@ -21,7 +21,7 @@ export default async function OrganizationMembersPage({ params, searchParams }: 
 }) {
   const [{ id }, { locale }, search] = await Promise.all([params, getPreferences(), searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
-  const memberFilters:MemberFilters={q:typeof search.memberSearch==="string"?search.memberSearch.slice(0,120):"",status:search.memberStatus==="Active"||search.memberStatus==="Ended"||search.memberStatus==="Inactive"?search.memberStatus:"all",committee:z.uuid().nullable().catch(null).parse(search.memberCommittee??null),page:z.coerce.number().int().min(0).max(10000).catch(0).parse(search.memberPage??0)};
+  const memberFilters:MemberFilters={sort:(["name:asc","name:desc","date:asc","date:desc"] as const).find(value=>value===search.memberSort)??"name:asc",q:typeof search.memberSearch==="string"?search.memberSearch.slice(0,120):"",status:search.memberStatus==="Active"||search.memberStatus==="Ended"||search.memberStatus==="Inactive"?search.memberStatus:"all",committee:z.uuid().nullable().catch(null).parse(search.memberCommittee??null),page:z.coerce.number().int().min(0).max(10000).catch(0).parse(search.memberPage??0)};
   const { user, data: [workspace, permissions, applicationWorkspace] } = await loadManagementPageData(userId => Promise.all([
     getOrganizationMemberDirectory(userId, id,memberFilters),
     getOrganizationPermissionWorkspace(userId, id),

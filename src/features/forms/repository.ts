@@ -65,7 +65,7 @@ export async function countOrganizationApplicationStatuses(user: string, org: st
    join lub.registration_rounds r on r.id=a.registration_round_id
    join lub.organizations o on o.id=r.organization_id
    join lateral lub.application_profiles(o.id) p on p.application_id=a.id
-   where o.id=${org}
+   where o.id=${org} and lub.is_counted_student(a.applicant_user_id)
    and (lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))
    and (${filters.q}='' or position(lower(${filters.q}) in lower(p.full_name))>0)
    and (${filters.round??""}='' or r.id::text=${filters.round??""})
@@ -132,7 +132,7 @@ export async function registrationReadiness(user:string,organization:string,roun
 export async function managedRound(user:string,org:string,id:string){return withUser(user,async tx=>{const rows=await tx.execute(sql`select r.*,lub.round_is_open(r.id) as open,lub.round_application_count(r.id) as application_count from lub.registration_rounds r where r.organization_id=${org} and r.id=${id} and lub.has_org_permission(${org},'REGISTRATION_ROUNDS_MANAGE')`);return rows[0] as unknown as Round|undefined;});}
 
 export async function organizationApplicationPage(user:string,org:string,filters:Filters){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`with profiles as materialized (select * from lub.application_profiles(${org})),source as materialized (select a.id,a.status_code,a.created_at,r.title,r.id as round_id,o.slug,o.name_ar as organization_name,p.full_name as name,p.major,p.level,c.name as committee,r.allow_withdrawal,lub.round_is_open(r.id) as round_open,
+ const rows=await tx.execute(sql`with profiles as materialized (select * from lub.application_profiles(${org})),source as materialized (select not lub.is_counted_student(a.applicant_user_id) as "isTest",a.id,a.status_code,a.created_at,r.title,r.id as round_id,o.slug,o.name_ar as organization_name,p.full_name as name,p.major,p.level,c.name as committee,r.allow_withdrawal,lub.round_is_open(r.id) as round_open,
    exists(select 1 from lub.membership_applications active_application where active_application.registration_round_id=a.registration_round_id and active_application.applicant_user_id=a.applicant_user_id and active_application.id<>a.id and active_application.status_code<>'Withdrawn') as has_active_application,
    exists(select 1 from lub.membership_applications newer_application where newer_application.registration_round_id=a.registration_round_id and newer_application.applicant_user_id=a.applicant_user_id and (newer_application.created_at>a.created_at or (newer_application.created_at=a.created_at and newer_application.id>a.id))) as has_newer_application,
    lub.can_read_application(a.id,'APPLICATIONS_REVIEW') as "canReview",lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION') as "canBulk"
@@ -149,6 +149,6 @@ export async function organizationApplicationPage(user:string,org:string,filters
    and (${filters?.to ?? ""}='' or a.created_at<nullif(${filters?.to ?? ""},'')::date+interval '1 day')
    and (${filters?.activity ?? ""}='' or (${filters?.activity ?? ""}='prior' and exists(select 1 from lub.application_prior_member(a.id))) or (${filters?.activity ?? ""}='first' and not exists(select 1 from lub.application_prior_member(a.id))))),filtered as(select * from source where ${filters.status}='' or status_code=${filters.status})
  select coalesce((select jsonb_agg(row) from (select * from filtered order by created_at desc,id limit 26 offset ${(filters.page-1)*25}) row),'[]') as items,
- (select jsonb_build_object('all',count(*)::int,'submitted',count(*) filter(where status_code='Submitted')::int,'interview',count(*) filter(where status_code='Interview')::int,'accepted',count(*) filter(where status_code='Accepted')::int,'rejected',count(*) filter(where status_code='Rejected')::int,'withdrawn',count(*) filter(where status_code='Withdrawn')::int) from source) as counts`);
+ (select jsonb_build_object('all',count(*)::int,'submitted',count(*) filter(where status_code='Submitted')::int,'interview',count(*) filter(where status_code='Interview')::int,'accepted',count(*) filter(where status_code='Accepted')::int,'rejected',count(*) filter(where status_code='Rejected')::int,'withdrawn',count(*) filter(where status_code='Withdrawn')::int) from source where not "isTest") as counts`);
  const data=rows[0] as unknown as {items:Application[];counts:OrganizationApplicationStatusCounts};return {...data,items:data.items.slice(0,25),more:data.items.length>25};
 });}

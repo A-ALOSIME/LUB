@@ -16,9 +16,9 @@ afterEach(()=>{cleanup();vi.resetAllMocks();window.history.replaceState(null,"",
 it("prefetches finite statuses once and restores URL filters without repeated requests",async()=>{
  window.history.replaceState(null,"","/manage/organizations/org/members?section=applications");
  reads.get.mockResolvedValue(initial);mount();await waitFor(()=>expect(reads.get).toHaveBeenCalledTimes(5));
- for(let i=0;i<10;i++)for(const name of ["Under review","Interview","Accepted","Rejected","Withdrawn","All"]){fireEvent.click(screen.getByRole("tab",{name:new RegExp(`^${name}`)}));}
+ for(let i=0;i<10;i++)for(const name of ["Under review","Interview","Accepted","Rejected","Withdrawn","All"]){fireEvent.click(screen.getByRole("combobox",{name:"Application status"}));fireEvent.click(screen.getByRole("option",{name:new RegExp(`^${name}`)}));}
  expect(reads.get).toHaveBeenCalledTimes(5);expect(screen.queryByText(/loading/i)).toBeNull();
- fireEvent.click(screen.getByRole("tab",{name:/^Interview/}));expect(new URLSearchParams(window.location.search).get("status")).toBe("Interview");
+ fireEvent.click(screen.getByRole("combobox",{name:"Application status"}));fireEvent.click(screen.getByRole("option",{name:/^Interview/}));expect(new URLSearchParams(window.location.search).get("status")).toBe("Interview");
 });
 it("aborts an in-flight private list request on unmount",async()=>{
  const aborted=vi.fn();reads.get.mockImplementation((_url:string,signal:AbortSignal)=>new Promise((_resolve,reject)=>{signal.addEventListener("abort",()=>{aborted();reject(new DOMException("Aborted","AbortError"));},{once:true});}));

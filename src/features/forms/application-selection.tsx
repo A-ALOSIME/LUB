@@ -1,5 +1,6 @@
 "use client";
 
+import {majorLabel,academicLevel} from "@/lib/display";
 import {createTranslator} from "@/lib/i18n";
 import {useState} from "react";
 import {useRouter} from "next/navigation";
@@ -10,12 +11,12 @@ import {Skeleton} from "@/components/ui/skeleton";
 import {Alert,AlertDescription} from "@/components/ui/alert";
 import { X } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetClose,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 import { ManagementActionProvider } from "@/components/management-action-sheet";
@@ -34,7 +35,7 @@ export function ApplicationSelection({
   canBulk,
   selectedApplication,
   organization,
-  initialSelectedId,
+  initialSelectedId,pagination,
 }: {
   rows: Application[];
   locale?: Locale;
@@ -42,7 +43,7 @@ export function ApplicationSelection({
   selectedApplication?: { detail: Detail; name: string };
   query?: string;
   organization: string;
-  initialSelectedId?:string;
+  initialSelectedId?:string;pagination?:import("@/components/data-table").DataTablePagination;
 }) {
   const router=useRouter(),actor=useQueryActor(),client=useQueryClient(),en=locale==="en",c=createTranslator(locale);
   const [selected,setSelected]=useState<string|null>(initialSelectedId??selectedApplication?.detail.id??null);
@@ -65,16 +66,16 @@ export function ApplicationSelection({
     if (ids.length === 1) f.set("application", ids[0]);
     else ids.forEach((id) => f.append("selected", id));
     const result = await mutateWorkflow({}, f);
-    if (result.success) {await Promise.all([client.invalidateQueries({queryKey:["application-detail",actor,organization]}),client.invalidateQueries({queryKey:["organization-applications",actor,organization]})]);router.refresh();}
+    if (result.success) {setSelected(null);void Promise.all([client.invalidateQueries({queryKey:["application-detail",actor,organization]}),client.invalidateQueries({queryKey:["organization-applications",actor,organization]})]);router.refresh();}
     return result;
   }
   return (
-    <RequestReviewTable
+    <RequestReviewTable pagination={pagination}
       locale={locale}
       rows={rows.map((r) => ({
         id: r.id,
         name: r.name,
-        subtitle: c("الجولة: ","Round: ")+r.title,
+        subtitle: [majorLabel(r.major,locale),academicLevel(r.level,locale)].filter(Boolean).join(" · "),
         committee: r.committee,
         status: r.status_code,
         createdAt: r.created_at,
@@ -97,17 +98,16 @@ export function ApplicationSelection({
     >
       {(choose) =>
         selected && (
-          <Sheet open onOpenChange={closeDetail}>
-            <SheetContent
-              side="left"
+          <Dialog open onOpenChange={closeDetail}>
+            <DialogContent
               showCloseButton={false}
-              className="management-action-sheet gap-0 overflow-hidden p-0"
+              className="management-action-dialog management-action-dialog--mobile-bottom flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0"
             >
-              <SheetHeader className="management-action-header">
-                <SheetTitle className="min-w-0 break-words">
+              <DialogHeader className="management-action-header">
+                <DialogTitle className="min-w-0 break-words">
                   {name}
-                </SheetTitle>
-                <SheetClose
+                </DialogTitle>
+                <DialogClose
                   render={
                     <Button
                       type="button"
@@ -121,7 +121,7 @@ export function ApplicationSelection({
                     </Button>
                   }
                 />
-              </SheetHeader>
+              </DialogHeader>
               <ManagementActionProvider
                 locale={locale}
                 close={() => closeDetail(false)}
@@ -169,8 +169,8 @@ export function ApplicationSelection({
                       </div>
                     )}
               </ManagementActionProvider>
-            </SheetContent>
-          </Sheet>
+            </DialogContent>
+          </Dialog>
         )
       }
     </RequestReviewTable>

@@ -48,7 +48,7 @@ function posterUploadMessage(code: string | undefined, status: number, locale: L
 export function EventPosterField({organization,locale,event,hasPoster=false}:{organization:string;locale:Locale;event?:string;hasPoster?:boolean}) {
  return <EntityImageField organization={organization} locale={locale} initialPreview={event&&hasPoster?`/event-posters/${event}`:""}/>;
 }
-export function EntityImageField({organization,locale,committee,initialPreview="",purpose="event-poster"}:{organization:string;locale:Locale;committee?:string|null;initialPreview?:string;purpose?:"event-poster"|"task-image"|"announcement-image"}) {
+export function EntityImageField({organization,locale,committee,initialPreview="",purpose="event-poster"}:{organization:string;locale:Locale;committee?:string|null;initialPreview?:string;purpose?:"event-poster"|"task-image"|"template-image"|"announcement-image"}) {
   const [asset, setAsset] = useState("");
   const [removed,setRemoved]=useState(false);
   const [pending, setPending] = useState(false);
@@ -96,7 +96,7 @@ export function EntityImageField({organization,locale,committee,initialPreview="
   }
 
   function remove() {setRemoved(true);setRetryFile(undefined);setAsset("");setPreview("");setError("");if(input.current){input.current.value="";input.current.setCustomValidity("");}}
-  const imageLabel=purpose==="task-image"?c("صورة المهمة","Task image"):purpose==="announcement-image"?c("صورة الإعلان","Announcement image"):c("بوستر الفعالية","Event poster");
+  const imageLabel=purpose==="template-image"?c("صورة القالب","Template image"):purpose==="task-image"?c("صورة المهمة","Task image"):purpose==="announcement-image"?c("صورة الإعلان","Announcement image"):c("بوستر الفعالية","Event poster");
   return <section className="event-poster-upload" aria-label={imageLabel} data-preview-url={preview}>
     <input type="hidden" name="poster" value={asset}/><input type="hidden" name="removePoster" value={String(removed)}/>
     <span className="event-poster-label">{imageLabel}{purpose!=="event-poster"&&c(" (اختياري)"," (optional)")}</span>
