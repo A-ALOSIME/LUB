@@ -43,7 +43,7 @@ export function ActivityTabs({
     }}
     className="min-w-0 gap-4"
   >
-    <SearchFilterToolbar search={search}><TabsList className="workspace-segmented-control group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
+    <TabsList className="workspace-segmented-control group-data-[orientation=horizontal]/tabs:h-auto grid w-full grid-cols-3 gap-1 rounded-lg border border-border/70 bg-card p-1 sm:w-fit">
       <TabsTrigger value="tasks" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
         <ClipboardCheck aria-hidden="true" />{translateUi((en) ? "en" : "ar", "المهام", "Tasks")}
       </TabsTrigger>
@@ -53,7 +53,7 @@ export function ActivityTabs({
       <TabsTrigger value="hours" className="h-9 flex-none gap-2 px-3 data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none">
         <Clock3 aria-hidden="true" />{translateUi((en) ? "en" : "ar", "الساعات", "Hours")}
       </TabsTrigger>
-    </TabsList>{filters}</SearchFilterToolbar>
+    </TabsList><SearchFilterToolbar search={search}>{filters}</SearchFilterToolbar>
     <TabsContent keepMounted value="tasks" className="min-w-0">{tasks}</TabsContent>
     <TabsContent keepMounted value="events" className="min-w-0">{events}</TabsContent>
     <TabsContent keepMounted value="hours" className="min-w-0">{hours}</TabsContent>

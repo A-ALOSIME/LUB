@@ -5,6 +5,8 @@ const config: NextConfig = {
   env:{LUB_LEGAL_UPDATED_AT:legalContentUpdatedAt()},
   ...(process.env.LUB_VINEXT_BUILD === "true" ? {} : { output: "standalone" }),
   poweredByHeader: false,
+  // Browser memory only. Auth/permission checks and all writes still run on the server.
+  experimental:{staleTimes:{dynamic:90,static:120}},
   turbopack: { root: process.cwd() },
   async headers() {
     return [{ source: "/:path*", headers: [

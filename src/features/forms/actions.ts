@@ -14,7 +14,7 @@ const optionalUuid = (form: FormData, name: string) => form.get(name) ? uuid(for
 const text = (form: FormData, name: string, max = 120) => z.string().trim().min(1).max(max).parse(form.get(name));
 function json(form: FormData, name: string, max: number) { const value=z.string().max(max).parse(form.get(name)); return JSON.parse(value) as unknown; }
 export async function mutateWorkflow(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
- const user = await requireUser(); let bulk: string | undefined; let templateId:string|undefined;
+ const user = await requireUser(); let bulk: string | undefined; let templateId:string|undefined; let affectedOrganization:string|undefined;
  try {
   const operation = z.enum(["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form","create-round","save-round","delete-round","round-status","submit","withdraw","decide","note","bulk"]).parse(form.get("operation"));
   if (["submit","withdraw"].includes(operation)) {
@@ -55,10 +55,22 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
     }
    }
   })();
-  const result=await withUser(user.id,async tx=>{const result=await tx.execute(query);if(["create-round","save-round"].includes(operation)&&form.has("requirements-present")){const hours=z.coerce.number().finite().min(0).max(100000).multipleOf(.01).parse(form.get("minimumHours")??0),majors=z.array(z.enum(studentMajors)).max(3).refine(v=>new Set(v).size===v.length).parse(form.getAll("allowedMajor"));await tx.execute(sql`select lub.set_round_requirements(${z.uuid().parse(result[0]?.id)},${hours}::numeric,${JSON.stringify(majors)}::jsonb)`);}return result;});
+  const result=await withUser(user.id,async tx=>{
+   const providedOrganization=z.uuid().safeParse(form.get("org"));
+   if(providedOrganization.success)affectedOrganization=providedOrganization.data;
+   else {
+    const application=z.uuid().safeParse(form.get("application")??form.getAll("selected")[0]);
+    const [scope]=await tx.execute(sql`select coalesce(
+     (select organization_id from lub.form_templates where id=${optionalUuid(form,"template")}::uuid),
+     (select t.organization_id from lub.form_versions v join lub.form_templates t on t.id=v.form_template_id where v.id=${optionalUuid(form,"version")}::uuid),
+     (select organization_id from lub.registration_rounds where id=${optionalUuid(form,"round")}::uuid),
+     (select r.organization_id from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id where a.id=${application.success?application.data:null}::uuid)) as organization`);
+    affectedOrganization=typeof scope?.organization==="string"?scope.organization:undefined;
+   }
+   const result=await tx.execute(query);if(["create-round","save-round"].includes(operation)&&form.has("requirements-present")){const hours=z.coerce.number().finite().min(0).max(100000).multipleOf(.01).parse(form.get("minimumHours")??0),majors=z.array(z.enum(studentMajors)).max(3).refine(v=>new Set(v).size===v.length).parse(form.getAll("allowedMajor"));await tx.execute(sql`select lub.set_round_requirements(${z.uuid().parse(result[0]?.id)},${hours}::numeric,${JSON.stringify(majors)}::jsonb)`);}return result;});
   if(operation==="duplicate-form") templateId=z.uuid().parse(result[0]?.id);
   if (operation==="bulk" && !form.get("undoBulk")) bulk=z.uuid().parse(result[0]?.id);
  } catch (error) { const cause=error instanceof Error && "cause" in error?error.cause:error; const message=cause instanceof Error?cause.message:""; if(message.includes("ROUND_REQUIREMENTS_NOT_MET"))return {error:"لا تستوفي شروط الساعات أو التخصص لهذه الجولة. راجع الشروط في صفحة الجهة."}; if(message.includes("ROUND_REQUIRED_FIELDS"))return {error:"أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر."}; if(message.includes("ROUND_ACTIVE_EXISTS"))return {error:"توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى."}; if(message.includes("ROUND_EXPIRED"))return {error:"انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح."}; if(message.includes("ROUND_FORM_LOCKED"))return {error:"لا يمكن استبدال النموذج بعد استقبال طلبات. يمكنك تعديل أسئلته في نسخة جديدة."}; if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
- updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); revalidatePath("/manage","layout"); revalidatePath("/organizations","layout"); revalidatePath("/applications");
+ updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (form.get("undoBulk") || ["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); if(affectedOrganization){revalidatePath(`/manage/organizations/${affectedOrganization}/renewals`);revalidatePath(`/manage/organizations/${affectedOrganization}/members`);} revalidatePath("/organizations"); revalidatePath("/applications");
  return { success: form.get("undoBulk") ? "تم التراجع عن الطلبات التي لم تتغير بعد العملية؛ التغييرات اللاحقة محفوظة." : form.get("operation")==="duplicate-form" ? "تم إنشاء نسخة" : form.get("operation")==="delete-form" ? "تم حذف النموذج" : "تم حفظ التغيير.", bulk, templateId };
 }

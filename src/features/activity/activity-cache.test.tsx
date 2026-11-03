@@ -3,9 +3,10 @@ import {act,cleanup,fireEvent,render,screen,waitFor} from "@testing-library/reac
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {I18nProvider} from "@/components/i18n-provider";
 import type {ActivitySnapshot} from "./activity-data";
+vi.mock("./paged-activity-screen",()=>({PagedActivityScreen:()=>null}));
 vi.mock("next/navigation",()=>({useRouter:()=>({prefetch:vi.fn(),push:vi.fn()})}));
 const mocks=vi.hoisted(()=>({load:vi.fn(),version:vi.fn()}));
-vi.mock("./activity-data-actions",()=>({loadActivitySnapshot:mocks.load}));
+vi.mock("@/lib/private-query",()=>({privateJson:(url:string)=>url.includes("version=")?mocks.version().then((version:string)=>({version})):mocks.load()}));
 vi.mock("./freshness-actions",()=>({readActivityVersion:mocks.version}));
 vi.mock("@/features/tasks/task-browser",()=>({TaskBrowser:({initialView,availableItems,mineItems,onViewChange}:{initialView:string;availableItems:Array<{task:{title:string}}> ;mineItems:Array<{task:{title:string}}> ;onViewChange:(v:string)=>void})=><div><button onClick={()=>onViewChange("mine")}>My participation</button><button onClick={()=>onViewChange("available")}>Available</button>{(initialView==="mine"?mineItems:availableItems).map(x=><p key={x.task.title}>{x.task.title}</p>)}</div>}));
 vi.mock("./activity-views",()=>({ActivityEventRows:({events}:{events:Array<{id:string;title:string}>})=><div>{events.map(e=><p key={e.id}>{e.title}</p>)}</div>,ActivityHours:({data,onFiltersChange}:{data:ActivitySnapshot["hours"];onFiltersChange:(v:{status:string;term?:string|null})=>void})=><div>{["all","approved","pending","rejected"].map(status=><button key={status} onClick={()=>onFiltersChange({status})}>{status} hours</button>)}<button onClick={()=>onFiltersChange({status:"all",term:"later"})}>Later term</button>{data.records.map(r=><p key={r.id}>{r.description}</p>)}</div>}));
@@ -32,7 +33,7 @@ it("loads the complete snapshot once, filters records beyond page one locally, a
 it("retains visible cached data during a changed-version background refresh and on transient failures",async()=>{
  render(tree());await screen.findByRole("tab",{name:"Events"});fireEvent.click(screen.getByRole("tab",{name:"Events"}));
  let finish!:(value:ActivitySnapshot)=>void;mocks.load.mockImplementationOnce(()=>new Promise<ActivitySnapshot>(resolve=>{finish=resolve;}));mocks.version.mockResolvedValue("v2");
- const now=Date.now();vi.spyOn(Date,"now").mockReturnValue(now+6000);fireEvent.focus(window);await waitFor(()=>expect(mocks.load).toHaveBeenCalledTimes(2));
+ const now=Date.now();vi.spyOn(Date,"now").mockReturnValue(now+91000);fireEvent.focus(window);await waitFor(()=>expect(mocks.load).toHaveBeenCalledTimes(2));
  expect(screen.getByText("Event 0")).toBeTruthy();expect(screen.queryByLabelText("Loading activity")).toBeNull();
  await act(async()=>finish({...snapshot,version:"v2",events:[{...snapshot.events[0],title:"Updated event"}]}));expect(screen.getByText("Updated event")).toBeTruthy();
  mocks.load.mockRejectedValueOnce(new Error("offline"));fireEvent(window,new Event("activity-changed"));await waitFor(()=>expect(mocks.load).toHaveBeenCalledTimes(3));

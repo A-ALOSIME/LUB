@@ -1,6 +1,6 @@
 import {createTranslator} from "@/lib/i18n";
-import { HoursAdvancedFilters } from "@/features/hours/hours-advanced-filters";
-import { cloneElement } from "react";
+
+
 import { RowAction } from "@/components/row-action";
 import { formatHours } from "@/lib/display";
 import { Clock3, ClipboardCheck, LayoutTemplate, Pencil, Copy, Plus } from "lucide-react";
@@ -15,12 +15,12 @@ import {Badge} from "@/components/ui/badge";
 import {TaskComposer} from "@/features/tasks/task-composer";
 import { TaskFields } from "@/features/tasks/task-fields";
 import { TaskForm } from "@/features/tasks/task-form";
-import { TaskList, TaskPagination } from "@/features/tasks/task-list";
+import {TaskManagementList} from "@/features/tasks/management-list";
 import { taskWorkspace, listTasks } from "@/features/tasks/repository";
 import { hoursWorkspace } from "@/features/hours/repository";
 import { HoursWorkspaceView } from "@/features/hours/workspace-view";
-import { HoursSettingsAction } from "@/features/hours/hours-settings-action";
-import { HoursToolbarActions } from "@/features/hours/hours-toolbar-actions";
+
+
 import { getPreferences } from "@/lib/preferences";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { FormField } from "@/components/form-field";
@@ -33,7 +33,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     page?: string; taskPage?: string; hoursPage?: string; template?: string; section?: string;
-    memberPage?: string; rulePage?: string; term?: string; committee?: string; hourStatus?: string; q?:string;
+    taskSearch?:string;taskStatus?:string;taskSort?:string;memberPage?: string; rulePage?: string; term?: string; committee?: string; hourStatus?: string; q?:string;
   }>;
 }) {
   const [{ locale }, { id }, query] = await Promise.all([getPreferences(), params, searchParams]);
@@ -45,6 +45,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   const uuid = (value?: string) => z.uuid().nullable().catch(null).parse(value ?? null);
   const hourStatus = (["Approved", "Pending", "Rejected"] as const).find(status => status === query.hourStatus) ?? null;
   const taskPage = number(query.taskPage ?? query.page);
+  const taskFilters={q:(query.taskSearch??"").slice(0,120),status:["Draft","Open","Completed","Cancelled"].includes(query.taskStatus??"")?query.taskStatus!:"",page:taskPage,sort:query.taskSort==="asc"?"asc" as const:"desc" as const};
   const filters = {
     page: number(query.hoursPage),
     memberPage: number(query.memberPage),
@@ -56,7 +57,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
   };
   const { data: [workspace, tasks, hoursResult] } = await loadManagementPageData(userId => Promise.all([
     taskWorkspace(userId, id),
-    listTasks(userId, { org: id, view: "all", page: taskPage }),
+    listTasks(userId, { org: id, view: "all", ...taskFilters }),
     hoursWorkspace(userId, id, filters).then(value => ({ status: "fulfilled" as const, value }), () => ({ status: "rejected" as const })),
   ]));
   const hours = hoursResult.status === "fulfilled" ? hoursResult.value : undefined;
@@ -95,19 +96,6 @@ export default async function ManageTasksPage({ params, searchParams }: {
   </ManagementActionSheet>;
 
   const taskCreateAction = taskScopes.length > 0 && workspace && <TaskComposer org={id} workspace={workspace} source={source} locale={locale} initiallyOpen={Boolean(source)}/>;
-  const settingsAction = hours && <HoursSettingsAction data={hours} org={id} filters={filters} locale={locale}/>;
-  const hoursToolbarAction = hours && <HoursToolbarActions
-    org={id}
-    committee={filters.committee}
-    term={filters.term}
-    status={filters.status}
-    search={filters.q}
-    exportScopes={hours.exportScopes}
-    locale={locale}
-    filtersAction={<HoursAdvancedFilters data={{terms:hours.terms,scopes:hours.scopes}} filters={filters} locale={locale} settingsAction={settingsAction}/>}
-    hasRecords={Boolean(hours.records.length)}
-    canAddHours={Boolean(hours.scopes.some(scope => scope.manual))}
-  />;
 
   const items = [
     ...(taskAccess ? [{ id: "tasks", label: c("المهام", "Tasks"), icon: <ClipboardCheck aria-hidden="true" /> }] : []),
@@ -115,17 +103,14 @@ export default async function ManageTasksPage({ params, searchParams }: {
   ];
   const defaultSection = taskAccess ? "tasks" : "hours";
   const initialSection = query.section === "hours" ? "hours" : defaultSection;
-  const hasTasks = Boolean(tasks?.items.length);
+
   const taskToolbarAction = <div className="flex min-w-0 flex-wrap items-center gap-2">{taskCreateAction}{templatesAction}</div>;
 
   return <div className="min-w-0 space-y-5">
-    <OrganizationSectionTabs items={items} initialSection={initialSection} defaultSection={defaultSection} sticky={false} label={c("المهام والساعات", "Tasks and hours")} dir={en ? "ltr" : "rtl"} sectionActions={{ tasks: taskToolbarAction, hours: hoursToolbarAction }}>
+    <OrganizationSectionTabs items={items} initialSection={initialSection} defaultSection={defaultSection} sticky={false} label={c("المهام والساعات", "Tasks and hours")} dir={en ? "ltr" : "rtl"}>
       {taskAccess && <OrganizationSectionTabPanel id="tasks">
         <section aria-label={c("قائمة مهام الجهة", "Organization task list")} className="space-y-4">
-          {hasTasks && tasks ? <>
-            <TaskList items={tasks.items} mode="all" locale={locale} workspace={workspace}/>
-            <TaskPagination page={taskPage} more={tasks.more} base={base} query={{ section: "tasks" }} locale={locale}/>
-          </> : <WorkspaceEmptyState icon={ClipboardCheck} title={c("لا توجد مهام بعد", "No tasks yet")} description={c("أنشئ أول مهمة للجهة.", "Create the organization's first task.")} action={taskCreateAction ? cloneElement(taskCreateAction,{initiallyOpen:false,key:"empty-task"}) : templatesAction} />}
+          <TaskManagementList initialFilters={taskFilters} organization={id} initial={tasks??{items:[],more:false}} page={taskPage} locale={locale} actions={taskToolbarAction}/>
         </section>
       </OrganizationSectionTabPanel>}
       {hoursAccess && <OrganizationSectionTabPanel id="hours">

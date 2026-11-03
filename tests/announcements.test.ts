@@ -36,7 +36,9 @@ it("publishes image/link announcements, pins only one, archives and soft-deletes
  expect((await db.query<{pinned_at:string|null}>("select pinned_at from lub.announcements where id=$1",[first])).rows[0].pinned_at).toBeNull();
  await db.exec("reset role; set local role anon");expect((await db.query("select id from lub.announcements")).rows).toHaveLength(2);expect((await db.query("select * from lub.public_announcement_image($1)",[second])).rows).toHaveLength(1);
  expect((await db.query<{allowed:boolean}>("select lub.can_read_public_announcement_object($1) as allowed",[key])).rows[0].allowed).toBe(true);
- await asUser(leader);await db.query("select lub.change_announcement_state($1,'archive',false)",[second]);await db.query("select lub.change_announcement_state($1,'delete',false)",[first]);
+ await asUser(leader);await db.query("select lub.change_announcement_state($1,'archive',false)",[second]);await denied(()=>db.query("select lub.change_announcement_state($1,'delete',false)",[first]));await db.query("select lub.change_announcement_state($1,'archive',false)",[first]);
+ const draft=(await db.query<{id:string}>("select lub.save_announcement(null,$1,'مسودة للحذف','نص المسودة',null,false,false,null,false) as id",[org])).rows[0].id;await db.query("select lub.change_announcement_state($1,'delete',false)",[draft]);
+ await db.exec("reset role");expect((await db.query<{deleted_at:string|null}>("select deleted_at from lub.announcements where id=$1",[draft])).rows[0].deleted_at).not.toBeNull();await asUser(leader);
  await db.exec("reset role; set local role anon");expect((await db.query("select id from lub.announcements")).rows).toHaveLength(0);expect((await db.query("select * from lub.public_announcement_image($1)",[second])).rows).toHaveLength(0);
  expect((await db.query<{allowed:boolean}>("select lub.can_read_public_announcement_object($1) as allowed",[key])).rows[0].allowed).toBe(false);
 });

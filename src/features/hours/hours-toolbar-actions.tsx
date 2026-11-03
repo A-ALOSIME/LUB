@@ -34,7 +34,7 @@ export function HoursToolbarActions({ org, committee, term, exportScopes, locale
 
   return <div className="hours-toolbar-actions flex min-w-0 flex-wrap items-center gap-2">
     {hasRecords && canAddHours && <Link href={`/manage/organizations/${org}/members`} className={buttonVariants({ size: "sm" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link>}
-    {hasRecords && canExportSelectedScope && <Tooltip><TooltipTrigger render={<Link href={exportHref} className={buttonVariants({ variant: "outline", size: "sm" })}/>}><FileSpreadsheet data-icon="inline-start" aria-hidden="true" />{c("تصدير CSV", "Export CSV")}</TooltipTrigger><TooltipContent>{c("تصدير النتائج بحسب الفلاتر الحالية","Export the currently filtered results")}</TooltipContent></Tooltip>}
+    {hasRecords && canExportSelectedScope && <Tooltip><TooltipTrigger render={<Link href={exportHref} className={buttonVariants({ variant: "outline", size: "sm" })}/>}><FileSpreadsheet data-icon="inline-start" aria-hidden="true" />{c("تصدير Excel", "Export Excel")}</TooltipTrigger><TooltipContent>{c("تصدير النتائج بحسب الفلاتر الحالية","Export the currently filtered results")}</TooltipContent></Tooltip>}
     {filtersAction}
   </div>;
 }

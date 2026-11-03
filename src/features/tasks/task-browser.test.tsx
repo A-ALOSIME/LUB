@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 vi.mock("@/features/talent/activity-skill-actions",()=>({searchActivitySkills:vi.fn().mockResolvedValue([])}));
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { TaskCard } from "./repository";
@@ -13,6 +13,9 @@ vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));
 
+import {PrivateQueryProvider} from "@/components/private-query-provider";
+import type {ReactElement} from "react";
+const render=(ui:ReactElement)=>rtlRender(<PrivateQueryProvider actorId="test-actor">{ui}</PrivateQueryProvider>);
 afterEach(cleanup);
 
 function card({
@@ -89,22 +92,22 @@ it("switches instantly between open tasks and all current or past participations
   const available = screen.getByRole("tab", { name: "المتاحة" });
   const mine = screen.getByRole("tab", { name: "مشاركاتي" });
   expect(available.getAttribute("aria-selected")).toBe("true");
-  expect(screen.getByText("مهمة متاحة")).toBeTruthy();
-  expect(screen.getByText("قيد العمل")).toBeTruthy();
+  expect(screen.getAllByText("مهمة متاحة")[0]).toBeTruthy();
+  expect(screen.getAllByText("قيد العمل")[0]).toBeTruthy();
   expect(screen.queryByText("مهمة منتهية")).toBeNull();
 
   fireEvent.click(mine);
 
   expect(mine.getAttribute("aria-selected")).toBe("true");
-  const finished = screen.getByText("مهمة منتهية").closest("li");
-  expect(finished?.textContent).toContain("حالة التسليم: معتمدة");
+  const finished = screen.getAllByText("مهمة منتهية")[0].closest("tr");
+  expect(finished?.textContent).toContain("معتمدة");
   expect(finished?.textContent).toContain("الساعات المعتمدة: 4.5");
-  expect(screen.getByText("مهمة من سجل سابق")).toBeTruthy();
+  expect(screen.getAllByText("مهمة من سجل سابق")[0]).toBeTruthy();
   expect(screen.queryByText("مهمة متاحة")).toBeNull();
 
   fireEvent.click(available);
   expect(view.container.querySelector('[role="tablist"][aria-label="تصفية المهام"]')?.parentElement?.getAttribute("dir")).toBe("rtl");
-  expect(screen.getByText("مهمة متاحة")).toBeTruthy();
+  expect(screen.getAllByText("مهمة متاحة")[0]).toBeTruthy();
 });
 
 it("shows a compact empty message that follows the selected filter", () => {

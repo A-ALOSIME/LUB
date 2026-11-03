@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getPreferences } from "@/lib/preferences";
 import { loadManagementPageData } from "@/features/organizations/access";
 import { getOrganizationMemberDirectory, getOrganizationPermissionWorkspace } from "@/features/organizations/management-repository";
+import type {MemberFilters} from "@/features/organizations/member-types";
 import { MemberDirectory } from "./member-directory";
 import { PermissionEditor } from "../permissions/permission-editor";
 import { localizedMetadata } from "@/lib/localized-metadata";
@@ -20,8 +21,9 @@ export default async function OrganizationMembersPage({ params, searchParams }: 
 }) {
   const [{ id }, { locale }, search] = await Promise.all([params, getPreferences(), searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
+  const memberFilters:MemberFilters={q:typeof search.memberSearch==="string"?search.memberSearch.slice(0,120):"",status:search.memberStatus==="Active"||search.memberStatus==="Ended"||search.memberStatus==="Inactive"?search.memberStatus:"all",committee:z.uuid().nullable().catch(null).parse(search.memberCommittee??null),page:z.coerce.number().int().min(0).max(10000).catch(0).parse(search.memberPage??0)};
   const { user, data: [workspace, permissions, applicationWorkspace] } = await loadManagementPageData(userId => Promise.all([
-    getOrganizationMemberDirectory(userId, id),
+    getOrganizationMemberDirectory(userId, id,memberFilters),
     getOrganizationPermissionWorkspace(userId, id),
     getWorkspace(userId, id),
   ]));
@@ -34,7 +36,7 @@ export default async function OrganizationMembersPage({ params, searchParams }: 
   const requestedSection = typeof search.section === "string" ? search.section : "";
   const initialTab = requestedSection === "applications" && showApplications ? "applications" : showMembers ? "members" : "applications";
   const memberPanel = workspace
-    ? <MemberDirectory organization={id} workspace={workspace} permissions={permissions} locale={locale}/>
+    ? <MemberDirectory initialFilters={memberFilters} organization={id} workspace={workspace} permissions={permissions} locale={locale}/>
     : permissions
       ? <PermissionEditor organization={id} workspace={permissions} committees={permissions.committees} locale={locale}/>
       : null;

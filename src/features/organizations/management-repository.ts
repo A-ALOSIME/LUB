@@ -202,7 +202,7 @@ export type OrganizationPermissionWorkspace = {
 
 export async function getOrganizationMemberDirectory(userId: string, organizationId: string, filters:MemberFilters=initialMemberFilters):Promise<OrganizationMemberWorkspace|undefined> {
   return withUser(userId, async tx => {
-    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId},${filters.q},${filters.status},${filters.committee}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
+    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId},${filters.q},${filters.status},${filters.committee},${(filters.page??0)*25}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
     return rows[0]?.workspace?decodeMemberWorkspace(rows[0].workspace as EncryptedMemberWorkspace):undefined;
   });
 }

@@ -15,7 +15,7 @@ const amount=(f:FormData)=>z.coerce.number().finite().min(0).max(1000).multipleO
 export async function mutateHours(_previous:HoursState,f:FormData):Promise<HoursState>{
  const user=await requireUser();
  try{
- const op=z.enum(["term","add","self","review","adjust","rule","self-policy","import","campaign","exclude","campaign-status","respond"]).parse(f.get("operation"));
+ const op=z.enum(["term","add","self","review","adjust","rule","self-policy","import","campaign","exclude","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":{const starts=day(f,"starts"),ends=day(f,"ends");if(ends<starts)throw new Error("Term dates reversed");return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${starts}::date,${ends}::date)`;}
@@ -26,6 +26,7 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  case "self-policy":return sql`select lub.set_self_report_hours(${id(f,"org")},${f.get("enabled")==="on"})`;
  case "import":return sql`select lub.import_task_hours(${id(f,"participant")})`;
  case "campaign":return sql`select lub.create_renewal(${id(f,"org")},${id(f,"term")},${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("leaders")==="on"})`;
+ case "save-campaign":return sql`select lub.save_renewal_draft(${id(f,"campaign")},${id(f,"term")},${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("leaders")==="on"})`;
  case "exclude":{const excluded=f.get("excluded")==="on";if(!excluded&&f.get("confirm")!=="on")throw new Error();return sql`select lub.exclude_renewal_member(${id(f,"campaign")},${id(f,"member")},${text(f,"reason",300,excluded?1:0)},${excluded})`;}
  case "campaign-status":{const status=z.enum(["Open","Closed","Archived"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_renewal_status(${id(f,"campaign")},${status})`;}
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
@@ -35,7 +36,8 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  if(failures.some(value=>typeof value==="object"&&value!==null&&"message" in value&&value.message==="Overlapping term"))return{error:"تتداخل هذه الفترة مع فصل محفوظ. اختر تواريخ لا تتداخل مع الفصول الحالية."};
  return{error:"تعذّر إضافة الفصل. راجع الحقول وتأكد من عدم تكرار السنة ورمز الفصل ومن صلاحيتك."};
  }if(failures.some(value=>typeof value==="object"&&value!==null&&"code" in value&&value.code==="P0003"))return {duplicate:true};return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. لا يمكن أن تقل الساعات عن صفر. الرفض يحتاج سببًا."};}
+ if(f.get("operation")==="term")revalidatePath("/manage/organizations/[id]/tasks","page");
  updateTag("public-talent");
- revalidatePath("/hours");revalidatePath("/activity");revalidatePath("/applications");revalidatePath("/renewals");revalidatePath("/manage","layout");revalidatePath("/tasks","layout");revalidatePath("/me");revalidatePath("/notifications");
+ revalidatePath("/hours");revalidatePath("/activity");revalidatePath("/applications");revalidatePath("/renewals");if(f.get("org"))revalidatePath(`/manage/organizations/${id(f,"org")}/tasks`);revalidatePath("/tasks");revalidatePath("/me");revalidatePath("/notifications");
  return {success:"تم حفظ التغيير."};
 }

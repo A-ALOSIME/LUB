@@ -55,6 +55,7 @@ export type ReviewRow = {
   selectable: boolean;
   decisions: ReviewDecision[];
   completedDecisions?: ReviewDecision[];
+  extraAction?:ReactNode;
 };
 export function RequestReviewTable({
   rows,
@@ -64,6 +65,7 @@ export function RequestReviewTable({
   onDecision,
   bulkDecisions,
   showCommittee = false,
+  decisionSlots=["Accepted","Rejected","Interview"],
   children,
 }: {
   rows: ReviewRow[];
@@ -77,6 +79,7 @@ export function RequestReviewTable({
   ) => Promise<WorkflowState>;
   bulkDecisions: ReviewDecision[];
   showCommittee?: boolean;
+  decisionSlots?:ReviewDecision[];
   children?:
     | ReactNode
     | ((choose: (ids: string[], status: ReviewDecision) => void) => ReactNode);
@@ -164,34 +167,9 @@ export function RequestReviewTable({
         >
           <Eye />
         </RowAction>
-        {(["Accepted", "Rejected", "Interview"] as ReviewDecision[]).map(
-          (status) =>
-            row.decisions.includes(status) ? (
-              <RowAction
-                key={status}
-                label={labels[status]}
-                danger={status === "Rejected"}
-                disabled={pending}
-                onClick={() => choose([row.id], status)}
-              >
-                {status === "Accepted" ? (
-                  <Check />
-                ) : status === "Rejected" ? (
-                  <X />
-                ) : (
-                  <CalendarDays />
-                )}
-              </RowAction>
-            ) : row.completedDecisions?.includes(status) ? (
-              <RowAction key={status} label={c("مقبول بالفعل","Already accepted")} disabled><Check /></RowAction>
-            ) : (
-              <span
-                key={status}
-                className="hidden size-10 shrink-0 md:block"
-                aria-hidden="true"
-              />
-            ),
-        )}
+        {decisionSlots.map(status=><RowAction key={status} label={labels[status]} danger={status==="Rejected"} disabled={pending||!row.decisions.includes(status)} hint={row.completedDecisions?.includes(status)?c("تم تنفيذ هذا القرار بالفعل","This decision has already been applied"):!row.decisions.includes(status)?c("الإجراء غير متاح لحالة هذا الطلب أو لصلاحياتك","This action is unavailable for this request status or your permissions"):undefined} onClick={()=>choose([row.id],status)}>{status==="Accepted"?<Check/>:status==="Rejected"?<X/>:<CalendarDays/>}</RowAction>)}
+        {row.extraAction}
+
       </div>
     );
   }
@@ -217,10 +195,10 @@ export function RequestReviewTable({
         </div>
       ) : (
         <>
-          <div className="hidden rounded-lg border border-border @[48rem]:block">
+          <div className="hidden @[48rem]:block">
             <Table className="table-fixed">
               <TableHeader>
-                <TableRow className="border-border bg-transparent hover:bg-transparent">
+                <TableRow className="bg-transparent hover:bg-transparent">
                   <TableHead className="w-12">
                     <Checkbox
                       aria-label={c("تحديد الكل", "Select all")}
@@ -260,7 +238,7 @@ export function RequestReviewTable({
                     onMouseEnter={()=>onPrefetch?.(row.id)} onFocus={()=>onPrefetch?.(row.id)} onTouchStart={()=>onPrefetch?.(row.id)}
                     key={row.id}
                     tabIndex={0}
-                    className={`cursor-pointer border-border hover:bg-muted/20 ${checked.includes(row.id) ? "bg-primary/5" : ""}`}
+                    className={`cursor-pointer hover:bg-muted/20 ${checked.includes(row.id) ? "bg-primary/5" : ""}`}
                     onClick={(e) => {
                       if (
                         !(e.target as HTMLElement).closest(
@@ -340,7 +318,7 @@ export function RequestReviewTable({
                       {formatRiyadhTime(row.createdAt, locale)}
                     </time>
                   </CardContent>
-                  <CardFooter className="border-border">
+                  <CardFooter>
                     {actions(row)}
                   </CardFooter>
                 </Card>

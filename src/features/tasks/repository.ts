@@ -7,7 +7,7 @@ export type Task={skills?:ProfileSkill[];id:string;organization_id:string;commit
 export type Participant={id:string;user_id:string;status_code:string;approved_hours_override:string|null;joined_at:string;closed_at:string|null};
 export type Submission={id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
 export type TaskTemplate={id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
-export type TaskCard={can_manage?:boolean;summary?:{participants:number;submitted:number}|null;task:Task;org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
+export type TaskCard={can_manage?:boolean;summary?:{participants:number;submitted:number}|null;task:Omit<Task,"description">&{description?:string};org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
 export type TaskDetail={summary?:{participants:number;submitted:number}|null;task:Task;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
 export type TaskWorkspace={name:string;scopes:Array<{id:string|null;name:string;tasks:boolean;templates:boolean}>;templates:TaskTemplate[];hourRules:Array<{id:string;name:string;default_hours:string;committee_id:string|null;task_template_id:string|null}>};
 export async function taskWorkspace(user:string,org:string){return withUser(user,async tx=>{
@@ -17,20 +17,20 @@ export async function taskWorkspace(user:string,org:string){return withUser(user
  from lub.organizations o where o.id=${org} and lub.has_task_access(o.id)`);
  return rows[0] as unknown as TaskWorkspace|undefined;
 });}
-export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number|null}){return withUser(user,async tx=>{
+export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number|null;q?:string;status?:string;sort?:"asc"|"desc"}){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`with visible as (
  select to_jsonb(t) as task,t.organization_id,t.created_at,to_jsonb(p) as participant,false as historical from lub.tasks t left join lub.task_participants p on p.task_id=t.id and p.user_id=${user}
  where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and ((${options.view==='all'} and lub.can_manage_task(t.id)) or p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
  union all select r.snapshot_json,(r.snapshot_json->>'organization_id')::uuid,p.joined_at,to_jsonb(p),true from lub.task_participants p join lateral(select r.* from lub.task_revisions r where r.task_id=p.task_id order by r.revision_number desc limit 1) r on true
  where p.user_id=${user} and not exists(select 1 from lub.tasks t where t.id=p.task_id) and (${options.org??null}::uuid is null or (r.snapshot_json->>'organization_id')::uuid=${options.org??null}::uuid))
- select v.task||case when lub.can_manage_task((v.task->>'id')::uuid) then jsonb_build_object('skills',lub.activity_skill_selection('Task',(v.task->>'id')::uuid)) else '{}'::jsonb end||jsonb_build_object('has_event_poster',(exists(select 1 from lub.public_event_poster((v.task->>'event_id')::uuid)) or exists(select 1 from lub.event_assets a where a.event_id=(v.task->>'event_id')::uuid and a.asset_type_code='Poster'))) as task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
+ select (v.task-'description')||jsonb_build_object('has_event_poster',(exists(select 1 from lub.public_event_poster((v.task->>'event_id')::uuid)) or exists(select 1 from lub.event_assets a where a.event_id=(v.task->>'event_id')::uuid and a.asset_type_code='Poster'))) as task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
  (select jsonb_build_object('status_code',s.status_code) from lub.task_submissions s where s.task_participant_id=(v.participant->>'id')::uuid order by s.revision_number desc limit 1) as latest_submission,
  (select h.hours::text from lub.hour_records h where h.task_participant_id=(v.participant->>'id')::uuid and h.status_code='Approved' limit 1) as approved_hours
  from visible v join lub.organizations o on o.id=v.organization_id
- where (${options.view==='mine'} and v.participant is not null) or
+ where ((${options.view==='mine'} and v.participant is not null) or
  (${options.view==='available'} and not v.historical and v.task->>'status_code'='Open') or
- (${options.view==='all'} and not v.historical)
- order by v.created_at desc,v.task->>'id' limit ${options.page===null?null:26} offset ${(options.page??0)*25}`);
+ (${options.view==='all'} and not v.historical)) and (${options.status??''}='' or v.task->>'status_code'=${options.status??''}) and position(lub.arabic_search_key(${options.q??''}) in lub.arabic_search_key(v.task->>'title'||' '||o.name_ar))>0
+ order by v.created_at ${options.sort==="asc"?sql`asc`:sql`desc`},v.task->>'id' limit ${options.page===null?51:26} offset ${(options.page??0)*25}`);
  const items=rows as unknown as TaskCard[];return {items:options.page===null?items:items.slice(0,25),more:options.page!==null&&items.length>25};
 });}
 export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,teamPage=0,eventPage=0){return withUser(user,async tx=>{

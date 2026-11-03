@@ -1,3 +1,8 @@
+import {campaignList} from "@/features/renewals/campaign-list-repository";
+import {templateList} from "@/features/forms/template-list-repository";
+import {listTasks} from "@/features/tasks/repository";
+import {organizationApplicationPage} from "@/features/forms/repository";
+import {ownRequestPage} from "@/features/forms/own-request-repository";
 import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
@@ -116,4 +121,64 @@ it('keeps pinning exclusive to the active leader even when event management is d
  await actor(student);expect((await db.query('select lub.can_feature_event($1) as allowed',[event])).rows[0]).toEqual({allowed:false});await denied(()=>db.query('select lub.set_featured_event($1,true)',[event]));
  await actor(leader);expect((await db.query('select lub.can_feature_event($1) as allowed',[event])).rows[0]).toEqual({allowed:true});await db.query('select lub.set_featured_event($1,true)',[event]);
  expect((await db.query('select is_featured from lub.events where id=$1',[event])).rows[0]).toEqual({is_featured:true});
+});
+
+it("archives events without dropping registrations and only deletes unused drafts",async()=>{
+ const e=await create();await publish(e);await actor(student);await register(e);await actor(leader);
+ await denied(()=>db.query("select lub.event_list_action($1,'delete',2)",[e]));
+ await db.query("select lub.event_list_action($1,'archive',2)",[e]);
+ expect((await db.query<{status_code:string}>("select status_code from lub.events where id=$1",[e])).rows[0].status_code).toBe("Archived");
+ expect((await db.query("select id from lub.event_registrations where event_id=$1",[e])).rows).toHaveLength(1);
+ await db.exec("reset role;set local role anon");expect((await db.query("select id from lub.events where id=$1",[e])).rows).toHaveLength(0);await actor(leader);
+ const draft=await create();await actor(peer);await denied(()=>db.query("select lub.event_list_action($1,'delete',1)",[draft]));await actor(leader);
+ await denied(()=>db.query("select lub.event_list_action($1,'delete',99)",[draft]));await db.query("select lub.event_list_action($1,'delete',1)",[draft]);
+ expect((await db.query("select id from lub.events where id=$1",[draft])).rows).toHaveLength(0);
+});
+
+it("keeps all three request list reads owner-scoped and paginated with their real states",async()=>{
+ const filters={q:"",sort:"desc" as const,status:"all",page:0};
+ await actor(student);
+ await db.query("select lub.submit_organization_request('نادي بحث','Club','نبذة','رسالة الجهة','[]',null)");
+ const openings=await ownRequestPage(student,{...filters,tab:"organizations"});expect(openings.items).toHaveLength(1);expect(openings.items[0].status).toBe("Pending");expect(openings.items[0].canWithdraw).toBe(true);
+ expect((await ownRequestPage(peer,{...filters,tab:"organizations"})).items).toHaveLength(0);
+ expect((await ownRequestPage(student,{...filters,tab:"applications"})).items).toHaveLength(0);
+ expect((await ownRequestPage(student,{...filters,tab:"renewals"})).items).toHaveLength(0);
+ expect((await ownRequestPage(student,{...filters,q:"بحث",tab:"organizations"})).total).toBe(1);
+ expect((await ownRequestPage(student,{...filters,status:"Accepted",tab:"organizations"})).items).toHaveLength(0);
+});
+
+it("bounds bootstrap and server pages, searches all records and never includes form/task definitions in list DTOs",async()=>{
+ const template=(await db.query<{id:string}>("select lub.create_form($1,'نموذج التسجيل',null) as id",[org])).rows[0].id;
+ const version=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[version]);
+ for(let i=0;i<54;i++){
+  await create();
+  await db.query("select lub.create_registration_round($1,$2,$3,now(),now()+interval '2 days',true)",[org,template,`جولة ${i}`]);
+  await db.query("select lub.save_task(null,$1,null,null,$2,'تفاصيل لا تحملها القائمة',null,null,1,null)",[org,`مهمة ${i}`]);
+ }
+ expect((await eventWorkspaceOverview(leader,org,null))?.events).toHaveLength(51);
+ const event0=(await eventWorkspaceOverview(leader,org,0,{eventStatus:'Draft'}))!.events,event1=(await eventWorkspaceOverview(leader,org,1,{eventStatus:'Draft'}))!.events;
+ expect(event0).toHaveLength(26);expect(event1).toHaveLength(26);expect(event0.slice(0,25).some(row=>event1.slice(0,25).some(other=>row.id===other.id))).toBe(false);
+ const first=await campaignList(leader,org,{status:'Draft',kind:'round',q:'',sort:'desc',page:0}),next=await campaignList(leader,org,{status:'Draft',kind:'round',q:'',sort:'desc',page:1});
+ expect(first.items).toHaveLength(25);expect(first.more).toBe(true);expect(next.items).toHaveLength(25);expect(first.items.some(row=>next.items.some(other=>row.id===other.id))).toBe(false);
+ expect((await campaignList(leader,org,{status:'all',kind:'round',q:'جولة 53',sort:'desc',page:0})).items).toHaveLength(1);
+ expect((await campaignList(peer,org,{status:'all',kind:'all',q:'',sort:'desc',page:0})).items).toHaveLength(0);
+ const tasks=await listTasks(leader,{org,view:'all',page:0});expect(tasks.items).toHaveLength(25);expect(tasks.more).toBe(true);expect(tasks.items[0].task).not.toHaveProperty('description');expect(tasks.items[0].task).not.toHaveProperty('skills');
+ const forms=await templateList(leader,org,{q:'',status:'Published',page:0});expect(forms.items[0].versions[0]).not.toHaveProperty('definition');expect((await templateList(peer,org,{q:'',status:'all',page:0})).items).toHaveLength(0);
+ await db.exec('reset role');expect((await db.query<{allowed:boolean}>("select has_function_privilege('anon','lub.organization_member_directory(uuid,text,text,uuid,integer)','execute') as allowed")).rows[0].allowed).toBe(false);
+});
+
+it("returns application rows and full status counters in one scoped page read",async()=>{
+ const filters={q:'',status:'',committee:'',major:'',level:'',from:'',to:'',page:1,lookup:'',round:'',activity:''};
+ const result=await organizationApplicationPage(leader,org,filters);expect(result.items).toEqual([]);expect(result.counts).toEqual({all:0,submitted:0,interview:0,accepted:0,rejected:0,withdrawn:0});expect(result.more).toBe(false);
+ const blocked=await organizationApplicationPage(peer,org,filters);expect(blocked.items).toEqual([]);expect(blocked.counts.all).toBe(0);
+ await actor(leader);
+ const template=(await db.query<{id:string}>("select lub.create_form($1,'نموذج الطلب',null) as id",[org])).rows[0].id;
+ const version=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;
+ await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[version]);
+ const round=(await db.query<{id:string}>("select lub.create_registration_round($1,$2,'جولة الطلب',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;await db.query("select lub.change_round_status($1,'Open')",[round]);
+ await actor(student);await db.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'أرغب بالمشاركة'})]);
+ const populated=await organizationApplicationPage(leader,org,filters);expect(populated.items).toHaveLength(1);expect(populated.counts).toMatchObject({all:1,submitted:1,interview:0});expect(populated.items[0]).toMatchObject({name:'طالب 1',status_code:'Submitted'});expect(populated.items[0]).not.toHaveProperty('answers');expect(populated.items[0]).not.toHaveProperty('avatar');
+ const accepted=await organizationApplicationPage(leader,org,{...filters,status:'Accepted'});expect(accepted.items).toEqual([]);expect(accepted.counts.submitted).toBe(1);
+ expect((await organizationApplicationPage(peer,org,filters)).items).toEqual([]);
+
 });

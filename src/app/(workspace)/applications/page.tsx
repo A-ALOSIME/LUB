@@ -1,3 +1,6 @@
+import {OwnRequestScreen} from "@/features/forms/own-request-screen";
+import {ownRequestPage} from "@/features/forms/own-request-repository";
+import type {OwnRequestFilters} from "@/features/forms/own-request-types";
 import {t as translateUi} from "@/lib/i18n";
 import {openingRequests} from "@/features/organization-requests/repository";
 import {OpeningRequestList} from "@/features/organization-requests/request-list";
@@ -19,13 +22,22 @@ export async function generateMetadata() {
   return localizedMetadata("طلباتي", "My applications");
 }
 
-export default async function Applications({ searchParams }: { searchParams: Promise<{ page?: string | string[]; preview?: string | string[]; status?: string | string[]; tab?: string | string[] }> }) {
+export default async function Applications({ searchParams }: { searchParams: Promise<{ q?:string;sort?:string;page?: string | string[]; preview?: string | string[]; status?: string | string[]; tab?: string | string[] }> }) {
   const [user, { locale }] = await Promise.all([requireUser(), getPreferences()]);
   const en = locale === "en";
   const query = await searchParams;
   const tab = resolveRequestsTab(query.tab);
 
   const previewInput = Array.isArray(query.preview) ? query.preview[0] : query.preview;
+  if(previewInput!=="1"){
+   const rawStatus=Array.isArray(query.status)?query.status[0]:query.status;
+   const mappedStatus:Record<string,string>={review:"Submitted",interview:"Interview",accepted:"Accepted",rejected:"Rejected",withdrawn:"Withdrawn"};
+   const filters:OwnRequestFilters={tab,status:z.enum(["all","Submitted","Interview","Accepted","Rejected","Withdrawn","Pending","Renewed","Declined","No_Response"]).catch("all").parse(mappedStatus[rawStatus??""]??rawStatus??"all"),q:String(query.q??"").slice(0,120),sort:query.sort==="asc"?"asc":"desc",page:z.coerce.number().int().min(0).max(10000).catch(0).parse(Array.isArray(query.page)?query.page[0]:query.page??0)};
+   const base={status:"all",q:"",sort:"desc" as const,page:0},[applications,renewals,organizations]=await Promise.all([ownRequestPage(user.id,{...base,tab:"applications"}),ownRequestPage(user.id,{...base,tab:"renewals"}),ownRequestPage(user.id,{...base,tab:"organizations"})]);
+   const initial={applications,renewals,organizations},selectedPage=filters.status==="all"&&!filters.q&&filters.sort==="desc"&&filters.page===0?initial[tab]:await ownRequestPage(user.id,filters);
+   return <main id="main" dir={en?"ltr":"rtl"} className="workspace-page--wide flex min-w-0 flex-col gap-4"><header className="workspace-page-header"><h1>{translateUi(locale,"طلباتي","My requests")}</h1></header><OwnRequestScreen initial={initial} filters={filters} selectedPage={selectedPage} locale={locale}/></main>;
+  }
+
   const statusInput = Array.isArray(query.status) ? query.status[0] : query.status;
   const pageInput = Array.isArray(query.page) ? query.page[0] : query.page;
   const preview = tab==="applications" && previewInput === "1";

@@ -1,7 +1,7 @@
 import type {TaskCard} from "@/features/tasks/repository";
 import type {HoursData} from "@/features/hours/repository";
 import type {myEvents} from "@/features/events/repository";
-export type ActivitySnapshot={actorId:string;version:string;tasks:TaskCard[];mine:TaskCard[];events:Awaited<ReturnType<typeof myEvents>>["events"];hours:HoursData};
+export type ActivitySnapshot={actorId:string;version:string;paged?:boolean;availableEvents?:import("@/features/events/repository").EventCard[];tasks:TaskCard[];mine:TaskCard[];events:Awaited<ReturnType<typeof myEvents>>["events"];hours:HoursData};
 export function activityHours(data:HoursData,term:string|null,status:string){
  const records=data.records.filter(r=>!term||r.academic_term_id===term);
  const of=(code:string)=>records.filter(r=>r.status_code===code),sum=(code:string)=>String(Math.round(of(code).reduce((total,r)=>total+Number(r.hours),0)*100)/100);

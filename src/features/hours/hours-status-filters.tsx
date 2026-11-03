@@ -8,13 +8,13 @@ import type { Locale } from "@/lib/preferences";
 
 export type HoursStatusFilter = "all" | "Approved" | "Pending" | "Rejected";
 
-export function HoursStatusFilters({ value, locale = "ar" }: { value: HoursStatusFilter; locale?: Locale }) {
+export function HoursStatusFilters({ value, locale = "ar",onChange }: { onChange?:(value:HoursStatusFilter)=>void;value: HoursStatusFilter; locale?: Locale }) {
   const router = useRouter();
   const en = locale === "en";
   const c = createTranslator(en ? "en" : "ar");
 
   function href(next:string){const params=new URLSearchParams(window.location.search);params.set("section","hours");params.delete("hoursPage");if(next==="all")params.delete("hourStatus");else params.set("hourStatus",next);return `${window.location.pathname}?${params.toString()}`;}
-  useRoutePrefetch(router.prefetch,()=>["all","Approved","Pending","Rejected"].map(href),locale);
+  useRoutePrefetch(router.prefetch,()=>onChange?[]:["all","Approved","Pending","Rejected"].map(href),locale);
 
   return <FilterTabs
       value={value}
@@ -30,6 +30,7 @@ export function HoursStatusFilters({ value, locale = "ar" }: { value: HoursStatu
       ]}
       onValueChange={next => {
         if (next !== "all" && next !== "Approved" && next !== "Pending" && next !== "Rejected") return;
+        if(onChange){onChange(next);return;}
         const params = new URLSearchParams(window.location.search);
         params.set("section", "hours");
         params.delete("hoursPage");

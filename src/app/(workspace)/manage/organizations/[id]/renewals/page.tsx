@@ -1,3 +1,5 @@
+import {CampaignLifecycleControls} from "@/features/renewals/lifecycle-controls";
+import {RenewalDraftForm} from "@/features/renewals/draft-form";
 
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
@@ -21,6 +23,7 @@ import { getPreferences } from "@/lib/preferences";
 import { getWorkspace } from "@/features/forms/repository";
 import { RegistrationManagement } from "@/features/forms/registration-management";
 import { WorkflowForm } from "@/features/forms/mutation-form";
+import {PagedCampaignList} from "@/features/renewals/paged-campaign-list";
 import { CombinedManagementList } from "@/features/renewals/combined-management-list";
 import { RenewalCreationActions } from "@/features/renewals/creation-actions";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
@@ -53,7 +56,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const publishedTemplates = templates.filter(item => item.versions.some(version => version.status_code === "Published"));
   const rounds = registration?.rounds ?? [];
   const campaigns = renewals?.campaigns ?? [];
-  const hasItems = rounds.length > 0 || campaigns.length > 0;
+
   const canCreateRound = !!registration?.allowed.includes("REGISTRATION_ROUNDS_MANAGE");
   const canCreateCampaign = !!renewals?.allowed;
   const canManageForms = !!registration?.allowed.includes("FORMS_MANAGE");
@@ -75,28 +78,29 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
       </FieldGroup>
     </WorkflowForm>
   </ManagementActionSheet>;
+  const CampaignList=rounds.length+campaigns.length>50||campaigns.length>25?PagedCampaignList:CombinedManagementList;
   const sectionItems = [
     ...((registrationAllowed || renewals?.allowed) ? [{ id: "rounds", label: c("الجولات والحملات", "Rounds and campaigns"), icon: <CalendarRange aria-hidden="true" /> }] : []),
     ...(canManageForms ? [{ id: "forms", label: c("النماذج", "Forms"), icon: <ClipboardList aria-hidden="true" /> }] : []),
   ];
   const requestedSection = query.section === "forms" || query.section === "registration" ? "forms" : "rounds";
   const initialSection = sectionItems.some(item => item.id === requestedSection) ? requestedSection : sectionItems[0]?.id ?? "rounds";
-  const roundActions = hasItems && (canCreateRound || canCreateCampaign) ? createActions("menu") : undefined;
+
 
   return <>
-    <OrganizationSectionTabs items={sectionItems} initialSection={initialSection} defaultSection={sectionItems[0]?.id ?? "rounds"} sticky={false} label={c("التسجيل والتجديد", "Registration and renewal")} dir={en ? "ltr" : "rtl"} sectionActions={{ rounds: roundActions, forms: template?undefined:newFormAction }}>
+    <OrganizationSectionTabs items={sectionItems} initialSection={initialSection} defaultSection={sectionItems[0]?.id ?? "rounds"} sticky={false} label={c("التسجيل والتجديد", "Registration and renewal")} dir={en ? "ltr" : "rtl"}>
       {sectionItems.some(item => item.id === "rounds") && <OrganizationSectionTabPanel id="rounds">
         <div className="min-w-0 space-y-6">
           <section aria-label={c("قائمة الجولات والحملات", "Rounds and campaigns list")} className="space-y-3">
-            <CombinedManagementList rounds={rounds} templates={publishedTemplates} campaigns={campaigns} organization={id} locale={locale} canManageRounds={canCreateRound} emptyAction={!hasItems && (canCreateRound || canCreateCampaign) ? createActions("cards") : undefined}/>
+            <CampaignList rounds={rounds} templates={publishedTemplates} campaigns={campaigns} organization={id} locale={locale} canManageRounds={canCreateRound} canManageCampaigns={canCreateCampaign} terms={renewals?.terms??[]} emptyAction={(canCreateRound || canCreateCampaign) ? createActions("menu") : undefined}/>
           </section>
-          {renewals?.selected && <ManagementActionSheet label="" title={`${c("حملة التجديد", "Renewal campaign")} · ${renewals.selected.name}`} locale={locale} presentation="sheet" initiallyOpen hideTrigger>
-            <RenewalWorkspaceView data={renewals} org={id} page={page} memberPage={memberPage} locale={locale} hideNewCampaign hideCampaignList/>
+          {renewals?.selected && <ManagementActionSheet label="" title={`${c("حملة التجديد", "Renewal campaign")} · ${renewals.selected.name}`} locale={locale} presentation="sheet" initiallyOpen hideTrigger footer={<CampaignLifecycleControls kind="renewal" id={renewals.selected.id} title={renewals.selected.name} status={renewals.selected.status_code} organization={id} locale={locale} allowed={renewals.allowed} editForm={<RenewalDraftForm campaign={renewals.selected} terms={renewals.terms} locale={locale}/>}/>}>
+            <RenewalWorkspaceView hideCampaignActions data={renewals} org={id} page={page} memberPage={memberPage} locale={locale} hideNewCampaign hideCampaignList/>
           </ManagementActionSheet>}
         </div>
       </OrganizationSectionTabPanel>}
       {canManageForms && registration && <OrganizationSectionTabPanel id="forms">
-        <RegistrationManagement workspace={registration} organization={id} selectedTemplate={template} locale={locale}/>
+        <RegistrationManagement actions={newFormAction} workspace={registration} organization={id} selectedTemplate={template} locale={locale}/>
       </OrganizationSectionTabPanel>}
     </OrganizationSectionTabs>
   </>;

@@ -1,8 +1,17 @@
+"use client";
+import {useEffect,useMemo} from "react";
+import {queryOptions,useQuery,useQueryClient,keepPreviousData} from "@tanstack/react-query";
+import {useQueryActor} from "@/components/private-query-provider";
+import {useListQuery} from "@/lib/list-query";
+import {privateJson} from "@/lib/private-query";
+import {ListEmpty} from "@/components/list-empty";
+import {HoursToolbarActions} from "./hours-toolbar-actions";
+import {HoursAdvancedFilters} from "./hours-advanced-filters";
+import {HoursSettingsAction} from "./hours-settings-action";
 import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {createTranslator} from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { formatHours,recordCount } from "@/lib/display";
-import { LiveFilterForm } from "@/components/live-filter-form";
 import Link from "next/link";
 import { HoursForm } from "./form";
 import { HoursRecordTable } from "./hours-record-table";
@@ -17,7 +26,18 @@ import { HoursStatusSummary } from "./hours-status-summary";
 
 export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; rulePage: number; q?:string };
 
-export function HoursWorkspaceView({ data, org, filters, locale = "ar" }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale?: Locale }) {
+function hoursListQuery(actor:string|null,org:string,f:HoursFilters){return queryOptions({queryKey:["organization-hours",actor,org,{term:f.term,committee:f.committee,status:f.status,q:f.q??"",page:f.page}],queryFn:({signal})=>{const query=new URLSearchParams({q:f.q??"",page:String(f.page)});if(f.term)query.set("term",f.term);if(f.committee)query.set("committee",f.committee);if(f.status)query.set("status",f.status);return privateJson<Pick<HoursWorkspace,"records"|"hoursByStatus"|"total"|"filteredCount"|"filteredTotal">>(`/api/organizations/${org}/hours?${query}`,signal);}});}
+export function HoursWorkspaceView({ data:initial, org, filters:initialFilters, locale = "ar" }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale?: Locale }) {
+  const actor=useQueryActor(),client=useQueryClient(),{params,change}=useListQuery(`?${new URLSearchParams({q:initialFilters.q??"",hoursPage:String(initialFilters.page),...(initialFilters.term?{term:initialFilters.term}:{}),...(initialFilters.committee?{committee:initialFilters.committee}:{}),...(initialFilters.status?{hourStatus:initialFilters.status}:{})})}`);
+  const termValue=params.get("term"),committeeValue=params.get("committee"),qValue=params.get("q")??"",statusValue=params.get("hourStatus"),pageValue=Math.max(0,Math.min(10000,Number(params.get("hoursPage"))||0));
+  const filters=useMemo<HoursFilters>(()=>({...initialFilters,term:termValue,committee:committeeValue,q:qValue,status:statusValue==="Approved"||statusValue==="Pending"||statusValue==="Rejected"?statusValue:null,page:pageValue}),[initialFilters,termValue,committeeValue,qValue,statusValue,pageValue]);
+
+  const result=useQuery({...hoursListQuery(actor,org,filters),placeholderData:keepPreviousData,initialData:JSON.stringify(filters)===JSON.stringify(initialFilters)?initial:undefined}),data={...initial,...result.data};
+  const update=(values:Record<string,string|null>,replace=false)=>change({hoursPage:null,...values},replace);
+  useEffect(()=>{for(const status of [null,"Approved","Pending","Rejected"] as const)void client.prefetchQuery(hoursListQuery(actor,org,{...filters,q:"",page:0,status}));},[actor,client,org,filters]);
+  useEffect(()=>()=>{void client.cancelQueries({queryKey:["organization-hours",actor,org]});},[actor,client,org]);
+  useEffect(()=>{if(data.records.length>25)void client.prefetchQuery(hoursListQuery(actor,org,{...filters,page:filters.page+1}));},[actor,client,org,filters,data.records.length]);
+  useEffect(()=>{const changed=()=>{void client.invalidateQueries({queryKey:["organization-hours",actor,org]});};window.addEventListener("activity-changed",changed);return()=>window.removeEventListener("activity-changed",changed);},[actor,client,org]);
   const en = locale === "en", c = createTranslator(en ? "en" : "ar");
   const base = `/manage/organizations/${org}/tasks`;
   const membersHref = `/manage/organizations/${org}/members`;
@@ -26,20 +46,18 @@ export function HoursWorkspaceView({ data, org, filters, locale = "ar" }: { data
   const selected = data.scopes.find(scope => scope.id === committee);
   const canAddHours = data.scopes.some(scope => scope.manual);
   return <div className="min-w-0 space-y-4">
-    <LiveFilterForm className="hours-filters">
-      <input type="hidden" name="section" value="hours"/><input type="hidden" name="hoursPage" value="0"/>{filters.status&&<input type="hidden" name="hourStatus" value={filters.status}/>}
-      <SearchFilterToolbar search={<div className="hours-search"><Search aria-hidden="true"/><Input type="search" name="q" defaultValue={filters.q??""} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>}>
-      {term&&<input type="hidden" name="term" value={term}/ >}{committee&&<input type="hidden" name="committee" value={committee}/ >}
-      <div className="min-w-0"><HoursStatusFilters value={filters.status??"all"} locale={locale}/></div>
-    </SearchFilterToolbar></LiveFilterForm>
+    <SearchFilterToolbar search={<div className="hours-search"><Search aria-hidden="true"/><Input type="search" value={filters.q??""} onChange={event=>update({q:event.target.value},true)} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>}>
+      <HoursStatusFilters value={filters.status??"all"} locale={locale} onChange={value=>update({hourStatus:value==="all"?null:value})}/>
+      <HoursToolbarActions org={org} committee={committee} term={term} status={filters.status} search={filters.q} exportScopes={data.exportScopes} locale={locale} hasRecords={Boolean(data.records.length)} canAddHours={canAddHours} filtersAction={<HoursAdvancedFilters data={data} filters={filters} locale={locale} onChange={values=>update(values)} settingsAction={<HoursSettingsAction data={data} org={org} filters={filters} locale={locale}/>}/>}/>
+    </SearchFilterToolbar>
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale}/>
 
     {data.records.length
       ? <HoursRecordTable items={data.records} locale={locale}/>
-      : <WorkspaceEmptyState icon={Clock3} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("تُسجّل الساعات من صفحة الأعضاء.", "Hours are entered from the members page.")} action={canAddHours ? <Link href={membersHref} className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link> : undefined} />}
+      : (filters.q||filters.term||filters.committee||filters.status)?<ListEmpty filtered clear={()=>update({q:null,term:null,committee:null,hourStatus:null})} icon={Clock3} title="" description=""/>:<WorkspaceEmptyState icon={Clock3} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("تُسجّل الساعات من صفحة الأعضاء.", "Hours are entered from the members page.")} action={canAddHours ? <Link href={membersHref} className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link> : undefined} />}
     <p className="text-sm text-muted-foreground">{c("الإجمالي","Total")} {formatHours(data.filteredTotal??data.records.slice(0,25).reduce((sum,record)=>sum+Number(record.hours),0),locale)} · {recordCount(data.filteredCount??Math.min(25,data.records.length),locale)}</p>
-    <TaskPagination page={page} more={data.records.length > 25} base={base} query={query} locale={locale} pageParam="hoursPage"/>
+    <TaskPagination page={page} more={data.records.length > 25} base={base} query={query} locale={locale} pageParam="hoursPage" onPageChange={page=>change({hoursPage:String(page)})}/>
 
     {selected?.manual && <nav aria-label={c("صفحات اختيار العضو", "Member selection pages")} className="flex flex-wrap gap-3 text-sm">
       {memberPage > 0 && <Link className="text-link" href={`${base}?${new URLSearchParams({ ...query, page: String(page), memberPage: String(memberPage - 1) })}`}>{c("الأعضاء السابقون", "Previous members")}</Link>}

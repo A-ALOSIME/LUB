@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
-import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
+import {cleanup,fireEvent,render as rtlRender,screen,waitFor} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 const mocks=vi.hoisted(()=>({load:vi.fn()}));
 vi.mock("./task-panel-actions",()=>({loadTaskPanel:mocks.load}));
 vi.mock("./actions",()=>({mutateTask:vi.fn()}));
 vi.mock("./task-detail",()=>({TaskDetailView:({onNavigate}:{onNavigate:(query:unknown)=>void})=><div>تفاصيل المهمة كاملة<button onClick={()=>onNavigate({page:1})}>صفحة التسليم التالية</button></div>}));
 vi.mock("./task-composer",()=>({TaskEditorForm:()=> <label>عنوان المهمة<input defaultValue="التصميم"/></label>}));
+import {PrivateQueryProvider} from "@/components/private-query-provider";
+import type {ReactElement} from "react";
+import {privateJson} from "@/lib/private-query";
+const render=(ui:ReactElement)=>rtlRender(<PrivateQueryProvider actorId="test-actor">{ui}</PrivateQueryProvider>);
+vi.mock("@/lib/private-query",()=>({privateJson:vi.fn((url:string)=>{const search=new URL(url,"http://localhost").searchParams;return mocks.load("task",{page:Number(search.get("page")),teamPage:Number(search.get("teamPage")),eventPage:Number(search.get("eventPage")),participant:search.get("participant")});})}));
 import {TaskPanelAction} from "./task-panel-action";
-afterEach(()=>{cleanup();vi.resetAllMocks();});
+afterEach(()=>{cleanup();mocks.load.mockReset();vi.mocked(privateJson).mockClear();});
 const detail={task:{organization_id:"org"},canManage:true};
 it("opens details and paginates inside a left sheet without changing the URL",async()=>{
  mocks.load.mockResolvedValue({detail});const url=window.location.href;

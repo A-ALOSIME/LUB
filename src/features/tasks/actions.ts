@@ -77,6 +77,6 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  }catch(error){if(f.get("operation")==="submit"){const submissionError=classifySubmissionError(error);return{submissionError,error:submissionErrorMessage(submissionError,"ar")};}return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيرت المهمة أو المشاركة. رفض التسليم يحتاج ملاحظة؛ اعتماد المهمة يحتاج فصلًا أكاديميًا يغطي تاريخ الاعتماد."};}
  if(["read","read-all"].includes(String(f.get("operation")))){revalidatePath("/notifications");return{success:"تم تحديد الإشعارات كمقروءة."};}
  updateTag("public-talent");
- revalidatePath("/tasks","layout");revalidatePath("/activity");revalidatePath("/manage","layout");revalidatePath("/notifications");revalidatePath("/me");
+ revalidatePath("/tasks");revalidatePath("/activity");if(f.get("org"))revalidatePath(`/manage/organizations/${id(f,"org")}/tasks`);if(f.get("task"))revalidatePath(`/tasks/${id(f,"task")}`);revalidatePath("/notifications");revalidatePath("/me");
  return {success:"تم حفظ التغيير.",task:target};
 }

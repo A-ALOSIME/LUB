@@ -1,6 +1,7 @@
-import { sql } from "drizzle-orm";
+import {getPreferences} from "@/lib/preferences";
+import {createClient} from "@/lib/supabase/server";
+import {getAuthConfig} from "@/lib/env";
 import { z } from "zod";
-import { withUser } from "@/db/client";
 import { getVerifiedUser } from "@/features/auth/session";
 
 const privateHeaders = {
@@ -33,22 +34,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!parsed.success) return new Response(null, { status: 400, headers: privateHeaders });
 
   try {
-    const { organization, committee, term,status,q } = parsed.data;
-    const rows = await withUser(user.id, tx => tx.execute(sql`
-      select lub.export_hours_csv(${organization}, ${committee}::uuid, ${term}::uuid,${status}::text,${q}) as csv
-    `));
-    const csv = rows[0]?.csv;
-    if (typeof csv !== "string") return new Response(null, { status: 404, headers: privateHeaders });
-
-    return new Response(`\uFEFF${csv}`, {
-      headers: {
-        ...privateHeaders,
-        "Content-Disposition": "attachment; filename=hours.csv",
-        "Content-Type": "text/csv; charset=utf-8",
-      },
-    });
-  } catch (error) {
-    const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
-    return new Response(null, { status: code === "42501" ? 403 : 503, headers: privateHeaders });
+    const { organization, committee, term,status,q } = parsed.data,config=getAuthConfig();if(!config)return new Response(null,{status:503,headers:privateHeaders});
+    const {data:{session}}=await (await createClient()).auth.getSession();if(!session||session.user.id!==user.id)return new Response(null,{status:401,headers:privateHeaders});
+    const {locale}=await getPreferences(),response=await fetch(`${config.url}/functions/v1/export-hours`,{method:"POST",headers:{authorization:`Bearer ${session.access_token}`,apikey:config.key,"content-type":"application/json"},body:JSON.stringify({org:organization,committee,term,state:status,q,locale}),cache:"no-store",signal:AbortSignal.timeout(30000)});
+    if(!response.ok)return new Response(null,{status:[400,401,403,429,503].includes(response.status)?response.status:502,headers:privateHeaders});
+    return new Response(response.body,{headers:{...privateHeaders,"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Content-Disposition":response.headers.get("Content-Disposition")??'attachment; filename="hours.xlsx"'}});
+  } catch {
+    return new Response(null, { status:503, headers:privateHeaders });
   }
 }

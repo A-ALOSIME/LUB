@@ -84,6 +84,11 @@ export async function POST(request: NextRequest) {
     return failure(400, "unsupported_poster_type");
   }
 
+  let thumbnail:string|null=null;
+  const small=form.get("thumbnail");
+  if(purpose&&small&&typeof small!=="string"){
+    try{if(small.size>65536)throw new Error();const data=new Uint8Array(await small.arrayBuffer());if(inspectAttachment(data,"image/png")!=="image/png")throw new Error();const dimensions=imageDimensions(data);if(!dimensions||dimensions.width>160||dimensions.height>160)throw new Error();thumbnail=Buffer.from(data).toString("base64");}catch{return failure(400,"invalid_file");}
+  }
   const id = randomUUID();
   const key = `${user.id}/${assetStorageName(id,mime)}`;
   let removeUploadedObject: (() => Promise<unknown>) | undefined;
@@ -101,7 +106,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await withUser(user.id, async tx => {await tx.execute(sql`select lub.register_application_asset(${id}, ${key}, ${displayName}, ${mime}, ${file.size})`);const dimensions=mime.startsWith("image/")?imageDimensions(bytes):null;if(dimensions)await tx.execute(sql`select lub.set_asset_image_dimensions(${id},${dimensions.width},${dimensions.height})`);});
+    await withUser(user.id, async tx => {await tx.execute(sql`select lub.register_application_asset(${id}, ${key}, ${displayName}, ${mime}, ${file.size})`);if(thumbnail)await tx.execute(sql`select lub.set_asset_thumbnail(${id},${thumbnail})`);const dimensions=mime.startsWith("image/")?imageDimensions(bytes):null;if(dimensions)await tx.execute(sql`select lub.set_asset_image_dimensions(${id},${dimensions.width},${dimensions.height})`);});
   } catch {
     try { await removeUploadedObject?.(); } catch { /* Keep the response safe if cleanup also fails. */ }
     console.error("File upload registration step failed.");

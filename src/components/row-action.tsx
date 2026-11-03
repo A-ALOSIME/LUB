@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {useI18n} from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 export function RowAction({
@@ -25,6 +26,7 @@ export function RowAction({
   danger?: boolean;
   href?: string;
 }) {
+  const {t}=useI18n();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -40,6 +42,8 @@ export function RowAction({
           variant="ghost"
           size="icon"
           {...props}
+          onClick={event=>{event.stopPropagation();props.onClick?.(event);}}
+          onKeyDown={event=>{event.stopPropagation();props.onKeyDown?.(event);}}
           aria-label={label}
           className={cn(
             "row-action",
@@ -58,7 +62,7 @@ export function RowAction({
           <span className="row-action-label">{label}</span>
         </Button>
       </TooltipTrigger>
-      <TooltipContent>{hint ?? label}</TooltipContent>
+      <TooltipContent>{props.disabled?(hint??t("غير متاح للحالة الحالية أو لصلاحياتك","Unavailable for this status or your permissions")):label}</TooltipContent>
     </Tooltip>
   );
 }

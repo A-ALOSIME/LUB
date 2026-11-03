@@ -1,4 +1,7 @@
 "use client";
+import {useQuery} from "@tanstack/react-query";
+import {useQueryActor} from "@/components/private-query-provider";
+import {privateJson} from "@/lib/private-query";
 
 import {ContentText} from "@/components/content-text";
 
@@ -64,22 +67,24 @@ export function HourStatus({
   );
 }
 function RecordActions({
-  record,
-  locale,
+  record:row,
+  locale,initialDetails=false,hideActions=false,onClose,
 }: {
   record: HourRecord;
-  locale: Locale;
+  locale: Locale;initialDetails?:boolean;hideActions?:boolean;onClose?:()=>void;
 }) {
   const [action, setAction] = useState<
       "adjust" | "details" | "approve" | "reject" | null
-    >(null),
+    >(initialDetails?"details":null),
     en = locale === "en",
     c = createTranslator((en) ? "en" : "ar");
+  const actor=useQueryActor(),details=useQuery({queryKey:["hour-record",actor,row.organization_id,row.id,row.hours,row.status_code],queryFn:({signal})=>privateJson<HourRecord>(`/api/hours/${row.id}`,signal),enabled:action==="details"});
+  const record=details.data??row;
   const editable =
     record.canReview && ["Pending", "Approved"].includes(record.status_code);
   return (
     <>
-      <div className="hours-row-actions">
+      {!hideActions&&<div className="hours-row-actions">
         <RowAction
           label={c("تعديل الساعات", "Adjust hours")}
           hint={
@@ -119,11 +124,11 @@ function RecordActions({
           </>
         ) : (
           <>
-            <span className="row-action-space" />
-            <span className="row-action-space" />
+            <RowAction label={c("اعتماد","Approve")} disabled><Check/></RowAction>
+            <RowAction label={c("رفض","Reject")} danger disabled><X/></RowAction>
           </>
         )}
-      </div>
+      </div>}
       {action === "adjust" && (
         <ManagementActionSheet
           label=""
@@ -131,7 +136,7 @@ function RecordActions({
           locale={locale}
           open
           onOpenChange={(open) => {
-            if (!open) setAction(null);
+            if (!open) setAction(null);onClose?.();
           }}
           hideTrigger
         >
@@ -149,12 +154,12 @@ function RecordActions({
           locale={locale}
           open
           onOpenChange={(open) => {
-            if (!open) setAction(null);
+            if (!open) setAction(null);onClose?.();
           }}
           hideTrigger
           presentation="sheet"
         >
-          <div className="hour-record-details">
+          <div className="hour-record-details">{details.isError&&<p role="alert" className="text-sm text-muted-foreground">{c("تعذّر تحميل سجل القرارات. أغلق التفاصيل وحاول مجددًا.","Could not load the decision history. Close details and try again.")}</p>}
             <HourStatus status={record.status_code} locale={locale}/>
             <dl className="hour-detail-fields">
               <div>
@@ -268,7 +273,7 @@ function RecordActions({
           locale={locale}
           open
           onOpenChange={(open) => {
-            if (!open) setAction(null);
+            if (!open) setAction(null);onClose?.();
           }}
           hideTrigger
         >
@@ -315,6 +320,7 @@ export function HoursRecordTable({
   locale?: Locale;
   personal?: boolean;
 }) {
+  const [selected,setSelected]=useState<HourRecord|null>(null);
   const en = locale === "en",
     c = createTranslator((en) ? "en" : "ar"),
     records = items.slice(0, 25);
@@ -345,7 +351,7 @@ export function HoursRecordTable({
       className="hours-ledger min-w-0"
       aria-label={c("سجلات الساعات", "Hours records")}
     >
-      <div className="hours-ledger-table rounded-lg border border-border">
+      <div className="hours-ledger-table">
         <Table className="hours-table"><colgroup><col/>{!personal&&<><col className="hours-column-committee"/><col className="hours-column-reason"/></>}<col className="hours-column-value"/><col className="hours-column-date"/>{personal&&<col className="hours-column-source"/>}<col className="hours-column-status"/><col className="hours-column-actions"/></colgroup>
           <TableHeader>
             <TableRow>
@@ -371,7 +377,7 @@ export function HoursRecordTable({
           </TableHeader>
           <TableBody>
             {records.map((record) => (
-              <TableRow key={record.id}>
+              <TableRow key={record.id} tabIndex={0} className="cursor-pointer" onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest("button,a,input"))setSelected(record);}} onKeyDown={event=>{if(event.key==="Enter"&&event.target===event.currentTarget)setSelected(record);}}>
                 <TableCell>{identity(record)}</TableCell>
                 {!personal && (
                   <>
@@ -415,7 +421,7 @@ export function HoursRecordTable({
       <ul className="hours-ledger-cards">
         {records.map((record) => (
           <li key={record.id}>
-            <Card>
+            <Card tabIndex={0} className="cursor-pointer hover:bg-muted/50" onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest("button,a,input"))setSelected(record);}} onKeyDown={event=>{if(event.key==="Enter"&&event.target===event.currentTarget)setSelected(record);}}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle>{identity(record)}</CardTitle>
@@ -449,6 +455,7 @@ export function HoursRecordTable({
           </li>
         ))}
       </ul>
+      {selected&&<RecordActions key={selected.id} record={selected} locale={locale} initialDetails hideActions onClose={()=>setSelected(null)}/>}
     </section>
   );
 }

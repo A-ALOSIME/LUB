@@ -154,7 +154,7 @@ export function EventContent({
 }) {
   const e = data.event;
   if(e.status_code==="Archived")return <ArchivalEventContent data={data} locale={locale}/>;
-  const base = { event: e.id, revision: String(e.revision) };
+  const base = { event: e.id, org:e.organization_id, revision: String(e.revision) };
   const en = locale === "en";
   const c = createTranslator((en) ? "en" : "ar");
   const labels = en ? eventLabelsEn : eventLabels;

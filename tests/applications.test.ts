@@ -289,16 +289,16 @@ it("allows paused rounds to reopen, requires extending expired rounds and preven
  await db.query("select lub.save_registration_round($1,$2,$3,'الجولة الممددة',now()-interval '2 days',now()+interval '1 day',true,true)",[round,org,template]);
  expect((await db.query<{open:boolean}>("select lub.round_is_open($1) as open",[round])).rows[0].open).toBe(true);
 });
-it("deletes a round's applications and answers while preserving accepted memberships",async()=>{
+it("rejects deleting used rounds and preserves applications, answers and accepted memberships",async()=>{
  const app=await submit();await asUser(leader);await db.query("select lub.decide_application($1,'Accepted','')",[app]);
  const member=(await db.query<{id:string}>("select accepted_membership_id as id from lub.membership_applications where id=$1",[app])).rows[0].id;
  await asUser(other);await denied(()=>db.query("select lub.delete_registration_round($1)",[round]));
- await asUser(leader);await db.query("select lub.delete_registration_round($1)",[round]);
- await owner();expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(0);
- expect((await db.query("select id from lub.membership_applications where id=$1",[app])).rows).toHaveLength(0);
- expect((await db.query("select id from lub.form_responses where respondent_user_id=$1",[student])).rows).toHaveLength(0);
+ await asUser(leader);await denied(()=>db.query("select lub.delete_registration_round($1)",[round]));
+ await owner();expect((await db.query("select id from lub.registration_rounds where id=$1",[round])).rows).toHaveLength(1);
+ expect((await db.query("select id from lub.membership_applications where id=$1",[app])).rows).toHaveLength(1);
+ expect((await db.query("select id from lub.form_responses where respondent_user_id=$1",[student])).rows).toHaveLength(1);
  const rows=(await db.query<{status_code:string;source_application_id:string|null}>("select status_code,source_application_id from lub.organization_memberships where id=$1",[member])).rows;
- expect(rows[0]).toEqual({status_code:'Active',source_application_id:null});
+ expect(rows[0]).toEqual({status_code:'Active',source_application_id:app});
 });
 
 it("moves a member within the organization and confirms removal of committee leadership",async()=>{

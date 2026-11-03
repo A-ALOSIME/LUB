@@ -5,14 +5,14 @@ const mutation=vi.hoisted(()=>vi.fn<(previous:unknown,form:FormData)=>Promise<{s
 vi.mock("./actions",()=>({mutateOrganization:mutation}));
 import {AnnouncementList} from "./announcement-list";
 const items=[{id:"first",title:"الإعلان المنشور",body:"تفاصيل الإعلان",published:true,pinned:true,createdAt:"2026-10-27T12:00:00Z"},{id:"second",title:"مسودة جديدة",body:"محتوى المسودة",published:false,pinned:false,createdAt:"2026-10-27T12:00:00Z"}];
-beforeEach(()=>mutation.mockClear());afterEach(cleanup);
+beforeEach(()=>{mutation.mockClear();window.history.replaceState(null,"","/");});afterEach(cleanup);
 it("filters drafts without claiming the organization has no announcements",()=>{
  render(<AnnouncementList org="org" items={items}/>);fireEvent.click(screen.getByRole("tab",{name:/مسودة\s*1/}));
- expect(screen.getByRole("heading",{name:"مسودة جديدة"})).toBeTruthy();expect(screen.queryByRole("heading",{name:"الإعلان المنشور"})).toBeNull();
- fireEvent.click(screen.getByRole("tab",{name:/مؤرشف\s*0/}));expect(screen.getByRole("status").textContent).toContain("بهذه الحالة");expect(screen.queryByText("لا توجد إعلانات بعد")).toBeNull();
+ expect(screen.getAllByRole("heading",{name:"مسودة جديدة"})).toHaveLength(2);expect(screen.queryByRole("heading",{name:"الإعلان المنشور"})).toBeNull();
+ fireEvent.click(screen.getByRole("tab",{name:/مؤرشفة\s*0/}));expect(screen.getByRole("status").textContent).toContain("لا توجد نتائج مطابقة");expect(screen.queryByText("لا توجد إعلانات بعد")).toBeNull();
 });
 it("requires named confirmation before archiving",async()=>{
- render(<AnnouncementList org="org" items={[items[0]]}/>);fireEvent.click(screen.getByRole("button",{name:"أرشفة الإعلان"}));
+ render(<AnnouncementList org="org" items={[items[0]]}/>);fireEvent.click(screen.getAllByRole("button",{name:"أرشفة الإعلان"})[0]);
  expect(screen.getByRole("alertdialog").textContent).toContain("الإعلان المنشور");expect(mutation).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole("alertdialog").querySelector('button[data-slot="button"]')!);await waitFor(()=>expect(mutation).toHaveBeenCalledOnce());expect(mutation.mock.calls[0][1].get("operation")).toBe("archive-announcement");expect(mutation.mock.calls[0][1].get("confirmed")).toBe("on");
 });

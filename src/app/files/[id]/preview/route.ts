@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { inspectAttachment } from "@/features/forms/files";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getVerifiedUser();
@@ -18,7 +18,7 @@ export async function GET(
   try {
     const rows = await withUser(user.id, (tx) =>
       tx.execute(
-        sql`select object_key,mime_type,size_bytes from lub.application_assets where id=${id}`,
+        sql`select object_key,mime_type,size_bytes,thumbnail_png_base64 from lub.application_assets where id=${id}`,
       ),
     );
     const asset = rows[0];
@@ -27,6 +27,7 @@ export async function GET(
       !["image/png", "image/jpeg"].includes(String(asset.mime_type))
     )
       return new NextResponse(null, { status: 404 });
+    if(new URL(request.url).searchParams.get("thumbnail")==="1"&&typeof asset.thumbnail_png_base64==="string")return new NextResponse(Buffer.from(asset.thumbnail_png_base64,"base64"),{headers:{"Content-Type":"image/png","Cache-Control":"private, max-age=90","X-Content-Type-Options":"nosniff","Cross-Origin-Resource-Policy":"same-origin"}});
     const client = await createClient();
     const { data, error } = await client.storage
       .from("lub-application-files")

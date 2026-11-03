@@ -114,3 +114,15 @@ it("accepts a separate Arabic display name while the multipart filename remains 
  mocks.execute.mockResolvedValueOnce([]);const form=new FormData();form.set("displayName","عمل الطالب.pdf");form.set("file",new File([new TextEncoder().encode("%PDF-1.4")],"diagnostic.pdf",{type:"application/pdf"}));
  const response=await POST(new NextRequest("http://127.0.0.1:3000/files/upload",{method:"POST",headers:{origin:"http://127.0.0.1:3000"},body:form}));expect(response.status).toBe(200);expect((await response.json()).name).toBe("عمل الطالب.pdf");expect(mocks.upload.mock.calls[0][0]).toMatch(/^[a-f0-9-]+\/[a-f0-9-]+\.pdf$/);
 });
+
+it("stores a bounded table thumbnail in the asset transaction and cleans storage on failure",async()=>{
+ const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKesAAAAASUVORK5CYII=","base64");
+ const form=new FormData();form.set("organization",org);form.set("file",new File([png],"poster.png",{type:"image/png"}));form.set("thumbnail",new File([png],"thumbnail.png",{type:"image/png"}));
+ const request=()=>new NextRequest("http://127.0.0.1:3000/files/upload?purpose=event-poster",{method:"POST",headers:{origin:"http://127.0.0.1:3000"},body:form});
+ mocks.execute.mockResolvedValueOnce([{allowed:true}]).mockResolvedValue([]);expect((await POST(request())).status).toBe(200);expect(mocks.execute).toHaveBeenCalledTimes(4);expect(mocks.remove).not.toHaveBeenCalled();
+ mocks.execute.mockReset().mockResolvedValueOnce([{allowed:true}]).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("thumbnail write failed"));expect((await POST(request())).status).toBe(503);expect(mocks.remove).toHaveBeenCalledOnce();
+});
+it("rejects oversized thumbnails before uploading any original",async()=>{
+ mocks.execute.mockResolvedValueOnce([{allowed:true}]);const form=new FormData();form.set("organization",org);form.set("file",new File([new Uint8Array([137,80,78,71,13,10,26,10])],"poster.png",{type:"image/png"}));form.set("thumbnail",new File([new Uint8Array(65537)],"thumbnail.png",{type:"image/png"}));
+ const response=await POST(new NextRequest("http://127.0.0.1:3000/files/upload?purpose=event-poster",{method:"POST",headers:{origin:"http://127.0.0.1:3000"},body:form}));expect(response.status).toBe(400);expect(mocks.upload).not.toHaveBeenCalled();
+});

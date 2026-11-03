@@ -10,7 +10,7 @@ export async function loadOrganizationEvents(organization:string){
  if(!version)throw new Error("ORGANIZATION_EVENTS_UNAVAILABLE");
  const workspace=await eventWorkspaceOverview(user.id,org,null);
  if(!workspace)throw new Error("ORGANIZATION_EVENTS_UNAVAILABLE");
- const registrations=workspace.canViewEvents?await eventRegistrants(user.id,org,null,"","",null):{items:[],pending:0,accepted:0,rejected:0,options:[]};
- return {actorId:user.id,organization:org,version,workspace,registrations};
+ const registrations=workspace.canViewEvents?await eventRegistrants(user.id,org,null,"","",null,false):{items:[],pending:0,accepted:0,rejected:0,options:[]};
+ return {actorId:user.id,organization:org,version,paged:[workspace.events.length,workspace.announcements.length,registrations.items.length].some(count=>count>50),workspace,registrations};
 }
 export async function readOrganizationEventsVersion(organization:string){const org=z.uuid().parse(organization),user=await requireManagementUser();return organizationEventsVersion(user.id,org);}

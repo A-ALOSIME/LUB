@@ -1,28 +1,45 @@
-import Image from "next/image";
-
+"use client";
+import {useOptimisticRows} from "@/lib/optimistic-rows";
+import {useState} from "react";
+import {useQueryClient} from "@tanstack/react-query";
+import {ClipboardCheck,Eye,Pencil,Send,Lock,Trash2} from "lucide-react";
+import {useQueryActor} from "@/components/private-query-provider";
+import {ItemTable,ItemTitle} from "@/components/item-table";
+import {ListThumbnail} from "@/components/list-thumbnail";
 import {ContentText} from "@/components/content-text";
-import {t as translateUi} from "@/lib/i18n";
+import {RowAction} from "@/components/row-action";
 import {Badge} from "@/components/ui/badge";
-import {CardTitle,CardDescription} from "@/components/ui/card";
 import {formatHours,formatCount} from "@/lib/display";
+import {t} from "@/lib/i18n";
 import {formatTaskDate,formatTaskDateEn,taskLabels,taskLabelsEn} from "./display";
-import {TaskCardSurface} from "./task-card";
 import {TaskParticipationBadge} from "./participation-badge";
 import {TaskJoinAction} from "./task-join-action";
 import {TaskDecision} from "./task-decision";
 import {TaskPanelAction} from "./task-panel-action";
-import {TaskComposer} from "./task-composer";
+
+import {taskPanelQuery} from "./panel-query";
 import type {TaskCard,TaskWorkspace} from "./repository";
 import type {Locale} from "@/lib/preferences";
-export function TaskList({items,mode,locale="ar",workspace}:{items:TaskCard[];mode:"available"|"mine"|"all";locale?:Locale;compact?:boolean;workspace?:TaskWorkspace}){
- const en=locale==="en",labels=en?taskLabelsEn:taskLabels,date=en?formatTaskDateEn:formatTaskDate;
- if(!items.length)return <p role="status" className="py-3 text-sm text-muted-foreground">{mode==="mine"?(translateUi((en) ? "en" : "ar", "ما شاركت في أي مهمة حتى الآن.", "You have not joined any tasks yet.")):mode==="available"?(translateUi((en) ? "en" : "ar", "لا توجد مهام متاحة للانضمام الآن.", "No tasks are open to join right now.")):(translateUi((en) ? "en" : "ar", "لا توجد مهام.", "No tasks found."))}</p>;
- return <ul className="flex min-w-0 flex-col gap-4" aria-label={translateUi((en) ? "en" : "ar", "المهام", "Tasks")}>{items.map(({task:t,org_name,participant:p,historical,latest_submission,approved_hours,can_manage,summary})=>{
-  const manageable=mode==="all"&&can_manage&&!historical,editable=manageable&&["Draft","Open"].includes(t.status_code),withdrawable=!historical&&t.status_code==="Open"&&p&&["Joined","In_Progress","Submitted"].includes(p.status_code);
-  return <li key={t.id}><TaskCardSurface task={t.id} title={t.title} locale={locale} hideActions={Boolean(historical)} media={(t.image_asset_id||t.event_id&&t.has_event_poster)?<Image src={t.image_asset_id?`/files/${t.image_asset_id}/preview`:`/event-posters/${t.event_id}`} alt="" width={80} height={80} unoptimized className="h-auto w-full object-contain"/>:undefined} actions={<> {editable&&(workspace?<TaskComposer rowAction org={t.organization_id} task={t} workspace={workspace} locale={locale}/>:<TaskPanelAction task={t.id} title={t.title} locale={locale} edit/>)}{manageable&&t.status_code==="Draft"&&<TaskDecision kind="publish" task={t.id} revision={t.revision} title={t.title} locale={locale}/>} {editable&&<TaskDecision status={t.status_code==="Draft"?"Cancelled":"Completed"} kind="close" task={t.id} revision={t.revision} title={t.title} locale={locale}/>} {manageable&&<TaskDecision kind="delete" task={t.id} revision={t.revision} title={t.title} locale={locale}/>} {mode!=="all"&&withdrawable&&<><TaskPanelAction task={t.id} title={t.title} locale={locale} submission/><TaskDecision kind="withdraw" task={t.id} revision={t.revision} participant={p.id} title={t.title} locale={locale}/></>}{mode!=="all"&&!p&&!historical&&t.status_code==="Open"&&<TaskJoinAction task={t.id} locale={locale}/>} </>}>
-<div className="flex min-w-0 flex-col gap-3"><div className="min-w-0"><CardDescription className="text-sm font-medium text-foreground/80"><ContentText value={org_name}/>{historical&&<> · {translateUi(locale,"من سجلك السابق","Past record")}</>}</CardDescription><CardTitle className="mt-1 flex flex-wrap items-center gap-2 break-words"><ContentText value={t.title}/>{mode==="all"?<Badge variant={t.status_code==="Draft"?"secondary":"outline"}>{labels[t.status_code]??t.status_code}</Badge>:<TaskParticipationBadge status={p?.status_code??"Not_Joined"} locale={locale}/>}</CardTitle></div>
-  <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground"><span>{translateUi((en) ? "en" : "ar", "الساعات المقترحة: ", "Suggested: ")}{formatHours(t.default_hours,locale)}</span>{t.due_at&&<span>{translateUi((en) ? "en" : "ar", "التسليم: ", "Due: ")}{date(t.due_at)}</span>}{summary&&<span>{translateUi((en) ? "en" : "ar", "المنضمون: ", "Joined: ")}{formatCount(summary.participants,"members",locale)}</span>}{mode==="mine"&&p&&<>{latest_submission&&<span>{translateUi((en) ? "en" : "ar", "حالة التسليم: ", "Submission: ")}{labels[latest_submission.status_code]}</span>}{approved_hours!==null&&<span>{translateUi((en) ? "en" : "ar", "الساعات المعتمدة: ", "Approved hours: ")}{formatHours(approved_hours,locale)}</span>}</>}</div></div>
-  </TaskCardSurface></li>;
- })}</ul>;
+export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty}:{empty?:React.ReactNode;activeStatus?:string;items:TaskCard[];mode:"available"|"mine"|"all";locale?:Locale;compact?:boolean;workspace?:TaskWorkspace}){
+ void workspace;
+ const labels=locale==="en"?taskLabelsEn:taskLabels,date=locale==="en"?formatTaskDateEn:formatTaskDate,actor=useQueryActor(),client=useQueryClient(),[selected,setSelected]=useState<TaskCard|null>(null);
+ const open=(row:TaskCard)=>setSelected(row),prefetch=(row:TaskCard)=>{void client.prefetchQuery(taskPanelQuery(actor,row.task.id));};
+ const projection=useOptimisticRows(items,row=>row.task.id);
+ const optimistic=(row:TaskCard)=>(status:string,remove?:boolean)=>projection.change(row.task.id,item=>remove?null:{...item,task:{...item.task,status_code:status}});
+ const rows=projection.items.filter(item=>!activeStatus||item.task.status_code===activeStatus).map(row=>({...row,id:row.task.id}));
+ function actions(row:TaskCard){const task=row.task,p=row.participant,manage=mode==="all"&&row.can_manage&&!row.historical,editable=manage&&["Draft","Open"].includes(task.status_code),withdrawable=!row.historical&&task.status_code==="Open"&&p&&["Joined","In_Progress","Submitted"].includes(p.status_code);
+  if(row.historical)return null;
+  return <div className="flex items-center gap-1"><RowAction label={t(locale,"عرض التفاصيل","View details")} onClick={()=>open(row)}><Eye/></RowAction>{mode==="all"?<>
+  {editable?<TaskPanelAction task={task.id} title={task.title} locale={locale} edit/>:<RowAction label={t(locale,"تعديل المهمة","Edit task")} disabled><Pencil/></RowAction>}
+  {manage&&task.status_code==="Draft"?<TaskDecision optimistic={optimistic(row)} kind="publish" task={task.id} revision={task.revision} title={task.title} locale={locale}/>:<RowAction label={t(locale,"نشر المهمة","Publish task")} disabled><Send/></RowAction>}
+  {editable?<TaskDecision optimistic={optimistic(row)} kind="close" status={task.status_code==="Draft"?"Cancelled":"Completed"} task={task.id} revision={task.revision} title={task.title} locale={locale}/>:<RowAction label={t(locale,"إغلاق المهمة","Close task")} disabled><Lock/></RowAction>}
+  {manage?<TaskDecision optimistic={optimistic(row)} kind="delete" task={task.id} revision={task.revision} title={task.title} locale={locale}/>:<RowAction label={t(locale,"حذف المهمة","Delete task")} danger disabled><Trash2/></RowAction>}
+  </>:withdrawable?<><TaskPanelAction task={task.id} title={task.title} locale={locale} submission/><TaskDecision kind="withdraw" task={task.id} revision={task.revision} participant={p.id} title={task.title} locale={locale}/></>:!p&&task.status_code==="Open"?<TaskJoinAction task={task.id} locale={locale}/>:null}</div>;
+ }
+ return <><ItemTable items={rows} empty={empty} label={t(locale,"عرض تفاصيل المهمة","View task details")} onOpen={open} onPrefetch={prefetch} columns={[
+ {id:"name",label:t(locale,"المهمة","Task"),render:row=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={ClipboardCheck} src={row.task.image_asset_id?`/files/${row.task.image_asset_id}/preview?thumbnail=1`:row.task.event_id&&row.task.has_event_poster?`/event-posters/${row.task.event_id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><p className="truncate text-sm text-muted-foreground"><ContentText value={row.org_name}/>{row.historical&&<> · {t(locale,"من سجلك السابق","Past record")}</>}</p><ItemTitle><ContentText value={row.task.title}/></ItemTitle><p className="text-sm text-muted-foreground">{row.approved_hours!==null?<>{t(locale,"الساعات المعتمدة: ","Approved hours: ")}{formatHours(row.approved_hours,locale)}</>:formatHours(row.task.default_hours,locale)}{row.task.due_at&&<> · {date(row.task.due_at)}</>}{row.summary&&<> · {formatCount(row.summary.participants,"members",locale)}</>}</p></div></div>},
+ {id:"status",label:t(locale,"الحالة","Status"),className:"w-32",render:row=>mode==="all"?<Badge variant={row.task.status_code==="Draft"?"secondary":"outline"}>{labels[row.task.status_code]??row.task.status_code}</Badge>:<TaskParticipationBadge status={row.participant?.status_code??"Not_Joined"} locale={locale}/>},
+ {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-48":"w-32",render:actions}
+ ]}/>{selected&&<TaskPanelAction task={selected.task.id} title={selected.task.title} locale={locale} hideTrigger open onOpenChange={value=>{if(!value)setSelected(null);}}/>}</>;
 }
 export {TaskPagination} from "./task-pagination";

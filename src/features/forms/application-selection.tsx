@@ -65,7 +65,7 @@ export function ApplicationSelection({
     if (ids.length === 1) f.set("application", ids[0]);
     else ids.forEach((id) => f.append("selected", id));
     const result = await mutateWorkflow({}, f);
-    if (result.success) {await client.invalidateQueries({queryKey:["application-detail",actor,organization]});router.refresh();}
+    if (result.success) {await Promise.all([client.invalidateQueries({queryKey:["application-detail",actor,organization]}),client.invalidateQueries({queryKey:["organization-applications",actor,organization]})]);router.refresh();}
     return result;
   }
   return (
@@ -131,11 +131,12 @@ export function ApplicationSelection({
                   dir={en ? "ltr" : "rtl"}
                 >
                   {detail?<ApplicationDetail detail={detail} locale={locale}/>:result.isError?<Alert><AlertDescription>{c("تعذّر عرض الطلب. حاول مجددًا.","Unable to load this application. Please try again.")}</AlertDescription></Alert>:<Skeleton className="h-40 w-full"/>}
+                </div>
                   {detail?.canReview &&
                     ["Submitted", "Interview"].includes(
                       detail.status_code,
                     ) && (
-                      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+                      <div className="management-action-footer is-modal-footer">
                         <Button
                           onClick={() =>
                             choose([detail.id], "Accepted")
@@ -167,7 +168,6 @@ export function ApplicationSelection({
                         )}
                       </div>
                     )}
-                </div>
               </ManagementActionProvider>
             </SheetContent>
           </Sheet>

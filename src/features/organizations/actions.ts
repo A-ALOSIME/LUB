@@ -119,8 +119,11 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
   }
   updateTag("public-organizations");
   updateTag("public-talent");
-  revalidatePath("/organizations", "layout");
-  revalidatePath("/manage", "layout");
+  revalidatePath("/organizations");
+  revalidatePath("/manage/organizations");
+  const changedOrganization=z.uuid().safeParse(form.get("organizationId"));
+  if(changedOrganization.success)revalidatePath(`/manage/organizations/${changedOrganization.data}`,"layout");
+  if(operation==="grant-admin"||operation==="end-admin")revalidatePath("/manage/admins");
   revalidatePath("/me");
   if (createdId) redirect(`/manage/organizations/${createdId}/edit`);
   return { success };

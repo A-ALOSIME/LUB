@@ -1,9 +1,13 @@
 "use client";
 
+import {RemoveEventRegistration} from "./remove-registration";
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {majorLabel} from "@/lib/display";
 
+import { useQuery,useQueryClient,queryOptions } from "@tanstack/react-query";
+import {useQueryActor} from "@/components/private-query-provider";
+import {privateJson} from "@/lib/private-query";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, LockKeyhole } from "lucide-react";
@@ -19,7 +23,7 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
-import { ManagementActionSheet } from "@/components/management-action-sheet";
+
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { FormField } from "@/components/form-field";
@@ -33,15 +37,19 @@ import { mutateEvent } from "./actions";
 
 export function EventRegistrationReview({
   items,
-  locale,
+  locale,organization,
 }: {
+  organization?:string;
   items: EventRegistrant[];
   locale: Locale;
 }) {
   const [selected, setSelected] = useState<string | null>(null),
     router = useRouter(),
     c = createTranslator((locale === "en") ? "en" : "ar");
-  const detail = items.find((r) => r.id === selected);
+  const actor=useQueryActor(),client=useQueryClient();
+  const detailOptions=(id:string|null)=>queryOptions({queryKey:["event-registrant",actor,organization,id],queryFn:({signal})=>privateJson<EventRegistrant>(`/api/organizations/${organization}/registrants/${id}`,signal)});
+  const result=useQuery({...detailOptions(selected),enabled:!!selected&&!!organization});
+  const detail=result.data??items.find((r) => r.id === selected);
   async function decide(
     ids: string[],
     status: ReviewDecision,
@@ -55,8 +63,9 @@ export function EventRegistrationReview({
     ids.forEach((id) => f.append("selected", id));
     const result = await mutateEvent({}, f);
     if (result.success) {
+      void client.invalidateQueries({queryKey:["event-registrant",actor,organization]});
       setSelected(null);
-      window.dispatchEvent(new Event("organization-events-changed"));
+      window.dispatchEvent(new CustomEvent("organization-events-changed",{detail:{organization}}));
       window.dispatchEvent(new Event("activity-changed"));
       router.refresh();
     }
@@ -65,8 +74,10 @@ export function EventRegistrationReview({
   return (
     <RequestReviewTable
       locale={locale}
+      decisionSlots={["Accepted","Rejected"]}
       rows={items.slice(0, 25).map((r) => ({
         id: r.id,
+        extraAction:<RemoveEventRegistration organization={organization} id={r.id} name={r.name} allowed={r.canReview} locale={locale} onSuccess={()=>setSelected(null)}/>,
         name: r.name,
         subtitle: r.title,
         status: r.review_status_code,
@@ -82,6 +93,7 @@ export function EventRegistrationReview({
           : [],
       }))}
       onOpen={setSelected}
+      onPrefetch={id=>{if(organization)void client.prefetchQuery(detailOptions(id));}}
       onDecision={decide}
       bulkDecisions={
         items.some((r) => r.canReview) ? ["Accepted", "Rejected"] : []
@@ -294,30 +306,7 @@ export function EventRegistrationReview({
                       {c("رفض", "Reject")}
                     </Button>
                   )}
-                  <ManagementActionSheet
-                    label={c("إزالة التسجيل", "Remove registration")}
-                    title={c(
-                      `إزالة تسجيل ${detail.name}؟`,
-                      `Remove ${detail.name}'s registration?`,
-                    )}
-                    locale={locale}
-                    mobileBottomSheet
-                  >
-                    <EventForm
-                      operation="remove-registration"
-                      fields={{ registration: detail.id, confirm: "on" }}
-                      label={c("تأكيد الإزالة", "Confirm removal")}
-                      locale={locale}
-                      onSuccess={() => setSelected(null)}
-                    >
-                      <p className="text-sm text-muted-foreground">
-                        {c(
-                          "سيُلغى التسجيل ويُحفظ سجله السابق.",
-                          "The registration will be cancelled and its history retained.",
-                        )}
-                      </p>
-                    </EventForm>
-                  </ManagementActionSheet>
+                  <RemoveEventRegistration organization={organization} full id={detail.id} name={detail.name} allowed={detail.canReview} locale={locale} onSuccess={()=>setSelected(null)}/>
                 </div>
               )}
             </SheetContent>

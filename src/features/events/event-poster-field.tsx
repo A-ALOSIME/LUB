@@ -1,5 +1,6 @@
 "use client";
 
+import {imageThumbnail} from "@/lib/image-thumbnail";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -74,6 +75,7 @@ export function EntityImageField({organization,locale,committee,initialPreview="
     try {
       const body = new FormData();
       body.set("file", await compactPoster(file));
+      const thumbnail=await imageThumbnail(file);if(thumbnail)body.set("thumbnail",thumbnail);
       body.set("organization", organization);
       if(committee)body.set("committee",committee);
       const response = await fetch(`/files/upload?purpose=${purpose}`, { method: "POST", body });

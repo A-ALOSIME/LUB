@@ -1,23 +1,19 @@
 "use client";
 
+import {useRouter} from "next/navigation";
+import {useListQuery} from "@/lib/list-query";
+import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetFooter} from "@/components/ui/sheet";
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useState } from "react";
 import {OrganizationLogo} from "@/components/organization-logo";
-import { UserRound, UserRoundMinus, Power, Building2, Archive } from "lucide-react";
+import { UserRound, UserRoundMinus, Power, Building2, Archive,Eye } from "lucide-react";
 import { RowAction } from "@/components/row-action";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+import {ItemTable,ItemTitle} from "@/components/item-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import {ListEmpty} from "@/components/list-empty";
 import { OrganizationStatusBadge } from "./organization-status-badge";
 import { AdminOrganizationDecision } from "./admin-organization-decision";
 import type { AdminOrganizationRow } from "./management-repository";
@@ -29,6 +25,7 @@ export function AdminOrganizationTable({
   organizations: AdminOrganizationRow[];
   locale: Locale;
 }) {
+  const router=useRouter(),{params}=useListQuery(),[selected,setSelected]=useState<AdminOrganizationRow|null>(null);
   const en = locale === "en",
     c = createTranslator((en) ? "en" : "ar"),
     [decision, setDecision] = useState<{
@@ -55,10 +52,10 @@ export function AdminOrganizationTable({
     );
   }
   function leader(item: AdminOrganizationRow) {
-    return item.leaderName ?? <Button variant="outline" size="sm" onClick={() => setDecision({organization:item,kind:"leader"})}>{c("تعيين قائد","Assign leader")}</Button>;
+    return item.leaderName ?? <Button variant="outline" size="sm" onClick={event => {event.stopPropagation();setDecision({organization:item,kind:"leader"});}}>{c("تعيين قائد","Assign leader")}</Button>;
   }
   function actions(item: AdminOrganizationRow) {
-    return <div className="inline-flex flex-wrap items-center gap-2">
+    return <div className="inline-flex items-center gap-1"><RowAction label={c("عرض التفاصيل","View details")} onClick={()=>setSelected(item)}><Eye/></RowAction>
       <RowAction label={item.leaderName ? c("تغيير القائد","Change leader") : c("تعيين قائد","Assign leader")} onClick={()=>setDecision({organization:item,kind:"leader"})}><UserRound /></RowAction>
       <RowAction label={item.statusCode === "Active" ? c("إيقاف الجهة","Deactivate organization") : c("تفعيل الجهة","Activate organization")} onClick={()=>setDecision({organization:item,kind:"status"})}><Power /></RowAction>
       <RowAction label={c("أرشفة الجهة","Archive organization")} disabled={item.statusCode==="Archived"} onClick={()=>setDecision({organization:item,kind:"archive"})}><Archive /></RowAction>
@@ -69,85 +66,20 @@ export function AdminOrganizationTable({
     return (
       <span className="flex min-w-0 items-center gap-3">
         <OrganizationLogo name={item.nameAr} src={item.logoUrl} size="lg"/>
-        <span className="min-w-0 break-words font-medium"><ContentText value={item.nameAr}/></span>
+        <ItemTitle><ContentText value={item.nameAr}/></ItemTitle>
       </span>
     );
   }
-  if (!organizations.length)
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-          <Building2 className="size-8 text-muted-foreground" />
-          <p>{c("لا توجد جهات مطابقة.", "No matching organizations.")}</p>
-        </CardContent>
-      </Card>
-    );
-  return (
-    <>
-      <div className="hidden xl:block">
-        <Table className="table-fixed [&_td]:py-5">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[34%]">
-                {c("الجهة", "Organization")}
-              </TableHead>
-              <TableHead className="w-[10%]">{c("النوع", "Type")}</TableHead>
-              <TableHead className="w-[12%]">{c("الحالة", "Status")}</TableHead>
-              <TableHead className="w-[18%]">{c("القائد", "Leader")}</TableHead>
-              <TableHead className="w-[8%]">
-                {c("عدد الأعضاء", "Members")}
-              </TableHead>
-              <TableHead className="w-[18%]">
-                {c("الإجراءات", "Actions")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {organizations.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="max-w-sm whitespace-normal">
-                  {name(item)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {item.typeCode === "Club"
-                      ? c("نادي", "Club")
-                      : c("مجلس", "Council")}
-                  </Badge>
-                </TableCell>
-                <TableCell>{status(item)}</TableCell>
-                <TableCell className="whitespace-normal">
-                  {leader(item)}
-                </TableCell>
-                <TableCell><NumberText value={item.memberCount}/></TableCell>
-                <TableCell>{actions(item)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="grid gap-4 xl:hidden">
-        {organizations.map((item) => (
-          <Card key={item.id}>
-            <CardContent className="flex flex-col gap-4">
-              {name(item)}
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">
-                  {item.typeCode === "Club"
-                    ? c("نادي", "Club")
-                    : c("مجلس", "Council")}
-                </Badge>
-                {status(item)}
-              </div>
-              <p className="text-sm">
-                {leader(item)} ·{" "}
-                {c("الأعضاء:", "Members:")} <bdi><NumberText value={item.memberCount}/></bdi>
-              </p>
-              {actions(item)}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+  return <>
+    <ItemTable items={organizations} onOpen={setSelected} label={c("عرض تفاصيل الجهة","View organization details")} empty={<ListEmpty filtered={Boolean(params.get("status"))} clear={()=>router.push("/manage/organizations")} icon={Building2} title={c("لا توجد جهات مطابقة.","No matching organizations.")} description={c("ستظهر الجهات المضافة هنا.","Organizations will appear here.")}/>} columns={[
+      {id:"name",label:c("الجهة","Organization"),render:name},
+      {id:"type",label:c("النوع","Type"),className:"w-24",render:item=><Badge variant="outline">{item.typeCode==="Club"?c("نادي","Club"):c("مجلس","Council")}</Badge>},
+      {id:"status",label:c("الحالة","Status"),className:"w-28",render:status},
+      {id:"leader",label:c("القائد","Leader"),className:"w-40",render:leader},
+      {id:"count",label:c("عدد الأعضاء","Members"),className:"w-24",render:item=><NumberText value={item.memberCount}/>},
+      {id:"actions",label:c("الإجراءات","Actions"),className:"w-48",render:actions}
+    ]}/>
+      <Sheet open={!!selected} onOpenChange={open=>{if(!open)setSelected(null);}}><SheetContent side="left" className="management-action-sheet gap-0 overflow-hidden p-0"><SheetHeader className="management-action-header"><SheetTitle>{selected?.nameAr}</SheetTitle>{selected&&status(selected)}</SheetHeader><div className="management-action-scroll">{selected&&<dl className="grid gap-5"><div><dt className="text-sm text-muted-foreground">{c("النوع","Type")}</dt><dd>{selected.typeCode==="Club"?c("نادي","Club"):c("مجلس","Council")}</dd></div><div><dt className="text-sm text-muted-foreground">{c("القائد","Leader")}</dt><dd>{leader(selected)}</dd></div><div><dt className="text-sm text-muted-foreground">{c("عدد الأعضاء","Members")}</dt><dd><NumberText value={selected.memberCount}/></dd></div></dl>}</div><SheetFooter className="management-action-footer">{selected&&actions(selected)}</SheetFooter></SheetContent></Sheet>
       {decision && (
         <AdminOrganizationDecision
           organization={decision.organization}
@@ -156,6 +88,5 @@ export function AdminOrganizationTable({
           onClose={() => setDecision(null)}
         />
       )}
-    </>
-  );
+    </>;
 }

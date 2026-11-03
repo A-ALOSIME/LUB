@@ -176,7 +176,8 @@ it("saves task skills atomically, reloads them in both editors, and counts only 
   expect(
     (await listTasks(leader, { org, view: "all", page: 0 })).items[0].task
       .skills,
-  ).toMatchObject([{ key: "python" }]);
+  ).toBeUndefined();
+  expect((await taskDetail(leader, task))?.task.skills).toMatchObject([{key:"python"}]);
   await actor(student);
   expect((await taskDetail(student, task))?.task.skills).toBeUndefined();
   expect((await evidence()).tasks).toBe(0);

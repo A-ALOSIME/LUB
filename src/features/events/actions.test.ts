@@ -27,3 +27,5 @@ it("blocks Super Admin student registration before database access",async()=>{
  const state=await mutateEvent({},form({operation:"register",event}));
  expect(state.error).toContain("مخصص لإدارة النظام");expect(mocks.execute).not.toHaveBeenCalled();
 });
+
+it("requires a start date even when saving an event draft",async()=>{const result=await mutateEvent({},form({operation:"save",intent:"draft"}));expect(result.error).toContain("تاريخ بداية");expect(mocks.execute).not.toHaveBeenCalled();});

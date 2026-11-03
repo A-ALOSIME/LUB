@@ -31,9 +31,8 @@ function SheetContent({
   showCloseButton?: boolean
   closeLabel?: string
 }) {
-  const {dir,t}=useI18n();
-  const direction=props.dir??dir;
-  const effectiveSide=direction==="ltr"?(side==="left"?"right":side==="right"?"left":side):side;
+  const {t}=useI18n();
+  const effectiveSide=side;
   const popupRef = React.useRef<HTMLDivElement>(null);
   const sideClasses = {
     right: "inset-y-0 right-0 h-full w-[min(90vw,30rem)] border-s",

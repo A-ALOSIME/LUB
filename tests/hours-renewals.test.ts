@@ -162,3 +162,19 @@ it("exports exactly the selected hours status and member search",async()=>{
  const empty=(await db.query<{csv:string}>("select lub.export_hours_csv($1,null,$2,'Pending','لا يوجد') as csv",[org,term])).rows[0].csv;
  expect(empty).not.toContain('"2.00"');
 });
+
+it("publishes, pauses, resumes, closes and archives renewal drafts without duplicating or finalizing replies while paused",async()=>{
+ const id=(await db.query<{id:string}>("select lub.create_renewal($1,$2,now()-interval '1 hour',now()+interval '2 days',false) id",[org,term])).rows[0].id;
+ await db.query("select lub.transition_campaign('renewal',$1,'publish','Draft')",[id]);
+ const before=(await db.query("select id from lub.membership_renewals where renewal_campaign_id=$1 order by id",[id])).rows;
+ expect(before).toHaveLength(3);
+ await db.query("select lub.transition_campaign('renewal',$1,'pause','Open')",[id]);
+ expect((await db.query("select distinct response_code from lub.membership_renewals where renewal_campaign_id=$1",[id])).rows).toEqual([{response_code:"Pending"}]);
+ await asUser(member);await denied(()=>db.query("select lub.transition_campaign('renewal',$1,'resume','Paused')",[id]));
+ await asUser(leader);await denied(()=>db.query("select lub.transition_campaign('renewal',$1,'delete','Paused')",[id]));
+ await db.query("select lub.transition_campaign('renewal',$1,'resume','Paused')",[id]);expect((await db.query("select id from lub.membership_renewals where renewal_campaign_id=$1 order by id",[id])).rows).toEqual(before);
+ await db.query("select lub.transition_campaign('renewal',$1,'close','Open')",[id]);
+ expect((await db.query("select distinct response_code from lub.membership_renewals where renewal_campaign_id=$1",[id])).rows).toEqual([{response_code:"No_Response"}]);
+ await db.query("select lub.transition_campaign('renewal',$1,'archive','Closed')",[id]);
+ expect((await db.query<{status_code:string}>("select status_code from lub.renewal_campaigns where id=$1",[id])).rows[0].status_code).toBe("Archived");
+});

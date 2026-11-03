@@ -40,7 +40,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   </div>;
 }
 
-export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction, sheetClassName, visuallyHideTitle = false }: {
+export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction, sheetClassName, visuallyHideTitle = false, footer }: {
   label: string;
   title: string;
   children: ReactNode;
@@ -60,6 +60,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   headerAction?: ReactNode;
   sheetClassName?: string;
   visuallyHideTitle?: boolean;
+  footer?: ReactNode;
 }) {
   const mobile = useIsMobile();
   const [localOpen, setLocalOpen] = useState(initiallyOpen);
@@ -81,7 +82,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
         <SheetTitle className={visuallyHideTitle?"sr-only":"min-w-0 flex-1 break-words text-start"}>{title}</SheetTitle>{headerAction}
         <SheetClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-3 top-3" aria-label={cancelLabel} title={cancelLabel}><X aria-hidden="true" /></Button>} />
       </SheetHeader>
-      {body}
+      {body}{footer&&<div className="management-action-footer is-modal-footer">{footer}</div>}
     </SheetContent>
   </Sheet>;
 
@@ -92,7 +93,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
         <DialogTitle className="min-w-0 flex-1 text-start">{title}</DialogTitle>{headerAction}
         <DialogClose render={<Button type="button" variant="ghost" size="icon-sm" className="absolute end-3 top-3" aria-label={cancelLabel} title={cancelLabel}><X aria-hidden="true" /></Button>} />
       </DialogHeader>
-      {body}
+      {body}{footer&&<div className="management-action-footer is-modal-footer">{footer}</div>}
     </DialogContent>
   </Dialog>;
 }

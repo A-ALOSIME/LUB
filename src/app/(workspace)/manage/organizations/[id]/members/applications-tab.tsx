@@ -1,19 +1,16 @@
-import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
+import {createHash} from "node:crypto";
+import {OrganizationApplicationList} from "@/features/forms/organization-application-list";
 
 import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LiveFilterForm } from "@/components/live-filter-form";
-import { listApplications, countOrganizationApplicationStatuses, statuses, type Filters, type OrganizationRegistrationWorkspace } from "@/features/forms/repository";
-import { ApplicationSelection } from "@/features/forms/application-selection";
-import { ApplicationReviewStatusFilters } from "@/features/forms/application-review-status-filters";
+import { organizationApplicationPage, type Filters, type OrganizationRegistrationWorkspace } from "@/features/forms/repository";
 import { DateRangeInput } from "@/features/forms/date-input";
 import { decryptIdentifier } from "@/lib/identifiers";
 import { searchApplications } from "@/features/forms/search-action";
@@ -31,10 +28,11 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
   const en = locale === "en";
   const c = createTranslator(en ? "en" : "ar");
   const value = (key: string) => typeof search[key] === "string" ? search[key] as string : "";
-  let lookup = "";
+  let lookup = "",searchContext="";
   try {
     const saved = (await cookies()).get("lub-application-search")?.value;
     if (saved) {
+      searchContext=createHash("sha256").update(saved).digest("hex").slice(0,16);
       const hash = decryptIdentifier(saved, `application-search:${userId}:${organization}`);
       if (/^[a-f0-9]{64}$/.test(hash)) lookup = hash;
     }
@@ -54,49 +52,16 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
     activity: ["prior", "first"].includes(value("activity")) ? value("activity") : "",
   };
   const selectedId = z.uuid().safeParse(value("application")).success ? value("application") : "";
-  const [rows, statusCounts] = await Promise.all([
-    listApplications(userId, organization, filters),
-    countOrganizationApplicationStatuses(userId, organization, { ...filters, status: "", page: 1 }),
-  ]);
+  const page=await organizationApplicationPage(userId,organization,filters);
   if (workspace.accountStatus === "Inactive") redirect("/account-unavailable");
   if (!workspace.onboarded) redirect("/onboarding");
   if (!workspace.allowed.some(code => ["APPLICATIONS_VIEW", "APPLICATIONS_REVIEW", "APPLICATIONS_BULK_ACTION"].includes(code))) notFound();
 
-  const query = new URLSearchParams({ section: "applications" });
-  for (const key of ["q", "status", "round","committee", "major", "level", "from", "to", "activity", "page"]) if (value(key)) query.set(key, value(key));
-  const queryString = query.toString();
-  const filterStatuses = ["", "Submitted","Interview", "Accepted", "Rejected", "Withdrawn"];
-  const statusLink = (status: string) => {
-    const next = new URLSearchParams(queryString);
-    next.delete("application");
-    next.delete("page");
-    if (status) next.set("status", status); else next.delete("status");
-    return `?${next.toString()}`;
-  };
-  const pageHref = (page: number) => {
-    const next = new URLSearchParams(queryString);
-    next.set("page", String(page));
-    return `?${next}`;
-  };
-
-  return <section className="min-w-0 space-y-4" aria-label={c("طلبات الانضمام", "Join requests")}>
-    <SearchFilterToolbar search={
-      <LiveFilterForm action={searchApplications} className="application-review-search-form">
-        <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="round" value={filters.round??""}/><input type="hidden" name="page" value="1"/>
-        <Input name="q" type="search" dir={en ? "ltr" : "rtl"} className={en ? "text-left" : "text-right"} maxLength={120} defaultValue={filters.q} placeholder={c("ابحث بالاسم…", "Search by name…")} aria-label={c("بحث باسم الطالب", "Search by student name")} />
-      </LiveFilterForm>}>
-    <ApplicationReviewStatusFilters value={filters.status} locale={locale} options={filterStatuses.map(status => ({
-      value: status,
-      label: status ? statuses[status] : c("الكل", "All"),
-      count: status === "" ? statusCounts.all : statusCounts[status.toLowerCase() as "submitted" | "accepted" | "rejected" | "interview" | "withdrawn"]??0,
-      href: statusLink(status),
-    })).map(option => ({ ...option, count: option.count > 0 ? option.count : undefined }))} />
-
-      <Popover>
+  const extraFilters=<Popover>
         <PopoverTrigger render={<Button type="button" variant="outline" size="default"><Filter aria-hidden="true"/>{c("فلاتر", "Filters")}</Button>}/>
         <PopoverContent align={en ? "end" : "start"} className="w-[min(24rem,calc(100vw-1.5rem))] p-4">
           <div className="mb-2 font-medium">{c("فلاتر إضافية", "Additional filters")}</div>
-          <LiveFilterForm action={searchApplications} className="grid gap-3">
+          <LiveFilterForm action={searchApplications} liveQueryKeys={["q","status"]} className="grid gap-3">
             <input type="hidden" name="org" value={organization}/><input type="hidden" name="status" value={filters.status}/><input type="hidden" name="q" value={filters.q}/><input type="hidden" name="page" value="1"/>
             <FormField label={c("الجولة","Round")}><NativeSelect name="round" defaultValue={filters.round??""}><option value="">{c("كل الجولات","All rounds")}</option>{workspace.rounds.map(r=><option key={r.id} value={r.id}><ContentText value={r.title}/></option>)}</NativeSelect></FormField>
             <FormField  label={<>{c("اللجنة", "Committee")}</>}><NativeSelect name="committee" defaultValue={filters.committee}><option value="">{c("كل اللجان", "All committees")}</option>{workspace.committees.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></FormField>
@@ -107,9 +72,6 @@ export async function ApplicationsTab({ organization, userId, workspace, locale,
             <FormField  label={<>{c("البحث بالرقم الجامعي", "University number search")}</>}><input name="university" inputMode="numeric" maxLength={15} autoComplete="off"/></FormField>
           </LiveFilterForm>
         </PopoverContent>
-      </Popover>
-    </SearchFilterToolbar>
-    <ApplicationSelection rows={rows.slice(0, 25)} locale={locale} canBulk={workspace.allowed.includes("APPLICATIONS_BULK_ACTION")} organization={organization} initialSelectedId={selectedId||undefined} query={queryString}/>
-    <nav aria-label={c("صفحات الطلبات", "Application pages")} className="flex gap-4">{filters.page > 1 && <Link className="text-link" href={pageHref(filters.page - 1)}>{c("السابق", "Previous")}</Link>}{rows.length > 25 && <Link className="text-link" href={pageHref(filters.page + 1)}>{c("التالي", "Next")}</Link>}</nav>
-  </section>;
+      </Popover>;
+  return <section className="min-w-0 space-y-4" aria-label={c("طلبات الانضمام","Join requests")}><OrganizationApplicationList organization={organization} initial={page} initialFilters={{...filters,lookup:""}} searchContext={searchContext} locale={locale} canBulk={workspace.allowed.includes("APPLICATIONS_BULK_ACTION")} extraFilters={extraFilters} selectedId={selectedId||undefined}/></section>;
 }

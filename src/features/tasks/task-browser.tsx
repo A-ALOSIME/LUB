@@ -23,7 +23,7 @@ export function TaskBrowser({
   locale = "ar",
   base = "/tasks",
   baseQuery = {},
-  compact = false,hideFilters=false,onViewChange,onPageChange,
+  compact = false,hideFilters=false,onViewChange,onPageChange,empty,
 }: {
   availableItems: TaskCard[];
   mineItems: TaskCard[];
@@ -34,7 +34,7 @@ export function TaskBrowser({
   locale?: Locale;
   base?: string;
   baseQuery?: Record<string, string>;
-  compact?: boolean;hideFilters?:boolean;onViewChange?:(view:View)=>void;onPageChange?:(page:number)=>void;
+  empty?:React.ReactNode;compact?: boolean;hideFilters?:boolean;onViewChange?:(view:View)=>void;onPageChange?:(page:number)=>void;
 }) {
   const en = locale === "en";
   const [localView, setView] = useState<View>(initialView);
@@ -55,7 +55,7 @@ export function TaskBrowser({
         if (next === "available" || next === "mine"){if(onViewChange)onViewChange(next);else setView(next);}
       }}
     />}
-    {items.length ? <TaskList items={items} mode={view} locale={locale} compact={compact} /> : <WorkspaceEmptyState
+    {items.length ? <TaskList items={items} mode={view} locale={locale} compact={compact} /> : empty??<WorkspaceEmptyState
       icon={ClipboardCheck}
       title={view === "mine" ? translateUi((en) ? "en" : "ar", "ما شاركت في أي مهمة حتى الآن", "No task participation yet") : translateUi((en) ? "en" : "ar", "لا توجد مهام متاحة الآن", "No tasks available right now")}
       description={view === "mine" ? translateUi((en) ? "en" : "ar", "تصفح المهام المتاحة للعثور على نشاط جديد.", "Browse open tasks to find your next activity.") : translateUi((en) ? "en" : "ar", "تفقّد الصفحة لاحقاً للاطلاع على المهام الجديدة.", "Check again later for new tasks.")}

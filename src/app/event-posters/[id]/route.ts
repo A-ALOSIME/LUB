@@ -9,7 +9,7 @@ const headers = {
   "X-Content-Type-Options": "nosniff",
 };
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) return new Response(null, { status: 404, headers });
 
@@ -18,6 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     let privatePoster=false;
     if(!poster){const user=await getVerifiedUser();if(user){poster=await privateEventPoster(user.id,id);privatePoster=!!poster;}}
     if (!poster || !["image/jpeg", "image/png"].includes(poster.mime_type)) return new Response(null, { status: 404, headers });
+    if(new URL(request.url).searchParams.get("thumbnail")==="1"&&poster.thumbnail_png_base64)return new Response(Buffer.from(poster.thumbnail_png_base64,"base64"),{headers:{...headers,"Content-Type":"image/png","Cross-Origin-Resource-Policy":"same-origin"}});
     const { data, error } = await (await createClient()).storage.from("lub-application-files").download(poster.object_key);
     if (error || !data) return new Response(null, { status: 404, headers });
     // Keep image delivery same-origin so the document CSP remains restrictive.
