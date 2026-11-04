@@ -75,7 +75,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale,i
   ];
   return <>
     <SearchFilterToolbar className="member-directory-toolbar mb-4" search={
-      <InputGroup className="member-directory-search-wrap"><InputGroupAddon><Search/></InputGroupAddon><InputGroupInput role="searchbox" dir={en?"ltr":"rtl"} value={filters.q} onChange={event=>setFilters({...filters,page:0,q:event.target.value})} placeholder={c("الاسم أو الرقم الجامعي أو اللجنة","Name, university ID or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search"/></InputGroup>}>
+      <InputGroup className="member-directory-search-wrap"><InputGroupAddon><Search/></InputGroupAddon><InputGroupInput role="searchbox" dir={en?"ltr":"rtl"} value={filters.q} onChange={event=>setFilters({...filters,page:0,q:event.target.value})} placeholder={c("الاسم أو التخصص أو اللجنة","Name, major or committee")} aria-label={c("بحث الأعضاء","Search members")} className="member-directory-search"/></InputGroup>}>
 
       <FilterTabs value={filters.status} ariaLabel={c("تصفية الأعضاء حسب الحالة","Filter members by status")} dir={en?"ltr":"rtl"} onValueChange={status=>setFilters({...filters,page:0,status:status as MemberFilters['status']})} options={[{value:"all",label:c("الكل","All")},{value:"Active",label:c("نشطة","Active")},{value:"Ended",label:c("منتهية","Ended")}]} />
       <NativeSelect className="w-auto" aria-label={c("تصفية حسب اللجنة","Filter by committee")} value={filters.committee??""} onChange={event=>setFilters({...filters,page:0,committee:event.target.value||null})}><option value="">{c("كل اللجان","All committees")}</option>{workspace.committees.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</NativeSelect>
