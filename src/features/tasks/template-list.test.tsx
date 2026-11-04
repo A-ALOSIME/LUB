@@ -18,5 +18,5 @@ it("uses the shared table and opens the same populated editor from the row or ed
 it("preserves URL-backed template filtering, pagination and sorting without a templates management dialog",()=>{
  render(<TaskTemplateList org="org" workspace={workspace} locale="en"/>);
  fireEvent.change(screen.getByRole("searchbox",{name:"Search templates"}),{target:{value:"تصميم"}});expect(window.location.search).toContain("templateSearch=");expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(2);
- fireEvent.click(screen.getByRole("button",{name:"Template"}));expect(window.location.search).toContain("templateSort=name%3Adesc");expect(screen.getByRole("button",{name:"Previous"}).hasAttribute("disabled")).toBe(true);expect(screen.getByRole("button",{name:"Next"}).hasAttribute("disabled")).toBe(true);expect(screen.queryByRole("dialog")).toBeNull();
+ fireEvent.click(screen.getByRole("button",{name:"Template"}));expect(window.location.search).toContain("templateSort=name%3Adesc");expect(screen.queryByRole("button",{name:"Previous"})).toBeNull();expect(screen.queryByRole("button",{name:"Next"})).toBeNull();expect(screen.queryByRole("dialog")).toBeNull();
 });

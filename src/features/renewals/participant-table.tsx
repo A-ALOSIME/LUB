@@ -11,17 +11,17 @@ import {Alert,AlertDescription} from "@/components/ui/alert";
 import {OrganizationStatusBadge} from "@/features/organizations/organization-status-badge";
 import {useQueryActor} from "@/components/private-query-provider";
 import {useListQuery} from "@/lib/list-query";
-import {privateJson} from "@/lib/private-query";
+import {completeList} from "@/lib/complete-list";
 import {createTranslator} from "@/lib/i18n";
 import {academicLevel,majorLabel} from "@/lib/display";
 import {formatRiyadhDate,formatRiyadhTime} from "@/lib/datetime";
 import type {Locale} from "@/lib/preferences";
 import {renewalParticipantFilters,type RenewalParticipantFilters,type RenewalParticipantPage} from "./participant-types";
-function pageQuery(actor:string|null,id:string,f:RenewalParticipantFilters){return queryOptions({queryKey:["renewal-participants",actor,id,f],queryFn:({signal})=>privateJson<RenewalParticipantPage>(`/api/registration/renewals/${id}?${new URLSearchParams({...f,page:String(f.page)})}`,signal)});}
+function pageQuery(actor:string|null,id:string,f:RenewalParticipantFilters){return queryOptions({queryKey:["renewal-participants",actor,id,f],queryFn:({signal})=>completeList<RenewalParticipantPage>(`/api/registration/renewals/${id}?${new URLSearchParams({...f,page:String(f.page)})}`,signal)});}
 export function RenewalParticipantTable({campaign,initial,initialFilters,locale}:{campaign:string;initial:RenewalParticipantPage;initialFilters:RenewalParticipantFilters;locale:Locale}){
  const actor=useQueryActor(),client=useQueryClient(),{params,change}=useListQuery(),t=createTranslator(locale);
  const filters=useMemo(()=>renewalParticipantFilters.parse({q:params.get("q")??"",status:params.get("status")??"all",page:params.get("page")??0}),[params]);
- const query=useQuery({...pageQuery(actor,campaign,filters),placeholderData:keepPreviousData,initialData:JSON.stringify(filters)===JSON.stringify(initialFilters)?initial:undefined}),data=query.data??initial;
+ const query=useQuery({...pageQuery(actor,campaign,filters),placeholderData:keepPreviousData,initialData:!initial.more&&JSON.stringify(filters)===JSON.stringify(initialFilters)?initial:undefined}),data=query.data??initial;
  const statuses=["all","Pending","Renewed","Declined","No_Response"],labels:Record<string,string>={all:t("الكل","All"),Pending:t("انتظار الرد","Awaiting response"),Renewed:t("قبل","Accepted"),Declined:t("رفض","Declined"),No_Response:t("لم يُرد","No response")};
  useEffect(()=>{for(const status of ["all","Pending","Renewed","Declined","No_Response"])void client.prefetchQuery(pageQuery(actor,campaign,{q:"",status:status as RenewalParticipantFilters["status"],page:0}));},[actor,campaign,client]);
  useEffect(()=>()=>{void client.cancelQueries({queryKey:["renewal-participants",actor,campaign]});},[actor,campaign,client]);

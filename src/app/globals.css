@@ -2360,3 +2360,21 @@ html { scrollbar-gutter:stable; }
 [data-question-draggable="true"][data-dragging="true"] * { cursor: grabbing; }
 [data-question-draggable] :is(input,textarea,[contenteditable="true"]) { cursor: text; }
 [data-question-draggable] :is(button,a,[role="combobox"],[role="switch"],[role="checkbox"]) { cursor: pointer; }
+
+/* Shared list filters and actions: compact controls, no counters or wrapped icon rows. */
+.workspace-filter-control [data-slot="tabs-trigger"] { min-height:1.75rem; height:1.75rem; padding-inline:.625rem; font-size:.75rem; font-weight:500; }
+[data-slot="data-table"] [data-slot="table-container"] { overflow:visible; }
+[data-slot="data-table"] [data-slot="table"] { table-layout:fixed; }
+[data-slot="data-table"] [data-slot="table-cell"] { overflow-wrap:anywhere; }
+[data-slot="data-table-actions"], [data-slot="data-table-actions"]>div { display:flex; flex-wrap:nowrap; align-items:center; gap:.25rem; }
+[data-slot="data-table-actions"] .row-action-label { display:none; }
+[data-slot="data-table-actions"] .row-action { padding:.375rem; width:2rem; height:2rem; min-height:2rem; }
+[data-slot="data-table"] [data-slot="table-row"]:hover { background:var(--secondary); }
+.selection-action-bar .row-action-label {display:none;}
+.management-action-footer {padding:1rem 1.25rem;}
+@media(max-width:767px){
+ [data-slot="data-table-actions"] {gap:.125rem;}
+ [data-slot="data-table-actions"] .row-action {width:clamp(1.25rem,6.5vw,2rem);min-width:0;padding:.25rem;}
+ [data-slot="data-table-actions"]>div {gap:.125rem;}
+ [data-slot="data-table-actions"] .row-action svg {width:1rem;height:1rem;}
+}

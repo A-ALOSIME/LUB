@@ -31,18 +31,17 @@ it("renders a status-filtered shadcn table with counts and mobile cards in the p
   expect(screen.getByRole("note").textContent).toContain("بيانات تجريبية");
   expect(screen.getByRole("table")).toBeTruthy();
   expect(screen.getAllByRole("columnheader").map(header => header.textContent)).toEqual([
-    "",
     "الجهة",
     "تاريخ التقديم",
     "الحالة",
     "الإجراءات",
   ]);
-  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("5");
-  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مقابلة/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مقبول/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مرفوض/ }).textContent).toContain("1");
-  expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toContain("1");
+  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toBe("الكل");
+  expect(screen.getByRole("tab", { name: /قيد المراجعة/ }).textContent).toBe("قيد المراجعة");
+  expect(screen.getByRole("tab", { name: /مقابلة/ }).textContent).toBe("مقابلة");
+  expect(screen.getByRole("tab", { name: /مقبول/ }).textContent).toBe("مقبول");
+  expect(screen.getByRole("tab", { name: /مرفوض/ }).textContent).toBe("مرفوض");
+  expect(screen.getByRole("tab", { name: /مسحوب/ }).textContent).toBe("مسحوب");
   expect(screen.getByRole("tab", { name: /الكل/ }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("tablist", { name: "تصفية الطلبات حسب الحالة" }).parentElement?.getAttribute("dir")).toBe("rtl");
   expect(screen.getAllByRole("row")[0].className).toContain("border-border");
@@ -89,7 +88,7 @@ it("hides zero counts from application status filters", () => {
     locale="ar"
   />);
 
-  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toContain("2");
+  expect(screen.getByRole("tab", { name: /الكل/ }).textContent).toBe("الكل");
   expect(screen.getByRole("tab", { name: "مقبول" }).textContent).toBe("مقبول");
   expect(screen.getByRole("tab", { name: "مرفوض" }).textContent).toBe("مرفوض");
   expect(screen.getByRole("tab", { name: "مسحوب" }).textContent).toBe("مسحوب");

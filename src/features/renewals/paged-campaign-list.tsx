@@ -3,10 +3,10 @@ import {useEffect,useMemo} from "react";
 import {useQuery,useQueryClient,queryOptions,keepPreviousData} from "@tanstack/react-query";
 import {useQueryActor} from "@/components/private-query-provider";
 import {useListQuery} from "@/lib/list-query";
-import {privateJson} from "@/lib/private-query";
+import {completeList} from "@/lib/complete-list";
 import {CombinedManagementList} from "./combined-management-list";
 import type {CampaignItem} from "./campaign-list-types";
-function options(actor:string|null,org:string,filters:Record<string,string>){return queryOptions({queryKey:["campaign-list",actor,org,filters],queryFn:({signal})=>privateJson<{items:CampaignItem[];more:boolean}>(`/api/organizations/${org}/campaigns?${new URLSearchParams(filters)}`,signal)});}
+function options(actor:string|null,org:string,filters:Record<string,string>){return queryOptions({queryKey:["campaign-list",actor,org,filters],queryFn:({signal})=>completeList<{items:CampaignItem[];more:boolean}>(`/api/organizations/${org}/campaigns?${new URLSearchParams(filters)}`,signal)});}
 export function PagedCampaignList(props:React.ComponentProps<typeof CombinedManagementList>){
  const actor=useQueryActor(),client=useQueryClient(),{params,change}=useListQuery(),filters={status:params.get("campaignStatus")??"all",kind:params.get("campaignType")??"all",q:params.get("campaignSearch")??"",sort:params.get("campaignSort")==="asc"?"asc":"desc",page:String(Math.max(0,Math.min(10000,Number(params.get("campaignPage"))||0)))};
  const result=useQuery({...options(actor,props.organization,filters),placeholderData:keepPreviousData});

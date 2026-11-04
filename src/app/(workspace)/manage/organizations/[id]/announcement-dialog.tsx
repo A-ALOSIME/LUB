@@ -7,8 +7,7 @@ import {ManagementActionSheet} from "@/components/management-action-sheet";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {Button} from "@/components/ui/button";
-import {Switch} from "@/components/ui/switch";
-import {Field,FieldGroup,FieldLabel} from "@/components/ui/field";
+import {FieldGroup} from "@/components/ui/field";
 import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
 import {FormField} from "@/components/form-field";
 import {EntityImageField} from "@/features/events/event-poster-field";
@@ -27,7 +26,7 @@ export function AnnouncementDialog({organizationId,announcement,locale,open:cont
  <FormField label={c("النص","Text")} error={state.fieldErrors?.body?.[0]} required><Textarea name="body" required rows={7} maxLength={5000} defaultValue={announcement?.body}/></FormField>
  <FormField label={c("رابط خارجي (اختياري)","External URL (optional)")} error={state.fieldErrors?.externalUrl?.[0]}><InputGroup><InputGroupInput name="externalUrl" type="url" dir="ltr" className="text-end" maxLength={2000} placeholder="https://" defaultValue={announcement?.externalUrl??""}/><InputGroupAddon><LinkIcon/></InputGroupAddon></InputGroup></FormField>
  <EntityImageField key={`${announcement?.id??"new"}-${open}`} organization={organizationId} locale={locale} purpose="announcement-image" initialPreview={announcement?.imageAssetId?`/files/${announcement.imageAssetId}/preview`:""}/>
- <Field orientation="horizontal"><Switch id={`pin-${announcement?.id??"new"}`} name="pinned" defaultChecked={announcement?.pinned??false}/><FieldLabel htmlFor={`pin-${announcement?.id??"new"}`}>{c("تثبيت الإعلان","Pin announcement")}</FieldLabel></Field>
+ <input type="hidden" name="pinned" value={announcement?.pinned?"on":""}/>
  </FieldGroup></fieldset>
  {state.error&&<p role="alert" className="error-message">{actionFeedback(state.error,locale)}</p>}</div>
  <div className="management-action-footer is-modal-footer flex-wrap"><Button type="submit" name="intent" value="publish" disabled={pending}>{pending?c("جارٍ الحفظ…","Saving…"):c("نشر الإعلان","Publish announcement")}</Button><Button type="submit" name="intent" value="draft" variant="secondary" disabled={pending}>{c("حفظ كمسودة","Save draft")}</Button><Button type="button" variant="ghost" className="sm:ms-auto" disabled={pending} onClick={()=>setOpen(false)}>{c("إلغاء","Cancel")}</Button></div>

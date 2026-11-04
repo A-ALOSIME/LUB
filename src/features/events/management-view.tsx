@@ -16,7 +16,7 @@ import type {Locale} from "@/lib/preferences";
 export function OrganizationEventsView({id,snapshot,search,locale,onChange,serverPaged=false}:{serverPaged?:boolean;id:string;snapshot:OrganizationEventsSnapshot;search:Record<string,string|undefined>;locale:Locale;onChange:(values:Record<string,string|null>,replace?:boolean)=>void}){
  const data=snapshot.workspace,en=locale==="en",c=createTranslator(locale);
  const status=search.eventStatus??"all",q=search.eventSearch??"",sort=search.sort??"desc",rows=eventListRows(data.events,{status,q,sort});
- const page=serverPaged?Math.max(0,Math.floor(Number(search.page)||0)):Math.min(Math.max(0,Math.floor((rows.length-1)/25)),Math.max(0,Math.floor(Number(search.page)||0))),pagedEvents=serverPaged?rows:rows.slice(page*25,page*25+26);
+ const page=serverPaged?Math.max(0,Math.floor(Number(search.page)||0)):Math.min(Math.max(0,Math.floor((rows.length-1)/25)),Math.max(0,Math.floor(Number(search.page)||0))),pagedEvents=serverPaged?rows:rows;
   const initialSection = search.section === "announcements" ? "announcements" : search.section === "registrants"?"registrants":"events";
   const actions = <EventsAnnouncementsActions organizationId={id} locale={locale} canCreateEvent={data.canManage} canCreateAnnouncement={data.canManageAnnouncements}>
     {data.canManage && <EventCreateForm organization={id} templates={data.templates} locale={locale}/>}
@@ -43,7 +43,7 @@ export function OrganizationEventsView({id,snapshot,search,locale,onChange,serve
       <OrganizationSectionTabPanel id="events">
         <section aria-label={c("الفعاليات", "Events")} className="workspace-events-section">
           <SearchFilterToolbar search={<InputGroup><InputGroupAddon><Search/></InputGroupAddon><InputGroupInput type="search" value={q} aria-label={c("بحث الفعاليات","Search events")} placeholder={c("ابحث عن فعالية","Search events")} onChange={event=>onChange({eventSearch:event.target.value,page:null},true)}/></InputGroup>}><FilterTabs value={status} ariaLabel={c("حالة الفعالية","Event status")} dir={en?"ltr":"rtl"} onValueChange={value=>onChange({eventStatus:value,page:null})} options={[["all",c("الكل","All")],["Published",c("منشورة","Published")],["Draft",c("مسودة","Draft")],["Cancelled",c("ملغاة","Cancelled")],["Archived",c("مؤرشفة","Archived")]].map(([value,label])=>({value,label}))}/>{actions}</SearchFilterToolbar>
-          {!data.canViewEvents?<p>{c("ما عندك صلاحية عرض فعاليات الجهة.","You do not have permission to view organization events.")}</p>:<EventManagementTable pagination={{page,more:pagedEvents.length>25,onChange:value=>onChange({page:String(value)})}} activeStatus={status} items={pagedEvents.slice(0,25)} organization={id} locale={locale} canManage={data.canManage} filtered={Boolean(q||status!=="all")} clear={()=>onChange({eventStatus:null,eventSearch:null,page:null})} sort={sort} onSort={()=>onChange({sort:sort==="asc"?"desc":"asc",page:null})}/>}
+          {!data.canViewEvents?<p>{c("ما عندك صلاحية عرض فعاليات الجهة.","You do not have permission to view organization events.")}</p>:<EventManagementTable pagination={{page,more:pagedEvents.length>25,onChange:value=>onChange({page:String(value)})}} activeStatus={status} items={pagedEvents} organization={id} locale={locale} canManage={data.canManage} filtered={Boolean(q||status!=="all")} clear={()=>onChange({eventStatus:null,eventSearch:null,page:null})} sort={sort} onSort={()=>onChange({sort:sort==="asc"?"desc":"asc",page:null})}/>}
 
         </section>
       </OrganizationSectionTabPanel>

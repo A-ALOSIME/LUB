@@ -1,7 +1,8 @@
 "use client";
+import {SelectionActionBar} from "@/components/selection-action-bar";
 import {useListQuery} from "@/lib/list-query";
 import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
-import {majorLabel} from "@/lib/display";
+import {formatCount,majorLabel} from "@/lib/display";
 import {NumberText} from "@/components/number-text";
 import {createTranslator} from "@/lib/i18n";
 import {useRouter} from "next/navigation";
@@ -20,9 +21,9 @@ import {memberListQuery,memberDetailQuery,memberPreview} from "@/features/organi
 import {initialMemberFilters,type MemberFilters} from "@/features/organizations/member-types";
 import {MemberExportButton} from "@/features/organizations/member-export-button";
 import {MemberDetailSheet} from "@/features/organizations/member-detail-sheet";
-import {DataTable,DataTableColumns,type DataTableColumn} from "@/components/data-table";
+import {DataTable,type DataTableColumn} from "@/components/data-table";
 import {Empty,EmptyHeader,EmptyTitle,EmptyDescription,EmptyMedia} from "@/components/ui/empty";
-import {Users,Eye} from "lucide-react";
+import {Users,Eye,Plus,X} from "lucide-react";
 import { HoursFields } from "@/features/hours/view";
 import { HoursForm } from "@/features/hours/form";
 import { WorkflowForm } from "@/features/forms/mutation-form";
@@ -48,12 +49,15 @@ function date(value: string, locale: Locale) { return formatRiyadhDate(value, lo
 export function MemberDirectory({ organization, workspace, permissions, locale,initialFilters=initialMemberFilters }: {initialFilters?:MemberFilters; organization: string; workspace: OrganizationMemberWorkspace; permissions?: OrganizationPermissionWorkspace; locale: Locale }) {
   const {params,change}=useListQuery(`?${new URLSearchParams({memberSort:initialFilters.sort??"name:asc",memberSearch:initialFilters.q,memberStatus:initialFilters.status,memberCommittee:initialFilters.committee??"",memberPage:String(initialFilters.page??0)})}`);
   const filters=useMemo<MemberFilters>(()=>({sort:(["name:asc","name:desc","date:asc","date:desc"] as const).find(value=>value===params.get("memberSort"))??"name:asc",page:Math.max(0,Math.min(10000,Number(params.get("memberPage"))||0)),q:params.get("memberSearch")??"",status:(["Active","Ended","Inactive"] as const).find(value=>value===params.get("memberStatus"))??"all",committee:workspace.committees.some(item=>item.id===params.get("memberCommittee"))?params.get("memberCommittee"):null}),[params,workspace.committees]);
-  const setFilters=(next:MemberFilters)=>change({memberSort:next.sort??"name:asc",memberSearch:next.q,memberStatus:next.status,memberCommittee:next.committee,memberPage:String(next.page??0)},true);
+  const setFilters=(next:MemberFilters)=>{setChecked(new Set());change({memberSort:next.sort??"name:asc",memberSearch:next.q,memberStatus:next.status,memberCommittee:next.committee,memberPage:String(next.page??0)},true);};
   const isInitial=(filters.sort??"name:asc")===(initialFilters.sort??"name:asc")&&filters.q===initialFilters.q&&filters.status===initialFilters.status&&filters.committee===initialFilters.committee&&(filters.page??0)===(initialFilters.page??0);
   const actor=useQueryActor(),client=useQueryClient();
   const [selected,setSelected]=useState<string|null>(null);
-  const list=useQuery({...memberListQuery(actor,organization,filters),placeholderData:keepPreviousData,initialData:isInitial?workspace:undefined});
-  useEffect(()=>{client.setQueryData(memberListQuery(actor,organization,initialFilters).queryKey,workspace);},[actor,client,organization,workspace,initialFilters]);
+  const router=useRouter();
+  function refreshMembers(){void client.invalidateQueries({queryKey:["members",actor,organization]});router.refresh();}
+  const [checked,setChecked]=useState<Set<string>>(()=>new Set());
+  const list=useQuery({...memberListQuery(actor,organization,filters),placeholderData:keepPreviousData,initialData:isInitial&&(workspace.rowTotal??workspace.members.length)<=workspace.members.length?workspace:undefined});
+  useEffect(()=>{if((workspace.rowTotal??workspace.members.length)<=workspace.members.length)client.setQueryData(memberListQuery(actor,organization,initialFilters).queryKey,workspace);},[actor,client,organization,workspace,initialFilters]);
   const data=list.data??workspace,failed=list.isError,en=locale==="en",c=createTranslator(locale);
   const preview=data.members.find(row=>row.id===selected);
   const detail=useQuery({...memberDetailQuery(actor,organization,selected),enabled:selected!==null,placeholderData:preview?memberPreview(preview):undefined});
@@ -61,8 +65,8 @@ export function MemberDirectory({ organization, workspace, permissions, locale,i
   function prefetchMember(id:string){void client.prefetchQuery(memberDetailQuery(actor,organization,id));}
   function openMember(id:string){setSelected(id);}
   const members=data.members;
+  const selectedMembers=members.filter(member=>checked.has(member.id)),bulkScopes=[...(data.canAddHours?[{id:"",name:c("الجهة بالكامل","Entire organization")}]:[]),...(selectedMembers[0]?.hourScopes??[]).filter(scope=>selectedMembers.every(member=>member.hourScopes.some(item=>item.id===scope.id)))];
   useEffect(()=>{for(const status of ["all","Active","Ended","Inactive"] as const)void client.prefetchQuery(memberListQuery(actor,organization,{q:"",status,committee:null,page:0}));},[actor,client,organization]);
-  useEffect(()=>{if((data.rowTotal??data.counts?.total??0)>((filters.page??0)+1)*25)void client.prefetchQuery(memberListQuery(actor,organization,{...filters,page:(filters.page??0)+1}));},[actor,client,organization,data.rowTotal,data.counts?.total,filters]);
   function stateBadge(status:string){return <OrganizationStatusBadge status={status==="Active"?"active":status==="Ended"?"ended":"inactive"}>{status==="Active"?c("نشطة","Active"):status==="Ended"?c("منتهية","Ended"):c("غير نشطة","Inactive")}</OrganizationStatusBadge>;}
   function roleTags(member:OrganizationMemberWorkspace["members"][number]){return <div className="member-directory-tags">{member.roles.length?member.roles.map((role,i)=><Badge key={i} variant={role.code==="OL"?"default":"secondary"}>{roleNames[role.code]?.[en?1:0]??role.code}{role.committee&&<> · <bdi>{role.committee}</bdi></>}</Badge>):<span className="text-sm text-muted-foreground">{c("عضو","Member")}</span>}{!member.committees.length&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(x=><Badge key={x.id} variant="outline">{x.name}</Badge>)}{permissions?.grants.filter(x=>x.membership===member.id).map(x=><Badge key={x.id} variant="secondary">{permissionLabels[x.code]?.[en?1:0]??x.code}</Badge>)}</div>;}
   const columns:DataTableColumn<OrganizationMemberWorkspace["members"][number]>[]=[
@@ -70,7 +74,7 @@ export function MemberDirectory({ organization, workspace, permissions, locale,i
     {id:"university",label:c("الرقم الجامعي","University ID"),className:"w-32",render:member=><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi>},
     {id:"membership",sortKey:"date",label:c("العضوية","Membership"),className:"w-40",render:member=><>{stateBadge(member.status)}<p className="text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p></>},
     {id:"roles",label:c("الدور واللجان","Role and committees"),className:"w-48",render:roleTags},
-    {id:"hours",label:c("الساعات المعتمدة","Approved hours"),className:"w-28",optional:true,render:member=>formatHours(member.hours,locale)},
+    {id:"hours",label:c("الساعات المعتمدة","Approved hours"),className:"w-28",render:member=>formatHours(member.hours,locale)},
     {id:"actions",label:c("الإجراءات","Actions"),className:"w-52",renderMobile:member=><MemberActions organization={organization} member={member} workspace={data} onView={()=>openMember(member.id)} committees={permissions?.committees??[]} locale={locale} mobile/>,render:member=><MemberActions organization={organization} member={member} workspace={data} onView={()=>openMember(member.id)} committees={permissions?.committees??[]} locale={locale}/>}
   ];
   return <>
@@ -80,12 +84,12 @@ export function MemberDirectory({ organization, workspace, permissions, locale,i
       <FilterTabs value={filters.status} ariaLabel={c("تصفية الأعضاء حسب الحالة","Filter members by status")} dir={en?"ltr":"rtl"} onValueChange={status=>setFilters({...filters,page:0,status:status as MemberFilters['status']})} options={[{value:"all",label:c("الكل","All")},{value:"Active",label:c("نشطة","Active")},{value:"Ended",label:c("منتهية","Ended")}]} />
       <NativeSelect className="w-auto" aria-label={c("تصفية حسب اللجنة","Filter by committee")} value={filters.committee??""} onChange={event=>setFilters({...filters,page:0,committee:event.target.value||null})}><option value="">{c("كل اللجان","All committees")}</option>{workspace.committees.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</NativeSelect>
       {permissions&&<ActiveDelegations organization={organization} data={permissions} locale={locale}/>}
-      <DataTableColumns tableKey="members" columns={columns} locale={locale}/>
       <MemberExportButton organization={organization} filters={filters} locale={locale} leader={workspace.canGrant}/>
     </SearchFilterToolbar>
-    {data.counts&&<div className="mb-5 flex flex-wrap gap-2" aria-live="polite"><Badge variant="outline">{c("الإجمالي","Total")} · {data.counts.total}</Badge><Badge variant="outline">{c("نشطة","Active")} · {data.counts.active}</Badge><Badge variant="outline">{c("منتهية","Ended")} · {data.counts.ended}</Badge></div>}
+
     {failed&&<Alert className="mb-4"><AlertDescription>{c("تعذّر تحديث النتائج. حاول مجددًا.","Results could not be updated. Try again.")}</AlertDescription></Alert>}
-    {members.length?<DataTable items={members} columns={columns} tableKey="members" locale={locale} showColumnsControl={false} sort={{value:filters.sort??"name:asc",onChange:value=>setFilters({...filters,page:0,sort:value as MemberFilters["sort"]})}} label={c("عرض تفاصيل العضو","View member details")} onOpen={member=>openMember(member.id)} onPrefetch={member=>prefetchMember(member.id)} pagination={{page:filters.page??0,more:(data.rowTotal??data.counts?.total??0)>((filters.page??0)+1)*25,onChange:page=>setFilters({...filters,page})}}/>
+    <SelectionActionBar visible={checked.size>0} locale={locale} message={<>{c("تم تحديد ","Selected: ")}{formatCount(checked.size,"students",locale)}</>} actions={<><ManagementActionSheet rowAction disabled={!bulkScopes.length} icon={<Plus/>} label={c("إضافة ساعات للمحددين","Add hours to selected students")} title={c(`إضافة ساعات إلى ${checked.size} طالب؟`,`Add hours to ${checked.size} students?`)} locale={locale}><HoursForm operation="add-selected" fields={{org:organization,members:JSON.stringify([...checked])}} label={c("تأكيد إضافة الساعات","Confirm hours")} locale={locale} onSuccess={()=>{setChecked(new Set());refreshMembers();}}><FormField label={c("نطاق الساعات","Hours scope")}><NativeSelect name="committee">{bulkScopes.map(scope=><option key={scope.id} value={scope.id}>{scope.name}</option>)}</NativeSelect></FormField><HoursFields locale={locale}/></HoursForm></ManagementActionSheet><RowAction label={c("إلغاء التحديد","Clear selection")} onClick={()=>setChecked(new Set())}><X/></RowAction></>}/>
+    {members.length?<DataTable selection={{selected:checked,onChange:setChecked,disabled:row=>row.status!=="Active"||(!data.canAddHours&&!row.hourScopes.length),reason:()=>c("يتطلب عضوية نشطة وصلاحية إضافة الساعات","Requires active membership and permission to add hours")}} footer={formatCount(members.length,"students",locale,"nominative","number")} items={members} columns={columns} tableKey="members" locale={locale} showColumnsControl={false} sort={{value:filters.sort??"name:asc",onChange:value=>setFilters({...filters,page:0,sort:value as MemberFilters["sort"]})}} label={c("عرض تفاصيل العضو","View member details")} onOpen={member=>openMember(member.id)} onPrefetch={member=>prefetchMember(member.id)} pagination={{page:filters.page??0,more:(data.rowTotal??data.counts?.total??0)>((filters.page??0)+1)*25,onChange:page=>setFilters({...filters,page})}}/>
     :<Empty><EmptyHeader><EmptyMedia variant="icon"><Users/></EmptyMedia><EmptyTitle>{filters.q||filters.status!=="all"||filters.committee?c("لا توجد نتائج مطابقة","No matching results"):c("لا يوجد أعضاء بعد","No members yet")}</EmptyTitle><EmptyDescription>{filters.q||filters.status!=="all"||filters.committee?c("جرّب تغيير البحث أو الفلاتر.","Try another search or filter."):c("ستظهر بيانات الطلاب هنا عند انضمامهم للجهة.","Students will appear here when they join the organization.")}</EmptyDescription></EmptyHeader>{(filters.q||filters.status!=="all"||filters.committee)&&<Button variant="outline" onClick={()=>setFilters(initialMemberFilters)}>{c("مسح الفلاتر","Clear filters")}</Button>}</Empty>}
     <MemberDetailSheet open={selected!==null} onOpenChange={open=>{if(!open)setSelected(null);}} record={record} error={recordError} locale={locale}/>
   </>;

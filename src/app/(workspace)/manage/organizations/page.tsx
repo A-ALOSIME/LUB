@@ -38,29 +38,23 @@ export default async function AdminOrganizationsPage({
       .enum(["", "Active", "Inactive", "Archived"])
       .catch("")
       .parse(query.status ?? ""),
-    page: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .max(10000)
-      .catch(0)
-      .parse(query.page ?? 0),
+    page: 0,
   };
   const data = await getAdminOrganizations(user.id, filters);
   if (!data.allowed) notFound();
-  const rows = data.organizations.map((item) => ({
+  const organizations=data.organizations.slice(0,25);
+  for(let page=1;organizations.length<(data.total??0)&&page<=10000;page++){
+    const next=await getAdminOrganizations(user.id,{...filters,page});
+    if(!next.allowed)notFound();if(!next.organizations.length)break;
+    organizations.push(...next.organizations.slice(0,25));
+  }
+  const rows = organizations.map((item) => ({
     ...item,
     logoUrl:
       item.logoUrl ||
       localOrganizationContent(item.nameAr, item.typeCode)?.logoSrc ||
       "",
   }));
-  const href = (page: number) => {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries({ ...filters, page }))
-      if (value !== "" && value !== 0) params.set(key, String(value));
-    return `/manage/organizations?${params}`;
-  };
   return (
     <main
       id="main"
@@ -78,33 +72,7 @@ export default async function AdminOrganizationsPage({
         {translateUi((en) ? "en" : "ar", "النتائج:", "Results:")} <bdi><NumberText value={data.total ?? 0}/></bdi>
       </p>
       <AdminOrganizationTable organizations={rows} locale={locale} />
-      {(filters.page > 0 || (filters.page + 1) * 25 < (data.total ?? 0)) && (
-        <nav
-          className="flex items-center justify-between"
-          aria-label={translateUi((en) ? "en" : "ar", "صفحات الجهات", "Organization pages")}
-        >
-          {filters.page > 0 ? (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={href(filters.page - 1)} />}
-            >
-              {translateUi((en) ? "en" : "ar", "السابق", "Previous")}
-            </Button>
-          ) : (
-            <span />
-          )}
-          {(filters.page + 1) * 25 < (data.total ?? 0) && (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={href(filters.page + 1)} />}
-            >
-              {translateUi((en) ? "en" : "ar", "التالي", "Next")}
-            </Button>
-          )}
-        </nav>
-      )}
+
     </main>
   );
 }

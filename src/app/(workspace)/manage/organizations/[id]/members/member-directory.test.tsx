@@ -97,3 +97,5 @@ it("keeps all action positions visible for every member and disables unavailable
 
 
 beforeEach(()=>{vi.stubGlobal("fetch",vi.fn(async(url:string)=>{const status=new URL(url,"http://local").searchParams.get("status")??"all";return Response.json({...workspace,members:workspace.members.filter(m=>status==="all"||m.status===status)});}));});
+
+it("allows organization-wide hours selection for an active member with no committee",()=>{render(<MemberDirectory organization="org" workspace={{...workspace,canAddHours:true}} locale="ar"/>);const selectAll=screen.getByRole("checkbox",{name:"تحديد الكل"});expect(selectAll.hasAttribute("data-disabled")).toBe(false);fireEvent.click(selectAll);expect(document.querySelector(".selection-action-bar")).toBeTruthy();expect(screen.getByRole("button",{name:"إضافة ساعات للمحددين"}).hasAttribute("disabled")).toBe(false);});

@@ -3,7 +3,7 @@ import {useEffect,useMemo} from "react";
 import {queryOptions,useQuery,useQueryClient,keepPreviousData} from "@tanstack/react-query";
 import {useQueryActor} from "@/components/private-query-provider";
 import {useListQuery} from "@/lib/list-query";
-import {privateJson} from "@/lib/private-query";
+import {completeList} from "@/lib/complete-list";
 import {ListEmpty} from "@/components/list-empty";
 import {HoursToolbarActions} from "./hours-toolbar-actions";
 import {NativeSelect} from "@/components/ui/native-select";
@@ -11,38 +11,31 @@ import {SelfReportPolicy} from "./self-report-policy";
 import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {createTranslator} from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { formatHours,recordCount,academicTerm } from "@/lib/display";
-import Link from "next/link";
+import { academicTerm } from "@/lib/display";
 import { HoursForm } from "./form";
 import { HoursRecordTable } from "./hours-record-table";
 import type { HoursWorkspace } from "./repository";
 import type { Locale } from "@/lib/preferences";
-import { Clock3, Plus, Search } from "lucide-react";
+import { Clock3, Search } from "lucide-react";
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state";
-import { buttonVariants } from "@/components/ui/button";
 import { HoursStatusFilters, type HoursStatusFilter } from "./hours-status-filters";
 import { HoursStatusSummary } from "./hours-status-summary";
 
 export type HoursFilters = { term: string | null; committee: string | null; status: Exclude<HoursStatusFilter, "all"> | null; page: number; memberPage: number; q?:string };
 
-function hoursListQuery(actor:string|null,org:string,f:HoursFilters){return queryOptions({queryKey:["organization-hours",actor,org,{term:f.term,committee:f.committee,status:f.status,q:f.q??"",page:f.page}],queryFn:({signal})=>{const query=new URLSearchParams({q:f.q??"",page:String(f.page)});if(f.term)query.set("term",f.term);if(f.committee)query.set("committee",f.committee);if(f.status)query.set("status",f.status);return privateJson<Pick<HoursWorkspace,"records"|"hoursByStatus"|"total"|"filteredCount"|"filteredTotal">>(`/api/organizations/${org}/hours?${query}`,signal);}});}
+function hoursListQuery(actor:string|null,org:string,f:HoursFilters){return queryOptions({queryKey:["organization-hours",actor,org,{term:f.term,committee:f.committee,status:f.status,q:f.q??"",page:f.page}],queryFn:({signal})=>{const query=new URLSearchParams({q:f.q??"",page:String(f.page)});if(f.term)query.set("term",f.term);if(f.committee)query.set("committee",f.committee);if(f.status)query.set("status",f.status);return completeList<Pick<HoursWorkspace,"records"|"hoursByStatus"|"total"|"filteredCount"|"filteredTotal">>(`/api/organizations/${org}/hours?${query}`,signal);}});}
 export function HoursWorkspaceView({ data:initial, org, filters:initialFilters, locale = "ar" }: { data: HoursWorkspace; org: string; filters: HoursFilters; locale?: Locale }) {
   const actor=useQueryActor(),client=useQueryClient(),{params,change}=useListQuery(`?${new URLSearchParams({q:initialFilters.q??"",hoursPage:String(initialFilters.page),...(initialFilters.term?{term:initialFilters.term}:{}),...(initialFilters.committee?{committee:initialFilters.committee}:{}),...(initialFilters.status?{hourStatus:initialFilters.status}:{})})}`);
-  const termValue=params.get("term"),committeeValue=params.get("committee"),qValue=params.get("q")??"",statusValue=params.get("hourStatus"),pageValue=Math.max(0,Math.min(10000,Number(params.get("hoursPage"))||0));
+  const termValue=params.get("term"),committeeValue=params.get("committee"),qValue=params.get("q")??"",statusValue=params.get("hourStatus"),pageValue=0;
   const filters=useMemo<HoursFilters>(()=>({...initialFilters,term:termValue,committee:committeeValue,q:qValue,status:statusValue==="Approved"||statusValue==="Pending"||statusValue==="Rejected"?statusValue:null,page:pageValue}),[initialFilters,termValue,committeeValue,qValue,statusValue,pageValue]);
 
-  const result=useQuery({...hoursListQuery(actor,org,filters),placeholderData:keepPreviousData,initialData:JSON.stringify(filters)===JSON.stringify(initialFilters)?initial:undefined}),data={...initial,...result.data};
+  const result=useQuery({...hoursListQuery(actor,org,filters),placeholderData:keepPreviousData,initialData:initial.records.length<=25&&JSON.stringify(filters)===JSON.stringify(initialFilters)?initial:undefined}),data={...initial,...result.data};
   const update=(values:Record<string,string|null>,replace=false)=>change({hoursPage:null,...values},replace);
   useEffect(()=>{for(const status of [null,"Approved","Pending","Rejected"] as const)void client.prefetchQuery(hoursListQuery(actor,org,{...filters,q:"",page:0,status}));},[actor,client,org,filters]);
   useEffect(()=>()=>{void client.cancelQueries({queryKey:["organization-hours",actor,org]});},[actor,client,org]);
-  useEffect(()=>{if(data.records.length>25)void client.prefetchQuery(hoursListQuery(actor,org,{...filters,page:filters.page+1}));},[actor,client,org,filters,data.records.length]);
   useEffect(()=>{const changed=()=>{void client.invalidateQueries({queryKey:["organization-hours",actor,org]});};window.addEventListener("activity-changed",changed);return()=>window.removeEventListener("activity-changed",changed);},[actor,client,org]);
   const en = locale === "en", c = createTranslator(en ? "en" : "ar");
-  const base = `/manage/organizations/${org}/tasks`;
-  const membersHref = `/manage/organizations/${org}/members`;
-  const { term, committee, page, memberPage } = filters;
-  const query = { ...(filters.q?{q:filters.q}:{}), section: "hours", ...(term ? { term } : {}), ...(committee ? { committee } : {}), ...(filters.status ? { hourStatus: filters.status } : {}), memberPage: String(memberPage) };
-  const selected = data.scopes.find(scope => scope.id === committee);
+  const { term, committee, page } = filters;
   const canAddHours = data.scopes.some(scope => scope.manual);
   return <div className="min-w-0 space-y-4">
     <SearchFilterToolbar search={<div className="hours-search"><Search aria-hidden="true"/><Input type="search" value={filters.q??""} onChange={event=>update({q:event.target.value},true)} aria-label={c("البحث باسم العضو","Search by member name")} placeholder={c("ابحث بالاسم…","Search by name…")}/></div>}>
@@ -58,14 +51,7 @@ export function HoursWorkspaceView({ data:initial, org, filters:initialFilters, 
 
     {data.records.length
       ? <HoursRecordTable pagination={{page,more:data.records.length>25,onChange:value=>change({hoursPage:String(value)})}} items={data.records} locale={locale}/>
-      : (filters.q||filters.term||filters.committee||filters.status)?<ListEmpty filtered clear={()=>update({q:null,term:null,committee:null,hourStatus:null})} icon={Clock3} title="" description=""/>:<WorkspaceEmptyState icon={Clock3} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("تُسجّل الساعات من صفحة الأعضاء.", "Hours are entered from the members page.")} action={canAddHours ? <Link href={membersHref} className={buttonVariants({ size: "lg", className: "workspace-empty-state-action w-full sm:w-auto" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link> : undefined} />}
-    <p className="text-sm text-muted-foreground">{c("الإجمالي","Total")} {formatHours(data.filteredTotal??data.records.slice(0,25).reduce((sum,record)=>sum+Number(record.hours),0),locale)} · {recordCount(data.filteredCount??Math.min(25,data.records.length),locale)}</p>
-
-
-    {selected?.manual && <nav aria-label={c("صفحات اختيار العضو", "Member selection pages")} className="flex flex-wrap gap-3 text-sm">
-      {memberPage > 0 && <Link className="text-link" href={`${base}?${new URLSearchParams({ ...query, page: String(page), memberPage: String(memberPage - 1) })}`}>{c("الأعضاء السابقون", "Previous members")}</Link>}
-      {data.members.length > 25 && <Link className="text-link" href={`${base}?${new URLSearchParams({ ...query, page: String(page), memberPage: String(memberPage + 1) })}`}>{c("أعضاء أكثر", "More members")}</Link>}
-    </nav>}
+      : (filters.q||filters.term||filters.committee||filters.status)?<ListEmpty filtered clear={()=>update({q:null,term:null,committee:null,hourStatus:null})} icon={Clock3} title="" description=""/>:<WorkspaceEmptyState icon={Clock3} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("تُسجّل الساعات من صفحة الأعضاء.", "Hours are entered from the members page.")}  />}
 
     {data.imports.length > 0 && <section className="space-y-3" aria-labelledby="hour-import-title">
       <h2 id="hour-import-title" className="font-semibold">{c("مشاركات معتمدة سابقة بلا سجل ساعات", "Earlier approved participation without an hours record")}</h2>

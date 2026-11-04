@@ -19,7 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/form-field";
 import { RowAction } from "@/components/row-action";
-import { WorkspaceStickySaveBar } from "@/components/workspace-sticky-save-bar";
+import { SelectionActionBar } from "@/components/selection-action-bar";
 import { toast } from "@/components/ui/toast";
 import { formatCount } from "@/lib/display";
 import { formatRiyadhDate, formatRiyadhTime, formatRiyadhDateTime } from "@/lib/datetime";
@@ -158,24 +158,7 @@ export function RequestReviewTable({
       dir={locale === "en" ? "ltr" : "rtl"}
       className="@container min-w-0 pb-28"
     >
-      {!rows.length ? (
-        <div role="status" className="application-selection-empty">
-          <Inbox />
-          <span>{c("لا توجد طلبات مطابقة.", "No matching applications.")}</span>
-        </div>
-      ) : (
-        <>
-          <DataTable pagination={pagination} items={rows} locale={locale} tableKey="requests" label={c("عرض تفاصيل الطلب","View request details")} onOpen={row=>onOpen(row.id)} onPrefetch={row=>onPrefetch?.(row.id)} selection={{selected:new Set(checked),onChange:ids=>setSelected([...ids]),disabled:row=>!row.selectable,reason:row=>["Accepted","Rejected"].includes(row.status)?c("الطلبات المقبولة والمرفوضة ما تدخل في الإجراء الجماعي","Accepted and rejected requests cannot be included in bulk actions"):c("يتطلب صلاحية الإجراء الجماعي وحالة طلب قابلة للمراجعة","Requires bulk-review permission and a reviewable request")}} columns={[
-            {id:"name",label:c("الطالب","Student"),render:row=><div><p className="font-medium" dir="auto">{row.name}</p><p className="text-sm text-muted-foreground" dir="auto">{row.subtitle}</p></div>},
-            ...(showCommittee?[{id:"committee",label:c("اللجنة","Committee"),className:"w-40",render:(row:ReviewRow)=><bdi>{row.committee??"—"}</bdi>}]:[]),
-            {id:"status",label:c("الحالة","Status"),className:"w-32",render:row=><RequestStatusBadge status={row.status} locale={locale}/>},
-            {id:"date",label:c("تاريخ التقديم","Submitted"),className:"w-40",render:row=><><time dateTime={row.createdAt}>{formatRiyadhDate(row.createdAt,locale)}</time><p className="text-sm text-muted-foreground"><bdi>{formatRiyadhTime(row.createdAt,locale)}</bdi></p></>},
-            {id:"actions",label:c("الإجراءات","Actions"),className:actionsClassName,render:actions}
-          ]}/>
-
-        </>
-      )}
-      <WorkspaceStickySaveBar
+      <SelectionActionBar
         formId={id}
         locale={locale}
         visible={checked.length > 0}
@@ -191,14 +174,7 @@ export function RequestReviewTable({
         actions={
           <>
             {bulkDecisions.map((status) => (
-              <Button
-                key={status}
-                variant={status === "Rejected" ? "danger-outline" : "outline"}
-                disabled={pending}
-                onClick={() => choose(checked, status)}
-              >
-                {labels[status]}
-              </Button>
+              <RowAction key={status} label={labels[status]} danger={status==="Rejected"} disabled={pending} onClick={()=>choose(checked,status)}>{status==="Accepted"?<Check/>:status==="Rejected"?<X/>:<CalendarDays/>}</RowAction>
             ))}
             <Button
               variant="ghost"
@@ -211,6 +187,24 @@ export function RequestReviewTable({
           </>
         }
       />
+      {!rows.length ? (
+        <div role="status" className="application-selection-empty">
+          <Inbox />
+          <span>{c("لا توجد طلبات مطابقة.", "No matching applications.")}</span>
+        </div>
+      ) : (
+        <>
+          <DataTable footer={<p>{c("عدد المنضمين: ","Participants: ")}{rows.length}</p>} pagination={pagination} items={rows} locale={locale} tableKey="requests" label={c("عرض تفاصيل الطلب","View request details")} onOpen={row=>onOpen(row.id)} onPrefetch={row=>onPrefetch?.(row.id)} selection={{selected:new Set(checked),onChange:ids=>setSelected([...ids]),disabled:row=>!row.selectable,reason:row=>["Accepted","Rejected"].includes(row.status)?c("الطلبات المقبولة والمرفوضة ما تدخل في الإجراء الجماعي","Accepted and rejected requests cannot be included in bulk actions"):c("يتطلب صلاحية الإجراء الجماعي وحالة طلب قابلة للمراجعة","Requires bulk-review permission and a reviewable request")}} columns={[
+            {id:"name",label:c("الطالب","Student"),render:row=><div><p className="font-medium" dir="auto">{row.name}</p><p className="text-sm text-muted-foreground" dir="auto">{row.subtitle}</p></div>},
+            ...(showCommittee?[{id:"committee",label:c("اللجنة","Committee"),className:"w-40",render:(row:ReviewRow)=><bdi>{row.committee??"—"}</bdi>}]:[]),
+            {id:"status",label:c("الحالة","Status"),className:"w-32",render:row=><RequestStatusBadge status={row.status} locale={locale}/>},
+            {id:"date",label:c("تاريخ التقديم","Submitted"),className:"w-40",render:row=><><time dateTime={row.createdAt}>{formatRiyadhDate(row.createdAt,locale)}</time><p className="text-sm text-muted-foreground"><bdi>{formatRiyadhTime(row.createdAt,locale)}</bdi></p></>},
+            {id:"actions",label:c("الإجراءات","Actions"),className:actionsClassName,render:actions}
+          ]}/>
+
+        </>
+      )}
+
       <AlertDialog
         open={!!decision}
         onOpenChange={(open) => {

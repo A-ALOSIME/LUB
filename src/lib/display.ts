@@ -15,6 +15,7 @@ const countForms = {
   rounds: { one:"جولة واحدة", two:"جولتان", oblique:"جولتين", plural:"جولات", singular:"جولة", zero:"لا جولات", en:"round" },
   versions: { one:"نسخة واحدة", two:"نسختان", oblique:"نسختين", plural:"نسخ", singular:"نسخة", zero:"لا نسخ", en:"version" },
   records: { one:"سجل واحد", two:"سجلان", oblique:"سجلين", plural:"سجلات", singular:"سجلًا", zero:"لا سجلات", en:"record" },
+  students: {one:"طالب واحد",two:"طالبان",oblique:"طالبين",plural:"طلاب",singular:"طالبًا",zero:"0 طالب",en:"student"},
   members: { one:"عضو واحد", two:"عضوان", oblique:"عضوين", plural:"أعضاء", singular:"عضوًا", zero:"لا أعضاء", en:"member" },
 } as const;
 

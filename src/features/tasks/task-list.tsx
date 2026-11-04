@@ -43,7 +43,7 @@ export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty
  {id:"participants",label:t(locale,"المنضمون","Participants"),className:"w-24",render:(row:TaskCard)=>row.summary?.participants??0},
  {id:"submissionRate",label:t(locale,"نسبة التسليم","Submission rate"),className:"w-28",render:(row:TaskCard)=>`${row.summary?.participants?Math.round(row.summary.submitted/row.summary.participants*100):0}%`}
  ]:[]),
- {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-48":"w-32",render:actions}
+ {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-64":"w-36",render:actions}
  ]}/></>;
 }
 export {TaskPagination} from "./task-pagination";

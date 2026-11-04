@@ -3,11 +3,13 @@
 import {Avatar,AvatarFallback,AvatarImage} from "@/components/ui/avatar";
 import {cn} from "cn";
 import type {ComponentProps} from "react";
+import {localOrganizationContent} from "@/features/organizations/local-content";
 
 /** Organization marks use a square frame; person avatars keep their circular defaults. */
 export function OrganizationLogo({name,src,className,...props}:{name:string;src?:string|null}&ComponentProps<typeof Avatar>){
+ const logo=src?.trim()||localOrganizationContent(name,"Club")?.logoSrc||localOrganizationContent(name,"Council")?.logoSrc;
  return <Avatar {...props} className={cn("organization-logo min-h-0 min-w-0 rounded-lg after:rounded-lg",className)} aria-label={name}>
-  <AvatarImage keepMounted src={src?.trim()||undefined} alt={name} style={state=>({display:state.imageLoadingStatus==="loaded"?undefined:"none"})} className="aspect-auto min-h-0 min-w-0 rounded-lg object-center object-contain p-0 data-[loading]:hidden data-[error]:hidden"/>
+  <AvatarImage keepMounted src={logo} alt={name} style={state=>({display:state.imageLoadingStatus==="loaded"?undefined:"none"})} className="aspect-auto min-h-0 min-w-0 rounded-lg object-center object-contain p-0 data-[loading]:hidden data-[error]:hidden"/>
   <AvatarFallback className="rounded-lg" dir="auto">{Array.from(name.trim())[0]??""}</AvatarFallback>
  </Avatar>;
 }

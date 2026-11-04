@@ -20,6 +20,7 @@ it("renders compact filters as shadcn tabs with one rounded active option", () =
   expect(container.querySelector('[data-slot="toggle-group"]')).toBeNull();
   expect(container.querySelector('[data-slot="tabs-list"]')?.classList.contains("workspace-filter-control")).toBe(true);
 
-  fireEvent.click(screen.getByRole("tab", { name: "Active2" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Active" }));
   expect(onValueChange).toHaveBeenCalledWith("active");
+  expect(container.querySelector('[data-slot="badge"]')).toBeNull();
 });

@@ -1,10 +1,7 @@
 "use client";
 
 import {createTranslator} from "@/lib/i18n";
-import { Tooltip,TooltipTrigger,TooltipContent } from "@/components/ui/tooltip";
-import Link from "next/link";
-import { FileSpreadsheet, Plus } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import {ExportButton} from "@/components/export-button";
 import type { HoursExportScope } from "./repository";
 import type { Locale } from "@/lib/preferences";
 
@@ -19,8 +16,7 @@ export function HoursToolbarActions({ org, committee, term, exportScopes, locale
   hasRecords: boolean;
   canAddHours: boolean;
 }) {
-  const en = locale === "en";
-  const c = createTranslator(en ? "en" : "ar");
+  void canAddHours; const c = createTranslator(locale);
   const canExportSelectedScope = exportScopes.some(scope => scope.id === committee);
   const exportQuery = new URLSearchParams();
   if (committee) exportQuery.set("committee", committee);
@@ -31,7 +27,7 @@ export function HoursToolbarActions({ org, committee, term, exportScopes, locale
   const exportHref = `/manage/organizations/${org}/hours/export${exportQueryString ? `?${exportQueryString}` : ""}`;
 
   return <div className="hours-toolbar-actions flex min-w-0 flex-wrap items-center gap-2">
-    {hasRecords && canAddHours && <Link href={`/manage/organizations/${org}/members`} className={buttonVariants({ size: "sm" })}><Plus data-icon="inline-start" aria-hidden="true" />{c("إضافة ساعات", "Add hours")}</Link>}
-    {hasRecords && canExportSelectedScope && <Tooltip><TooltipTrigger render={<Link href={exportHref} aria-label={c("تصدير Excel","Export Excel")} className={buttonVariants({ variant:"outline",size:"icon" })}/>}><FileSpreadsheet aria-hidden="true"/></TooltipTrigger><TooltipContent>{c("تصدير Excel","Export Excel")}</TooltipContent></Tooltip>}
+    {hasRecords&&canExportSelectedScope&&<ExportButton href={exportHref} hint={c("تصدير النتائج حسب الفلاتر الحالية","Export the current filtered results")}/>}
+
   </div>;
 }

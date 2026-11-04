@@ -15,7 +15,16 @@ const amount=(f:FormData)=>z.coerce.number().finite().min(0).max(1000).multipleO
 export async function mutateHours(_previous:HoursState,f:FormData):Promise<HoursState>{
  const user=await requireUser();
  try{
- const op=z.enum(["term","add","self","review","adjust","self-policy","import","campaign","exclude","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
+ const op=z.enum(["term","add","add-selected","self","review","adjust","self-policy","import","campaign","exclude","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
+ if(op==="add-selected"){
+  const members=z.array(z.uuid()).min(1).max(500).refine(ids=>new Set(ids).size===ids.length).parse(JSON.parse(text(f,"members",20000)));
+  const org=id(f,"org"),committee=optionalId(f,"committee"),activityDay=day(f,"day"),hours=amount(f),reason=text(f,"reason",3000);
+  await withUser(user.id,async tx=>{
+   const rows=await tx.execute<{id:string}>(sql`select id from lub.organization_memberships where organization_id=${org} and id in (select jsonb_array_elements_text(${JSON.stringify(members)}::jsonb)::uuid)`);
+   if(rows.length!==members.length)throw new Error("Invalid selection scope");
+   for(const member of members)await tx.execute(sql`select lub.add_hours(${member},${committee},(select id from lub.academic_terms where ${activityDay}::date between start_date and end_date),${hours}::numeric,${activityDay}::date,${reason},false,${f.get("confirmDuplicate")==="on"})`);
+  });
+ }else{
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
  case "term":{const starts=day(f,"starts"),ends=day(f,"ends");if(ends<starts)throw new Error("Term dates reversed");return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${starts}::date,${ends}::date)`;}
@@ -29,7 +38,7 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  case "exclude":{const excluded=f.get("excluded")==="on";if(!excluded&&f.get("confirm")!=="on")throw new Error();return sql`select lub.exclude_renewal_member(${id(f,"campaign")},${id(f,"member")},${text(f,"reason",300,excluded?1:0)},${excluded})`;}
  case "campaign-status":{const status=z.enum(["Open","Closed","Archived"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_renewal_status(${id(f,"campaign")},${status})`;}
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
- }})();await withUser(user.id,tx=>tx.execute(query));
+ }})();await withUser(user.id,tx=>tx.execute(query));}
  }catch(error){const failures=[error,typeof error==="object"&&error!==null&&"cause" in error?error.cause:null];if(f.get("operation")==="term"){
  if(error instanceof Error&&error.message==="Term dates reversed")return{error:"يجب أن تكون نهاية الفصل في تاريخ البداية أو بعده."};
  if(failures.some(value=>typeof value==="object"&&value!==null&&"message" in value&&value.message==="Overlapping term"))return{error:"تتداخل هذه الفترة مع فصل محفوظ. اختر تواريخ لا تتداخل مع الفصول الحالية."};

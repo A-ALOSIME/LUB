@@ -1,7 +1,5 @@
 "use client";
 
-import {formatNumber} from "@/lib/i18n";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "cn";
 
@@ -32,7 +30,8 @@ export function FilterTabs({
   onValueChange: (value: string) => void;
   onItemClick?: (value: string) => void;
 }) {
-  const compact = size === "sm";
+  void size;
+  void activeTone;
 
   return <Tabs
     value={value}
@@ -44,9 +43,7 @@ export function FilterTabs({
       <TabsList aria-label={ariaLabel} className={cn("workspace-segmented-control workspace-filter-control", className)}>
         {options.map(option => {
           const active = value === option.value;
-          const activeColors = activeTone === "primary"
-            ? "data-active:bg-primary data-active:text-primary-foreground"
-            : "data-active:bg-secondary data-active:text-secondary-foreground";
+          const activeColors = "data-active:bg-primary data-active:text-primary-foreground";
 
           return <TabsTrigger
             key={option.value}
@@ -54,22 +51,13 @@ export function FilterTabs({
             onClick={() => onItemClick?.(option.value)}
             className={cn(
               "w-fit flex-none rounded-md border-transparent shadow-none",
-              compact ? "h-7 px-2.5 text-xs" : size === "lg" ? "h-10 px-4" : "h-9 px-3",
+              "h-7 px-2.5 text-xs",
               activeColors,
               active && "border-transparent shadow-none"
             )}
           >
             <span>{option.label}</span>
-            {option.count !== undefined && <Badge
-              variant="outline"
-              className={cn(
-                "h-5 min-w-5 justify-center px-1.5 text-[0.7rem] leading-none",
-                active && activeTone === "primary" && "border-transparent bg-primary-foreground/15 text-primary-foreground",
-                active && activeTone === "secondary" && "border-transparent bg-secondary-foreground/10 text-secondary-foreground"
-              )}
-            >
-              {formatNumber(option.count,dir==="ltr"?"en":"ar")}
-            </Badge>}
+
           </TabsTrigger>;
         })}
       </TabsList>

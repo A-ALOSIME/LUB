@@ -1,4 +1,5 @@
 "use client";
+import {Separator} from "@/components/ui/separator";
 import {useState,useTransition,type ReactNode} from "react";
 import {useRouter} from "next/navigation";
 import {Eye,Pencil,Upload,Pause,Play,Lock,Archive,Trash2,ClipboardList} from "lucide-react";
@@ -22,7 +23,8 @@ export function CampaignLifecycleControls({kind,id,title,status,organization,loc
  <RowAction href={kind==="renewal"?`/registration/renewal/${id}`:`/apply/${id}`} label={c("عرض التفاصيل","View details")}><Eye/></RowAction>
  {kind==="round"&&<RowAction label={c("تكميل التحرير","Continue editing")} disabled={!allowed||status!=="Draft"} hint={c("التحرير متاح للمسودات وبصلاحية إدارة الحملات","Editing requires a draft and campaign management permission")} onClick={()=>setEdit(true)}><Pencil/></RowAction>}
  {kind==="round"&&<RowAction href={`/manage/organizations/${organization}/members?section=applications&round=${id}`} label={c("طلبات الانضمام","Applications")}><ClipboardList/></RowAction>}
- {(Object.keys(icons) as Operation[]).map(key=>{const Icon=icons[key];return <RowAction key={key} label={labels[key]} disabled={pending||!allowed||!available[key]} hint={!allowed?c("لا تملك صلاحية إدارة هذه الحملة","You cannot manage this campaign"):available[key]?undefined:reasons[key]} danger={key==="delete"} onClick={()=>setOperation(key)}><Icon/></RowAction>;})}
+ <Separator orientation="vertical" className="mx-1 h-5"/>
+ {(Object.keys(icons) as Operation[]).map(key=>{const Icon=icons[key];return <span key={key} className="inline-flex items-center gap-1">{key==="archive"&&<Separator orientation="vertical" className="mx-1 h-5"/>}<RowAction label={labels[key]} disabled={pending||!allowed||!available[key]} hint={!allowed?c("لا تملك صلاحية إدارة هذه الحملة","You cannot manage this campaign"):available[key]?undefined:reasons[key]} danger={key==="delete"} onClick={()=>setOperation(key)}><Icon/></RowAction></span>;})}
  <ManagementActionSheet label="" title={title} locale={locale} open={edit} onOpenChange={setEdit} hideTrigger>{editForm}</ManagementActionSheet>
  <AlertDialog open={!!operation} onOpenChange={value=>{if(!value)setOperation(null);}}><AlertDialogContent dir={locale==="ar"?"rtl":"ltr"}><AlertDialogHeader><AlertDialogTitle>{operation&&labels[operation]}: {title}؟</AlertDialogTitle><AlertDialogDescription>{operation&&descriptions[operation]}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogAction variant={operation==="delete"?"danger-outline":"default"} disabled={pending} onClick={event=>{event.preventDefault();perform();}}>{c("تأكيد","Confirm")}</AlertDialogAction><AlertDialogCancel disabled={pending}>{c("إلغاء","Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog>
  </div>;

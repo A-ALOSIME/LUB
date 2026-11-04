@@ -40,7 +40,7 @@ it("shows sample notifications and lets the user inspect unread and read states 
   fireEvent.click(screen.getByRole("tab", { name: /غير مقروءة/ }));
 
   expect(screen.getByText("ما عندك إشعارات غير مقروءة.")).toBeTruthy();
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("0");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).not.toMatch(/\d/);
 });
 
 it("filters the preview list while keeping English digit counts", () => {
@@ -53,8 +53,8 @@ it("filters the preview list while keeping English digit counts", () => {
   />);
 
   expect(screen.getByRole("list", { name: "الإشعارات" }).children).toHaveLength(4);
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).toContain("6");
-  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).toContain("4");
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /الكل/ }).textContent).not.toMatch(/\d/);
+  expect(within(screen.getByRole("tablist", { name: "تصفية الإشعارات" })).getByRole("tab", { name: /غير مقروءة/ }).textContent).not.toMatch(/\d/);
 });
 
 it("uses the shared segmented filter and keeps unread filtering in the URL", () => {
@@ -137,7 +137,7 @@ it("marks a notification read immediately and rolls back a failed save",async()=
  vi.mocked(readTaskNotification).mockReturnValueOnce(new Promise(resolve=>{finish=resolve;}));
  render(<NotificationInbox items={[{...previewNotifications[0],target_url:""}]} counts={{all:1,unread:1}} filter="all" locale="en"/>);
  fireEvent.click(screen.getByRole("button",{name:"Mark as read"}));
- expect(screen.getByRole("tab",{name:/Unread/}).textContent).toContain("0");
+ expect(screen.getByRole("tab",{name:/Unread/}).textContent).not.toMatch(/\d/);
  finish({error:"تعذّر تحديث الإشعار. حدّث الصفحة وحاول مرة ثانية."});
- await waitFor(()=>expect(screen.getByRole("tab",{name:/Unread/}).textContent).toContain("1"));
+ await waitFor(()=>expect(screen.getByRole("button",{name:"Mark as read"})).toBeTruthy());
 });

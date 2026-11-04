@@ -315,7 +315,7 @@ export function HoursRecordTable({
   const [selected,setSelected]=useState<HourRecord|null>(null);
   const en = locale === "en",
     c = createTranslator((en) ? "en" : "ar"),
-    records = items.slice(0, 25);
+    records = items;
   const source = (record: HourRecord) =>
     `${labels[record.source_code]?.[en ? 1 : 0] ?? record.source_code}${!personal && record.context?.added_by ? ` ${c("بواسطة", "by")} ${record.context.added_by}` : ""}`;
   const identity = (record: HourRecord) => (

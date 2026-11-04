@@ -8,7 +8,7 @@ export type Participant={id:string;user_id:string;status_code:string;approved_ho
 export type Submission={name?:string;major?:string;level?:string;displayStatus?:string;review_decision_code?:string|null;withdrawn_at?:string|null;id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
 export type TaskTemplate={image_asset_id?:string|null;skills?:ProfileSkill[];id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
 export type TaskCard={can_manage?:boolean;summary?:{participants:number;submitted:number}|null;task:Omit<Task,"description">&{description?:string};org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
-export type TaskDetail={asOf?:string;summary?:{participants:number;submitted:number}|null;task:Task;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string;major?:string;level?:string;joinedAt?:string;hourRecord?:{id:string;hours:string;canAdjust:boolean}|null}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
+export type TaskDetail={asOf?:string;summary?:{participants:number;submitted:number}|null;task:Task;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string;major?:string;level?:string;joinedAt?:string;committee?:string;hourRecord?:{id:string;hours:string;canAdjust:boolean}|null}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
 export type TaskWorkspace={name:string;scopes:Array<{id:string|null;name:string;tasks:boolean;templates:boolean}>;templates:TaskTemplate[]};
 export async function taskWorkspace(user:string,org:string){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select o.name_ar as name,
@@ -33,7 +33,7 @@ export async function listTasks(user:string,options:{org?:string;view:"available
  order by v.created_at ${options.sort==="asc"?sql`asc`:sql`desc`},v.task->>'id' limit ${options.page===null?51:26} offset ${(options.page??0)*25}`);
  const items=rows as unknown as TaskCard[];return {items:options.page===null?items:items.slice(0,25),more:options.page!==null&&items.length>25};
 });}
-export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,teamPage=0,presentation:"student"|"management"="management",eventChoices=false,includeWork=true){return withUser(user,async tx=>{
+export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,_teamPage=0,presentation:"student"|"management"="management",eventChoices=false,includeWork=true){void _teamPage;return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select to_char(statement_timestamp() at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "asOf",
  coalesce((select to_jsonb(t)||case when lub.can_manage_task(t.id) then jsonb_build_object('skills',lub.activity_skill_selection('Task',t.id)) else '{}'::jsonb end from lub.tasks t where t.id=${id}),(select r.snapshot_json from lub.task_revisions r where r.task_id=${id} order by r.revision_number desc limit 1)) as task,
  case when ${includeWork} and ${presentation==="management"} then lub.task_summary(${id}) end as summary,(${presentation==="management"} and lub.can_manage_task(${id})) as "canManage",lub.can_read_task(${id}) as current,
@@ -42,10 +42,25 @@ export async function taskDetail(user:string,id:string,participant:string|null=n
  case when ${includeWork} then (select to_jsonb(p) from lub.task_participants p where p.task_id=${id} and p.user_id=${user}) end as own,
  case when ${includeWork} then (select to_jsonb(p) from lub.task_participants p where p.task_id=${id} and ((p.id=${participant}::uuid and (${presentation==="management"} and lub.can_manage_task(${id}))) or (${participant}::uuid is null and p.user_id=${user})) limit 1) end as selected,
  case when ${includeWork} then coalesce((select max(s.revision_number) from lub.task_submissions s join lub.task_participants p on p.id=s.task_participant_id where p.task_id=${id} and p.user_id=${user}),0) else 0 end as "lastRevision",
- case when not ${includeWork} then '[]'::jsonb when ${presentation==="management"} and lub.can_manage_task(${id}) then lub.task_people(${id},${teamPage*25}) else coalesce((select jsonb_agg(t) from lub.task_team(${id},${teamPage*25}) t),'[]') end as team,
- case when ${includeWork} then lub.task_submission_page(${id}::uuid,${participant}::uuid,${revisionPage*20}::int,${presentation==="management"}) else '[]'::jsonb end as submissions,
+ case when not ${includeWork} then '[]'::jsonb when ${presentation==="management"} and lub.can_manage_task(${id}) then lub.task_people(${id},0) else lub.task_team_details(${id},0) end as team,
+ case when ${includeWork} then lub.task_submission_page(${id}::uuid,${participant}::uuid,0::int,${presentation==="management"}) else '[]'::jsonb end as submissions,
  coalesce((select jsonb_agg(r order by r.revision_number desc) from (select id,revision_number,snapshot_json,changed_at from lub.task_revisions where task_id=${id} and ${includeWork} and (${presentation==="management"} and lub.can_manage_task(${id})) order by revision_number desc limit 21 offset ${revisionPage*20}) r),'[]') as history`);
- const data=rows[0] as unknown as TaskDetail|undefined;return data?.task?data:undefined;
+ const data=rows[0] as unknown as TaskDetail|undefined;
+ if(data?.task&&includeWork){
+  let batch=data.team;const team:TaskDetail["team"]=[];
+  for(let page=0;page<=10000;page++){
+   team.push(...batch.slice(0,25));if(batch.length<=25)break;
+   const [next]=await tx.execute<{people:TaskDetail["team"]}>(data.canManage?sql`select lub.task_people(${id},${(page+1)*25}) people`:sql`select lub.task_team_details(${id},${(page+1)*25}) people`);batch=next?.people??[];
+  }
+  data.team=team;
+  let submissions=data.submissions;const all:Submission[]=[];
+  for(let page=0;page<=10000;page++){
+   all.push(...submissions.slice(0,20));if(submissions.length<=20)break;
+   const [next]=await tx.execute<{items:Submission[]}>(sql`select lub.task_submission_page(${id}::uuid,${participant}::uuid,${(page+1)*20}::int,${presentation==="management"}) items`);submissions=next?.items??[];
+  }
+  data.submissions=all;
+ }
+ return data?.task?data:undefined;
 });}
 export type TaskNotification={id:string;type_code:string;title:string;body:string;target_url:string;created_at:string;read_at:string|null};
 export async function taskNotifications(user:string,page:number,unreadOnly=false){return withUser(user,async tx=>{
