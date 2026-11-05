@@ -1,6 +1,9 @@
 "use client";
 import {useOptimisticRows} from "@/lib/optimistic-rows";
-import {useRouter} from "next/navigation";
+import {useState} from "react";
+import {useQueryClient} from "@tanstack/react-query";
+import {useQueryActor} from "@/components/private-query-provider";
+import {initialTaskPanelQuery,taskPanelQuery} from "./panel-query";
 import {ClipboardCheck,Eye,Pencil,Send,Lock,Trash2,LogOut} from "lucide-react";
 import {ItemTable,ItemTitle} from "@/components/item-table";
 import {ListThumbnail} from "@/components/list-thumbnail";
@@ -20,8 +23,8 @@ import type {TaskCard,TaskWorkspace} from "./repository";
 import type {Locale} from "@/lib/preferences";
 export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty,pagination}:{pagination?:import("@/components/data-table").DataTablePagination;empty?:React.ReactNode;activeStatus?:string;items:TaskCard[];mode:"available"|"mine"|"all";locale?:Locale;compact?:boolean;workspace?:TaskWorkspace}){
  void workspace;
- const labels=locale==="en"?taskLabelsEn:taskLabels,date=locale==="en"?formatTaskDateEn:formatTaskDate,router=useRouter();
- const href=(row:TaskCard)=>mode==="all"?`/manage/organizations/${row.task.organization_id}/tasks/${row.task.id}`:`/tasks/${row.task.id}`,open=(row:TaskCard)=>router.push(href(row)),prefetch=(row:TaskCard)=>router.prefetch(href(row));
+ const labels=locale==="en"?taskLabelsEn:taskLabels,date=locale==="en"?formatTaskDateEn:formatTaskDate,[selected,setSelected]=useState<TaskCard|null>(null),client=useQueryClient(),actor=useQueryActor();
+ const open=(row:TaskCard)=>setSelected(row),prefetch=(row:TaskCard)=>{void client.prefetchQuery(taskPanelQuery(actor,row.task.id,{...initialTaskPanelQuery,purpose:mode==="all"?"view":"student"}));};
  const projection=useOptimisticRows(items,row=>row.task.id);
  const optimistic=(row:TaskCard)=>(status:string,remove?:boolean)=>projection.change(row.task.id,item=>remove?null:{...item,task:{...item.task,status_code:status}});
  const rows=projection.items.filter(item=>!activeStatus||item.task.status_code===activeStatus).map(row=>({...row,id:row.task.id}));
@@ -49,6 +52,6 @@ export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty
  {id:"submissionRate",label:t(locale,"نسبة التسليم","Submission rate"),className:"w-28",render:(row:TaskCard)=>`${row.summary?.participants?Math.round(row.summary.submitted/row.summary.participants*100):0}%`}
  ]:[]),
  {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-64":"w-36",render:actions}
- ]}/></>;
+ ]}/>{selected&&<TaskPanelAction key={selected.task.id} task={selected.task.id} title={selected.task.title} locale={locale} management={mode==="all"} open hideTrigger onOpenChange={open=>{if(!open)setSelected(null);}}/>}</>;
 }
 export {TaskPagination} from "./task-pagination";

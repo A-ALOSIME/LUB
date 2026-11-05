@@ -9,7 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type SectionTab = { id: string; label: string; icon?: ReactNode };
 const activeSectionContext = createContext<string | null>(null);
 
-export function OrganizationSectionTabs({ items, initialSection, label, dir, children, defaultSection, legacyHashSections = {}, sticky = true, centered = false, showSingleTab = false, action, sectionActions = {}, actionHiddenSections = [] }: {
+export function OrganizationSectionTabs({ items, initialSection, label, dir, children, defaultSection, legacyHashSections = {}, sticky = true, centered = false, showSingleTab = false, action, sectionActions = {}, actionHiddenSections = [],section:controlledSection,onSectionChange }: {
+  section?:string;
+  onSectionChange?:(section:string)=>void;
   items: SectionTab[];
   initialSection: string;
   label: string;
@@ -50,12 +52,14 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
     if (historySection?.pathname === url.pathname && historySection.id && validIds.includes(historySection.id)) return historySection.id;
     return validIds.includes(initialSection) ? initialSection : defaultId;
   }, [defaultId, initialSection, legacyHashKey, itemIds]);
-  const activeSection = useSyncExternalStore(subscribe, getSnapshot, () => initialSection);
+  const urlSection = useSyncExternalStore(subscribe, getSnapshot, () => initialSection);
+  const activeSection=controlledSection??urlSection;
   useEffect(() => {
     document.getElementById(`organization-section-tab-${activeSection}`)?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, [activeSection]);
 
   useEffect(() => {
+    if(controlledSection!==undefined)return;
     const validIds = itemIds.split("|");
     const legacySection = new Map(legacyHashKey.split("|").filter(Boolean).map(entry => {
       const [hash, id] = entry.split(":");
@@ -70,10 +74,11 @@ export function OrganizationSectionTabs({ items, initialSection, label, dir, chi
       window.dispatchEvent(new Event("organization-section-change"));
     }
     window.requestAnimationFrame?.(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView?.({ block: "start" }));
-  }, [defaultId, itemIds, legacyHashKey]);
+  }, [controlledSection, defaultId, itemIds, legacyHashKey]);
 
   function selectSection(id: string) {
     if (id === activeSection) return;
+    if(onSectionChange){onSectionChange(id);return;}
     const navigate = () => commitSection(id);
     if (window.dispatchEvent(new CustomEvent("workspace-before-navigate", { cancelable: true, detail: navigate }))) navigate();
   }

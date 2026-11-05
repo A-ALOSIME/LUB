@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+vi.mock("@/features/hours/actions",()=>({mutateHours:vi.fn()}));
 vi.mock("@/features/talent/activity-skill-actions",()=>({searchActivitySkills:vi.fn().mockResolvedValue([])}));
 import { cleanup, fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import type { ReactNode } from "react";

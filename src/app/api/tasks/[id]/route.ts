@@ -1,7 +1,7 @@
 import {z} from "zod";
 import {getVerifiedUser} from "@/features/auth/session";
 import {loadTaskPanel} from "@/features/tasks/task-panel-actions";
-const input=z.object({purpose:z.enum(["edit","link"]).default("edit"),page:z.coerce.number().int().min(0).max(1000).default(0),teamPage:z.coerce.number().int().min(0).max(1000).default(0),eventPage:z.coerce.number().int().min(0).max(1000).default(0),participant:z.uuid().nullable().default(null)});
+const input=z.object({purpose:z.enum(["edit","link","view","student"]).default("edit"),page:z.coerce.number().int().min(0).max(1000).default(0),teamPage:z.coerce.number().int().min(0).max(1000).default(0),eventPage:z.coerce.number().int().min(0).max(1000).default(0),participant:z.uuid().nullable().default(null)});
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
  const headers={"Cache-Control":"private, no-store"},user=await getVerifiedUser();
  if(!user)return Response.json({error:"Unauthorized"},{status:401,headers});

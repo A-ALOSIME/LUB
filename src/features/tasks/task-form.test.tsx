@@ -31,12 +31,12 @@ it("requires a confirmation and retains the chosen creation intent",async()=>{
  expect(save.mock.calls[0][1].get("intent")).toBe("template");expect(save.mock.calls[0][1].get("title")).toBe("تصميم منشور");
 });
 
-it("closes a successful join modal without an extra Start work step",async()=>{
+it("keeps a successful inline join open without an extra Start work step",async()=>{
  let finish!:(state:{success:string})=>void;save.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));const close=vi.fn(),refresh=vi.fn();
  render(<ManagementActionProvider locale="en" close={close} inlineForms refresh={refresh}><TaskForm operation="join" fields={{task:"task"}} label="Join task" locale="en"/></ManagementActionProvider>);
  fireEvent.submit(screen.getByRole("button",{name:"Join task"}).closest("form")!);
  await waitFor(()=>expect(save).toHaveBeenCalledOnce());expect(screen.getByRole("status").textContent).toBe("Joining…");expect(screen.queryByRole("button",{name:"Start work"})).toBeNull();expect(close).not.toHaveBeenCalled();
- finish({success:"تم حفظ التغيير."});await waitFor(()=>expect(close).toHaveBeenCalledOnce());expect(refresh).not.toHaveBeenCalled();expect(screen.queryByRole("button",{name:"Join task"})).toBeNull();
+ finish({success:"تم حفظ التغيير."});await waitFor(()=>expect(screen.getByRole("status").textContent).toBe("Joined"));expect(close).not.toHaveBeenCalled();expect(refresh).not.toHaveBeenCalled();expect(screen.queryByRole("button",{name:"Join task"})).toBeNull();
 });
 
 it("rolls an unsuccessful optimistic join back to the join action",async()=>{

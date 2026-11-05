@@ -20,7 +20,7 @@ export function useManagementAction() { return useContext(ManagementActionContex
 /** Run after feedback effects so closing a modal cannot swallow its success toast. */
 export function useCloseOnSuccess<T extends {success?:unknown}>(state:T,onSuccess?:(state:T)=>void){
   const action=useManagementAction(),handled=useRef<T|null>(null);
-  useEffect(()=>{if(!state.success||handled.current===state)return;handled.current=state;onSuccess?.(state);action?.close();},[state,onSuccess,action]);
+  useEffect(()=>{if(!state.success||handled.current===state)return;handled.current=state;onSuccess?.(state);if(!action?.inlineForms)action?.close();},[state,onSuccess,action]);
 }
 
 

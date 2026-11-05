@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import {useState} from "react";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "./organization-section-tabs";
 
 afterEach(() => {
@@ -121,4 +122,10 @@ describe("organization profile section navigation", () => {
     expect(window.location.search).toBe("?section=committees");
     expect(window.location.hash).toBe("#committees");
   });
+});
+
+it("keeps embedded tab state independent of the containing page URL",()=>{
+ window.history.replaceState(null,"","/activity?tab=tasks");
+ function Embedded(){const [section,setSection]=useState("task");return <OrganizationSectionTabs section={section} onSectionChange={setSection} initialSection="task" items={[{id:"task",label:"المهمة"},{id:"submissions",label:"تسليماتي"}]} label="تفاصيل المهمة" dir="rtl"><OrganizationSectionTabPanel id="task">تفاصيل</OrganizationSectionTabPanel><OrganizationSectionTabPanel id="submissions">التسليمات</OrganizationSectionTabPanel></OrganizationSectionTabs>;}
+ render(<Embedded/>);fireEvent.click(screen.getByRole("tab",{name:"تسليماتي"}));expect(screen.getByRole("tab",{name:"تسليماتي"}).getAttribute("aria-selected")).toBe("true");expect(window.location.pathname+window.location.search).toBe("/activity?tab=tasks");
 });

@@ -1,7 +1,7 @@
 "use client";
 
-import type {ReactNode} from "react";
-import {useRouter} from "next/navigation";
+import {useState,type ReactNode} from "react";
+import {TaskPanelAction} from "./task-panel-action";
 import {Eye} from "lucide-react";
 import {Card,CardContent} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
@@ -10,7 +10,7 @@ import {t} from "@/lib/i18n";
 import type {Locale} from "@/lib/preferences";
 
 export function TaskCardSurface({task,title,locale,children,actions,media,hideActions=false}:{task:string;title:string;locale:Locale;children:ReactNode;actions:ReactNode;media?:ReactNode;hideActions?:boolean}){
- const router=useRouter(),open=()=>router.push(`/tasks/${task}`);
+ const [opened,setOpened]=useState(false),open=()=>setOpened(true);
  return <>
   <Card className="relative overflow-hidden py-0">
    <Button type="button" variant="ghost" className="absolute inset-0 size-full rounded-[inherit]" aria-label={t(locale,`عرض المهمة: ${title}`,`View task: ${title}`)} onClick={open}/>
@@ -23,5 +23,6 @@ export function TaskCardSurface({task,title,locale,children,actions,media,hideAc
     </div>}
    </CardContent>
   </Card>
+  <TaskPanelAction task={task} title={title} locale={locale} open={opened} onOpenChange={setOpened} hideTrigger/>
  </>;
 }

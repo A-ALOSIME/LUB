@@ -27,3 +27,9 @@ it("does not expose missing records or database error details",async()=>{
  mocks.detail.mockRejectedValue(new Error("private database message"));
  expect(JSON.stringify(await loadTaskPanel(task))).not.toContain("private database");
 });
+
+it("loads full work data for student and management view modes without editor workspaces",async()=>{
+ const detail={task:{organization_id:"org"},canManage:true};mocks.detail.mockResolvedValue(detail);
+ await loadTaskPanel(task,{purpose:"student"});expect(mocks.detail).toHaveBeenLastCalledWith("authenticated-user",task,null,0,0,"student",false,true);expect(mocks.workspace).not.toHaveBeenCalled();
+ await loadTaskPanel(task,{purpose:"view"});expect(mocks.detail).toHaveBeenLastCalledWith("authenticated-user",task,null,0,0,"management",false,true);expect(mocks.workspace).not.toHaveBeenCalled();
+});

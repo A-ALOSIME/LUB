@@ -44,3 +44,7 @@ it("never reuses a previous actor's data and rejects a mismatched snapshot",asyn
  mocks.load.mockResolvedValueOnce(snapshot);view.rerender(tree(true,"different-student"));expect(screen.queryByText("Event 0")).toBeNull();
  expect(await screen.findByRole("alert")).toBeTruthy();expect(screen.queryByRole("tab",{name:"Events"})).toBeNull();
 });
+
+it("shows every cached record after table pagination is removed",async()=>{
+ render(tree());await screen.findByRole("tab",{name:"Events"});fireEvent.click(screen.getByRole("tab",{name:"Events"}));expect(screen.getByText("Event 0")).toBeTruthy();expect(screen.getByText("Event 27")).toBeTruthy();fireEvent.click(screen.getByRole("tab",{name:"Hours"}));expect(screen.getByText("Hour 27")).toBeTruthy();
+});
