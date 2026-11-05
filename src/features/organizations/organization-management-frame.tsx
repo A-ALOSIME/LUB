@@ -55,9 +55,10 @@ export function OrganizationManagementFrame({ locale, children }: { locale: Loca
   const segments = pathname.split("/").filter(Boolean);
   const page = organizationManagementPage(pathname, locale);
   const organizationOverview = segments.length === 3;
+  const taskDetail = segments[3] === "tasks" && segments.length === 5;
   return <HeaderActionContext.Provider value={setAction}>
     <main className={`organization-management-page organization-management-page--wide workspace-content min-w-0${organizationOverview ? " organization-management-page--overview" : ""}`}>
-      {!organizationOverview && <header className="workspace-page-header">
+      {!organizationOverview && !taskDetail && <header className="workspace-page-header">
         <h1><ContentText value={page.title}/></h1>
         {headerAction && <div className="organization-management-header-action">{headerAction}</div>}
       </header>}
