@@ -84,12 +84,12 @@ it("gives SA lifecycle and public-profile editing without student operational ca
   expect((await db.query("update lub.organizations set summary='administrative update' where id=$1 returning id", [org])).rows).toEqual([{id:org}]);
   expect((await db.query<{allowed:boolean}>("select lub.can_edit_organization_profile($1) as allowed",[org])).rows[0].allowed).toBe(true);
 });
-it("gives leader/deputy organization scope and committee leaders only their own committee", async () => {
+it("keeps organization and committee profile edits exclusive to the organization leader", async () => {
   await asUser(deputy);
-  expect(await permission("COMMITTEE_MANAGE")).toBe(true);
+  expect(await permission("COMMITTEE_MANAGE")).toBe(false);
   expect(await permission("COMMITTEE_MANAGE", null, otherOrg)).toBe(false);
   await db.exec("reset role"); await asUser(committeeLeader);
-  expect(await permission("COMMITTEE_PROFILE_MANAGE", committee)).toBe(true);
+  expect(await permission("COMMITTEE_PROFILE_MANAGE", committee)).toBe(false);
   expect(await permission("COMMITTEE_PROFILE_MANAGE", hiddenCommittee)).toBe(false);
   expect(await permission("COMMITTEE_MANAGE")).toBe(false);
 });
@@ -108,11 +108,11 @@ it("makes ended role and membership stop permissions immediately", async () => {
   await asUser(deputy);
   expect(await permission("COMMITTEE_MANAGE")).toBe(false);
 });
-it("combines grants only inside their active membership, duration and committee scope", async () => {
+it("ignores historical grants before and after their expiry", async () => {
   const { rows } = await db.query<{ id: string }>("select id from lub.organization_memberships where user_id=$1", [committeeLeader]);
   await db.query("insert into lub.permission_grants(organization_membership_id,organization_id,committee_id,permission_code,granted_by_user_id,start_at) values($1,$2,$3,'COMMITTEE_PROFILE_MANAGE',$4,now()-interval '1 day')", [rows[0].id, org, hiddenCommittee, leader]);
   await asUser(committeeLeader);
-  expect(await permission("COMMITTEE_PROFILE_MANAGE", hiddenCommittee)).toBe(true);
+  expect(await permission("COMMITTEE_PROFILE_MANAGE", hiddenCommittee)).toBe(false);
   expect(await permission("ORG_PROFILE_MANAGE")).toBe(false);
   await db.exec("reset role");
   await db.exec("update lub.permission_grants set end_at=now()-interval '1 second'");

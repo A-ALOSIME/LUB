@@ -15,3 +15,7 @@ it("treats date-only and local date-time values as Riyadh wall time", () => {
   expect(formatRiyadhDateTime("2026-10-21T12:00", "ar")).toContain("12:00 م");
   expect(formatRiyadhDateTime("2026-10-21T12:00", "en")).toContain("12:00 pm");
 });
+
+it("keeps compact table periods on days and months in Riyadh with Western digits",async()=>{
+ const {formatRiyadhPeriod}=await import("./datetime");expect(formatRiyadhPeriod("2026-10-27T09:00:00Z","2026-10-30T20:59:00Z","ar")).toBe("27–30 أكتوبر");expect(formatRiyadhPeriod("2026-10-29","2026-11-01","en")).toBe("29 October – 1 November");
+});

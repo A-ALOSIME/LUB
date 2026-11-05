@@ -1,5 +1,7 @@
 "use client";
 
+import {EventRequestActions} from "./event-request-actions";
+import {SelfHoursRequestAction} from "@/features/hours/self-request-action";
 import {ContentText} from "@/components/content-text";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import {NativeSelect} from "@/components/ui/native-select";
@@ -16,19 +18,18 @@ import { LiveFilterForm } from "@/components/live-filter-form"
 import { WorkspaceEmptyState } from "@/components/workspace-empty-state"
 import { ActivityHourFilter, type ActivityHourStatus } from "./activity-hour-filter"
 import type { HoursData } from "@/features/hours/repository"
-import { HoursFields, TermSelect } from "@/features/hours/view"
+import { TermSelect } from "@/features/hours/view"
 import { HoursRecordTable } from "@/features/hours/hours-record-table"
 import { Progress } from "@/components/ui/progress"
 import { formatHours, academicTerm } from "@/lib/display"
 import { HoursStatusSummary } from "@/features/hours/hours-status-summary"
-import { HoursForm } from "@/features/hours/form"
 import {formatRiyadhDate} from "@/lib/datetime"
 
 import type {EventCard} from "@/features/events/repository";
 import type { Locale } from "@/lib/preferences"
-import { FormField } from "@/components/form-field";
 
-type MyEvent = { id: string; title: string; starts_at: string; status_code: string; registration: string; review_status?:string;contributions?:Array<{kind:string;title:string}>;attendance: string;org_name?:string;has_poster?:boolean }
+
+type MyEvent = {registration_id?:string;attendance_hours?:string;canWithdraw?:boolean;canReapply?:boolean; id: string; title: string; starts_at: string; status_code: string; registration: string; review_status?:string;contributions?:Array<{kind:string;title:string}>;attendance: string;org_name?:string;has_poster?:boolean }
 
 function statusVariant(status: string): "secondary" | "outline" | "destructive" {
   if (["Approved", "Present", "Completed", "Registered"].includes(status)) return "secondary"
@@ -40,14 +41,15 @@ export function ActivityEventRows({ events, page, locale,onPageChange,hidePagina
   const router=useRouter();
   const en = locale === "en"
   const date=(value:string)=>formatRiyadhDate(value,locale)
-  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "أُلغي التسجيل", "Registration cancelled"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.review_status==="Recorded"?translateUi(locale,"مرصودة","Recorded"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
+  const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "مسحوب", "Withdrawn"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.review_status==="Recorded"?translateUi(locale,"مرصودة","Recorded"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
 
   return <div className="flex min-w-0 flex-col gap-3">
     {events.length ? <ItemTable pagination={hidePagination?undefined:{page,more:events.length>25,onChange:value=>{if(onPageChange)onPageChange(value);else router.push(`/activity?tab=events&page=${value}`);}}} items={events} href={event=>`/events/${event.id}`} label={translateUi(locale,"عرض تفاصيل الفعالية","View event details")} columns={[
       {id:"name",label:translateUi(locale,"الفعالية","Event"),render:event=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={CalendarDays} src={event.has_poster?`/event-posters/${event.id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={event.title}/></ItemTitle>{event.org_name&&<p className="text-sm text-muted-foreground"><ContentText value={event.org_name}/></p>}{event.contributions?.map(contribution=><p key={contribution.kind} className="text-sm text-muted-foreground">{contribution.title}</p>)}</div></div>},
+      {id:"hours",label:translateUi(locale,"ساعات الحضور","Attendance hours"),className:"w-32",render:event=>formatHours(event.attendance_hours??0,locale)},
       {id:"status",label:translateUi(locale,"الحالة","Status"),className:"w-44",render:event=><Badge variant={statusVariant(event.review_status==='Recorded'?'Registered':event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge>},
       {id:"date",label:translateUi(locale,"التاريخ","Date"),className:"w-40",render:event=><time>{date(event.starts_at)}</time>},
-      {id:"actions",label:translateUi(locale,"الإجراءات","Actions"),className:"w-16",render:event=><RowAction label={translateUi(locale,"عرض التفاصيل","View details")} href={`/events/${event.id}`}><Eye/></RowAction>}
+      {id:"actions",label:translateUi(locale,"الإجراءات","Actions"),className:"w-36",render:event=><EventRequestActions event={event} locale={locale}/> }
     ]}/> : empty??<WorkspaceEmptyState
       icon={CalendarDays}
       title={translateUi((en) ? "en" : "ar", "ما سجلت في فعالية بعد", "No event registrations yet")}
@@ -92,7 +94,7 @@ export function ActivityHours({ data, page, term, status, locale,onFiltersChange
         {statusCode && <input type="hidden" name="hourStatus" value={status} />}
         <TermSelect compact terms={data.terms} all value={term ?? ""} locale={locale} className="w-full min-w-0" />
       </LiveFilterForm>}
-      <div className="shrink-0"><ActivityHourFilter value={status} locale={locale} onChange={onFiltersChange?status=>onFiltersChange({status}):undefined}/></div>
+      <SelfHoursRequestAction memberships={data.memberships} locale={locale}/><div className="shrink-0"><ActivityHourFilter value={status} locale={locale} onChange={onFiltersChange?status=>onFiltersChange({status}):undefined}/></div>
     </div>}
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale} />
@@ -109,12 +111,6 @@ export function ActivityHours({ data, page, term, status, locale,onFiltersChange
       : empty??<WorkspaceEmptyState icon={Clock} title={c("لا توجد سجلات ساعات", "No hour records")} description={c("لا توجد سجلات لهذه الفترة والحالة.", "No records match this term and status.")} />}
 
 
-    {data.memberships.filter(membership => membership.self).map(membership => <details key={membership.id} className="rounded-lg border border-border/70 p-3">
-      <summary className="cursor-pointer text-sm font-medium">{c("طلب ساعات ذاتي", "Self-reported hours request")} · <bdi>{membership.name}</bdi></summary>
-      <div className="pt-3"><HoursForm operation="self" fields={{ member: membership.id }} label={c("إرسال للمراجعة", "Submit for review")} locale={locale}>
-        <FormField  label={<>{c("نطاق العمل", "Work scope")}</>}><NativeSelect name="committee"><option value="">{c("الجهة بالكامل", "Whole organization")}</option>{membership.committees.map(item => <option key={item.id} value={item.id} dir="auto">{item.name}</option>)}</NativeSelect></FormField>
-        <HoursFields locale={locale} />
-      </HoursForm></div>
-    </details>)}
+
   </div>
 }

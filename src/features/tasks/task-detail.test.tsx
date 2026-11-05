@@ -2,7 +2,7 @@
 import {cleanup,render,screen,fireEvent,within} from "@testing-library/react";
 import {afterEach,it,expect,vi} from "vitest";
 vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn(),refresh:vi.fn(),prefetch:vi.fn()})}));
-vi.mock("./page-forms",()=>({TaskPageSubmission:()=> <label>وصف التسليم<textarea/></label>,TaskPageForm:({label}:{label:string})=><button>{label}</button>}));
+vi.mock("./page-forms",()=>({TaskSubmissionAction:()=> <button>سلّم الآن</button>,TaskPageForm:({label}:{label:string})=><button>{label}</button>}));
 vi.mock("./task-form",()=>({TaskForm:({label,children}:{label:string;children:React.ReactNode})=><form>{children}<button>{label}</button></form>}));
 vi.mock("@/features/hours/actions",()=>({mutateHours:vi.fn()}));
 import {TaskDetailView} from "./task-detail";
@@ -11,9 +11,9 @@ const d:TaskDetail={asOf:"2026-10-25T12:00:00Z",task:{id:"task",organization_id:
 const submission:Submission={id:"submission",name:"سارة",major:"الحاسب",level:"5",revision_number:1,message:"السطر الأول\nالسطر الثاني",status_code:"Submitted",submitted_at:"2026-10-24T10:00:00Z",review_note:null,reviewed_at:null,task_revision_id:"revision",task_revision_number:7,task_snapshot:d.task,assets:[{id:"asset",name:"%D9%85%D9%84%D9%81%20%D8%B9%D9%85%D9%84.pdf"}]};
 afterEach(()=>{cleanup();window.history.replaceState(null,"","/");});
 function show(detail:TaskDetail=d){return render(<TaskDetailView detail={detail} page={0} teamPage={0} participant={null}/>);}
-it("shows a full-width task and immediately visible submission form without the removed participation/settings/actions sections",()=>{
+it("shows a full-width task and an explicit submission action without the removed participation/settings/actions sections",()=>{
  show({...d,linkedEvent:{id:"event",title:"فعالية",status:"Published"},summary:{participants:4,submitted:2},history:[{id:"revision",revision_number:1,snapshot_json:d.task,changed_at:"2026-10-22"}]});
- expect(screen.getByRole("heading",{level:1}).textContent).toBe("تصميم الملصق");expect(screen.getByRole("textbox",{name:"وصف التسليم"})).toBeTruthy();expect(screen.queryByRole("button",{name:"إضافة تسليم"})).toBeNull();
+ expect(screen.getByRole("heading",{level:1}).textContent).toBe("تصميم الملصق");expect(screen.getByRole("button",{name:"سلّم الآن"})).toBeTruthy();expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();expect(screen.queryByRole("button",{name:"إضافة تسليم"})).toBeNull();
  for(const label of ["مشاركتي","الفعالية المرتبطة","نسبة التسليم","إجراءات المهمة","سجل نسخ المهمة"])expect(screen.queryByText(label)).toBeNull();expect(screen.queryByRole("button",{name:"بدء العمل"})).toBeNull();expect(document.querySelector("aside")).toBeNull();
 });
 it("shows the uncropped poster before the heading and derives deadline progress from the server clock",()=>{

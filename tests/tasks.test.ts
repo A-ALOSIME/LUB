@@ -95,7 +95,7 @@ it("respects committee membership and scoped leaders, never grants operational a
  const task=await openTask(committee);await asUser(member);expect((await db.query("select id from lub.tasks")).rows).toHaveLength(0);await denied(()=>join(task));
  await db.exec("reset role");await db.query("insert into lub.committee_memberships(organization_id,organization_membership_id,committee_id) values($1,$2,$3)",[org,memberships[1],committee]);
  await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,committee_id,role_code,assigned_by_user_id) values($1,$2,$3,'CL',$4)",[memberships[1],org,committee,leader]);
- await asUser(member);await create(committee);await denied(()=>create());await join(task);
+ await asUser(member);await create(committee);expect(await create()).toBeTruthy();await join(task);
  await db.exec("reset role");await db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)",[other]);
  await asUser(other);await denied(()=>create());
 });
@@ -109,17 +109,16 @@ it("changes emit owner-only notifications, reject stale edits, and cannot close 
  await asUser(other);expect((await db.query("select * from lub.notifications")).rows).toHaveLength(0);await denied(()=>db.query("select lub.read_task_notification($1)",[notes[1].id]));
  await asUser(leader);await db.query("select lub.change_task_status($1,'Completed',3)",[task]);await denied(()=>db.query("select lub.change_task_status($1,'Open',4)",[task]));await denied(()=>join(task,other));
 });
-it("copies templates independently, enforces grant scope and keeps snapshots immutable",async()=>{
+it("copies templates independently, enforces role revocation and keeps snapshots immutable",async()=>{
  const template=(await db.query<{id:string}>("select lub.save_task_template(null,$1,$2,'تصميم','إرشادات القالب',2,true,null,null) as id",[org,committee])).rows[0].id;
  const copied=(await db.query<{id:string}>("select lub.save_task_template(null,$1,null,'قالب منسوخ','',0,true,null,$2) as id",[org,template])).rows[0].id;
  await db.query("select lub.save_task_template($1,$2,$3,'قالب جديد','تعديل مستقل',4,true,1,null)",[template,org,committee]);
  expect((await db.query<{description_template:string}>("select description_template from lub.task_templates where id=$1",[copied])).rows[0].description_template).toBe("إرشادات القالب");
  await db.query("insert into lub.committees(organization_id,name,copied_from_committee_id) values($1,'نسخة اللجنة',$2)",[org,committee]);
  expect((await db.query("select id from lub.task_templates where copied_from_template_id=$1",[template])).rows).toHaveLength(2);
- await db.query("select lub.grant_task_permission($1,'TASKS_MANAGE',$2,null)",[memberships[1],committee]);await asUser(member);await create(committee);await denied(()=>create());
+ await denied(()=>db.query("select lub.grant_task_permission($1,'TASKS_MANAGE',$2,null)",[memberships[1],committee]));await db.query("select lub.change_member_role($1,'CL',$2)",[memberships[1],committee]);await asUser(member);await create(committee);expect(await create()).toBeTruthy();
  await denied(()=>db.query("select lub.grant_task_permission($1,'TASKS_MANAGE',null,null)",[memberships[2]]));await asUser(leader);
- const grant=(await db.query<{id:string}>("select id from lub.permission_grants where organization_membership_id=$1",[memberships[1]])).rows[0].id;
- await db.query("select lub.end_task_permission($1)",[grant]);await asUser(member);await denied(()=>create(committee));
+ await db.query("select lub.change_member_role($1,'Member',null)",[memberships[1]]);await asUser(member);await denied(()=>create(committee));
  await asUser(leader);const task=await create();await db.exec("reset role");await denied(()=>db.query("update lub.task_revisions set snapshot_json='{}' where task_id=$1",[task]));
 });
 it("binds only owned files, keeps bound objects undeletable, and limits downloads to owner and reviewer",async()=>{
@@ -237,13 +236,21 @@ it("rejoins an own withdrawal, preserves the earlier submission and accepts a ne
  expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(2);expect((await db.query("select id from lub.task_submissions where task_participant_id=$1 and status_code='Submitted' and withdrawn_at is null",[participant])).rows).toHaveLength(1);
  await asUser(leader);await db.query("select lub.close_task_participant($1)",[participant]);await asUser(member);await denied(()=>db.query("select lub.join_task($1)",[task]));
 });
-it("distinguishes a request to resubmit from a final rejection and protects both decisions",async()=>{
+it("preserves distinct review decisions and permits a new submission after rejection",async()=>{
  const task=await openTask(),participant=await join(task),first=await submit(participant);await asUser(other);await denied(()=>db.query("select lub.review_task_submission_decision($1,'Approved','')",[first]));
  await asUser(leader);await denied(()=>db.query("select lub.review_task_submission_decision($1,'Changes_Requested','')",[first]));await db.query("select lub.review_task_submission_decision($1,'Changes_Requested','أكمل التوضيح')",[first]);
  expect((await db.query<{status_code:string}>("select status_code from lub.task_participants where id=$1",[participant])).rows[0].status_code).toBe("In_Progress");expect((await db.query<{review_decision_code:string}>("select review_decision_code from lub.task_submissions where id=$1",[first])).rows[0].review_decision_code).toBe("Changes_Requested");
  await asUser(member);const second=await submit(participant,1);await asUser(leader);await db.query("select lub.review_task_submission_decision($1,'Rejected','لا يحقق المطلوب')",[second]);
- expect((await db.query<{status_code:string;withdrawn_at:string|null}>("select status_code,withdrawn_at from lub.task_participants where id=$1",[participant])).rows[0]).toEqual({status_code:"Closed",withdrawn_at:null});
- await denied(()=>db.query("select lub.review_task_submission_decision($1,'Approved','')",[second]));await asUser(member);await denied(()=>join(task));await denied(()=>submit(participant,2));
+ expect((await db.query<{status_code:string;withdrawn_at:string|null}>("select status_code,withdrawn_at from lub.task_participants where id=$1",[participant])).rows[0]).toEqual({status_code:"In_Progress",withdrawn_at:null});
+ await denied(()=>db.query("select lub.review_task_submission_decision($1,'Approved','')",[second]));await asUser(member);await denied(()=>join(task));const third=await submit(participant,2);expect(third).not.toBe(second);expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(3);
 });
 
 it("exposes joined date and organization-scoped committee names in the team without private profile fields",async()=>{const task=await openTask(),person=await join(task);await db.exec("reset role");await db.query("insert into lub.committee_memberships(organization_id,organization_membership_id,committee_id) values($1,$2,$3)",[org,memberships[1],committee]);await asUser(member);const result=(await db.query<{data:Array<{id:string;joinedAt:string;committee:string}>}>("select lub.task_team_details($1) data",[task])).rows[0].data;expect(result).toHaveLength(1);expect(result[0].id).toBe(person);expect(result[0].joinedAt).toBeTruthy();expect(result[0].committee).toBeTruthy();expect(JSON.stringify(result)).not.toMatch(/university|national|email|phone|avatar/);await asUser(other);expect((await db.query<{data:unknown[]}>("select lub.task_people($1) data",[task])).rows[0].data).toEqual([]);});
+it("withdraws an owned pending submission, retains it, and permits another numbered submission",async()=>{
+ const task=await openTask(),participant=await join(task),first=await submit(participant);
+ await asUser(other);await denied(()=>db.query("select lub.withdraw_task_submission($1)",[first]));await asUser(member);
+ await db.query("select lub.withdraw_task_submission($1)",[first]);
+ expect((await db.query<{withdrawn_at:string;message:string}>("select withdrawn_at,message from lub.task_submissions where id=$1",[first])).rows[0]).toMatchObject({withdrawn_at:expect.any(Date),message:"المخرج الأول"});
+ await denied(()=>db.query("select lub.withdraw_task_submission($1)",[first]));const second=await submit(participant,1);expect(second).not.toBe(first);
+ await asUser(leader);await db.query("select lub.review_task_submission_decision($1,'Approved','')",[second]);await asUser(member);await denied(()=>db.query("select lub.withdraw_task_submission($1)",[second]));await denied(()=>submit(participant,2));
+});

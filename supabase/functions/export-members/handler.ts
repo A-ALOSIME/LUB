@@ -15,7 +15,8 @@ export function createMemberExportHandler({env,fetcher}:Dependencies){return asy
    if(Number(request.headers.get('content-length')??0)>2048)return fail(413);
    const text=await request.text();if(text.length>2048)return fail(413);const input=JSON.parse(text);
    if(typeof input.org!=="string"||typeof input.q!=="string"||input.q.length>120||!['all','Active','Ended','Inactive'].includes(input.state)||(input.committee!==null&&typeof input.committee!=="string"))return fail(400);
-   const response=await rpc('prepare_member_export',{org:input.org,q:input.q,state:input.state,committee:input.committee});
+   if(input.term!=null&&(typeof input.term!=="string"||!/^[-0-9a-f]{36}$/i.test(input.term)))return fail(400);
+   const response=await rpc('prepare_member_export',{org:input.org,q:input.q,state:input.state,committee:input.committee,term:input.term??null});
    if(!response.ok){const issue=await response.json();return fail(issue?.code==='54000'?429:403);}return Response.json(await response.json(),{headers});
   }
   const query=new URL(request.url).searchParams,ticket=query.get('ticket'),locale=query.get('locale')==='en'?'en':'ar';

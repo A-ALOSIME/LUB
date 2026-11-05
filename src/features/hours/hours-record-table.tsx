@@ -8,7 +8,7 @@ import {ContentText} from "@/components/content-text";
 import {createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import { useState } from "react";
-import { Check, Eye, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { Check, Eye, SlidersHorizontal, X, ChevronDown, Undo2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {HourAdjustment} from "./hour-adjustment";
 import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
@@ -16,6 +16,8 @@ import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
 import {DataTable} from "@/components/data-table";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
+import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription} from "@/components/ui/alert-dialog";
+import {ManagementActionProvider} from "@/components/management-action-sheet";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { RowAction } from "@/components/row-action";
 import { HoursForm } from "./form";
@@ -29,6 +31,7 @@ const labels: Record<string, [string, string]> = {
   Pending: ["بانتظار الاعتماد", "Pending approval"],
   Approved: ["معتمدة", "Approved"],
   Rejected: ["مرفوضة", "Rejected"],
+  Withdrawn: ["مسحوب", "Withdrawn"],
   Voided: ["مبطلة", "Voided"],
   MANUAL: ["إضافة يدوية", "Manual entry"],
   SELF_REPORTED: ["طلب ذاتي", "Self-reported"],
@@ -60,24 +63,24 @@ export function HourStatus({
 }
 function RecordActions({
   record:row,
-  locale,initialDetails=false,hideActions=false,onClose,
+  locale,initialDetails=false,hideActions=false,onClose,personal=false,
 }: {
   record: HourRecord;
-  locale: Locale;initialDetails?:boolean;hideActions?:boolean;onClose?:()=>void;
+  locale: Locale;initialDetails?:boolean;hideActions?:boolean;onClose?:()=>void;personal?:boolean;
 }) {
   const [action, setAction] = useState<
-      "adjust" | "details" | "approve" | "reject" | null
+      "adjust" | "details" | "approve" | "reject" | "withdraw" | null
     >(initialDetails?"details":null),
     en = locale === "en",
     c = createTranslator((en) ? "en" : "ar");
   const actor=useQueryActor(),details=useQuery({queryKey:["hour-record",actor,row.organization_id,row.id,row.hours,row.status_code],queryFn:({signal})=>privateJson<HourRecord>(`/api/hours/${row.id}`,signal),enabled:action==="details"});
   const record=details.data??row;
   const editable =
-    record.canReview && ["Pending", "Approved"].includes(record.status_code);
+    !personal && record.canReview && ["Pending", "Approved"].includes(record.status_code);
   return (
     <>
       {!hideActions&&<div className="hours-row-actions">
-        <RowAction
+        {!personal&&<>        <RowAction
           label={c("تعديل الساعات", "Adjust hours")}
           hint={
             !editable
@@ -91,14 +94,14 @@ function RecordActions({
           onClick={() => setAction("adjust")}
         >
           <SlidersHorizontal />
-        </RowAction>
+        </RowAction></>}
         <RowAction
           label={c("عرض التفاصيل", "View details")}
           onClick={() => setAction("details")}
         >
           <Eye />
         </RowAction>
-        {record.canReview && record.status_code === "Pending" ? (
+        {!personal&&(record.canReview && record.status_code === "Pending" ? (
           <>
             <RowAction
               label={c("اعتماد", "Approve")}
@@ -119,8 +122,10 @@ function RecordActions({
             <RowAction label={c("اعتماد","Approve")} disabled><Check/></RowAction>
             <RowAction label={c("رفض","Reject")} danger disabled><X/></RowAction>
           </>
-        )}
+        ))}
+        {personal&&record.source_code==="SELF_REPORTED"&&<RowAction label={c("سحب طلب الساعات","Withdraw hours request")} danger disabled={!record.canWithdraw} hint={c("يمكن سحب طلبك الذاتي وهو بانتظار الاعتماد فقط","Only your pending self-reported request can be withdrawn")} onClick={()=>setAction("withdraw")}><Undo2/></RowAction>}
       </div>}
+      <AlertDialog open={action==="withdraw"} onOpenChange={open=>{if(!open)setAction(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{c("سحب طلب الساعات؟","Withdraw hours request?")}</AlertDialogTitle><AlertDialogDescription>{c("سيصبح الطلب مسحوبًا ويبقى في سجلك، ولن تُحتسب ساعاته.","The request will remain in your history as withdrawn and its hours will not count.")}</AlertDialogDescription></AlertDialogHeader><ManagementActionProvider locale={locale} close={()=>setAction(null)}><HoursForm operation="withdraw-self" fields={{record:record.id}} locale={locale} label={c("سحب الطلب","Withdraw request")}/></ManagementActionProvider></AlertDialogContent></AlertDialog>
       {action === "adjust" && (
         <ManagementActionSheet
           label=""
@@ -228,7 +233,7 @@ function RecordActions({
                           · {c("بواسطة", "by")} {item.actor_name}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {item.before_hours} ← {item.after_hours}
+                          {c(`من ${item.before_hours} إلى ${item.after_hours} ساعة`,`From ${item.before_hours} to ${item.after_hours} hours`)}
                         </p>
                         {item.note && (
                           <p className="whitespace-pre-wrap text-sm">
@@ -269,17 +274,7 @@ function RecordActions({
           }}
           hideTrigger
         >
-          <p className="mb-4 text-sm text-muted-foreground">
-            {action === "reject"
-              ? c(
-                  "سيصبح السجل مرفوضًا ولن يُحتسب في الساعات المعتمدة.",
-                  "The record will be rejected and excluded from approved hours.",
-                )
-              : c(
-                  "ستُضاف ساعات السجل إلى الرصيد المعتمد.",
-                  "The record will count toward approved hours.",
-                )}
-          </p>
+
           <HoursForm
             operation="review"
             fields={{
@@ -296,6 +291,17 @@ function RecordActions({
             buttonClassName={action === "reject" ? "button-danger" : undefined}
             onSuccess={() => setAction(null)}
           >
+          <p className="mb-4 text-sm text-muted-foreground">
+            {action === "reject"
+              ? c(
+                  "سيصبح السجل مرفوضًا ولن يُحتسب في الساعات المعتمدة.",
+                  "The record will be rejected and excluded from approved hours.",
+                )
+              : c(
+                  "ستُضاف ساعات السجل إلى الرصيد المعتمد.",
+                  "The record will count toward approved hours.",
+                )}
+          </p>
             {action === "reject" && <FormField  id={`hour-rejection-${record.id}`} label={<>{c("سبب الرفض", "Rejection reason")}</>}><Textarea id={`hour-rejection-${record.id}`} name="note" required maxLength={3000} rows={3}/></FormField>}
           </HoursForm>
         </ManagementActionSheet>
@@ -353,9 +359,9 @@ export function HoursRecordTable({
         {id:"date",label:personal?c("التاريخ","Date"):c("التاريخ والفصل","Date and term"),className:"w-40",render:record=><><time>{formatRiyadhDate(record.activity_date,locale)}</time>{!personal&&<p className="text-sm text-muted-foreground">{academicTerm(record.term_name,locale)}</p>}</>},
         ...(personal?[{id:"source",label:c("المصدر","Source"),className:"w-40",render:source}]:[]),
         {id:"status",label:c("الحالة","Status"),className:"w-36",render:record=><HourStatus status={record.status_code} locale={locale}/>},
-        {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:record=><RecordActions record={record} locale={locale}/>}
+        {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:record=><RecordActions record={record} personal={personal} locale={locale}/>}
       ]}/>
-      {selected&&<RecordActions key={selected.id} record={selected} locale={locale} initialDetails hideActions onClose={()=>setSelected(null)}/>}
+      {selected&&<RecordActions key={selected.id} record={selected} personal={personal} locale={locale} initialDetails hideActions onClose={()=>setSelected(null)}/>}
     </section>
   );
 }

@@ -20,7 +20,7 @@ export async function generateMetadata() {
 export default async function NewOrganizationRequest({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string;origin?:string }>;
 }) {
   const [{ locale }, user, query] = await Promise.all([
     getPreferences(),
@@ -41,8 +41,8 @@ export default async function NewOrganizationRequest({
       dir={en ? "ltr" : "rtl"}
       className="mx-auto w-full max-w-3xl flex flex-col gap-6 px-5 py-10"
     >
-      <Button variant="ghost" render={<Link href="/organizations" />}>
-        {translateUi((en) ? "en" : "ar", "رجوع للأندية والمجالس", "Back to organizations")}
+      <Button variant="ghost" render={<Link href={query.origin==="requests"?"/applications?tab=organizations":"/organizations"} />}>
+        {translateUi((en) ? "en" : "ar", query.origin==="requests"?"الرجوع لطلبات فتح الأندية":"رجوع للأندية والمجالس", query.origin==="requests"?"Back to organization requests":"Back to organizations")}
       </Button>
       <header>
         <h1 className="text-3xl">

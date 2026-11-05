@@ -169,10 +169,10 @@ it("exports scoped approved hours directly as CSV without persisting report docu
  const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,exporter])).rows[0].id;
  const adminMember=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");const term=(await engine.query<{id:string}>("select lub.create_academic_term('2026','T1','الفصل الأول',current_date-5,current_date+5) as id")).rows[0].id;
- await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);await engine.query("select lub.grant_report_permission($1,null,null)",[member]);await engine.query("select lub.grant_report_permission($1,null,null)",[adminMember]);await engine.exec("reset role");
- scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0})).toBeUndefined();
+ await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);await engine.query("select lub.change_member_role($1,'OD',null)",[member]);await engine.query("select lub.grant_report_permission($1,null,null)",[adminMember]);await engine.exec("reset role");
+ scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0})).toBeDefined();
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[exporter]);await engine.exec("set role authenticated");const exported=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,$2) as csv",[org,term])).rows[0].csv;expect(exported).toContain('"الاسم","الساعات المعتمدة"');expect(exported).toContain('2.50');expect(exported).not.toContain('storage_key');await engine.exec("reset role");
- const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(false);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
+ const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(true);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
 });
 
 it("reads hours and renewals with scoped totals, bounded lists and the genuine repository SQL",async()=>{
@@ -286,7 +286,7 @@ it("loads assigned organizations and administrator rosters in one scoped query e
   await createLearner();
   const membership = (await engine.query<{ id: string }>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id", [org, learner])).rows[0].id;
   await engine.query("select set_config('request.jwt.claim.sub',$1,false)", [leader]); await engine.exec("set role authenticated");
-  await engine.query("select lub.grant_report_permission($1,null,null)", [membership]); await engine.exec("reset role");
+  await engine.query("select lub.change_member_role($1,'OD',null)", [membership]); await engine.exec("reset role");
 
   selectedReads = 0;
   expect((await getAssignedManagementOrganizations(learner)).map(item => item.id)).toEqual([org]);
@@ -396,7 +396,7 @@ it("rolls back profile and audit updates when a child record cannot be stored", 
   expect((await engine.query("select count(*)::int as n from lub.audit_log")).rows).toEqual(before);
 });
 
-it("renders and edits only the assigned committee for a committee leader", async () => {
+it("denies committee-profile edits to committee leaders while retaining task access", async () => {
   const { rows: memberRows } = await engine.query<{ id: string }>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id", [org, leader]);
   const { rows: committeeRows } = await engine.query<{ id: string }>("select id from lub.committees where organization_id=$1 and not is_public", [org]);
   const ownCommittee = committeeRows[0].id;
@@ -405,9 +405,8 @@ it("renders and edits only the assigned committee for a committee leader", async
   expect(access.organizations).toHaveLength(1);
   expect(access.organizations[0].canEdit).toBe(false);
   expect(access.organizations[0].canManageCommittees).toBe(false);
-  expect((await getManagementOrganization(leader, org))?.committees.map(x => x.id)).toEqual([ownCommittee]);
-  await saveCommittee(leader, org, { name: "لجنتي", description: "محدّثة", isPublic: false, parentCommitteeId: null }, ownCommittee);
-  expect((await getManagementOrganization(leader, org))?.committees[0].name).toBe("لجنتي");
+  expect((await getManagementOrganization(leader, org))?.organization.canTasks).toBe(true);expect((await getManagementOrganization(leader, org))?.committees).toEqual([]);
+  await expect(saveCommittee(leader, org, { name: "لجنتي", description: "محدّثة", isPublic: false, parentCommitteeId: null }, ownCommittee)).rejects.toThrow();
   await expect(copyCommittee(leader, org, ownCommittee)).rejects.toThrow();
 });
 

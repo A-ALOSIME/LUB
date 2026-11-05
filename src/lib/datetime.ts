@@ -57,3 +57,11 @@ export function formatRiyadhDateTime(value: string | Date | null | undefined, lo
   const formattedDate = dateFormatter(locale, includeWeekday).format(date);
   return `${formattedDate}${translateUi((locale === "en") ? "en" : "ar", "، ", ", ")}${formatRiyadhTime(date, locale)}`;
 }
+
+/** Compact list period: days and month names only, always in Riyadh. */
+export function formatRiyadhPeriod(start:string|null|undefined,end:string|null|undefined,locale:Locale="ar"){
+ const a=parseRiyadhValue(start),b=parseRiyadhValue(end);if(!a||!b)return formatRiyadhDate(start??end,locale);
+ const formatter=new Intl.DateTimeFormat(locale==="en"?EN_LOCALE:AR_LOCALE,{day:"numeric",month:"long",timeZone:TIME_ZONE,calendar:"gregory"});
+ const left=formatter.formatToParts(a),right=formatter.formatToParts(b),part=(list:Intl.DateTimeFormatPart[],type:Intl.DateTimeFormatPartTypes)=>list.find(item=>item.type===type)?.value??"";
+ return part(left,"month")===part(right,"month")?`${part(left,"day")}–${part(right,"day")} ${part(left,"month")}`:`${formatter.format(a)} – ${formatter.format(b)}`;
+}

@@ -14,24 +14,9 @@ export function ApplicationDetail({
   detail: Detail;
   locale?: Locale;
 }) {
-  const en = locale === "en",
-    reason =
-      detail.status_code === "Rejected"
-        ? [...detail.history]
-            .reverse()
-            .find((h) => h.to_status_code === "Rejected")?.reason
-        : null;
+  const en = locale === "en";
   return (
     <div className="flex flex-col gap-6">
-      <RequestStatusBadge status={detail.status_code} locale={locale} />
-      {reason && (
-        <section>
-          <h2 className="text-sm text-muted-foreground">
-            {translateUi((en) ? "en" : "ar", "سبب الرفض", "Rejection reason")}
-          </h2>
-          <p className="whitespace-pre-wrap leading-relaxed">{reason}</p>
-        </section>
-      )}
       <dl className="space-y-5">
         {detail.committee_labels?.legacy&&!detail.version.definition.sections.some(s=>s.fields.some(f=>f.type==='Committee'))&&<div><dt className="text-sm text-muted-foreground">{translateUi((en) ? "en" : "ar", 'اللجنة المطلوبة', 'Requested committee')}</dt><dd className="mt-1">{detail.committee_labels.legacy}</dd></div>}
         {detail.version.definition.sections

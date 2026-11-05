@@ -1,6 +1,7 @@
 "use client";
+import {ApplicantProfileAction} from "./applicant-profile-action";
 
-import {majorLabel,academicLevel} from "@/lib/display";
+
 import {createTranslator} from "@/lib/i18n";
 import {useState} from "react";
 import {useRouter} from "next/navigation";
@@ -75,7 +76,7 @@ export function ApplicationSelection({
       rows={rows.map((r) => ({
         id: r.id,
         name: r.name,
-        subtitle: [majorLabel(r.major,locale),academicLevel(r.level,locale)].filter(Boolean).join(" · "),
+        subtitle:"",extraAction:<ApplicantProfileAction organization={organization} application={r.id} locale={locale}/>,
         committee: r.committee,
         status: r.status_code,
         createdAt: r.created_at,

@@ -84,6 +84,11 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
         await changeAnnouncementState(user.id,organizationId(),z.uuid().parse(form.get("announcementId")),"pin",form.get("pinned")==="on");success="تم تحديث تثبيت الإعلان.";break;
       case "delete-announcement":
         confirmation.parse(form.get("confirmed"));await changeAnnouncementState(user.id,organizationId(),z.uuid().parse(form.get("announcementId")),"delete");success="تم حذف الإعلان.";break;
+      case "restore-announcement":
+        confirmation.parse(form.get("confirmed"));
+        await changeAnnouncementState(user.id,organizationId(),z.uuid().parse(form.get("announcementId")),"restore");
+        success = "تم حفظ التغيير.";
+        break;
       case "archive-announcement":
         confirmation.parse(form.get("confirmed"));
         await archiveAnnouncement(user.id, organizationId(), z.uuid().parse(form.get("announcementId")));

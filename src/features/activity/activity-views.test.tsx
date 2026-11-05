@@ -4,6 +4,9 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { HoursData } from "@/features/hours/repository";
 import { ActivityHours } from "./activity-views";
 
+vi.mock("@/features/events/actions",()=>({mutateEvent:vi.fn()}));
+vi.mock("@/features/forms/actions",()=>({mutateWorkflow:vi.fn()}));
+vi.mock("@/features/talent/activity-skill-actions",()=>({searchActivitySkills:vi.fn().mockResolvedValue([])}));
 vi.mock("./activity-hour-filter", () => ({ ActivityHourFilter: () => <div data-testid="activity-hour-status-filters" /> }));
 vi.mock("@/features/hours/form", () => ({ HoursForm: () => null }));
 vi.mock("@/features/hours/view", () => ({

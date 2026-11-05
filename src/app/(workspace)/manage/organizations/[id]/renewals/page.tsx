@@ -84,6 +84,7 @@ export default async function ManageRenewalsPage({ params, searchParams }: {
   const initialSection = sectionItems.some(item => item.id === requestedSection) ? requestedSection : sectionItems[0]?.id ?? "rounds";
 
 
+  if(template&&registration&&canManageForms)return <RegistrationManagement actions={newFormAction} workspace={registration} organization={id} selectedTemplate={template} locale={locale}/>;
   return <>
     <OrganizationSectionTabs items={sectionItems} initialSection={initialSection} defaultSection={sectionItems[0]?.id ?? "rounds"} sticky={false} label={c("التسجيل والتجديد", "Registration and renewal")} dir={en ? "ltr" : "rtl"}>
       {sectionItems.some(item => item.id === "rounds") && <OrganizationSectionTabPanel id="rounds">

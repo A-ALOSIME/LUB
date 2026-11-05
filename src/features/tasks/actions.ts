@@ -23,11 +23,12 @@ export async function readTaskNotification(notification:string):Promise<TaskStat
 export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskState>{
  const user=await requireUser();let target:string|undefined;
  try{
- const operation=z.enum(["save-task","delete","withdraw","link-event","status","template","join","submit","review","review-decision","close","read","read-all"]).parse(f.get("operation"));
- if(["join","submit","withdraw","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return operation==="submit"?{error:submissionErrorMessage("access","ar"),submissionError:"access"}:{error:adminError};}
+ const operation=z.enum(["save-task","delete","withdraw","withdraw-submission","link-event","status","template","join","submit","review","review-decision","close","read","read-all"]).parse(f.get("operation"));
+ if(["join","submit","withdraw","withdraw-submission","read","read-all"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return operation==="submit"?{error:submissionErrorMessage("access","ar"),submissionError:"access"}:{error:adminError};}
  const query=(()=>{
  switch(operation){
  case "delete":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.delete_task(${id(f,"task")},${revision(f)})`;
+ case "withdraw-submission":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.withdraw_task_submission(${id(f,"submission")})`;
  case "withdraw":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.withdraw_task_participation(${id(f,"participant")})`;
  case "link-event":return sql`select lub.link_task_event(${id(f,"task")},${optionalId(f,"event")},${revision(f)})`;
  case "save-task":return sql`select lub.save_task(${optionalId(f,"task")},${id(f,"org")},${optionalId(f,"committee")},${optionalId(f,"template")},${text(f,"title",120,2)},${text(f,"description",6000)},${date(f,"starts")}::timestamptz,${date(f,"due")}::timestamptz,${hours(f)}::numeric,${f.get("task")?revision(f):null}::int) as id`;

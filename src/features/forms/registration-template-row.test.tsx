@@ -30,5 +30,5 @@ it("requires a named irreversible-delete confirmation before requesting deletion
 it("offers an explicit edit link before duplicate and delete without nesting them in the row link",()=>{
  view();const edit=screen.getByRole('link',{name:'تعديل النموذج'}),open=screen.getByRole('link',{name:'فتح النموذج طلب الانضمام'});
  expect(edit.getAttribute('href')).toBe(open.getAttribute('href'));expect(open.contains(edit)).toBe(false);
- const actions=document.querySelector('.registration-template-actions')!;expect([...actions.querySelectorAll('[aria-label]')].map(node=>node.getAttribute('aria-label'))).toEqual(['تعديل النموذج','تكرار النموذج','حذف النموذج']);
+ const actions=document.querySelector('.registration-template-actions')!;expect([...actions.querySelectorAll('[aria-label]')].map(node=>node.getAttribute('aria-label'))).toEqual(['معاينة النموذج','تعديل النموذج','تكرار النموذج','حذف النموذج']);
 });

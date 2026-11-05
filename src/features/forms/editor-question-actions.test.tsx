@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import {cleanup,fireEvent,render,screen,within} from "@testing-library/react";
+import {cleanup,fireEvent,render,screen,within,waitFor} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
-vi.mock("./actions",()=>({mutateWorkflow:vi.fn()}));
+const mutate=vi.hoisted(()=>vi.fn().mockResolvedValue({success:"Saved"}));
+vi.mock("./actions",()=>({mutateWorkflow:mutate}));
 vi.mock("next/navigation",()=>({useRouter:()=>({refresh:vi.fn()})}));
 import {FormEditor} from "./editor";
 import type {FormDefinition} from "./definition";
@@ -20,7 +21,6 @@ it("opens a newly added question and keeps optional help empty until typed",()=>
  open();fireEvent.click(screen.getByRole("button",{name:"إضافة سؤال"}));
  const question=screen.getByRole("textbox",{name:"السؤال"}).closest(".editor-question")!;
  expect((within(question as HTMLElement).getByRole("textbox",{name:"السؤال"}) as HTMLInputElement).value).toBe("سؤال جديد");
- fireEvent.click(within(question as HTMLElement).getByRole("button",{name:"خيارات متقدمة"}));
  expect((screen.getByPlaceholderText("توضيح يساعد الطالب على الإجابة") as HTMLInputElement).value).toBe("");
  expect(within(question as HTMLElement).getByRole("switch",{name:"إجابة مطلوبة"})).toBeTruthy();
 });
@@ -35,9 +35,8 @@ it("uses an explicit answered condition for dynamic committees without requestin
  render(<FormEditor version="version" revision={1} initial={definition}/>);
  fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));
  fireEvent.click(screen.getByRole("button",{name:/السؤال 2 · السؤال الثاني/}));
- fireEvent.click(screen.getByRole("button",{name:"خيارات متقدمة"}));
  fireEvent.change(document.querySelector('select[id$="-condition-form-value"]')!,{target:{value:definition.sections[0].fields[0].id}});
- expect(screen.getByRole("combobox",{name:"المقارنة"}).textContent).toContain("تمت الإجابة");
+ expect(screen.getByRole("combobox",{name:"يظهر عندما"}).textContent).toContain("أجاب");expect(screen.queryByRole("combobox",{name:"المقارنة"})).toBeNull();
  expect(screen.queryByRole("textbox",{name:"قيمة الإجابة"})).toBeNull();
  const payload=JSON.parse((document.querySelector('input[name="definition"]') as HTMLInputElement).value) as FormDefinition;
  expect(payload.sections[0].fields[1].condition).toEqual({fieldId:definition.sections[0].fields[0].id,operator:"Answered",value:"true"});
@@ -54,4 +53,8 @@ it("drags question backgrounds while protecting fields and direct actions",()=>{
  open();const cards=document.querySelectorAll<HTMLElement>('[data-question-draggable="true"]');expect(cards).toHaveLength(2);
  const transfer={setData:vi.fn(),effectAllowed:""};fireEvent.mouseDown(cards[0]);expect(cards[0].draggable).toBe(true);fireEvent.dragStart(cards[0],{dataTransfer:transfer});fireEvent.drop(cards[1],{dataTransfer:transfer});expect(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/})).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/}));const field=screen.getByRole("textbox",{name:"السؤال"});const card=field.closest<HTMLElement>('[data-question-draggable="true"]')!;fireEvent.mouseDown(field);expect(card.draggable).toBe(false);fireEvent.change(field,{target:{value:"كتابة طبيعية"}});expect((field as HTMLInputElement).value).toBe("كتابة طبيعية");const button=screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"});fireEvent.mouseDown(button);expect(card.draggable).toBe(false);fireEvent.click(button);expect(document.querySelectorAll('[data-question-draggable="true"]')).toHaveLength(3);
+});
+
+it("publishes changes to a previously published form on save through the versioned workflow",async()=>{
+ mutate.mockClear();render(<FormEditor version="version" revision={1} initial={initial} publishOnSave/>);fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الأول/}));fireEvent.change(screen.getByRole("textbox",{name:"السؤال"}),{target:{value:"عنوان معدّل"}});fireEvent.click(screen.getByRole("button",{name:"حفظ التعديلات"}));await waitFor(()=>expect(mutate).toHaveBeenCalledTimes(2));expect(mutate.mock.calls.map(call=>(call[1] as FormData).get("operation"))).toEqual(["save-form","publish-form"]);
 });

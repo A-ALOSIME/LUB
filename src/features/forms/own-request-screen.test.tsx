@@ -17,7 +17,7 @@ beforeEach(()=>{window.history.replaceState(null,"","/applications?tab=renewals"
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();window.history.replaceState(null,"","/");});
 it("uses direct renewal response icons and a regular dialog, without a response select or withdrawal action",()=>{
  mount();expect(screen.getAllByRole("button",{name:"Accept renewal"})).toHaveLength(2);expect(screen.getAllByRole("button",{name:"Decline renewal"})).toHaveLength(2);expect(screen.queryByRole("button",{name:"Withdraw request"})).toBeNull();
- fireEvent.click(screen.getAllByRole("button",{name:"View details"})[0]);expect(screen.getByRole("dialog")).toBeTruthy();expect(document.querySelector('[data-slot="sheet-content"]')).toBeNull();expect(screen.queryByRole("combobox")).toBeNull();expect(screen.queryByRole("button",{name:"Save response"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"View details"})).toBeNull();expect(screen.queryByRole("button",{name:"New request"})).toBeNull();expect(screen.queryByRole("dialog")).toBeNull();expect(document.querySelector('[data-slot="sheet-content"]')).toBeNull();expect(screen.queryByRole("combobox")).toBeNull();expect(screen.queryByRole("button",{name:"Save response"})).toBeNull();
 });
 it("updates a response optimistically and restores it when the owner-checked save fails",async()=>{
  let resolve!:(value:{error:string})=>void;mutate.mockReturnValue(new Promise(r=>{resolve=r;}));const add=vi.spyOn(toast,"add");mount();fireEvent.click(screen.getAllByRole("button",{name:"Accept renewal"})[0]);

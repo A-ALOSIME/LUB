@@ -25,7 +25,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
         exists(select 1 from lub.student_profiles where user_id=${user}) as onboarded,
         lub.has_event_access(o.id) as "canViewEvents",
         lub.has_org_permission(o.id, 'EVENTS_MANAGE') as "canManage",
-        lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE') as "canManageAnnouncements",
+        lub.has_org_permission(o.id, 'ANNOUNCEMENTS_MANAGE') as "canManageAnnouncements",
         case when lub.has_event_access(o.id) and (${!filters?.section}::boolean or ${filters?.section??""}='events') then coalesce((
           select jsonb_agg(e) from (
             select e.id, e.organization_id,e.title, coalesce(e.starts_at::text,'') as starts_at, coalesce(e.ends_at::text,'') as ends_at, e.status_code,e.revision,e.location_text,e.location_type_code,
@@ -45,7 +45,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
             order by t.name, t.id limit 100
           ) t
         ), '[]'::jsonb) else '[]'::jsonb end as templates,
-        case when lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE') and (${!filters?.section}::boolean or ${filters?.section??''}='announcements') then coalesce((
+        case when lub.has_org_permission(o.id, 'ANNOUNCEMENTS_MANAGE') and (${!filters?.section}::boolean or ${filters?.section??''}='announcements') then coalesce((
           select jsonb_agg(a) from (
             select a.id, a.title, a.body, a.published_at is not null as published,
               a.pinned_at is not null as pinned, a.created_at as "createdAt",a.published_at as "publishedAt",a.archived_at is not null as archived,a.external_url as "externalUrl",a.image_asset_id as "imageAssetId"
@@ -56,7 +56,7 @@ export async function eventWorkspaceOverview(user: string, org: string, page: nu
           ) a
         ), '[]'::jsonb) else '[]'::jsonb end as announcements
       from lub.organizations o
-      where o.id=${org} and (lub.has_event_access(o.id) or lub.has_org_permission(o.id, 'ORG_PROFILE_MANAGE'))
+      where o.id=${org} and (lub.has_event_access(o.id) or lub.has_org_permission(o.id, 'ANNOUNCEMENTS_MANAGE'))
     `);
     return rows[0] as unknown as EventWorkspace | undefined;
   });

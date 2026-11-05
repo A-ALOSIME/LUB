@@ -1961,6 +1961,7 @@ a.organization-contact-icon:hover { background: var(--accent); color: var(--acce
 .workflow-split-form .management-action-footer [data-slot=button] { height:2.5rem; min-height:2.5rem; }
 .management-action-bottom-sheet { inset-inline:0; top:auto; bottom:0; width:100%; max-width:none; max-height:95dvh; border-radius:1rem 1rem 0 0; }
 .management-action-bottom-sheet:has(.workflow-split-form) { height:95dvh; }
+.management-action-bottom-sheet .workflow-form-body { flex:1 1 auto; }
 
 .event-fields { display:flex; flex-direction:column; gap:1.5rem; }
 .event-fields section { display:flex; flex-direction:column; gap:1rem; }

@@ -46,3 +46,7 @@ it.each(["Answered","Equals"])("shows the follow-up after any committee choice, 
  expect(validateAnswers(schema,{[first]:section,[second]:"أرغب بالمشاركة"})).toEqual({[first]:section,[second]:"أرغب بالمشاركة"});
  expect(validateAnswers(schema,{[first]:"",[second]:"إجابة مخفية قديمة"})).toEqual({});
 });
+it("supports answered and unanswered branches while pruning hidden stale answers",()=>{
+ const schema=definitionSchema.parse({layout:"SinglePage",sections:[{id:section,title:"شرط",description:"",fields:[{id:first,type:"Committee",label:"اللجنة",help:"",required:false,options:[],maxLength:300},{id:second,type:"LongText",label:"بدون إجابة",help:"",required:true,options:[],maxLength:300,condition:{fieldId:first,operator:"NotAnswered",value:"true"}}]}]});
+ expect(visibleFields(schema,{}).has(second)).toBe(true);expect(()=>validateAnswers(schema,{})).toThrow();expect(validateAnswers(schema,{[second]:"سؤال ظاهر"})).toEqual({[second]:"سؤال ظاهر"});expect(validateAnswers(schema,{[first]:section,[second]:"إجابة مخفية"})).toEqual({[first]:section});
+});

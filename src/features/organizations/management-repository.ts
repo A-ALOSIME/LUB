@@ -202,7 +202,7 @@ export type OrganizationPermissionWorkspace = {
 
 export async function getOrganizationMemberDirectory(userId: string, organizationId: string, filters:MemberFilters=initialMemberFilters):Promise<OrganizationMemberWorkspace|undefined> {
   return withUser(userId, async tx => {
-    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId},${filters.q},${filters.status},${filters.committee},${(filters.page??0)*25},${filters.sort??"name:asc"}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
+    const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId},${filters.q},${filters.status},${filters.committee},${(filters.page??0)*25},${filters.sort??"name:asc"},${filters.term??null}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
     return rows[0]?.workspace?decodeMemberWorkspace(rows[0].workspace as EncryptedMemberWorkspace):undefined;
   });
 }
@@ -210,9 +210,7 @@ export async function getOrganizationMemberDirectory(userId: string, organizatio
 export async function getOrganizationPermissionWorkspace(userId: string, organizationId: string) {
   return withUser(userId, async tx => {
     const rows = await tx.execute<{ workspace: Omit<OrganizationPermissionWorkspace, "grants">; grants: OrganizationPermissionWorkspace["grants"] }>(sql`select lub.organization_permission_workspace(o.id) as workspace,
-      coalesce((select jsonb_agg(jsonb_build_object('id',g.id,'membership',g.organization_membership_id,'member',p.full_name_ar,'code',g.permission_code,'committee',c.name,'ends',g.end_at) order by p.full_name_ar,g.permission_code,g.id)
-        from lub.permission_grants g join lub.organization_memberships m on m.id=g.organization_membership_id and m.organization_id=g.organization_id join lub.student_profiles p on p.user_id=m.user_id left join lub.committees c on c.id=g.committee_id
-        where g.organization_id=o.id and g.permission_code<>'PERMISSIONS_GRANT' and g.start_at<=statement_timestamp() and (g.end_at is null or g.end_at>statement_timestamp())), '[]'::jsonb) as grants
+      '[]'::jsonb as grants
       from lub.organizations o where o.id=${organizationId} and lub.has_org_permission(o.id,'PERMISSIONS_GRANT')`);
     const row = rows[0];
     return row ? { ...row.workspace, grants: row.grants } as OrganizationPermissionWorkspace : undefined;
@@ -304,9 +302,9 @@ export async function saveAnnouncement(userId: string, organizationId: string, i
   return String(rows[0]?.id);
  });
 }
-export async function changeAnnouncementState(userId:string,organizationId:string,announcementId:string,operation:"pin"|"archive"|"delete",pinned=false){
+export async function changeAnnouncementState(userId:string,organizationId:string,announcementId:string,operation:"pin"|"archive"|"restore"|"delete",pinned=false){
  return withUser(userId,async tx=>{
-  await requirePermission(tx,organizationId,"ORG_PROFILE_MANAGE");
+  await requirePermission(tx,organizationId,"ANNOUNCEMENTS_MANAGE");
   const rows=await tx.execute(sql`select id from lub.announcements where id=${announcementId} and organization_id=${organizationId}`);if(!rows.length)throw new Error("FORBIDDEN");
   await tx.execute(sql`select lub.change_announcement_state(${announcementId},${operation},${pinned})`);
  });

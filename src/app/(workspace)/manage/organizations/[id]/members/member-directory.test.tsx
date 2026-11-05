@@ -64,14 +64,14 @@ it("shows named member actions in place and keeps membership ending last", () =>
 
   expect(screen.queryByRole("button", { name: "إجراءات أحمد محمد" })).toBeNull();
   expect(screen.queryByRole("menuitem")).toBeNull();
-  expect(screen.getAllByRole("button", { name: "منح صلاحية" })).toHaveLength(2);
+  expect(screen.getAllByRole("button", { name: "تغيير الدور" })).toHaveLength(2);
   expect(screen.getAllByRole("button", { name: "إضافة ساعات" })).toHaveLength(2);
   expect(screen.getAllByRole("button", { name: "نقل إلى لجنة" })).toHaveLength(2);
   expect(screen.getAllByRole("button", { name: "إنهاء العضوية" })).toHaveLength(2);
 
   const actionRows = document.querySelectorAll(".member-directory-actions");
   expect(actionRows).toHaveLength(2);
-  expect(actionRows[0].textContent).toContain("منح صلاحية");
+  expect(actionRows[0].textContent).toContain("تغيير الدور");
   expect(actionRows[0].textContent).toContain("إضافة ساعات");
   expect(actionRows[0].textContent?.indexOf("إنهاء العضوية")).toBeGreaterThan(actionRows[0].textContent?.indexOf("إضافة ساعات") ?? -1);
   expect(document.querySelectorAll(".member-directory-actions--mobile .member-directory-action--end")).toHaveLength(1);
@@ -88,7 +88,7 @@ it("keeps all action positions visible for every member and disables unavailable
   expect(actionRows).toHaveLength(workspace.members.length * 2);
   for (const row of actionRows) {
     expect(row.querySelectorAll('[data-slot="button"]')).toHaveLength(5);
-    expect(row.textContent).toContain("منح صلاحية");
+    expect(row.textContent).toContain("تغيير الدور");
     expect(row.textContent).toContain("إضافة ساعات");
     expect(row.textContent).toContain("إنهاء العضوية");
   }

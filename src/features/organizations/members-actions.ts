@@ -20,9 +20,13 @@ const value = (form: FormData, name: string, max: number, min = 0) => z.string()
 export async function mutateOrganizationMembers(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
   const user = await requireManagementUser();
   try {
-    const operation = z.enum(["grant", "end-grant", "end-member", "move-member"]).parse(form.get("operation"));
+    const operation = z.enum(["set-role", "grant", "end-grant", "end-member", "move-member"]).parse(form.get("operation"));
     const organizationId = id(form, "org");
-    if(operation==="move-member"){
+    if(operation==="set-role"){
+      if(form.get("confirm")!=="on")throw new Error("Confirmation required");
+      const role=z.enum(["Member","OD","CL","CD","HRL","HRD"]).parse(form.get("role"));
+      await withUser(user.id,tx=>tx.execute(sql`select lub.change_member_role(${id(form,"member")},${role},${form.get("committee")?id(form,"committee"):null})`));
+    } else if(operation==="move-member"){
       await withUser(user.id,tx=>tx.execute(sql`select lub.move_member_committee(${id(form,"member")},${form.get("committee")?id(form,"committee"):null},${form.get("confirmRoleChange")==="on"})`));
     } else if (operation === "grant") {
       const memberId = id(form, "member");

@@ -55,7 +55,7 @@ const field = z
     condition: z
       .object({
         fieldId: z.uuid().regex(/^[0-9a-f-]+$/),
-        operator: z.enum(["Equals", "NotEquals", "Answered"]),
+        operator: z.enum(["Equals", "NotEquals", "Answered", "NotAnswered"]),
         value: z.string().min(1).max(120),
       })
       .strict()
@@ -112,11 +112,11 @@ export const definitionSchema = z
           if (
             !previous ||
             previous.type === "File" ||
-            (entry.condition.operator !== "Answered" && previous.options.length &&
+            (!["Answered","NotAnswered"].includes(entry.condition.operator) && previous.options.length &&
               !previous.options.some(
                 (o) => o.value === entry.condition?.value,
               )) ||
-            (entry.condition.operator !== "Answered" && previous.type === "Checkbox" &&
+            (!["Answered","NotAnswered"].includes(entry.condition.operator) && previous.type === "Checkbox" &&
               !["true", "false"].includes(entry.condition.value))
           )
             ctx.addIssue({
@@ -145,15 +145,14 @@ export function visibleFields(definition: FormDefinition, answers: Answers) {
     }
     const condition = entry.condition;
     const value = answers[condition.fieldId];
-    if (
-      !visible.has(condition.fieldId) ||
-      value === undefined ||
-      value === "" ||
-      (Array.isArray(value) && !value.length)
-    )
+    const answered=visible.has(condition.fieldId)&&value!==undefined&&value!==""&&(!Array.isArray(value)||value.length>0);
+    if(condition.operator==="NotAnswered"){
+      if(visible.has(condition.fieldId)&&!answered)visible.add(entry.id);
       continue;
+    }
+    if(!answered)continue;
     const source = byId.get(condition.fieldId);
-    // Published committee rules created by the old editor used Equals/true for any choice.
+    // Preserve published legacy committee conditions; new conditions use presence only.
     if(condition.operator === "Answered" || (source?.type === "Committee" && condition.operator === "Equals" && condition.value === "true")){
       visible.add(entry.id);
       continue;

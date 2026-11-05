@@ -12,11 +12,11 @@ export async function membersXlsx(records:MemberExportRecord[],secret:string,loc
  const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet(en?"Members":"الأعضاء",{views:[{state:"frozen",ySplit:1,rightToLeft:!en}]});
  const headers=en?["Name","University ID","National or residency ID","Phone","Email","Major","Academic level","Role","Committees","Join date","Approved hours","Status"]:["الاسم","الرقم الجامعي","رقم الهوية أو الإقامة","الجوال","الإيميل","التخصص","المستوى الدراسي","الدور","اللجان","تاريخ الانضمام","الساعات المعتمدة","الحالة"];
  sheet.addRow(headers).font={bold:true};
- const roles=en?{OL:"Organization leader",OD:"Deputy leader",CL:"Committee leader"}:{OL:"قائد الجهة",OD:"نائب القائد",CL:"قائد لجنة"};
+ const roles=en?{OL:"Organization leader",OD:"Deputy leader",CL:"Committee leader",HRL:"HR lead",HRD:"HR deputy",CD:"Committee deputy"}:{OL:"قائد الجهة",OD:"نائب القائد",CL:"قائد لجنة",HRL:"قائد الموارد البشرية",HRD:"نائب الموارد البشرية",CD:"نائب لجنة"};
  const states:Record<string,string>=en?{Active:"Active",Ended:"Ended",Inactive:"Inactive"}:{Active:"نشطة",Ended:"منتهية",Inactive:"غير نشطة"};
  const seen=new Set<string>();
  for(const record of records){if(record.isTest!==false)continue;if(seen.has(record.userId))throw new Error("Expected one row per member");seen.add(record.userId);const university=await decryptExportIdentifier(record.universityCiphertext,record.userId,"university-id",key),national=record.nationalCiphertext?await decryptExportIdentifier(record.nationalCiphertext,record.userId,"national-id",key):"";
- const role=(["OL","OD","CL"] as const).find(code=>record.roles.some(r=>r.code===code));
+ const role=(["OL","OD","HRL","CL","HRD","CD"] as const).find(code=>record.roles.some(r=>r.code===code));
  const values=[record.name,university,national,localPhone(record.phone),record.email,record.major,exportAcademicLevel(record.level,en),role?roles[role]:en?"Member":"عضو",[...new Set(record.committees.map(c=>c.name.replace(/[\r\n]+/g," ")))].join("، "),record.startDate?new Date(`${record.startDate.slice(0,10)}T00:00:00Z`):null,Math.round(Number(record.hours)),states[record.status]??record.status];
  const row=sheet.addRow(values.map(value=>typeof value==="string"?value||null:value));
  row.getCell(10).numFmt="yyyy-mm-dd";row.getCell(11).numFmt="0";

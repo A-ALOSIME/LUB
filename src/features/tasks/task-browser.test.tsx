@@ -102,7 +102,7 @@ it("switches instantly between open tasks and all current or past participations
   expect(mine.getAttribute("aria-selected")).toBe("true");
   const finished = screen.getAllByText("مهمة منتهية")[0].closest("tr");
   expect(finished?.textContent).toContain("معتمدة");
-  expect(finished?.textContent).toContain("الساعات المعتمدة: 4.5");
+  expect(finished?.textContent).toContain("4.5 ساعة");
   expect(screen.getAllByText("مهمة من سجل سابق")[0]).toBeTruthy();
   expect(screen.queryByText("مهمة متاحة")).toBeNull();
 

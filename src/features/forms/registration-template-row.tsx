@@ -5,7 +5,9 @@ import {formatCount} from "@/lib/display";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {useRouter} from "next/navigation";
-import { Pencil, Copy, Trash2 } from "lucide-react";
+import { Eye, Pencil, Copy, Trash2 } from "lucide-react";
+import {ManagementActionSheet} from "@/components/management-action-sheet";
+import {ApplicationForm} from "./application-form";
 import { RowAction } from "@/components/row-action";
 import { relativeDate } from "@/lib/relative-date";
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogAction,AlertDialogCancel} from "@/components/ui/alert-dialog";
@@ -39,11 +41,14 @@ export function RegistrationTemplateRow({ template, organization, locale,actions
       }catch{toast.add({title:c("تعذّر تنفيذ الإجراء. أعد المحاولة.","Action failed. Try again."),type:"error",timeout:0});}
     });
   }
+  const [preview,setPreview]=useState(false);
   const controls=<>    <div className="registration-template-actions relative flex shrink-0 flex-wrap items-center gap-2" onClick={event=>event.stopPropagation()}>
+      <RowAction label={c("معاينة النموذج","Preview form")} disabled={!template.versions.length} onClick={()=>setPreview(true)}><Eye/></RowAction>
       <RowAction href={editHref} label={c("تعديل النموذج","Edit form")}><Pencil/></RowAction>
       <RowAction label={c("تكرار النموذج","Duplicate form")} disabled={pending} onClick={()=>perform("duplicate-form")}><Copy/></RowAction>
       <RowAction label={c("حذف النموذج","Delete form")} hint={deleteHint} className="template-delete-action" disabled={!canDelete||pending} onClick={()=>setDeleteOpen(true)}><Trash2/></RowAction>
     </div>
+    {preview&&template.versions[0]&&<ManagementActionSheet label="" title={template.name} locale={locale} open hideTrigger onOpenChange={setPreview} width="wide"><ApplicationForm preview round="" version={template.versions[0].id} definition={template.versions[0].definition} committees={[]} locale={locale}/></ManagementActionSheet>}
     <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{c(`حذف النموذج «${template.name}»؟`,`Delete “${template.name}”?`)}</AlertDialogTitle><AlertDialogDescription>{c("سيُحذف بكل نسخه ولا يمكن التراجع.","All versions will be deleted. This cannot be undone.")}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogAction variant="danger-outline" disabled={pending} onClick={event=>{event.preventDefault();perform("delete-form");}}>{pending?c("جارٍ الحذف…","Deleting…"):c("حذف النموذج","Delete form")}</AlertDialogAction><AlertDialogCancel disabled={pending}>{c("إلغاء","Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
   return actionsOnly?controls:<li className="registration-template-row relative flex min-w-0 flex-col items-stretch gap-3 p-4 transition-colors hover:bg-accent/50 sm:col-span-full sm:grid sm:grid-cols-subgrid sm:items-center">
     <Link href={editHref} className="absolute inset-0 rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`${c("فتح النموذج","Open form")} ${template.name}`}/>

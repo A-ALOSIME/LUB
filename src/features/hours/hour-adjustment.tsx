@@ -1,4 +1,5 @@
 "use client";
+import {ArrowRight} from "lucide-react";
 import {NumberText} from "@/components/number-text";
 import {createTranslator} from "@/lib/i18n";
 import {useState} from "react";
@@ -23,7 +24,7 @@ export function HourAdjustment({record,locale,onSuccess}:{record:Pick<HourRecord
    <Field><FieldLabel>{c("نوع التعديل","Adjustment")}</FieldLabel><ToggleGroup multiple={false} variant="outline" value={[direction]} onValueChange={values=>{if(values[0])setDirection(values[0]);}} className="hours-adjust-direction"><ToggleGroupItem value="increase">{c("زيادة","Increase")}</ToggleGroupItem><ToggleGroupItem value="decrease">{c("نقص","Decrease")}</ToggleGroupItem></ToggleGroup></Field>
    <Field data-invalid={invalid||undefined}><FieldLabel htmlFor={`hour-amount-${record.id}`}>{c("عدد الساعات","Hours")}</FieldLabel><InputGroup><InputGroupInput id={`hour-amount-${record.id}`} type="number" inputMode="decimal" min="0.01" max={direction==="decrease"?record.hours:1000-Number(record.hours)} step="0.01" required value={amount} aria-invalid={invalid} onChange={event=>setAmount(event.target.value)}/><InputGroupAddon align="inline-end"><InputGroupText>{c("ساعة","hours")}</InputGroupText></InputGroupAddon></InputGroup>{invalid&&<FieldError role="alert">{next<0?c("لا يمكن نقص أكثر من ساعات السجل أو النزول عن صفر.","Hours cannot be reduced below zero."):c("أدخل عددًا صالحًا ضمن الحد المتاح.","Enter a valid amount within the available range.")}</FieldError>}</Field>
    <FormField  id={`hour-note-${record.id}`} label={<>{c("سبب التعديل","Adjustment reason")} <span className="font-normal text-muted-foreground">{c("(اختياري)","(optional)")}</span></>}><Textarea id={`hour-note-${record.id}`} rows={2} maxLength={1000} value={note} onChange={event=>setNote(event.target.value)}/><FieldDescription><bdi><NumberText value={note.length}/> / 1000</bdi></FieldDescription></FormField>
-   {valid&&<Alert className="hour-adjustment-preview" role="status"><AlertDescription><bdi dir="ltr"><NumberText value={Number(record.hours)}/> ← <NumberText value={next}/></bdi> {c("ساعة","hours")}</AlertDescription></Alert>}
+   {valid&&<Alert className="hour-adjustment-preview" role="status"><AlertDescription><bdi dir={en?"ltr":"rtl"} className="inline-flex items-center gap-2"><NumberText value={Number(record.hours)}/><ArrowRight className={en?undefined:"rotate-180"} aria-hidden="true"/><NumberText value={next}/></bdi> {c("ساعة","hours")}</AlertDescription></Alert>}
   </FieldGroup>
  </HoursForm>;
 }

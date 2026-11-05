@@ -72,12 +72,14 @@ export function FormEditor({
   initial,
   locale = "ar",
   returnHref,
+  publishOnSave=false,
 }: {
   version: string;
   revision: number;
   initial: FormDefinition;
   locale?: Locale;
   returnHref?: string;
+  publishOnSave?:boolean;
 }) {
   const router=useRouter();
   const en = locale === "en",
@@ -273,7 +275,7 @@ export function FormEditor({
         className="form-editor flex min-w-0 flex-col gap-5 pb-32"
         onSubmit={(event) => {
           event.preventDefault();
-          perform();
+          perform(publishOnSave);
         }}
       >
         <input
@@ -340,13 +342,23 @@ export function FormEditor({
                   .flatMap((s, i) =>
                     i < si ? s.fields : i === si ? s.fields.slice(0, fi) : [],
                   )
-                  .filter((f) => f.type !== "File");
-                const conditionSource=earlier.find(previous=>previous.id===field.condition?.fieldId);
-                const answeredCondition=field.condition?.operator==="Answered" || (conditionSource?.type==="Committee" && field.condition?.operator==="Equals" && field.condition.value==="true");
+                  .filter((f) => ["Select","Radio","MultiSelect","Committee","Checkbox"].includes(f.type));
                 return (
-                  <EditorSection key={field.id} kind="question" dragging={drag?.section===si&&drag.field===fi} onQuestionDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);event.dataTransfer.effectAllowed="move";}} onQuestionDragEnd={()=>setDrag(null)} defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · <ContentText value={field.label}/></span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge>{field.required&&<Badge variant="secondary">{c("مطلوب","Required")}</Badge>}</>}
+                  <EditorSection key={field.id} kind="question" dragging={drag?.section===si&&drag.field===fi} onQuestionDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);event.dataTransfer.effectAllowed="move";}} onQuestionDragEnd={()=>setDrag(null)} defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · <ContentText value={field.label}/></span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge></>}
                     onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
-                    tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${formatNumber(fi+1,locale)}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
+                    tools={<><div onClick={event=>event.stopPropagation()}>                            <div className="flex shrink-0 items-center gap-2">
+                              <Switch
+                                id={`${field.id}-required`}
+                                checked={field.required}
+                                onCheckedChange={(required) =>
+                                  update(si, fi, { required })
+                                }
+                              />
+                              <FieldLabel htmlFor={`${field.id}-required`}>
+                                {c("إجابة مطلوبة", "Required answer")}
+                              </FieldLabel>
+
+                            </div></div><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${formatNumber(fi+1,locale)}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
                     <FieldGroup>
                       <FormField  id={`${field.id}-label`} label={<>
@@ -365,23 +377,7 @@ export function FormEditor({
                       <div className="grid items-end gap-4 sm:grid-cols-2">
                         <Field>
                           <div className="flex flex-wrap items-center justify-between gap-2"><FieldLabel htmlFor={`${field.id}-type`}>{c("نوع الإجابة", "Answer type")}</FieldLabel>
-                            <div className="flex shrink-0 items-center gap-2">
-                              <Switch
-                                id={`${field.id}-required`}
-                                checked={field.required}
-                                onCheckedChange={(required) =>
-                                  update(si, fi, { required })
-                                }
-                              />
-                              <FieldLabel htmlFor={`${field.id}-required`}>
-                                {c("إجابة مطلوبة", "Required answer")}
-                              </FieldLabel>
-                              {field.condition && (
-                                <FieldDescription>
-                                  {c("يظهر بشرط", "Conditional")}
-                                </FieldDescription>
-                              )}
-                            </div>
+
                           </div>
                           <NativeSelect
                             id={`${field.id}-type`}
@@ -415,7 +411,7 @@ export function FormEditor({
                               });
                             }}
                           >
-                            {Object.keys(fieldTypes).map((type) => (
+                            {Object.keys(fieldTypes).filter(type=>!["Number","Email"].includes(type)||type===field.type).map((type) => (
                               <option key={type} value={type}>
                                 {
                                   (en ? fieldTypesEn : fieldTypes)[
@@ -535,13 +531,6 @@ export function FormEditor({
                           ))}
                         </div>
                       )}
-                      <Collapsible>
-                        <CollapsibleTrigger className="group flex w-full items-center gap-2 py-2 text-start text-sm font-medium">
-                          <ChevronDown className="size-4 transition-transform group-data-panel-open:rotate-180" />
-                          {c("خيارات متقدمة", "Advanced options")}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="pt-4">
-                          <FieldGroup>
                             <FormField  id={`${field.id}-help`} label={<>
                                 {c("توضيح اختياري", "Optional help text")}
                               </>}>
@@ -555,132 +544,13 @@ export function FormEditor({
                                 }
                               />
                             </FormField>
-                            <FormField  id={`${field.id}-condition`} label={<>
-                                {c(
-                                  "شرط ظهور السؤال",
-                                  "Question visibility condition",
-                                )}
-                              </>}>
-                              <NativeSelect
-                                id={`${field.id}-condition`}
-                                value={field.condition?.fieldId ?? ""}
-                                onChange={(e) => {
-                                  const previous = earlier.find(
-                                    (f) => f.id === e.target.value,
-                                  );
-                                  update(si, fi, {
-                                    condition: previous
-                                      ? {
-                                          fieldId: previous.id,
-                                          operator: previous.type==="Committee"?"Answered":"Equals",
-                                          value:
-                                            previous.options[0]?.value ??
-                                            "true",
-                                        }
-                                      : undefined,
-                                  });
-                                }}
-                              >
-                                <option value="">
-                                  {c("يظهر دائمًا", "Always show")}
-                                </option>
-                                {earlier.map((f) => (
-                                  <option key={f.id} value={f.id}>
-                                    <ContentText value={f.label}/>
-                                  </option>
-                                ))}
-                              </NativeSelect>
-                            </FormField>
-                            {field.condition && (
-                              <div className="grid gap-4 sm:grid-cols-2">
-                                <FormField  id={`${field.id}-comparison`} label={<>
-                                    {c("المقارنة", "Comparison")}
-                                  </>}>
-                                  <NativeSelect
-                                    id={`${field.id}-comparison`}
-                                    value={answeredCondition?"Answered":field.condition.operator}
-                                    onChange={(e) =>
-                                      update(si, fi, {
-                                        condition: {
-                                          ...field.condition!,
-                                          operator: e.target.value as NonNullable<QuestionField["condition"]>["operator"],
-                                          value:e.target.value==="Answered"?"true":conditionSource?.options[0]?.value??"true",
-                                        },
-                                      })
-                                    }
-                                  >
-                                    <option value="Answered">{c("تمت الإجابة", "Has an answer")}</option>
-                                    {(conditionSource?.type!=="Committee" || !answeredCondition)&&<><option value="Equals">{c("يساوي", "Equals")}</option><option value="NotEquals">{c("لا يساوي", "Does not equal")}</option></>}
-                                  </NativeSelect>
-                                </FormField>
-                                {!answeredCondition&&<Field>
-                                  <FieldLabel htmlFor={`${field.id}-value`}>
-                                    {c("قيمة الإجابة", "Answer value")}
-                                  </FieldLabel>
-                                  {(() => {
-                                    const previous = earlier.find(
-                                        (f) =>
-                                          f.id === field.condition?.fieldId,
-                                      ),
-                                      opts =
-                                        previous?.type === "Checkbox"
-                                          ? [
-                                              {
-                                                value: "true",
-                                                label: c("موافق", "Agreed"),
-                                              },
-                                              {
-                                                value: "false",
-                                                label: c(
-                                                  "غير موافق",
-                                                  "Not agreed",
-                                                ),
-                                              },
-                                            ]
-                                          : (previous?.options ?? []);
-                                    return opts.length ? (
-                                      <NativeSelect
-                                        id={`${field.id}-value`}
-                                        value={field.condition.value}
-                                        onChange={(e) =>
-                                          update(si, fi, {
-                                            condition: {
-                                              ...field.condition!,
-                                              value: e.target.value,
-                                            },
-                                          })
-                                        }
-                                      >
-                                        {opts.map((o) => (
-                                          <option key={o.value} value={o.value}>
-                                            <ContentText value={o.label}/>
-                                          </option>
-                                        ))}
-                                      </NativeSelect>
-                                    ) : (
-                                      <Input
-                                        id={`${field.id}-value`}
-                                        required
-                                        maxLength={120}
-                                        value={field.condition.value}
-                                        onChange={(e) =>
-                                          update(si, fi, {
-                                            condition: {
-                                              ...field.condition!,
-                                              value: e.target.value,
-                                            },
-                                          })
-                                        }
-                                      />
-                                    );
-                                  })()}
-                                </Field>}
-                                {answeredCondition&&<FieldDescription>{c("يظهر هذا السؤال بعد الإجابة عن السؤال المحدد.","Show this question after the selected question has an answer.")}</FieldDescription>}
-                              </div>
-                            )}
-                          </FieldGroup>
-                        </CollapsibleContent>
-                      </Collapsible>
+                      <FormField id={`${field.id}-condition`} label={c("شرط ظهور السؤال","Question visibility condition")}>
+                       <NativeSelect id={`${field.id}-condition`} value={field.condition?.fieldId??""} onChange={event=>update(si,fi,{condition:event.target.value?{fieldId:event.target.value,operator:"Answered",value:"true"}:undefined})}>
+                        <option value="">{c("يظهر دائمًا","Always show")}</option>{earlier.map(previous=><option key={previous.id} value={previous.id}>{c("يظهر إذا أجاب على: ","Show based on: ")}{previous.label}</option>)}
+                       </NativeSelect>
+                      </FormField>
+                      {field.condition&&<FormField id={`${field.id}-presence`} label={c("يظهر عندما","Show when")}><NativeSelect id={`${field.id}-presence`} value={field.condition.operator==="NotAnswered"?"NotAnswered":"Answered"} onChange={event=>update(si,fi,{condition:{...field.condition!,operator:event.target.value as "Answered"|"NotAnswered",value:"true"}})}><option value="Answered">{c("أجاب","Answered")}</option><option value="NotAnswered">{c("لم يجب","Unanswered")}</option></NativeSelect></FormField>}
+
                     </FieldGroup>
                   </EditorSection>
                 );
@@ -745,7 +615,7 @@ export function FormEditor({
                 disabled={pending || !dirty}
               >
                 <Save />
-                {c("حفظ المسودة", "Save draft")}
+                {publishOnSave?c("حفظ التعديلات","Save changes"):c("حفظ المسودة", "Save draft")}
               </Button>
             </>
           }

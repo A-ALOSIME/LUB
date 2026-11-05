@@ -49,8 +49,8 @@ it("requires a covering term and rolls back both task approval and hours if it i
 });
 it("separates manual submission and approval capabilities, keeps review notes and rejects direct writes",async()=>{
  await db.exec("reset role");
- await db.query("insert into lub.permission_grants(organization_membership_id,organization_id,permission_code,granted_by_user_id) values($1,$2,'HOURS_MANUAL_ADD',$3)",[memberships[1],org,leader]);await asUser(member);
- const record=(await db.query<{id:string}>("select lub.add_hours($1,null,$2,3.5,current_date,'تنظيم لقاء',false) as id",[memberships[2],term])).rows[0].id;
+ await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,committee_id,role_code,assigned_by_user_id) values($1,$2,$3,'CD',$4)",[memberships[1],org,committee,leader]);await db.query("insert into lub.committee_memberships(organization_membership_id,organization_id,committee_id) values($1,$2,$3)",[memberships[2],org,committee]);await asUser(member);
+ const record=(await db.query<{id:string}>("select lub.add_hours($1,'00000000-0000-4000-8000-000000000201',$2,3.5,current_date,'تنظيم لقاء',false) as id",[memberships[2],term])).rows[0].id;
  expect((await db.query<{status_code:string}>("select status_code from lub.hour_records where id=$1",[record])).rows[0].status_code).toBe("Pending");
  await denied(()=>db.query("select lub.review_hours($1,'Approved','')",[record]));await denied(()=>db.query("update lub.hour_records set status_code='Approved' where id=$1",[record]));
  await denied(()=>db.query("select lub.add_hours($1,null,$2,'NaN',current_date,'سبب',false)",[memberships[2],term]));await denied(()=>db.query("select lub.add_hours($1,null,$2,1.001,current_date,'سبب',false)",[memberships[2],term]));
@@ -98,10 +98,10 @@ it("allows only administrators to create non-overlapping immutable formal terms"
  await db.query("select lub.create_academic_term('2027','T2','الفصل الثاني',current_date+91,current_date+180)");expect((await db.query("select id from lub.academic_terms")).rows).toHaveLength(2);await db.exec("reset role");await denied(()=>db.query("update lub.academic_terms set end_date=current_date where id=$1",[term]));
 });
 it("keeps delegated task approval pending for a hours reviewer and preserves explicit task hours",async()=>{
- const task=(await db.query<{id:string}>("select lub.save_task(null,$1,null,null,'مهمة بساعات محددة','وصف العمل',null,null,7,null) as id",[org])).rows[0].id;
+ const task=(await db.query<{id:string}>("select lub.save_task(null,$1,$2,null,'مهمة بساعات محددة','وصف العمل',null,null,7,null) as id",[org,committee])).rows[0].id;
  expect(Number((await db.query<{default_hours:string}>("select default_hours from lub.tasks where id=$1",[task])).rows[0].default_hours)).toBe(7);
  await denied(()=>db.query("select lub.save_task_with_rule($1,null,null,'مهمة','وصف',null,null,$2)",[org,committee]));
- await db.query("select lub.change_task_status($1,'Open',1)",[task]);await db.query("select lub.grant_task_permission($1,'TASKS_MANAGE',null,null)",[memberships[2]]);await asUser(member);
+ await db.query("select lub.change_task_status($1,'Open',1)",[task]);await db.query("select lub.change_member_role($1,'CD',$2)",[memberships[2],committee]);await db.exec('reset role');await db.query("insert into lub.committee_memberships(organization_membership_id,organization_id,committee_id) values($1,$2,$3)",[memberships[1],org,committee]);await asUser(member);
  const p=(await db.query<{id:string}>("select lub.join_task($1) as id",[task])).rows[0].id;const s=(await db.query<{id:string}>("select lub.submit_task($1,'عمل',array[]::uuid[],0,2) as id",[p])).rows[0].id;
  await asUser(admin);await db.query("select lub.review_task_submission($1,'Approved','',4)",[s]);await asUser(member);const h=(await db.query<{id:string;hours:string;status_code:string}>("select id,hours,status_code from lub.hour_records")).rows[0];expect(h.status_code).toBe("Pending");expect(Number(h.hours)).toBe(4);
  await asUser(leader);await db.query("select lub.review_hours($1,'Approved','مراجعة مستقلة')",[h.id]);expect((await db.query<{status_code:string}>("select status_code from lub.hour_records where id=$1",[h.id])).rows[0].status_code).toBe("Approved");
@@ -109,7 +109,7 @@ it("keeps delegated task approval pending for a hours reviewer and preserves exp
 it("revokes delegated hours access immediately and forbids committee-scoped renewal grants",async()=>{
  await denied(()=>db.query("select lub.grant_hours_permission($1,'RENEWALS_MANAGE',$2,null)",[memberships[1],committee]));await db.query("select lub.grant_hours_permission($1,'HOURS_APPROVE',null,null)",[memberships[1]]);
  const g=(await db.query<{id:string}>("select id from lub.permission_grants where permission_code='HOURS_APPROVE'")).rows[0].id;
- await asUser(member);expect((await db.query<{allowed:boolean}>("select lub.has_org_permission($1,'HOURS_APPROVE') as allowed",[org])).rows[0].allowed).toBe(true);
+ await asUser(member);expect((await db.query<{allowed:boolean}>("select lub.has_org_permission($1,'HOURS_APPROVE') as allowed",[org])).rows[0].allowed).toBe(false);
  await asUser(leader);await db.query("select lub.end_hours_permission($1)",[g]);await asUser(member);expect((await db.query<{allowed:boolean}>("select lub.has_org_permission($1,'HOURS_APPROVE') as allowed",[org])).rows[0].allowed).toBe(false);
 });
 it("does not let a reactivated membership answer the old membership campaign or accept late responses",async()=>{
@@ -176,6 +176,7 @@ it("publishes, pauses, resumes, closes and archives renewal drafts without dupli
  expect((await db.query("select distinct response_code from lub.membership_renewals where renewal_campaign_id=$1",[id])).rows).toEqual([{response_code:"No_Response"}]);
  await db.query("select lub.transition_campaign('renewal',$1,'archive','Closed')",[id]);
  expect((await db.query<{status_code:string}>("select status_code from lub.renewal_campaigns where id=$1",[id])).rows[0].status_code).toBe("Archived");
+ await db.query("select lub.transition_campaign('renewal',$1,'restore','Archived')",[id]);expect((await db.query<{status_code:string}>("select status_code from lub.renewal_campaigns where id=$1",[id])).rows[0].status_code).toBe("Closed");expect((await db.query("select id from lub.membership_renewals where renewal_campaign_id=$1 order by id",[id])).rows).toEqual(before);
 });
 
 it("exports selected-status totals once per student through an owner-only single-use ticket",async()=>{
@@ -207,4 +208,27 @@ it("scopes renewal participant pages and keeps test rows out of their same-query
  const filtered=(await db.query<{data:{items:unknown[];counts:Record<string,number>}}>("select lub.renewal_participant_page($1,'طالب 1','all',0) as data",[id])).rows[0].data;expect(filtered.items).toHaveLength(1);expect(filtered.counts).toEqual({});
  const summary=(await db.query<{summary:{renewed:number;members:number}}>("select lub.renewal_campaign_summary($1) as summary",[id])).rows[0].summary;expect(summary).toEqual({renewed:0,members:2});
  await asUser(member);expect((await db.query<{data:unknown}>("select lub.renewal_participant_page($1,'','all',0) as data",[id])).rows[0].data).toBeNull();
+});
+it("withdraws only the owner's pending self-report and retains its immutable content and history",async()=>{
+ await db.exec("reset role");await db.query("update lub.organizations set self_report_hours_enabled=true where id=$1",[org]);await asUser(member);
+ const record=(await db.query<{id:string}>("select lub.add_hours($1,null,$2,3,current_date,'طلب ذاتي',true,true) as id",[memberships[1],term])).rows[0].id;
+ await asUser(leader);await denied(()=>db.query("select lub.withdraw_self_report_hours($1)",[record]));await asUser(admin);await denied(()=>db.query("select lub.withdraw_self_report_hours($1)",[record]));
+ await asUser(member);await db.query("select lub.withdraw_self_report_hours($1)",[record]);
+ expect((await db.query<{status_code:string;hours:string;description:string}>("select status_code,hours,description from lub.hour_records where id=$1",[record])).rows[0]).toEqual({status_code:"Withdrawn",hours:"3.00",description:"طلب ذاتي"});
+ expect((await db.query<{status_code:string}>("select status_code from lub.hour_decisions where hour_record_id=$1",[record])).rows[0].status_code).toBe("Withdrawn");
+ await denied(()=>db.query("select lub.withdraw_self_report_hours($1)",[record]));await asUser(leader);await denied(()=>db.query("select lub.review_hours($1,'Approved','')",[record]));
+ const approved=(await db.query<{id:string}>("select lub.add_hours($1,null,$2,1,current_date,'إضافة معتمدة',false,true) as id",[memberships[1],term])).rows[0].id;await asUser(member);await denied(()=>db.query("select lub.withdraw_self_report_hours($1)",[approved]));
+});
+it("uses selected-term hours and overlapping membership periods; no term retains lifetime totals in list and export",async()=>{
+ await db.exec("reset role");
+ const oldTerm=(await db.query<{id:string}>("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('2025','T1','السابق',current_date-300,current_date-150) returning id")).rows[0].id;
+ await db.query("insert into lub.hour_records(organization_id,organization_membership_id,academic_term_id,source_code,hours,activity_date,description,status_code,requested_by_user_id,reviewed_by_user_id,reviewed_at,review_note) values($1,$2,$3,'MANUAL',7,current_date-200,'سابق','Approved',$4,$4,now(),'')",[org,memberships[1],oldTerm,leader]);
+ await asUser(leader);await db.query("select lub.add_hours($1,null,$2,3,current_date,'حالي',false,true)",[memberships[1],term]);
+ const list=async(selected:string|null)=>(await db.query<{data:{members:Array<{id:string;hours:number}>}}>("select lub.organization_member_directory($1,'','all',null,0,'name:asc',$2) data",[org,selected])).rows[0].data.members;
+ expect((await list(term)).find(row=>row.id===memberships[1])?.hours).toBe(3);
+ expect((await list(null)).find(row=>row.id===memberships[1])?.hours).toBe(10);
+ expect((await list(oldTerm)).some(row=>row.id===memberships[1])).toBe(false);
+ const ticket=(await db.query<{data:{ticket:string}}>("select public.prepare_member_export($1,'','all',null,$2) data",[org,term])).rows[0].data.ticket;
+ const exported=(await db.query<{data:{records:Array<{hours:number}>}}>("select public.consume_member_export($1) data",[ticket])).rows[0].data.records;
+ expect(exported.some(row=>row.hours===3)).toBe(true);expect(exported.some(row=>row.hours===10)).toBe(false);
 });

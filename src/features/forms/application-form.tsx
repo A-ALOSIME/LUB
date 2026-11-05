@@ -1,9 +1,11 @@
 "use client";
+import {Checkbox} from "@/components/ui/checkbox";
+import {DatePickerField} from "./date-input";
 
 import {ContentText} from "@/components/content-text";
 import {formatNumber,t as translateUi} from "@/lib/i18n";
 import { NativeSelect } from "@/components/ui/native-select";
-import { useState } from "react";
+import { useState,type ComponentProps } from "react";
 import { visibleFields, type Answers, type FormDefinition } from "./definition";
 import { WorkflowForm } from "./mutation-form";
 import { FilePickerInput } from "@/components/file-picker-input";
@@ -20,8 +22,10 @@ export function ApplicationForm({
   committees,
   event,
   mutation,
+  preview=false,
   locale = "ar",
 }: {
+  preview?:boolean;
   round: string;
   version: string;
   definition: FormDefinition;
@@ -33,6 +37,7 @@ export function ApplicationForm({
   mutation?: Parameters<typeof WorkflowForm>[0]["mutation"];
   locale?: Locale;
 }) {
+  const Form=preview?PreviewFrame:WorkflowForm;
   const en = locale === "en";
   const [answers, setAnswers] = useState(() => ({
     ...Object.fromEntries(
@@ -72,9 +77,9 @@ export function ApplicationForm({
     }
   }
   return (
-    <WorkflowForm
+    <Form
       mutation={mutation}
-      disabled={uploading !== null}
+      disabled={preview||uploading !== null}
       operation={event ? "register" : "submit"}
       fields={{
         round,
@@ -121,10 +126,10 @@ export function ApplicationForm({
             .filter((f) => visible.has(f.id))
             .map((f) => (
               <div key={f.id}>
-                <label htmlFor={f.id} dir={en ? "ltr" : "rtl"}>
-                  <ContentText value={f.label}/>
-                  {f.required ? " *" : translateUi((en) ? "en" : "ar", " (اختياري)", " (optional)")}
-                </label>
+                {f.type!=="Date"&&<label htmlFor={f.id} dir={en ? "ltr" : "rtl"} className={f.type==="Checkbox"?"flex items-center justify-between gap-3":""}>
+                  <span><ContentText value={f.label}/>{f.required?<span className="text-destructive" aria-hidden="true"> *</span>:translateUi(locale," (اختياري)"," (optional)")}</span>
+                  {f.type==="Checkbox"&&<Checkbox id={f.id} checked={answers[f.id]===true} onCheckedChange={checked=>set(f.id,checked)} aria-label={f.label}/>}
+                </label>}
                 {f.help && (
                   <p
                     id={`${f.id}-help`}
@@ -210,14 +215,7 @@ export function ApplicationForm({
                       </label>
                     ))}
                   </fieldset>
-                ) : f.type === "Checkbox" ? (
-                  <input
-                    id={f.id}
-                    type="checkbox"
-                    className="size-5"
-                    checked={answers[f.id] === true}
-                    onChange={(e) => set(f.id, e.target.checked)}
-                  />
+                ) : f.type === "Checkbox" ? null : f.type==="Date"?(<DatePickerField name={f.id} label={f.label} required={f.required} value={String(answers[f.id]??"")} locale={locale} onValueChange={value=>set(f.id,value)}/>
                 ) : f.type === "File" ? (
                   <>
                     <FilePickerInput
@@ -225,7 +223,7 @@ export function ApplicationForm({
                       ariaLabel={f.label}
                       accept="application/pdf,image/jpeg,image/png"
                       locale={locale}
-                      disabled={uploading !== null}
+                      disabled={preview||uploading !== null}
                       onChange={(e) => void upload(f.id, e.target.files?.[0])}
                     />
                     <p role="status" className="mt-2 text-sm text-muted">
@@ -252,9 +250,7 @@ export function ApplicationForm({
                         ? "number"
                         : f.type === "Email"
                           ? "email"
-                          : f.type === "Date"
-                            ? "date"
-                            : "text"
+                          : "text"
                     }
                     min={f.min}
                     max={f.max}
@@ -310,6 +306,8 @@ export function ApplicationForm({
           {translateUi((en) ? "en" : "ar", "انتظر اكتمال رفع الملفات قبل الإرسال.", "Wait for uploads to finish before submitting.")}
         </p>
       )}
-    </WorkflowForm>
+    </Form>
   );
 }
+
+function PreviewFrame({children}:ComponentProps<typeof WorkflowForm>){return <div>{children}</div>;}

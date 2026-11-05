@@ -6,7 +6,7 @@ import {requireManagementUser} from "./access";
 import {getOrganizationMemberDirectory} from "./management-repository";
 import {decodeMemberRecord} from "./member-identifiers";
 import type {EncryptedMemberRecord,MemberFilters} from "./member-types";
-const filters=z.object({sort:z.enum(["name:asc","name:desc","date:asc","date:desc"]).default("name:asc"),q:z.string().trim().max(120),status:z.enum(['all','Active','Ended','Inactive']),committee:z.uuid().nullable()});
+const filters=z.object({sort:z.enum(["name:asc","name:desc","date:asc","date:desc"]).default("name:asc"),q:z.string().trim().max(120),status:z.enum(['all','Active','Ended','Inactive']),term:z.uuid().nullable().optional(),committee:z.uuid().nullable()});
 export async function loadMemberDirectory(organization:string,input:MemberFilters){
  const user=await requireManagementUser();
  try{const data=await getOrganizationMemberDirectory(user.id,z.uuid().parse(organization),filters.parse(input));return data?{data}:{error:true as const};}catch{return{error:true as const};}

@@ -8,16 +8,6 @@ import { Button } from "@/components/ui/button";
 import {RequestStatusBadge} from "@/features/forms/request-status-badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
 import { ManagementActionSheet } from "@/components/management-action-sheet";
 import { toast } from "@/components/ui/toast";
 import { formatRiyadhDateTime } from "@/lib/datetime";
@@ -54,11 +44,10 @@ export function PublicEventRegistration({
   committees=[],
 }: Props) {
   const [pending, start] = useTransition(),
-    [withdraw, setWithdraw] = useState(false),
     [error, setError] = useState("");
   const router = useRouter();
   const c = createTranslator((locale === "en") ? "en" : "ar");
-  function submit(operation: "register" | "cancel") {
+  function submit(operation: "register") {
     start(async () => {
       const fields = new FormData();
       fields.set("operation", operation);
@@ -72,13 +61,10 @@ export function PublicEventRegistration({
           toast.add({ title: result.error, type: "error", timeout: 0 });
           return;
         }
-        setWithdraw(false);
         setError("");
         toast.add({
           title:
-            operation === "cancel"
-              ? c("تم إلغاء التسجيل", "Registration cancelled")
-              : c("تم إرسال التسجيل", "Registration submitted"),
+            c("تم إرسال التسجيل", "Registration submitted"),
           type: "success",
           timeout: 3000,
         });
@@ -99,20 +85,12 @@ export function PublicEventRegistration({
     control = (
       <div className="flex flex-wrap items-center gap-3">
         <RequestStatusBadge status={own?.review_status_code==="Accepted"&&own.contributions?.length?"Recorded":own?.review_status_code??"Accepted"} locale={locale}/>
-        <Button
-          variant="outline"
-          disabled={!open || pending}
-          onClick={() => setWithdraw(true)}
-        >
-          {c("إلغاء التسجيل", "Cancel registration")}
-        </Button>
+
       </div>
     );
   else if (own?.status_code === "Cancelled")
     control = (
-      <Button disabled className="w-full">
-        {c("أُلغي التسجيل", "Registration cancelled")}
-      </Button>
+      <RequestStatusBadge status="Withdrawn" locale={locale}/>
     );
   else if (!open || remaining === 0) {
     const upcoming = event.status_code === "Published" && event.opensLater;
@@ -200,39 +178,7 @@ export function PublicEventRegistration({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <AlertDialog open={withdraw} onOpenChange={setWithdraw}>
-        <AlertDialogContent dir={locale === "en" ? "ltr" : "rtl"}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {c(
-                `إلغاء التسجيل في «${event.title}»؟`,
-                `Cancel registration for “${event.title}”?`,
-              )}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {c(
-                "سيتغير تسجيلك إلى ملغى، ولن تُحتسب لك مشاركة في هذه الفعالية.",
-                "Your registration will be cancelled and will not count as participation in this event.",
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction
-              variant="danger-outline"
-              disabled={pending}
-              onClick={(e) => {
-                e.preventDefault();
-                submit("cancel");
-              }}
-            >
-              {c("تأكيد الإلغاء", "Confirm cancellation")}
-            </AlertDialogAction>
-            <AlertDialogCancel disabled={pending}>
-              {c("البقاء", "Keep registration")}
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </div>
   );
 }

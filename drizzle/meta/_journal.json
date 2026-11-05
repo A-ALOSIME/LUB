@@ -624,6 +624,62 @@
       "when": 1793748000000,
       "tag": "0088_task_team_context",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1793829600000,
+      "tag": "0089_self_report_withdrawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1793829601000,
+      "tag": "0090_member_term_filters",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1793829602000,
+      "tag": "0091_submission_withdrawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1793829603000,
+      "tag": "0092_unanswered_form_conditions",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1793829604000,
+      "tag": "0093_event_request_withdrawal",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1793829605000,
+      "tag": "0094_role_capabilities",
+      "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1793829606000,
+      "tag": "0095_application_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1793829607000,
+      "tag": "0096_restore_archived_lists",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,9 @@
-export type MemberFilters={sort?:"name:asc"|"name:desc"|"date:asc"|"date:desc";page?:number;q:string;status:"all"|"Active"|"Ended"|"Inactive";committee:string|null};
+export type MemberFilters={term?:string|null;sort?:"name:asc"|"name:desc"|"date:asc"|"date:desc";page?:number;q:string;status:"all"|"Active"|"Ended"|"Inactive";committee:string|null};
 export const initialMemberFilters:MemberFilters={q:"",status:"all",committee:null};
 export type MemberRow={id:string;name:string;major:string;level:string;status:string;startDate:string;endDate:string|null;universityId?:string;canManage:boolean;hours:number;roles:Array<{code:string;committee:string|null}>;committees:Array<{id:string;name:string}>;hourScopes:Array<{id:string;name:string}>};
 export type OrganizationMemberWorkspace={
  rowTotal?:number;
- canManage:boolean;canGrant:boolean;canAddHours:boolean;
+ canExport?:boolean;canManage:boolean;canGrant:boolean;canAddHours:boolean;
  terms:Array<{id:string;name:string;year:string;termCode:string;startDate:string;endDate:string}>;
  committees:Array<{id:string;name:string}>;members:MemberRow[];
  counts?:{total:number;active:number;ended:number;inactive:number};

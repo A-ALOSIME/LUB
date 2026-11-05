@@ -173,7 +173,7 @@ it("skips a subsequent independent change during Undo and makes Undo idempotent"
 it("enforces closed rounds, one withdrawal, and committee-scoped review grants",async()=>{
  const a=await submit();await owner();
  const m=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,other])).rows[0].id;
- await asUser(leader);await db.query("select lub.grant_application_permission($1,'APPLICATIONS_REVIEW',$2,null)",[m,committee]);
+ await asUser(leader);await denied(()=>db.query("select lub.grant_application_permission($1,'APPLICATIONS_REVIEW',$2,null)",[m,committee]));await db.query("select lub.change_member_role($1,'HRD',null)",[m]);
  await asUser(other);expect((await db.query("select id from lub.membership_applications")).rows).toHaveLength(1);
  await denied(()=>db.query("select lub.create_form($1,'مزور',null)",[org]));
  await asUser(leader);await db.query("select lub.change_round_status($1,'Closed')",[round]);
@@ -217,7 +217,7 @@ it("enforces committee review scope even for a reviewer's own historical applica
  const secondary="50000000-0000-4000-8000-000000000004";await owner();await db.query("insert into lub.committees(id,organization_id,name) values($1,$2,'ثانية')",[secondary,org]);
  await asUser(other);const a=(await db.query<{id:string}>("select lub.submit_application($1,$2,$3::jsonb,$4,null,null) as id",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:"إجابة"}),secondary])).rows[0].id;
  await owner();const m=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,other])).rows[0].id;
- await asUser(leader);await db.query("select lub.grant_application_permission($1,'APPLICATIONS_REVIEW',$2,null)",[m,committee]);
+ await asUser(leader);await denied(()=>db.query("select lub.grant_application_permission($1,'APPLICATIONS_REVIEW',$2,null)",[m,committee]));await db.query("select lub.change_member_role($1,'CL',$2)",[m,committee]);
  await asUser(other);await denied(()=>db.query("select lub.decide_application($1,'Rejected','')",[a]));
  expect((await db.query<{allowed:boolean}>("select lub.can_read_application($1,'APPLICATIONS_REVIEW') as allowed",[a])).rows[0].allowed).toBe(false);
 });
@@ -254,7 +254,7 @@ it("deletes all versions only for an unused owned form, preserving copies and us
 it("does not allow a delegated form editor to delete templates",async()=>{
  const unused=(await db.query<{id:string}>("select lub.create_form($1,'للاختبار',null) as id",[org])).rows[0].id;
  await owner();const membership=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,other])).rows[0].id;
- await asUser(leader);await db.query("select lub.grant_application_permission($1,'FORMS_MANAGE',null,null)",[membership]);
+ await asUser(leader);await denied(()=>db.query("select lub.grant_application_permission($1,'FORMS_MANAGE',null,null)",[membership]));
  await asUser(other);await denied(()=>db.query("select lub.delete_form($1)",[unused]));
 });
 
