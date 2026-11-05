@@ -71,7 +71,7 @@ export function AdminOrganizationTable({
     );
   }
   return <>
-    <ItemTable compact items={organizations} label={c("عرض تفاصيل الجهة","View organization details")} empty={<ListEmpty filtered={Boolean(params.get("status"))} clear={()=>router.push("/manage/organizations")} icon={Building2} title={c("لا توجد جهات مطابقة.","No matching organizations.")} description={c("ستظهر الجهات المضافة هنا.","Organizations will appear here.")}/>} columns={[
+    <ItemTable compact tableKey="admin-organizations" items={organizations} label={c("عرض تفاصيل الجهة","View organization details")} empty={<ListEmpty filtered={Boolean(params.get("status"))} clear={()=>router.push("/manage/organizations")} icon={Building2} title={c("لا توجد جهات مطابقة.","No matching organizations.")} description={c("ستظهر الجهات المضافة هنا.","Organizations will appear here.")}/>} columns={[
       {id:"name",label:c("الجهة","Organization"),render:name},
       {id:"type",label:c("النوع","Type"),className:"w-24",render:item=>item.typeCode==="Club"?c("نادي","Club"):c("مجلس","Council")},
       {id:"status",label:c("الحالة","Status"),className:"w-28",render:status},

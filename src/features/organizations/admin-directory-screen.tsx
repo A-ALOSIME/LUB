@@ -18,13 +18,15 @@ import type {Locale} from "@/lib/preferences";
 export function AdminDirectoryScreen({initial,initialSearch,locale}:{initial:AdminDirectory;initialSearch:string;locale:Locale}){
  const actor=useQueryActor(),client=useQueryClient(),t=createTranslator(locale),{params,change}=useListQuery(initialSearch.startsWith("?")?initialSearch:`?${initialSearch}`);
  const tab=params.get("tab")==="requests"?"requests":"organizations",status=tab==="requests"?params.get("requestStatus")||"Pending":params.get("status")||"all";
+ const orgSort=params.get("admin-organizationsSort")??"name:asc",requestSort=params.get("admin-requestsSort")??"name:asc";
  const [refreshError,setRefreshError]=useState(false);
  const base=useMemo(()=>["admin-directory",actor] as const,[actor]);
  const snapshot=useMemo(()=>({queryKey:[...base,"snapshot"],queryFn:({signal}:{signal:AbortSignal})=>privateJson<AdminDirectory>("/api/admin/organizations",signal),initialData:initial,staleTime:90000}),[base,initial]);
- const options=useCallback((view:string,state:string)=>({queryKey:[...base,"view",view,state,"","name",0],queryFn:async()=>client.fetchQuery(snapshot),initialData:()=>client.getQueryData<AdminDirectory>(snapshot.queryKey)??initial,staleTime:90000,placeholderData:keepPreviousData}),[base,client,snapshot,initial]);
+ const options=useCallback((view:string,state:string)=>({queryKey:[...base,"view",view,state,"",view==="requests"?requestSort:orgSort,0],queryFn:async()=>client.fetchQuery(snapshot),initialData:()=>client.getQueryData<AdminDirectory>(snapshot.queryKey)??initial,staleTime:90000,initialDataUpdatedAt:()=>client.getQueryState(snapshot.queryKey)?.dataUpdatedAt,placeholderData:keepPreviousData}),[base,client,snapshot,initial,orgSort,requestSort]);
  const query=useQuery(options(tab,status)),data=query.data;
  const notified=useRef(false);useEffect(()=>{if(params.get("notice")==="created"&&!notified.current){notified.current=true;toast.add({title:t("تم إنشاء الجهة","Organization created"),type:"success"});}},[params,t]);
- useEffect(()=>{client.setQueryData(snapshot.queryKey,initial);for(const view of ["organizations","requests"])for(const state of view==="organizations"?["all","Active","Inactive","Archived"]:["Pending","Accepted","Rejected"])void client.prefetchQuery(options(view,state));},[client,initial,options,snapshot.queryKey]); // All basic views share one server snapshot.
+ useEffect(()=>{client.setQueryData(snapshot.queryKey,initial);},[client,initial,snapshot.queryKey]);
+ useEffect(()=>{for(const view of ["organizations","requests"])for(const state of view==="organizations"?["all","Active","Inactive","Archived"]:["Pending","Accepted","Rejected"])void client.prefetchQuery(options(view,state));},[client,options]); // All basic views share one server snapshot.
  async function changed(){setRefreshError(false);try{await client.invalidateQueries({queryKey:snapshot.queryKey,refetchType:"none"});const fresh=await client.fetchQuery({...snapshot,staleTime:0});client.setQueriesData({queryKey:[...base,"view"]},fresh);}catch{setRefreshError(true);}}
  const filters=tab==="requests"?[{value:"Pending",label:t("قيد المراجعة","Under review")},{value:"Accepted",label:t("مقبولة","Accepted")},{value:"Rejected",label:t("مرفوضة","Rejected")}]:[{value:"all",label:t("الكل","All")},{value:"Active",label:t("نشطة","Active")},{value:"Inactive",label:t("موقوفة","Inactive")},{value:"Archived",label:t("مؤرشفة","Archived")}];
  return <main id="main" className="workspace-content flex min-w-0 flex-col gap-6" dir={locale==="ar"?"rtl":"ltr"}>

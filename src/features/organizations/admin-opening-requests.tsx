@@ -21,7 +21,7 @@ export function AdminOpeningRequests({items,locale,onChanged}:{items:OpeningRequ
  const t=createTranslator(locale),[selected,setSelected]=useState<OpeningRequest|null>(null),[decision,setDecision]=useState<{item:OpeningRequest;status:"Accepted"|"Rejected"}|null>(null),[note,setNote]=useState(""),[error,setError]=useState(""),[pending,start]=useTransition();
  const logo=(item:OpeningRequest)=><OrganizationLogo name={item.name_ar} src={item.has_logo?`/organization-requests/${item.id}/logo`:null} size="lg"/>;
  function decide(){if(!decision)return;start(async()=>{try{const f=new FormData();f.set("request",decision.item.id);f.set("operation",decision.status);f.set("note",note);const result=await mutateOpeningRequest({},f);if(result.error){setError(actionFeedback(result.error,locale)??result.error);return;}setDecision(null);setNote("");onChanged();toast.add({title:t("تم حفظ القرار","Decision saved"),type:"success"});}catch{setError(t("تعذّر حفظ القرار. حاول مجددًا.","Could not save the decision. Try again."));}});}
- return <><ItemTable compact items={items} label={t("عرض تفاصيل الطلب","View request details")} locale={locale} onOpen={setSelected} columns={[
+ return <><ItemTable compact tableKey="admin-requests" items={items} label={t("عرض تفاصيل الطلب","View request details")} locale={locale} onOpen={setSelected} columns={[
  {id:"name",label:t("الجهة","Organization"),render:row=><span className="flex min-w-0 items-center gap-3">{logo(row)}<ItemTitle><ContentText value={row.name_ar}/></ItemTitle></span>},
  {id:"type",label:t("النوع","Type"),render:row=>row.type_code==="Club"?t("نادي","Club"):t("مجلس","Council")},
  {id:"applicant",label:t("مقدم الطلب","Applicant"),render:row=><ContentText value={row.applicant_name??""}/>},

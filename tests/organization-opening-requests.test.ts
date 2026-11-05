@@ -311,3 +311,13 @@ it("returns the complete set-based administrator snapshot and denies students an
  const admins=await db.query<{email:string}>("select * from lub.admin_account_directory()");expect(admins.rows.map(row=>row.email)).toEqual(["request0@example.invalid"]);
  await db.exec("reset role;set local role anon");await denied(()=>db.query("select lub.admin_directory_snapshot()"));
 });
+
+it("finds eligible leaders by normalized Arabic name or email and still excludes inactive and unverified accounts",async()=>{
+ await db.exec("reset role");await db.query("update lub.student_profiles set full_name_ar='أحمد محمد' where user_id=$1",[student]);await asUser(admin);
+ const names=await db.query<{data:Array<{name:string;email:string;major:string}>}>("select lub.admin_leader_candidates('احمد') as data");expect(names.rows[0].data).toEqual([{name:"أحمد محمد",email:"request1@example.invalid",major:"نظم معلومات"}]);
+ expect((await db.query<{data:unknown[]}>("select lub.admin_leader_candidates('request1@') as data")).rows[0].data).toHaveLength(1);
+ expect((await db.query<{data:unknown[]}>("select lub.admin_leader_candidates('اح') as data")).rows[0].data).toHaveLength(0);
+ await db.exec("reset role");await denied(()=>db.query("update lub.users set email_verified_at=null where id=$1",[student]));
+ await db.exec("reset role");await db.query("update lub.users set email_verified_at=now(),status_code='Inactive' where id=$1",[student]);await asUser(admin);expect((await db.query<{data:unknown[]}>("select lub.admin_leader_candidates('احمد') as data")).rows[0].data).toHaveLength(0);
+ await asUser(other);await denied(()=>db.query("select lub.admin_leader_candidates('احمد')"));
+});
