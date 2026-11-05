@@ -17,3 +17,5 @@ it("uses one size with semantic colors for organization states", () => {
   rerender(<OrganizationStatusBadge status="draft">مسودة</OrganizationStatusBadge>);
   expect(screen.getByText("مسودة").classList.contains("organization-status-badge--warning")).toBe(true);
 });
+
+it("uses sky for open and red for cancelled while keeping the badge text-only",()=>{const {rerender}=render(<OrganizationStatusBadge status="open">مفتوحة</OrganizationStatusBadge>);expect(screen.getByText("مفتوحة").classList.contains("organization-status-badge--info")).toBe(true);expect(document.querySelector("svg")).toBeNull();rerender(<OrganizationStatusBadge status="cancelled">ملغاة</OrganizationStatusBadge>);expect(screen.getByText("ملغاة").classList.contains("organization-status-badge--negative")).toBe(true);});

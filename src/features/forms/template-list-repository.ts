@@ -12,3 +12,8 @@ export async function templateList(user:string,org:string,f:{q:string;status:str
  select * from forms where position(lub.arabic_search_key(${f.q}) in lub.arabic_search_key(name))>0 and (${f.status}='all' or coalesce(versions->0->>'status_code','Draft')=${f.status}) order by created_at desc,id limit 26 offset ${f.page*25}`);
  const items=rows as unknown as Template[];return {items:items.slice(0,25),more:items.length>25};
 });}
+
+export async function formPreview(user:string,org:string,template:string){return withUser(user,async tx=>{
+ const [row]=await tx.execute(sql`select to_jsonb(v) as version,coalesce((select jsonb_agg(c) from lub.form_committee_options(${org}) c),'[]') as committees from lub.form_versions v join lub.form_templates t on t.id=v.form_template_id where t.id=${template} and (t.organization_id=${org} or t.is_system_template) and lub.has_org_permission(${org},'FORMS_MANAGE') order by v.version_number desc limit 1`);
+ return row as {version:import('./repository').Version;committees:Array<{id:string;name:string}>}|undefined;
+});}

@@ -5,7 +5,7 @@ import {ListThumbnail} from "@/components/list-thumbnail";
 import {ListEmpty} from "@/components/list-empty";
 import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
-import {Badge} from "@/components/ui/badge";
+import {OrganizationStatusBadge} from "@/features/organizations/organization-status-badge";
 import {FilterTabs} from "@/components/ui/filter-tabs";
 import {useListQuery} from "@/lib/list-query";
 import {createTranslator} from "@/lib/i18n";
@@ -26,7 +26,7 @@ export function RegistrationTemplateTable({items,organization,locale,actions,ser
  {id:"versions",label:c("النسخ","Versions"),className:"w-20",render:item=>item.version_count??item.versions.length},
  {id:"uses",label:c("الاستخدام","Usage"),className:"w-24",render:item=>item.round_count??0},
  {id:"updated",label:c("آخر تحديث","Last updated"),className:"w-32",render:item=>item.updated_at?relativeDate(item.updated_at,locale):""},
- {id:"status",label:c("الحالة","Status"),className:"w-28",render:item=><Badge variant="outline">{state(item)==="Draft"?c("مسودة","Draft"):c("منشور","Published")}</Badge>},
+ {id:"status",label:c("الحالة","Status"),className:"w-28",render:item=><OrganizationStatusBadge status={state(item)==="Draft"?"draft":"published"}>{state(item)==="Draft"?c("مسودة","Draft"):c("منشور","Published")}</OrganizationStatusBadge>},
  {id:"actions",label:c("الإجراءات","Actions"),className:"w-36",render:item=><RegistrationTemplateRow template={item} organization={organization} locale={locale} actionsOnly/>}
  ]}/></section>;
 }

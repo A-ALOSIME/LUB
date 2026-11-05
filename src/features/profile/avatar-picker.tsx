@@ -1,7 +1,8 @@
 "use client";
+import {UploadArea} from "@/components/upload-area";
 import {t as translateUi} from "@/lib/i18n";
 import {useEffect, useRef, useState} from "react";
-import {Pencil, Trash2} from "lucide-react";
+import { Trash2} from "lucide-react";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Button} from "@/components/ui/button";
 import type {Locale} from "@/lib/preferences";
@@ -38,8 +39,8 @@ export function AvatarPicker({name,src,locale,onChange,onProcessing,error:server
   }
   return <div className="account-avatar-picker">
     <Avatar className="account-avatar-large"><AvatarImage src={preview} alt={translateUi((en) ? "en" : "ar", "صورة حسابك", "Your account photo")}/><AvatarFallback>{name.trim().charAt(0)||"ل"}</AvatarFallback></Avatar>
-    <div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>input.current?.click()}><Pencil data-icon="inline-start"/>{translateUi((en) ? "en" : "ar", "تغيير الصورة", "Change photo")}</Button>{preview&&<Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setPreview(undefined);setError("");setLocalUrl("");input.current?.setCustomValidity("");onChange(null);}}><Trash2 data-icon="inline-start"/>{translateUi((en) ? "en" : "ar", "حذف الصورة", "Remove photo")}</Button>}</div>
-    <input ref={input} disabled={busy} type="file" accept="image/jpeg,image/png" aria-label={translateUi((en) ? "en" : "ar", "اختيار صورة الحساب", "Choose account photo")} className="sr-only" onInvalid={event=>event.preventDefault()} onChange={event=>{const file=event.target.files?.[0];event.target.value="";void choose(file);}}/>
+    <div className="flex w-full flex-col gap-2"><UploadArea locale={locale} busy={busy} hint="JPG / PNG · 2MB" onChoose={()=>input.current?.click()} onDrop={file=>void choose(file)}/>{preview&&<Button type="button" variant="ghost" size="sm" disabled={busy} onClick={()=>{setPreview(undefined);setError("");setLocalUrl("");input.current?.setCustomValidity("");onChange(null);}}><Trash2 data-icon="inline-start"/>{translateUi((en) ? "en" : "ar", "حذف الصورة", "Remove photo")}</Button>}</div>
+    <input ref={input} disabled={busy} type="file" accept="image/jpeg,image/png" aria-label={translateUi((en) ? "en" : "ar", "اختيار صورة الحساب", "Choose account photo")} hidden onInvalid={event=>event.preventDefault()} onChange={event=>{const file=event.target.files?.[0];event.target.value="";void choose(file);}}/>
     {(error||serverError)&&<p role="alert" className="text-sm text-destructive">{error||serverError}</p>}
   </div>;
 }

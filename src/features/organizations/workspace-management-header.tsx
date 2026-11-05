@@ -5,6 +5,8 @@ import {ContentText} from "@/components/content-text";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {Fragment} from "react";
+import {Breadcrumb,BreadcrumbList,BreadcrumbItem,BreadcrumbLink,BreadcrumbPage,BreadcrumbSeparator} from "@/components/ui/breadcrumb";
 import { House } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DisplayControls } from "@/components/display-controls";
@@ -83,16 +85,9 @@ export function WorkspaceManagementHeader({ locale, theme, organizations, notifi
   return <header className="workspace-management-header" dir={en ? "ltr" : "rtl"}>
     <div className="workspace-management-breadcrumbs">
       <WorkspaceSidebarTrigger locale={locale} />
-      <nav aria-label={c("مسار الصفحة", "Breadcrumbs")}>
-        <ol>
-          {crumbs.map((crumb, index) => <li key={`${crumb.label}-${index}`} title={crumb.label}>
-            {index > 0 && <span aria-hidden="true" className="workspace-management-breadcrumb-separator">/</span>}
-            {crumb.href && index < crumbs.length - 1
-              ? <Link href={crumb.href}><ContentText value={crumb.label}/></Link>
-              : <span aria-current={index === crumbs.length - 1 ? "page" : undefined}><ContentText value={crumb.label}/></span>}
-          </li>)}
-        </ol>
-      </nav>
+      <Breadcrumb aria-label={c("مسار الصفحة","Breadcrumbs")}><BreadcrumbList>
+        {crumbs.map((crumb,index)=><Fragment key={`${crumb.label}-${index}`}>{index>0&&<BreadcrumbSeparator/>}<BreadcrumbItem title={crumb.label}>{crumb.href&&index<crumbs.length-1?<BreadcrumbLink render={<Link href={crumb.href}/>}><ContentText value={crumb.label}/></BreadcrumbLink>:<BreadcrumbPage><ContentText value={crumb.label}/></BreadcrumbPage>}</BreadcrumbItem></Fragment>)}
+      </BreadcrumbList></Breadcrumb>
     </div>
     <div className="workspace-management-actions">
       <NotificationBell items={notifications} unreadCount={unreadCount} locale={locale} />

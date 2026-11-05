@@ -34,7 +34,7 @@ export type ReviewDecision = "Accepted" | "Rejected" | "Interview";
 export type ReviewRow = {
   id: string;
   name: string;
-  subtitle: string;
+  subtitle: string;context?:string;
   committee?: string | null;
   status: string;
   createdAt: string;
@@ -51,12 +51,12 @@ export function RequestReviewTable({
   onPrefetch,
   onDecision,
   bulkDecisions,
-  showCommittee = false,
+  showCommittee = false,showContext=false,
   decisionSlots=["Accepted","Rejected","Interview"],
   children,
 }: {
   actionsClassName?:string;pagination?:DataTablePagination;
-  rows: ReviewRow[];
+  rows: ReviewRow[];showContext?:boolean;
   locale?: Locale;
   onOpen: (id: string) => void;
   onPrefetch?: (id:string)=>void;
@@ -197,6 +197,7 @@ export function RequestReviewTable({
           <DataTable footer={<p>{c("عدد المنضمين: ","Participants: ")}{rows.length}</p>} pagination={pagination} items={rows} locale={locale} tableKey="requests" label={c("عرض تفاصيل الطلب","View request details")} onOpen={row=>onOpen(row.id)} onPrefetch={row=>onPrefetch?.(row.id)} selection={{selected:new Set(checked),onChange:ids=>setSelected([...ids]),disabled:row=>!row.selectable,reason:row=>["Accepted","Rejected"].includes(row.status)?c("الطلبات المقبولة والمرفوضة ما تدخل في الإجراء الجماعي","Accepted and rejected requests cannot be included in bulk actions"):c("يتطلب صلاحية الإجراء الجماعي وحالة طلب قابلة للمراجعة","Requires bulk-review permission and a reviewable request")}} columns={[
             {id:"name",label:c("الطالب","Student"),render:row=><div><p className="font-medium" dir="auto">{row.name}</p><p className="text-sm text-muted-foreground" dir="auto">{row.subtitle}</p></div>},
             ...(showCommittee?[{id:"committee",label:c("اللجنة","Committee"),className:"w-40",render:(row:ReviewRow)=><bdi>{row.committee??"—"}</bdi>}]:[]),
+            ...(showContext?[{id:"context",label:c("الفعالية","Event"),render:(row:ReviewRow)=>row.context}]:[]),
             {id:"status",label:c("الحالة","Status"),className:"w-32",render:row=><RequestStatusBadge status={row.status} locale={locale}/>},
             {id:"date",label:c("تاريخ التقديم","Submitted"),className:"w-40",render:row=><><time dateTime={row.createdAt}>{formatRiyadhDate(row.createdAt,locale)}</time><p className="text-sm text-muted-foreground"><bdi>{formatRiyadhTime(row.createdAt,locale)}</bdi></p></>},
             {id:"actions",label:c("الإجراءات","Actions"),className:actionsClassName,render:actions}

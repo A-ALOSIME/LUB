@@ -27,7 +27,7 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  }else{
  if(["self","respond"].includes(op)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  const query=(()=>{switch(op){
- case "term":{const starts=day(f,"starts"),ends=day(f,"ends");if(ends<starts)throw new Error("Term dates reversed");return sql`select lub.create_academic_term(${text(f,"year",20,2)},${text(f,"code",20)},${text(f,"name",120,2)},${starts}::date,${ends}::date)`;}
+ case "term":{const starts=day(f,"starts"),ends=day(f,"ends");if(ends<starts)throw new Error("Term dates reversed");return sql`select lub.create_academic_term(${text(f,"year",20,2)},${`T-${crypto.randomUUID().replaceAll("-","").slice(0,16)}`},${text(f,"name",120,2)},${starts}::date,${ends}::date)`;}
  case "add":case "self":{const activityDay=day(f,"day");return sql`select lub.add_hours(${id(f,"member")},${optionalId(f,"committee")},(select id from lub.academic_terms where ${activityDay}::date between start_date and end_date),${amount(f)}::numeric,${activityDay}::date,${text(f,"reason",3000)},${op==="self"},${f.get("confirmDuplicate")==="on"})`;}
  case "withdraw-self":return sql`select lub.withdraw_self_report_hours(${id(f,"record")})`;
  case "review":{const status=z.enum(["Approved","Rejected","Voided"]).parse(f.get("status"));if(status==="Voided"&&f.get("confirm")!=="on")throw new Error();return sql`select lub.review_hours(${id(f,"record")},${status},${text(f,"note",3000,status==="Approved"?0:1)})`;}
@@ -43,9 +43,9 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  }catch(error){const failures=[error,typeof error==="object"&&error!==null&&"cause" in error?error.cause:null];if(f.get("operation")==="term"){
  if(error instanceof Error&&error.message==="Term dates reversed")return{error:"يجب أن تكون نهاية الفصل في تاريخ البداية أو بعده."};
  if(failures.some(value=>typeof value==="object"&&value!==null&&"message" in value&&value.message==="Overlapping term"))return{error:"تتداخل هذه الفترة مع فصل محفوظ. اختر تواريخ لا تتداخل مع الفصول الحالية."};
- return{error:"تعذّر إضافة الفصل. راجع الحقول وتأكد من عدم تكرار السنة ورمز الفصل ومن صلاحيتك."};
+ return{error:"تعذّر إضافة الفصل. راجع الحقول والفترة وصلاحيتك."};
  }if(failures.some(value=>typeof value==="object"&&value!==null&&"code" in value&&value.code==="P0003"))return {duplicate:true};return{error:"تعذّر حفظ التغيير. راجع الحقول، الفصل الأكاديمي والصلاحيات، وحدّث الصفحة إذا تغير السجل. لا يمكن أن تقل الساعات عن صفر. الرفض يحتاج سببًا."};}
- if(f.get("operation")==="term")revalidatePath("/manage/organizations/[id]/tasks","page");
+ if(f.get("operation")==="term"){revalidatePath("/manage/terms");}if(f.get("operation")==="term")revalidatePath("/manage/organizations/[id]/tasks","page");
  updateTag("public-talent");
  revalidatePath("/hours");revalidatePath("/activity");revalidatePath("/applications");revalidatePath("/renewals");if(f.get("org"))revalidatePath(`/manage/organizations/${id(f,"org")}/tasks`);revalidatePath("/tasks");revalidatePath("/me");revalidatePath("/notifications");
  return {success:"تم حفظ التغيير."};

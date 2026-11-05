@@ -1,6 +1,6 @@
 "use client";
 import {formatNumber,localizeDigits,t as translateUi} from "@/lib/i18n";
-import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { arSA, enGB } from "react-day-picker/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -410,7 +410,7 @@ export function DateInput({
   );
 }
 
-export function DateRangeInput({startName,endName,label,startValue="",endValue="",required=false,includeTime=false,locale="ar"}:{startName:string;endName:string;label:string;startValue?:string;endValue?:string;required?:boolean;includeTime?:boolean;locale?:Locale}) {
+export function DateRangeInput({startName,endName,label,startValue="",endValue="",required=false,includeTime=false,locale="ar",onValueChange,error}:{startName:string;endName:string;label:string;startValue?:string;endValue?:string;required?:boolean;includeTime?:boolean;locale?:Locale;onValueChange?:(start:string,end:string)=>void;error?:string}) {
   const start=includeTime?currentRiyadhDateTime(startValue):{date:startValue,time:"12:00"};
   const end=includeTime?currentRiyadhDateTime(endValue):{date:endValue,time:"23:59"};
   const [startDate,setStartDate]=useState(start.date),[endDate,setEndDate]=useState(end.date),[startTime,setStartTime]=useState(start.time),[endTime,setEndTime]=useState(endValue?end.time:"23:59"),[open,setOpen]=useState(false),[touched,setTouched]=useState(false),[validStart,setValidStart]=useState(true),[validEnd,setValidEnd]=useState(true);
@@ -419,13 +419,14 @@ export function DateRangeInput({startName,endName,label,startValue="",endValue="
   const startOutput=startDate?(includeTime?`${startDate}T${startTime}:00+03:00`:startDate):"",endOutput=endDate?(includeTime?`${endDate}T${endTime}:00+03:00`:endDate):"";
   const invalid=!!(startOutput&&endOutput&&(includeTime?new Date(endOutput)<=new Date(startOutput):endDate<startDate))||!validStart||!validEnd;
   const complete=!!(startOutput&&endOutput&&!invalid);
+  useEffect(()=>{onValueChange?.(startOutput,complete?endOutput:"");},[startOutput,endOutput,complete,onValueChange]);
   const endpoint=(value:string)=>{
     const date=new Date(includeTime?value:`${value}T12:00:00+03:00`),language=en?"en-GB":"ar-SA-u-ca-gregory-nu-latn";
     const day=new Intl.DateTimeFormat(language,{timeZone:"Asia/Riyadh",day:"numeric",month:"long"}).format(date);
     return includeTime?`${day} ${new Intl.DateTimeFormat(language,{timeZone:"Asia/Riyadh",hour:"numeric",minute:"2-digit",hour12:true}).format(date)}`:day;
   };
   const summary=startOutput?`${endpoint(startOutput)}${endOutput?` ${en?"→":"←"} ${endpoint(endOutput)}`:""}`:"";
-  const message=invalid?(translateUi((en) ? "en" : "ar", "أدخل وقتًا صالحًا، ويجب أن تكون النهاية بعد البداية.", "Enter a valid time; end must be after start.")):touched&&!complete?(translateUi((en) ? "en" : "ar", "اختر بداية الفترة ونهايتها.", "Choose the start and end of the period.")):"";
+  const message=error|| (invalid?(translateUi((en) ? "en" : "ar", "أدخل وقتًا صالحًا، ويجب أن تكون النهاية بعد البداية.", "Enter a valid time; end must be after start.")):touched&&!complete?(translateUi((en) ? "en" : "ar", "اختر بداية الفترة ونهايتها.", "Choose the start and end of the period.")):"");
   return <Field className="relative shared-period-field" data-invalid={!!message||undefined}>
     <FieldLabel htmlFor={id}>{label}{required&&<span className="text-destructive" aria-hidden="true">*</span>}</FieldLabel>
     <CalendarPopup open={open} onOpenChange={setOpen} label={label} locale={locale} trigger={<Button id={id} aria-label={label} type="button" variant="outline" className="period-trigger" value={summary} aria-invalid={!!message} aria-required={required} aria-describedby={`${id}-hint`}><CalendarDays/><span>{startOutput?<><bdi>{endpoint(startOutput)}</bdi>{endOutput&&<>{en?<ArrowRight/>:<ArrowLeft/>}<bdi>{endpoint(endOutput)}</bdi></>}</>:translateUi((en) ? "en" : "ar", "اختر الفترة", "Choose a period")}</span></Button>}>

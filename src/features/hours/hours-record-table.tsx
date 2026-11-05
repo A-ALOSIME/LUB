@@ -24,7 +24,7 @@ import { HoursForm } from "./form";
 import type { HourRecord } from "./repository";
 import type { Locale } from "@/lib/preferences";
 import { formatRiyadhDate, formatRiyadhDateTime } from "@/lib/datetime";
-import { academicLevel, academicTerm, formatHours } from "@/lib/display";
+import { formatHours } from "@/lib/display";
 import { FormField } from "@/components/form-field";
 
 const labels: Record<string, [string, string]> = {
@@ -331,16 +331,7 @@ export function HoursRecordTable({
         <p className="font-medium break-words">
           {personal ? record.org_name : (record.owner ?? c("عضو", "Member"))}
         </p>
-        <p className="text-xs text-muted-foreground break-words">
-          {personal
-            ? academicTerm(record.term_name, locale)
-            : [
-                record.context?.major,
-                academicLevel(record.context?.level, locale),
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-        </p>
+
       </div>
     </div>
   );
@@ -352,11 +343,10 @@ export function HoursRecordTable({
       <DataTable pagination={pagination} items={records} locale={locale} tableKey="hours" label={c("تفاصيل سجل الساعات","Hours record details")} onOpen={setSelected} columns={[
         {id:"name",label:personal?c("الجهة","Organization"):c("العضو","Member"),render:identity},
         ...(!personal?[
-          {id:"committee",label:c("اللجنة","Committee"),className:"w-32",render:(record:HourRecord)=>record.context?.committee_name??c("بدون لجنة","No committee")},
-          {id:"description",label:c("السبب","Reason"),className:"w-48",render:(record:HourRecord)=><><p><ContentText value={record.description}/></p><p className="text-sm text-muted-foreground">{source(record)}</p></>}
+          {id:"committee",label:c("اللجنة","Committee"),className:"w-32",render:(record:HourRecord)=>record.context?.committee_name??c("بدون لجنة","No committee")}
         ]:[]),
         {id:"hours",label:c("الساعات","Hours"),className:"w-28",render:record=>formatHours(record.hours,locale)},
-        {id:"date",label:personal?c("التاريخ","Date"):c("التاريخ والفصل","Date and term"),className:"w-40",render:record=><><time>{formatRiyadhDate(record.activity_date,locale)}</time>{!personal&&<p className="text-sm text-muted-foreground">{academicTerm(record.term_name,locale)}</p>}</>},
+        {id:"date",label:c("التاريخ","Date"),className:"w-40",render:record=><time>{formatRiyadhDate(record.activity_date,locale)}</time>},
         ...(personal?[{id:"source",label:c("المصدر","Source"),className:"w-40",render:source}]:[]),
         {id:"status",label:c("الحالة","Status"),className:"w-36",render:record=><HourStatus status={record.status_code} locale={locale}/>},
         {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:record=><RecordActions record={record} personal={personal} locale={locale}/>}

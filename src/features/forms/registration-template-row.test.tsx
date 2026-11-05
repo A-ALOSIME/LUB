@@ -5,13 +5,14 @@ const mocks=vi.hoisted(()=>({mutate:vi.fn(),refresh:vi.fn(),push:vi.fn(),toast:v
 vi.mock("./actions",()=>({mutateWorkflow:mocks.mutate}));
 vi.mock("next/navigation",()=>({useRouter:()=>({refresh:mocks.refresh,push:mocks.push})}));
 vi.mock("@/components/ui/toast",()=>({toast:{add:mocks.toast}}));
+import {PrivateQueryProvider} from "@/components/private-query-provider";
 import {RegistrationTemplateRow} from "./registration-template-row";
 import {TooltipProvider} from "@/components/ui/tooltip";
 import {initialDefinition} from "./definition";
 import type {Template} from "./repository";
 const template:Template={id:"original",organization_id:"org",name:"طلب الانضمام",round_count:0,can_delete:true,versions:[{id:"version",version_number:1,status_code:"Draft",revision:1,definition:initialDefinition}]};
 afterEach(()=>{cleanup();vi.clearAllMocks();});
-function view(value=template){return render(<TooltipProvider><ul><RegistrationTemplateRow template={value} organization="org" locale="ar"/></ul></TooltipProvider>);}
+function view(value=template){return render(<PrivateQueryProvider actorId="actor"><TooltipProvider><ul><RegistrationTemplateRow template={value} organization="org" locale="ar"/></ul></TooltipProvider></PrivateQueryProvider>);}
 it("disables deletion for used forms and offers the copied draft through the toast",async()=>{
  mocks.mutate.mockResolvedValue({success:"تم إنشاء نسخة",templateId:"copy"});view({...template,round_count:3,can_delete:false});
  expect(screen.getByRole("button",{name:"حذف النموذج"}).hasAttribute("disabled")).toBe(true);
@@ -31,4 +32,13 @@ it("offers an explicit edit link before duplicate and delete without nesting the
  view();const edit=screen.getByRole('link',{name:'تعديل النموذج'}),open=screen.getByRole('link',{name:'فتح النموذج طلب الانضمام'});
  expect(edit.getAttribute('href')).toBe(open.getAttribute('href'));expect(open.contains(edit)).toBe(false);
  const actions=document.querySelector('.registration-template-actions')!;expect([...actions.querySelectorAll('[aria-label]')].map(node=>node.getAttribute('aria-label'))).toEqual(['معاينة النموذج','تعديل النموذج','تكرار النموذج','حذف النموذج']);
+});
+
+it("loads the definition on demand when list rows omit it and reuses it on reopening",async()=>{
+ const fetch=vi.fn<(url:string)=>Promise<Response>>(async()=>Response.json({version:template.versions[0],committees:[]}));vi.stubGlobal("fetch",fetch);
+ const row={...template,versions:[{...template.versions[0],definition:undefined}]} as unknown as Template;view(row);
+ expect(fetch).not.toHaveBeenCalled();fireEvent.click(screen.getByRole("button",{name:"معاينة النموذج"}));
+ await waitFor(()=>expect(document.querySelector('[data-form-preview="true"]')??screen.getByRole("dialog")).toBeTruthy());await waitFor(()=>expect(fetch).toHaveBeenCalledOnce());
+ expect(fetch.mock.calls[0][0]).toContain("/api/organizations/org/forms/original/preview");
+ fireEvent.click(screen.getByRole("button",{name:"إغلاق"}));fireEvent.click(screen.getByRole("button",{name:"معاينة النموذج"}));expect(fetch).toHaveBeenCalledOnce();vi.unstubAllGlobals();
 });

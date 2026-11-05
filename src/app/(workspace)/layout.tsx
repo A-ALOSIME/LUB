@@ -1,4 +1,3 @@
-import {pendingOpeningRequestCount} from "@/features/organization-requests/repository";
 import { cache, Suspense } from "react";
 import { headers } from "next/headers";
 import { getPreferences } from "@/lib/preferences";
@@ -76,13 +75,11 @@ async function WorkspaceHeader() {
 }
 
 async function WorkspaceNavigation() {
-  const {userId, locale, superAdmin, overview, displayName } = await getWorkspaceState();
-  const pendingOrganizationRequests=superAdmin?await pendingOpeningRequestCount(userId):0;
+  const {locale, superAdmin, overview, displayName } = await getWorkspaceState();
   return <MyPageNavigation
     locale={locale}
     organizations={superAdmin ? [] : overview?.access.organizations ?? []}
     superAdmin={superAdmin}
-    pendingOrganizationRequests={pendingOrganizationRequests}
     userName={displayName}
   />;
 }

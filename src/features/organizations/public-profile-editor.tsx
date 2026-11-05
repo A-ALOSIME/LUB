@@ -1,9 +1,10 @@
 "use client";
 
+import {UploadArea} from "@/components/upload-area";
 import {t as translateUi} from "@/lib/i18n";
 import Image from "next/image";
 import { useId, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { CalendarDays, ImagePlus, LoaderCircle, UsersRound, X } from "lucide-react";
+import { CalendarDays, UsersRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FieldLabel } from "@/components/ui/field";
@@ -133,14 +134,11 @@ function OrganizationPublicProfileEditorState({ organizationId, locale, initialV
               : <ListEntryInput id={`${inputId}-${field.key}`} label={en ? field.key : field.label} locale={locale} placeholder={field.placeholder[en ? "en" : "ar"]} value={content[field.key] ?? ""} onChange={value => update(field.key, value)} />}
           </div>)}
           <FormField className="organization-settings-field full organization-partner-image-field" id={`${inputId}-partner-image`} label={<>{translateUi((en) ? "en" : "ar", "صورة الشركاء", "Partners image")}</>}>
-            <input ref={fileRef} id={`${inputId}-partner-image`} type="file" accept="image/png,image/svg+xml,.png,.svg" className="sr-only" aria-label={translateUi((en) ? "en" : "ar", "إرفاق صورة الشركاء", "Upload partners image")} onChange={uploadPartnerImage} />
+            <input ref={fileRef} id={`${inputId}-partner-image`} type="file" accept="image/png,image/svg+xml,.png,.svg" hidden aria-label={translateUi((en) ? "en" : "ar", "إرفاق صورة الشركاء", "Upload partners image")} onChange={uploadPartnerImage} />
             {content.partnersImageUrl ? <div className="organization-partner-image-preview">
               <Image src={content.partnersImageUrl} alt={translateUi((en) ? "en" : "ar", "الشركاء", "Partners")} width={520} height={300} unoptimized className="h-full w-full rounded-lg object-cover" />
               <Button type="button" variant="secondary" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "إزالة صورة الشركاء", "Remove partners image")} onClick={() => update("partnersImageUrl", "")}><X aria-hidden="true" /></Button>
-            </div> : <Button type="button" variant="outline" size="sm" className="w-fit" disabled={pending} onClick={() => fileRef.current?.click()}>
-              {pending ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}
-              {pending ? (translateUi((en) ? "en" : "ar", "جارٍ الرفع…", "Uploading…")) : (translateUi((en) ? "en" : "ar", "إرفاق صورة", "Attach image"))}
-            </Button>}
+            </div> : <UploadArea locale={locale} busy={pending} hint="PNG / SVG · 2MB" onChoose={()=>fileRef.current?.click()} onDrop={file=>{const input=fileRef.current;if(!input)return;const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event("change",{bubbles:true}));}}/>}
             <p className="text-xs text-muted-foreground">{translateUi((en) ? "en" : "ar", "PNG أو SVG · بحد أقصى 2 ميجابايت", "PNG or SVG · up to 2 MB")}</p>
             {error && <p role="alert" className="organization-contact-error">{error}</p>}
           </FormField>

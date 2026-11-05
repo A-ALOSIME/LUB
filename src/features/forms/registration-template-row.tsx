@@ -1,5 +1,10 @@
 "use client";
 
+import {useQuery} from "@tanstack/react-query";
+import {useQueryActor} from "@/components/private-query-provider";
+import {privateJson} from "@/lib/private-query";
+import {Skeleton} from "@/components/ui/skeleton";
+import {Button} from "@/components/ui/button";
 import {createTranslator} from "@/lib/i18n";
 import {formatCount} from "@/lib/display";
 import Link from "next/link";
@@ -41,14 +46,15 @@ export function RegistrationTemplateRow({ template, organization, locale,actions
       }catch{toast.add({title:c("تعذّر تنفيذ الإجراء. أعد المحاولة.","Action failed. Try again."),type:"error",timeout:0});}
     });
   }
-  const [preview,setPreview]=useState(false);
+  const [preview,setPreview]=useState(false),actor=useQueryActor();
+  const previewQuery=useQuery({queryKey:["form-preview",actor,organization,template.id,latest?.revision],queryFn:({signal})=>privateJson<{version:import("./repository").Version;committees:Array<{id:string;name:string}>}>(`/api/organizations/${organization}/forms/${template.id}/preview`,signal),enabled:preview,staleTime:90000});
   const controls=<>    <div className="registration-template-actions relative flex shrink-0 flex-wrap items-center gap-2" onClick={event=>event.stopPropagation()}>
       <RowAction label={c("معاينة النموذج","Preview form")} disabled={!template.versions.length} onClick={()=>setPreview(true)}><Eye/></RowAction>
       <RowAction href={editHref} label={c("تعديل النموذج","Edit form")}><Pencil/></RowAction>
       <RowAction label={c("تكرار النموذج","Duplicate form")} disabled={pending} onClick={()=>perform("duplicate-form")}><Copy/></RowAction>
       <RowAction label={c("حذف النموذج","Delete form")} hint={deleteHint} className="template-delete-action" disabled={!canDelete||pending} onClick={()=>setDeleteOpen(true)}><Trash2/></RowAction>
     </div>
-    {preview&&template.versions[0]&&<ManagementActionSheet label="" title={template.name} locale={locale} open hideTrigger onOpenChange={setPreview} width="wide"><ApplicationForm preview round="" version={template.versions[0].id} definition={template.versions[0].definition} committees={[]} locale={locale}/></ManagementActionSheet>}
+    {preview&&template.versions[0]&&<ManagementActionSheet label="" title={template.name} locale={locale} open hideTrigger onOpenChange={setPreview} width="wide">{previewQuery.data?<ApplicationForm preview round="" version={previewQuery.data.version.id} definition={previewQuery.data.version.definition} committees={previewQuery.data.committees} locale={locale}/>:previewQuery.isError?<div role="alert">{c("تعذّر تحميل المعاينة.","Could not load the preview.")}<Button variant="outline" onClick={()=>void previewQuery.refetch()}>{c("إعادة المحاولة","Retry")}</Button></div>:<Skeleton className="h-32"/>}</ManagementActionSheet>}
     <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{c(`حذف النموذج «${template.name}»؟`,`Delete “${template.name}”?`)}</AlertDialogTitle><AlertDialogDescription>{c("سيُحذف بكل نسخه ولا يمكن التراجع.","All versions will be deleted. This cannot be undone.")}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogAction variant="danger-outline" disabled={pending} onClick={event=>{event.preventDefault();perform("delete-form");}}>{pending?c("جارٍ الحذف…","Deleting…"):c("حذف النموذج","Delete form")}</AlertDialogAction><AlertDialogCancel disabled={pending}>{c("إلغاء","Cancel")}</AlertDialogCancel></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
   return actionsOnly?controls:<li className="registration-template-row relative flex min-w-0 flex-col items-stretch gap-3 p-4 transition-colors hover:bg-accent/50 sm:col-span-full sm:grid sm:grid-cols-subgrid sm:items-center">
     <Link href={editHref} className="absolute inset-0 rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`${c("فتح النموذج","Open form")} ${template.name}`}/>

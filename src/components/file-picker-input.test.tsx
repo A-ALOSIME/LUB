@@ -7,7 +7,7 @@ it("keeps the native file control out of layout and opens it through the accessi
  const changed=vi.fn();render(<FilePickerInput accept="application/pdf" locale="en" onChange={changed}/>);
  const input=document.querySelector<HTMLInputElement>('input[type="file"]')!;
  expect(input.hidden).toBe(true);expect(input.classList.contains("sr-only")).toBe(false);
- const choose=vi.spyOn(input,"click");fireEvent.click(screen.getByRole("button",{name:"Choose file"}));expect(choose).toHaveBeenCalledOnce();
+ const choose=vi.spyOn(input,"click");fireEvent.click(screen.getByRole("button",{name:/Drop a file here or click to choose/}));expect(choose).toHaveBeenCalledOnce();
  fireEvent.change(input,{target:{files:[new File(["test"],"project.pdf",{type:"application/pdf"})]}});
  expect(changed).toHaveBeenCalledOnce();expect(screen.getByText("project.pdf")).toBeTruthy();
 });

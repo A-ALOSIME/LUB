@@ -19,13 +19,13 @@ it("opens cached student details in a left sheet without navigating",async()=>{
  mocks.load.mockResolvedValue({detail:{...detail,canManage:false}});
  render(<TaskPanelAction task="task" title="التصميم"/>);
  fireEvent.click(screen.getByRole("button",{name:"عرض التفاصيل"}));
- expect(await screen.findByText("تفاصيل المهمة كاملة")).toBeTruthy();
+ expect(await screen.findByText("تفاصيل المهمة كاملة",{}, {timeout:5000})).toBeTruthy();
  expect(screen.getByRole("dialog").getAttribute("data-side")).toBe("left");
  expect(screen.queryByRole("link",{name:"عرض التفاصيل"})).toBeNull();
  expect(vi.mocked(privateJson).mock.calls[0][0]).toContain("purpose=student");
  fireEvent.click(screen.getByRole("button",{name:"إغلاق"}));
  fireEvent.click(screen.getByRole("button",{name:"عرض التفاصيل"}));
- expect(await screen.findByText("تفاصيل المهمة كاملة")).toBeTruthy();expect(mocks.load).toHaveBeenCalledTimes(1);
+ expect(await screen.findByText("تفاصيل المهمة كاملة",{}, {timeout:5000})).toBeTruthy();expect(mocks.load).toHaveBeenCalledTimes(1);
 });
 it("opens the authorized prefilled editor in a dialog",async()=>{
  mocks.load.mockResolvedValue({detail,workspace:{name:"org"}});

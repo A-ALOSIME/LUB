@@ -1,4 +1,7 @@
 "use client";
+import {X} from "lucide-react";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
 import {t as translateUi} from "@/lib/i18n";
 import { useEffect, useId, useMemo, useState } from "react";
 import { FormField } from "@/components/form-field";
@@ -14,10 +17,10 @@ import { findOrganizationLeader } from "./admin-organization-actions";
 import type { Locale } from "@/lib/preferences";
 export function LeaderEmailSearch({
   locale,
-  required = false,
+  required = false,onValidityChange,
 }: {
   locale: Locale;
-  required?: boolean;
+  required?: boolean;onValidityChange?:(valid:boolean)=>void;
 }) {
   const [open, setOpen] = useState(false);
   const id = useId(),
@@ -27,6 +30,7 @@ export function LeaderEmailSearch({
     [items, setItems] = useState<Array<{ name: string; email: string; major?: string }>>([]),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(false);
+  const [selectedName,setSelectedName]=useState("");
   const emails=useMemo(()=>items.map(item=>item.email),[items]);
   useEffect(() => {
     let active = true;
@@ -71,8 +75,8 @@ export function LeaderEmailSearch({
         translateUi((en) ? "en" : "ar", "ابحث بالاسم أو البريد عن حساب طالب نشط ومتحقق من بريده.", "Search by name or email for an active, verified student account.")
       }
     >
-      <input type="hidden" name="email" value={query} />
-      <Combobox
+      <input type="hidden" name="email" value={selected??""} />
+      {selected?<Badge variant="secondary" className="max-w-full gap-2 whitespace-normal"><span>{selectedName} <bdi dir="ltr">{selected}</bdi></span><Button type="button" variant="ghost" size="icon" aria-label={translateUi(locale,"إزالة القائد المختار","Remove selected leader")} onClick={()=>{setSelected(null);setQuery("");setSelectedName("");onValidityChange?.(!required);}}><X/></Button></Badge>:<Combobox
         open={open}
         onOpenChange={setOpen}
         items={emails}
@@ -84,7 +88,7 @@ export function LeaderEmailSearch({
           if (details.reason === "input-change" || details.reason === "input-clear") {
             setQuery(value);
             setError(false);
-            setSelected(null);
+            setSelected(null);onValidityChange?.(!required&&!value.trim());
             setItems([]);
             setLoading(value.trim().length >= 3);
             setOpen(value.length > 0);
@@ -92,7 +96,7 @@ export function LeaderEmailSearch({
         }}
         onValueChange={(value) => {
           setSelected(value);
-          if(value!==null){setOpen(false);setQuery(value);}
+          if(value!==null){setSelectedName(items.find(item=>item.email===value)?.name??value);setOpen(false);setQuery(value);onValidityChange?.(true);}
         }}
       >
         <ComboboxInput
@@ -130,7 +134,7 @@ export function LeaderEmailSearch({
             )}
           </ComboboxList>
         </ComboboxContent>
-      </Combobox>
+      </Combobox>}
     </FormField>
   );
 }

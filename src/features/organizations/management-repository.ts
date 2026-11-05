@@ -164,16 +164,11 @@ export async function updateAdminAccountName(userId: string, fullName: string) {
     });
   });
 }
-export async function getSuperAdmins(userId: string) {
-  return withUser(userId, async tx => {
-    const [result] = await tx.select({
-      allowed: sql<boolean>`lub.is_super_admin()`,
-      administrators: sql<Array<{ userId: string; fullName: string }>>`case when lub.is_super_admin() then coalesce((select jsonb_agg(jsonb_build_object('userId',a.user_id,'fullName',a.full_name) order by a.full_name) from lub.list_super_admins() a),'[]'::jsonb) else '[]'::jsonb end`,
-    }).from(users).where(eq(users.id, userId)).limit(1);
-    if (!result?.allowed) throw new Error("FORBIDDEN");
-    return result.administrators;
-  });
-}
+export async function getSuperAdmins(userId:string){return withUser(userId,async tx=>{
+ const [row]=await tx.execute(sql`select case when lub.is_super_admin() then (select coalesce(jsonb_agg(a),'[]'::jsonb) from lub.admin_account_directory() a) end as data`);
+ if(!row?.data)throw new Error("FORBIDDEN");
+ return row.data as Array<{userId:string;fullName:string;email:string}>;
+});}
 export async function getAssignedManagementOrganizations(userId: string) {
   return withUser(userId, tx => tx.select(manageFields).from(organizations).where(hasScopedAccess).orderBy(asc(organizations.nameAr)));
 }

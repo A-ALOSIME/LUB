@@ -72,3 +72,5 @@ export type CommitteeInput = z.infer<typeof committeeSchema>;
 export type MutationState = { error?: string; success?: string; fieldErrors?: Record<string, string[] | undefined> };
 export const mutationOperationSchema = z.enum(["create-org", "org-profile", "org-status", "appoint-leader", "remove-leader", "grant-admin", "end-admin", "save-committee", "copy-committee", "committee-status", "save-announcement", "archive-announcement", "restore-announcement", "pin-announcement", "delete-announcement"]);
 export type MutationOperation = z.infer<typeof mutationOperationSchema>;
+
+export const organizationEnglishNameSchema=z.string().trim().min(1,"اكتب اسم الجهة بالإنجليزية.").max(80).regex(/^[A-Za-z0-9 ]+$/,"استخدم أحرفًا وأرقامًا ومسافات إنجليزية فقط.");

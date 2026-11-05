@@ -1,23 +1,24 @@
 "use client";
-import {t as translateUi} from "@/lib/i18n";
-import {useState} from "react";
+import {useState,useCallback,useActionState} from "react";
+import {useRouter} from "next/navigation";
 import {FormField} from "@/components/form-field";
 import {FieldGroup} from "@/components/ui/field";
 import {Input} from "@/components/ui/input";
-import {DatePickerField} from "@/features/forms/date-input";
-import {HoursForm} from "./form";
+import {Button} from "@/components/ui/button";
+import {Spinner} from "@/components/ui/spinner";
+import {toast} from "@/components/ui/toast";
+import {DateRangeInput} from "@/features/forms/date-input";
+import {mutateHours,type HoursState} from "./actions";
+import {createTranslator} from "@/lib/i18n";
+import {actionFeedback} from "@/lib/action-feedback";
 import type {Locale} from "@/lib/preferences";
-
 export function TermForm({locale}:{locale:Locale}){
- const en=locale==="en",[starts,setStarts]=useState(""),[ends,setEnds]=useState("");
- const reversed=!!(starts&&ends&&ends<starts);
- return <HoursForm operation="term" label={translateUi((en) ? "en" : "ar", "تعريف الفصل", "Create term")} locale={locale} disabled={!starts||!ends||reversed}>
-  <FieldGroup className="grid gap-6 sm:grid-cols-2">
-   <FormField label={translateUi((en) ? "en" : "ar", "السنة الأكاديمية", "Academic year")} required locale={locale}><Input name="year" required minLength={2} maxLength={20} placeholder="2026-2027" dir="ltr"/></FormField>
-   <FormField label={translateUi((en) ? "en" : "ar", "رمز الفصل", "Term code")} required locale={locale}><Input name="code" required maxLength={20} placeholder="T1" dir="ltr"/></FormField>
-   <FormField label={translateUi((en) ? "en" : "ar", "اسم الفصل", "Term name")} required locale={locale} className="sm:col-span-2"><Input name="name" required minLength={2} maxLength={120} placeholder={translateUi((en) ? "en" : "ar", "الفصل الدراسي الأول", "First semester")}/></FormField>
-   <DatePickerField name="starts" label={translateUi((en) ? "en" : "ar", "البداية", "Start")} required locale={locale} onValueChange={setStarts}/>
-   <DatePickerField name="ends" label={translateUi((en) ? "en" : "ar", "النهاية", "End")} required locale={locale} onValueChange={setEnds} error={reversed?(translateUi((en) ? "en" : "ar", "يجب أن تكون نهاية الفصل في تاريخ البداية أو بعده.", "The end date must be on or after the start date.")):undefined}/>
-  </FieldGroup>
- </HoursForm>;
+ const t=createTranslator(locale),router=useRouter(),[name,setName]=useState(""),[year,setYear]=useState(""),[range,setRange]=useState({start:"",end:""});
+ const update=useCallback((start:string,end:string)=>setRange({start,end}),[]);
+ const [state,action,pending]=useActionState(async(previous:HoursState,form:FormData)=>{const result=await mutateHours(previous,form);if(result.success){router.refresh();toast.add({title:t("تم تعريف الفصل","Term created"),type:"success"});}return result;},{});
+ return <form action={action} className="flex flex-col gap-6"><input type="hidden" name="operation" value="term"/><FieldGroup>
+ <FormField label={t("اسم الفصل","Term name")} required><Input name="name" required minLength={2} maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></FormField>
+ <FormField label={t("السنة الأكاديمية","Academic year")} required><Input name="year" required minLength={2} maxLength={20} placeholder="2026-2027" dir="ltr" value={year} onChange={e=>setYear(e.target.value)}/></FormField>
+ <DateRangeInput startName="starts" endName="ends" label={t("فترة الفصل","Term period")} required locale={locale} onValueChange={update} error={state.error?actionFeedback(state.error,locale):undefined}/>
+ </FieldGroup><Button type="submit" className="self-start" disabled={pending||name.trim().length<2||year.trim().length<2||!range.start||!range.end||range.end<range.start}>{pending&&<Spinner/>}{t("تعريف الفصل","Create term")}</Button></form>;
 }

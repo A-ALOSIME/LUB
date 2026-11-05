@@ -26,8 +26,8 @@ it("retains every typed character in Arabic and English, and permits editing a s
   }
   fireEvent.change(input,{target:{value:"leader@"}});
   fireEvent.click(await screen.findByRole("option",{name:/leader@example.invalid/}));
-  fireEvent.change(input,{target:{value:"new"}});
-  expect(input.value).toBe("new");
+  fireEvent.click(screen.getByRole("button",{name:"إزالة القائد المختار"}));
+  const next=screen.getByRole("combobox",{name:"بريد القائد"}) as HTMLInputElement;fireEvent.change(next,{target:{value:"new"}});expect(next.value).toBe("new");
 });
 it("finds an eligible leader and submits the selected email without exposing internal IDs", async () => {
   lookup.mockResolvedValue([
@@ -49,9 +49,6 @@ it("finds an eligible leader and submits the selected email without exposing int
   expect(new FormData(container.querySelector("form")!).get("email")).toBe(
     "leader@example.invalid",
   );
-  expect(
-    screen
-      .getByRole("combobox", { name: "بريد القائد" })
-      .getAttribute("aria-expanded"),
-  ).toBe("false");
+  expect(screen.queryByRole("combobox",{name:"بريد القائد"})).toBeNull();expect(screen.getByRole("button",{name:"إزالة القائد المختار"})).toBeTruthy();
+  expect(screen.getByText("طالب تجريبي")).toBeTruthy();
 });

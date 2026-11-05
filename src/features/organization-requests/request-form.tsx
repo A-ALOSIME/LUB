@@ -1,4 +1,5 @@
 "use client";
+import {FilePickerInput} from "@/components/file-picker-input";
 import {createTranslator} from "@/lib/i18n";
 import { actionFeedback } from "@/lib/action-feedback";
 import { useActionState, useEffect, useState } from "react";
@@ -171,8 +172,7 @@ export function OpeningRequestForm({
             )}
             error={imageError}
           >
-            <Input
-              type="file"
+            <FilePickerInput locale={locale} hint={c("PNG أو JPEG · حتى 2MB","PNG or JPEG · up to 2 MB")}
               accept="image/png,image/jpeg"
               onChange={(event) => {
                 const file = event.target.files?.[0];

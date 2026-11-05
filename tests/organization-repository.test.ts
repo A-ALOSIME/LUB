@@ -308,9 +308,9 @@ it("loads assigned organizations and administrator rosters in one scoped query e
   expect(scopedReads).toBe(2);
   expect((await engine.query("select current_user as role,current_setting('request.jwt.claim.sub',true) as subject")).rows[0]).toEqual(priorDatabaseScope);
 
-  selectedReads = 0;
-  expect(await getSuperAdmins(admin)).toEqual([{ userId: admin, fullName: "المشرف" }]);
-  expect(selectedReads).toBe(1);
+  scopedReads = 0; selectedReads = 0;
+  expect(await getSuperAdmins(admin)).toEqual([{ userId: admin, fullName: "المشرف", email:"admin@example.invalid" }]);
+  expect(scopedReads).toBe(1);expect(selectedReads).toBe(0);
   await expect(getSuperAdmins(leader)).rejects.toThrow();
 });
 
@@ -488,4 +488,9 @@ it("persists leader round requirements atomically with creation and rolls back i
  form.set("operation","save-round");form.set("round",created.id);form.set("title","لا يُحفظ");form.set("allowedMajor","تخصص غير صالح");expect((await mutateWorkflow({},form)).error).toBeDefined();
  const [unchanged]=(await database.execute<{title:string;minimum_approved_hours:string;allowed_majors:string[]}>(sql`select title,minimum_approved_hours,allowed_majors from lub.registration_rounds where id=${created.id}`)).rows;expect(unchanged).toMatchObject({title:"جولة بشروط",minimum_approved_hours:"12.50",allowed_majors:["نظم معلومات"]});
  form.set("title","جولة محدثة");form.delete("allowedMajor");form.set("minimumHours","0");expect((await mutateWorkflow({},form)).success).toBeDefined();const [cleared]=(await database.execute<{minimum_approved_hours:string;allowed_majors:string[]}>(sql`select minimum_approved_hours,allowed_majors from lub.registration_rounds where id=${created.id}`)).rows;expect(cleared).toMatchObject({minimum_approved_hours:"0.00",allowed_majors:[]});
+});
+
+it("uses academic year and readable semester names in export metadata without exposing the internal term code",async()=>{
+ await appointPrimaryLeader(admin,org,"leader@example.invalid");const term=(await engine.query<{id:string}>("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('2026-2027','INTERNAL-ONLY','الفصل الدراسي الأول','2026-09-01','2026-12-31') returning id")).rows[0].id;
+ await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");const ticket=(await engine.query<{data:{ticket:string}}>("select public.prepare_hours_export($1,null,$2,'Approved','') as data",[org,term])).rows[0].data.ticket;const {rows}=await engine.query<{data:{period:string}}>("select public.consume_hours_export($1) as data",[ticket]);expect(rows[0].data.period).toBe("2026-2027-first-semester");expect(JSON.stringify(rows)).not.toContain("INTERNAL-ONLY");
 });

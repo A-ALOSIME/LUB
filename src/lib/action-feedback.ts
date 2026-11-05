@@ -3,6 +3,9 @@ import type { Locale } from "./preferences";
 
 // Server actions return stable Arabic copy; keep the same feedback in either UI language.
 const english: Record<string, string> = {
+ "هذا الرابط مستخدم لجهة أخرى، غيّر الاسم":"This URL is used by another organization. Change the English name.",
+ "اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط.":"Enter the English organization name using only letters, numbers and spaces.",
+ "تعذّر إضافة الفصل. راجع الحقول والفترة وصلاحيتك.":"Could not create the term. Check the fields, date range and your permissions.",
   "لا تستوفي شروط الساعات أو التخصص لهذه الجولة. راجع الشروط في صفحة الجهة.":"You do not meet this round’s hours or major requirements. Review them on the organization page.",
   "أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر.": "Complete the round title, published form and registration period before publishing.",
   "توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى.": "This organization already has an open or scheduled registration round. Pause it before publishing another.",

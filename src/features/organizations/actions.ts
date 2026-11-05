@@ -1,5 +1,7 @@
 "use server";
 
+import {englishOrganizationSlug} from "./organization-slug";
+import {organizationEnglishNameSchema} from "./validation";
 import { z } from "zod";
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -24,7 +26,7 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
     const texts = { nameAr: form.get("nameAr"), summary: form.get("summary") ?? "", mission: form.get("mission") ?? "" };
     switch (operation) {
       case "create-org":
-        {const email=String(form.get("email")??"").trim();const created=await createOrganization(user.id,createOrganizationSchema.parse({...texts,slug:form.get("slug"),typeCode:form.get("typeCode")}),email?emailSchema.parse(email):undefined);createdId=created.id;}
+        {const english=organizationEnglishNameSchema.safeParse(form.get("nameEn"));if(!english.success)return {error:"اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط.",fieldErrors:{nameEn:["اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط."]}};const email=String(form.get("email")??"").trim();const created=await createOrganization(user.id,createOrganizationSchema.parse({...texts,slug:englishOrganizationSlug(english.data),typeCode:form.get("typeCode")}),email?emailSchema.parse(email):undefined);createdId=created.id;}
         break;
       case "org-profile":
         {
@@ -104,7 +106,7 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
       }
       return { error: "راجع بيانات النموذج وأكّد الإجراء إذا طُلب منك.", fieldErrors };
     }
-    const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
+    const cause = error && typeof error === "object" && "cause" in error && error.cause && typeof error.cause === "object" ? error.cause : error;
     if (operation === "org-profile") {
       const details = cause && typeof cause === "object" ? cause as Record<string, unknown> : {};
       console.error("Organization profile save failed", {
@@ -115,7 +117,7 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
         column: typeof details.column_name === "string" ? details.column_name : undefined,
       });
     }
-    if(cause&&typeof cause==="object"&&"code" in cause&&cause.code==="23505"&&(("constraint_name" in cause&&String(cause.constraint_name).includes("slug"))||("constraint" in cause&&String(cause.constraint).includes("slug"))))return {error:"اسم الرابط مستخدم بالفعل. اختر اسمًا آخر.",fieldErrors:{slug:["اسم الرابط مستخدم بالفعل. اختر اسمًا آخر."]}};
+    if(cause&&typeof cause==="object"&&"code" in cause&&cause.code==="23505"&&(("constraint_name" in cause&&String(cause.constraint_name).includes("slug"))||("constraint" in cause&&String(cause.constraint).includes("slug"))))return {error:"هذا الرابط مستخدم لجهة أخرى، غيّر الاسم",fieldErrors:{nameEn:["هذا الرابط مستخدم لجهة أخرى، غيّر الاسم"]}};
     if(cause instanceof Error&&cause.message.includes("ORGANIZATION_NAME_EXISTS"))return {error:"توجد جهة بهذا الاسم. اختر اسمًا مختلفًا."};
     if (cause instanceof Error && cause.message === "Cannot end own Super Admin permission") return {error:"لا يمكنك سحب صلاحيتك أنت."};
     if (cause instanceof Error && cause.message === "Last active Super Admin cannot be ended") return { error: "لا يمكن إنهاء صلاحية آخر مشرف عام نشط." };
@@ -130,6 +132,6 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
   if(changedOrganization.success)revalidatePath(`/manage/organizations/${changedOrganization.data}`,"layout");
   if(operation==="grant-admin"||operation==="end-admin")revalidatePath("/manage/admins");
   revalidatePath("/me");
-  if (createdId) redirect(`/manage/organizations/${createdId}/edit`);
+  if (createdId) redirect("/manage/organizations?tab=organizations&notice=created");
   return { success };
 }

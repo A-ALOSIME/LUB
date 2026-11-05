@@ -301,3 +301,13 @@ it("keeps pending logo bytes private and publishes the small logo only after acc
   expect((await db.query<{logo:string|null}>("select lub.organization_request_logo($1) as logo",[id])).rows[0].logo).toBeNull();
   await asUser(student);expect((await db.query<{logo:string}>("select lub.organization_request_logo($1) as logo",[id])).rows[0].logo).toBe(logo);
 });
+
+it("returns the complete set-based administrator snapshot and denies students and anonymous access",async()=>{
+ const request=await submit();await denied(()=>db.query("select lub.admin_directory_snapshot()"));await denied(()=>db.query("select * from lub.admin_account_directory()"));
+ await asUser(admin);await db.query("select lub.decide_organization_request($1,'Accepted','')",[request]);
+ const {rows}=await db.query<{data:{organizations:Array<{id:string;nameAr:string;leaderName:string|null;memberCount:number}>;requests:Array<{id:string;status_code:string}>;counts:Record<string,number>}}>("select lub.admin_directory_snapshot() as data");
+ expect(rows[0].data.organizations).toHaveLength(1);expect(rows[0].data.organizations[0].nameAr).toBe("نادي الاختبار");expect(rows[0].data.organizations[0].leaderName).toBe("طالب 1");expect(rows[0].data.organizations[0].memberCount).toBe(1);expect(rows[0].data.requests).toEqual([expect.objectContaining({id:request,status_code:"Accepted"})]);expect(rows[0].data.counts.Accepted).toBe(1);expect(rows[0].data.counts.Active).toBe(1);
+ expect(JSON.stringify(rows[0].data)).not.toMatch(/avatar|email|university|national/i);
+ const admins=await db.query<{email:string}>("select * from lub.admin_account_directory()");expect(admins.rows.map(row=>row.email)).toEqual(["request0@example.invalid"]);
+ await db.exec("reset role;set local role anon");await denied(()=>db.query("select lub.admin_directory_snapshot()"));
+});

@@ -359,7 +359,7 @@ export function FormEditor({
                             </div></div><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب السؤال","Drag to reorder question")} onDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><QuestionActions label={`${c("السؤال","Question")} ${formatNumber(fi+1,locale)}`} locale={locale} upDisabled={!fi} downDisabled={fi===section.fields.length-1} copyDisabled={section.fields.length>=30} deleteDisabled={section.fields.length===1} onUp={()=>move(si,fi,fi-1)} onDown={()=>move(si,fi,fi+1)} onCopy={()=>copyQuestion(si,fi)} onDelete={()=>setRemoval({title:field.label,section:si,field:fi})}/></>}
                   >
                     <FieldGroup>
-                      <FormField  id={`${field.id}-label`} label={<>
+                      <FormField required={false} id={`${field.id}-label`} label={<>
                           {c("السؤال", "Question")}
                         </>}>
                         <Input

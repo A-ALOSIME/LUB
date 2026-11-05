@@ -9,7 +9,7 @@ import {ItemTable,ItemTitle} from "@/components/item-table";
 import {ListThumbnail} from "@/components/list-thumbnail";
 import {ContentText} from "@/components/content-text";
 import {RowAction} from "@/components/row-action";
-import {Badge} from "@/components/ui/badge";
+import {OrganizationStatusBadge} from "@/features/organizations/organization-status-badge";
 import {formatHours,formatCount} from "@/lib/display";
 import {t} from "@/lib/i18n";
 import {formatTaskDate,formatTaskDateEn,taskLabels,taskLabelsEn} from "./display";
@@ -41,13 +41,13 @@ export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty
   </>:p?<><TaskPanelAction task={task.id} title={task.title} locale={locale} submission disabled={task.status_code!=="Open"||!["Joined","In_Progress"].includes(p.status_code)} hint={p.status_code==="Submitted"?t(locale,"لديك تسليم بانتظار المراجعة","You have a submission awaiting review"):t(locale,"التسليم غير متاح لحالة المهمة أو المشاركة الحالية","Submitting is unavailable for this task or participation status")}/>{withdrawable?<TaskDecision kind="withdraw" task={task.id} revision={task.revision} participant={p.id} title={task.title} locale={locale}/>:<RowAction label={t(locale,"الانسحاب","Withdraw")} disabled danger hint={t(locale,"الانسحاب متاح للمشاركة النشطة في مهمة مفتوحة فقط","Only active participation in an open task can be withdrawn")}><LogOut/></RowAction>}</>:task.status_code==="Open"?<TaskJoinAction task={task.id} locale={locale}/>:null}</div>;
  }
  return <><ItemTable pagination={pagination} items={rows} empty={empty} label={t(locale,"عرض تفاصيل المهمة","View task details")} onOpen={open} onPrefetch={prefetch} columns={[
- {id:"name",label:t(locale,"المهمة","Task"),render:row=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={ClipboardCheck} src={row.task.image_asset_id?`/files/${row.task.image_asset_id}/preview?thumbnail=1`:row.task.event_id&&row.task.has_event_poster?`/event-posters/${row.task.event_id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><p className="truncate text-sm text-muted-foreground"><ContentText value={row.org_name}/>{row.historical&&<> · {t(locale,"من سجلك السابق","Past record")}</>}</p><ItemTitle><ContentText value={row.task.title}/></ItemTitle></div></div>},
+ {id:"name",label:t(locale,"المهمة","Task"),render:row=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={ClipboardCheck} src={row.task.image_asset_id?`/files/${row.task.image_asset_id}/preview?thumbnail=1`:row.task.event_id&&row.task.has_event_poster?`/event-posters/${row.task.event_id}?thumbnail=1`:null}/><div className="min-w-0 flex-1">{mode!=="all"&&<p className="truncate text-sm text-muted-foreground"><ContentText value={row.org_name}/>{row.historical&&<> · {t(locale,"من سجلك السابق","Past record")}</>}</p>}<ItemTitle><ContentText value={row.task.title}/></ItemTitle></div></div>},
  ...(mode!=="all"?[
  {id:"hours",label:t(locale,"الساعات","Hours"),className:"w-28",render:(row:TaskCard)=>formatHours(row.approved_hours??row.task.default_hours,locale)},
  {id:"due",label:t(locale,"الموعد","Deadline"),className:"w-40",render:(row:TaskCard)=>row.task.due_at?date(row.task.due_at):t(locale,"بدون موعد","No deadline")},
  {id:"members",label:t(locale,"الأعضاء","Members"),className:"w-28",render:(row:TaskCard)=>formatCount(row.summary?.participants??0,"members",locale)}
  ]:[]),
- {id:"status",label:t(locale,"الحالة","Status"),className:"w-32",render:row=>mode==="all"?<Badge variant={row.task.status_code==="Draft"?"secondary":"outline"}>{labels[row.task.status_code]??row.task.status_code}</Badge>:<TaskParticipationBadge status={row.participant?.status_code??"Not_Joined"} locale={locale}/>},
+ {id:"status",label:t(locale,"الحالة","Status"),className:"w-32",render:row=>mode==="all"?<OrganizationStatusBadge status={row.task.status_code==="Draft"?"draft":row.task.status_code==="Open"?"published":"closed"}>{labels[row.task.status_code]??row.task.status_code}</OrganizationStatusBadge>:<TaskParticipationBadge status={row.participant?.status_code??"Not_Joined"} locale={locale}/>},
  ...(mode==="all"?[
  {id:"participants",label:t(locale,"المنضمون","Participants"),className:"w-24",render:(row:TaskCard)=>row.summary?.participants??0},
  {id:"submissionRate",label:t(locale,"نسبة التسليم","Submission rate"),className:"w-28",render:(row:TaskCard)=>`${row.summary?.participants?Math.round(row.summary.submitted/row.summary.participants*100):0}%`}

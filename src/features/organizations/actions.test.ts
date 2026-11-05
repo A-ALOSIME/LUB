@@ -69,7 +69,7 @@ it("fails closed for inactive accounts and does not echo external database detai
   expect(response.error).toBeDefined();
   expect(mocks.revalidate).not.toHaveBeenCalled();
 });
-it('creates with a verified actor and optional leader, then opens the shared administrator editor',async()=>{mocks.create.mockResolvedValue({id:org});await expect(mutateOrganization({},form({operation:'create-org',nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:'',email:'leader@example.invalid',userId:'forged'}))).rejects.toThrow(`REDIRECT:/manage/organizations/${org}/edit`);expect(mocks.create).toHaveBeenCalledWith('verified-user',{nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:''},'leader@example.invalid');});
+it('creates with a verified actor and optional leader, then returns to the directory',async()=>{mocks.create.mockResolvedValue({id:org});await expect(mutateOrganization({},form({operation:'create-org',nameAr:'نادي جديد',nameEn:'New Club',slug:'ignored-client-input',typeCode:'Club',summary:'',mission:'',email:'leader@example.invalid',userId:'forged'}))).rejects.toThrow(`REDIRECT:/manage/organizations?tab=organizations&notice=created`);expect(mocks.create).toHaveBeenCalledWith('verified-user',{nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:''},'leader@example.invalid');});
 
 it("requires confirmation for leader removal and derives its actor from the session",async()=>{
  expect((await mutateOrganization({},form({operation:"remove-leader",organizationId:org}))).error).toBeDefined();expect(mocks.remove).not.toHaveBeenCalled();
@@ -83,3 +83,6 @@ it("saves the explicit draft intent without leaving a public pin and validates d
  expect((await mutateOrganization({},form({operation:"delete-announcement",organizationId:org,announcementId}))).error).toBeDefined();expect(mocks.announcementState).not.toHaveBeenCalled();
  await mutateOrganization({},form({operation:"delete-announcement",organizationId:org,announcementId,confirmed:"on"}));expect(mocks.announcementState).toHaveBeenCalledWith("verified-user",org,announcementId,"delete");
 });
+
+it("rejects invalid English identity without attempting an insert",async()=>{const result=await mutateOrganization({},form({operation:"create-org",nameAr:"نادي جديد",nameEn:"نادي عربي",typeCode:"Club"}));expect(result.fieldErrors?.nameEn).toBeDefined();expect(mocks.create).not.toHaveBeenCalled();});
+it("keeps slug collisions on the English identity field and never generates a suffix",async()=>{mocks.create.mockRejectedValue({cause:{code:"23505",constraint_name:"organizations_slug_unique"}});const result=await mutateOrganization({},form({operation:"create-org",nameAr:"نادي جديد",nameEn:"New Club",typeCode:"Club"}));expect(result.fieldErrors?.nameEn?.[0]).toBe("هذا الرابط مستخدم لجهة أخرى، غيّر الاسم");expect(mocks.create).toHaveBeenCalledTimes(1);});

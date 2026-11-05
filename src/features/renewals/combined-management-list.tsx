@@ -11,7 +11,7 @@ import {SearchFilterToolbar} from "@/components/search-filter-toolbar";
 import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
 import {FilterTabs} from "@/components/ui/filter-tabs";
 import {StatusFilter} from "@/components/status-filter";
-import {Badge} from "@/components/ui/badge";
+import {OrganizationStatusBadge} from "@/features/organizations/organization-status-badge";
 
 
 import {ContentText} from "@/components/content-text";
@@ -42,7 +42,7 @@ export function CombinedManagementList({rounds,campaigns,organization,locale,can
  {id:"name",label:c("الحملة","Campaign"),render:item=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={item.kind==="round"?CalendarRange:RefreshCw}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={item.title}/></ItemTitle></div></div>},
  {id:"type",label:c("النوع","Type"),className:"w-20",render:item=>item.kind==="round"?c("تسجيل","Registration"):c("تجديد","Renewal")},
  {id:"period",label:c("الفترة","Period"),className:"w-32",render:item=><bdi className="whitespace-nowrap text-sm text-muted-foreground">{formatRiyadhPeriod(item.opens,item.closes,locale)}</bdi>},
- {id:"status",label:c("الحالة","Status"),className:"w-20",render:item=><Badge variant="outline">{label(item.status)}</Badge>},
+ {id:"status",label:c("الحالة","Status"),className:"w-20",render:item=><OrganizationStatusBadge status={item.status==="Draft"?"draft":item.status==="Open"?"open":item.status==="Archived"?"archived":item.status==="Paused"?"inactive":"closed"}>{label(item.status)}</OrganizationStatusBadge>},
  {id:"participants",label:c("المجددون / المسجلون","Renewed / registered"),className:"w-36",render:item=>item.campaign?.summary?.renewed??item.round?.application_count??0},
  {id:"actions",label:c("الإجراءات","Actions"),className:"w-96",render:item=><CampaignLifecycleControls kind={item.kind} id={item.id} title={item.title} status={item.status} organization={organization} locale={locale} optimistic={(status,remove)=>projection.change(item.id,row=>remove?null:{...row,status,round:row.round?{...row.round,status_code:status}:undefined,campaign:row.campaign?{...row.campaign,status_code:status}:undefined})} allowed={item.kind==="round"?canManageRounds:canManageCampaigns} editForm={edit(item)}/>}
  ]}/></section>;

@@ -18,7 +18,7 @@ export function FilterTabs({
   activeTone = "primary",
   className,
   onValueChange,
-  onItemClick,
+  onItemClick,onItemPrefetch,
 }: {
   value: string;
   options: FilterTabOption[];
@@ -28,7 +28,7 @@ export function FilterTabs({
   activeTone?: "secondary" | "primary";
   className?: string;
   onValueChange: (value: string) => void;
-  onItemClick?: (value: string) => void;
+  onItemClick?: (value: string) => void;onItemPrefetch?:(value:string)=>void;
 }) {
   void size;
   void activeTone;
@@ -49,6 +49,7 @@ export function FilterTabs({
             key={option.value}
             value={option.value}
             onClick={() => onItemClick?.(option.value)}
+            onPointerEnter={()=>onItemPrefetch?.(option.value)} onFocus={()=>onItemPrefetch?.(option.value)} onTouchStart={()=>onItemPrefetch?.(option.value)}
             className={cn(
               "w-fit flex-none rounded-md border-transparent shadow-none",
               "h-7 px-2.5 text-xs",

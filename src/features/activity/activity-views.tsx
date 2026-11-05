@@ -8,7 +8,7 @@ import {NativeSelect} from "@/components/ui/native-select";
 import {useRouter} from "next/navigation";
 import Link from "next/link"
 import { CalendarDays, Clock, ChevronDown } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import {OrganizationStatusBadge,statusTone} from "@/features/organizations/organization-status-badge"
 import {buttonVariants } from "@/components/ui/button"
 import {ItemTable,ItemTitle} from "@/components/item-table";
 import {ListThumbnail} from "@/components/list-thumbnail";
@@ -31,11 +31,7 @@ import type { Locale } from "@/lib/preferences"
 
 type MyEvent = {registration_id?:string;attendance_hours?:string;canWithdraw?:boolean;canReapply?:boolean; id: string; title: string; starts_at: string; status_code: string; registration: string; review_status?:string;contributions?:Array<{kind:string;title:string}>;attendance: string;org_name?:string;has_poster?:boolean }
 
-function statusVariant(status: string): "secondary" | "outline" | "destructive" {
-  if (["Approved", "Present", "Completed", "Registered"].includes(status)) return "secondary"
-  if (["Rejected", "Cancelled", "Absent"].includes(status)) return "destructive"
-  return "outline"
-}
+
 
 export function ActivityEventRows({ events, page, locale,onPageChange,hidePagination=false,empty }: { empty?:React.ReactNode;hidePagination?:boolean;events: MyEvent[]; page: number; locale: Locale;onPageChange?:(page:number)=>void }) {
   const router=useRouter();
@@ -47,7 +43,7 @@ export function ActivityEventRows({ events, page, locale,onPageChange,hidePagina
     {events.length ? <ItemTable pagination={hidePagination?undefined:{page,more:events.length>25,onChange:value=>{if(onPageChange)onPageChange(value);else router.push(`/activity?tab=events&page=${value}`);}}} items={events} href={event=>`/events/${event.id}`} label={translateUi(locale,"عرض تفاصيل الفعالية","View event details")} columns={[
       {id:"name",label:translateUi(locale,"الفعالية","Event"),render:event=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={CalendarDays} src={event.has_poster?`/event-posters/${event.id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={event.title}/></ItemTitle>{event.org_name&&<p className="text-sm text-muted-foreground"><ContentText value={event.org_name}/></p>}{event.contributions?.map(contribution=><p key={contribution.kind} className="text-sm text-muted-foreground">{contribution.title}</p>)}</div></div>},
       {id:"hours",label:translateUi(locale,"ساعات الحضور","Attendance hours"),className:"w-32",render:event=>formatHours(event.attendance_hours??0,locale)},
-      {id:"status",label:translateUi(locale,"الحالة","Status"),className:"w-44",render:event=><Badge variant={statusVariant(event.review_status==='Recorded'?'Registered':event.review_status==='Rejected'?'Rejected':event.attendance)}>{eventState(event)}</Badge>},
+      {id:"status",label:translateUi(locale,"الحالة","Status"),className:"w-44",render:event=><OrganizationStatusBadge status={statusTone(event.review_status??event.attendance)}>{eventState(event)}</OrganizationStatusBadge>},
       {id:"date",label:translateUi(locale,"التاريخ","Date"),className:"w-40",render:event=><time>{date(event.starts_at)}</time>},
       {id:"actions",label:translateUi(locale,"الإجراءات","Actions"),className:"w-36",render:event=><EventRequestActions event={event} locale={locale}/> }
     ]}/> : empty??<WorkspaceEmptyState
@@ -94,7 +90,7 @@ export function ActivityHours({ data, page, term, status, locale,onFiltersChange
         {statusCode && <input type="hidden" name="hourStatus" value={status} />}
         <TermSelect compact terms={data.terms} all value={term ?? ""} locale={locale} className="w-full min-w-0" />
       </LiveFilterForm>}
-      <SelfHoursRequestAction memberships={data.memberships} locale={locale}/><div className="shrink-0"><ActivityHourFilter value={status} locale={locale} onChange={onFiltersChange?status=>onFiltersChange({status}):undefined}/></div>
+      <div className="shrink-0"><ActivityHourFilter value={status} locale={locale} onChange={onFiltersChange?status=>onFiltersChange({status}):undefined}/></div><SelfHoursRequestAction memberships={data.memberships} locale={locale}/>
     </div>}
 
     <HoursStatusSummary totals={data.hoursByStatus} locale={locale} />

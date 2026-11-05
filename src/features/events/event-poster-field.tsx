@@ -1,10 +1,11 @@
 "use client";
 
+import {UploadArea} from "@/components/upload-area";
 import {imageThumbnail} from "@/lib/image-thumbnail";
 import {createTranslator,t as translateUi} from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import {Upload, Pencil, Trash2} from "lucide-react";
+import { Pencil, Trash2} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 
@@ -101,8 +102,8 @@ export function EntityImageField({organization,locale,committee,initialPreview="
     <input type="hidden" name="poster" value={asset}/><input type="hidden" name="removePoster" value={String(removed)}/>
     <span className="event-poster-label">{imageLabel}{purpose!=="event-poster"&&c(" (اختياري)"," (optional)")}</span>
     <input className="sr-only" tabIndex={-1} aria-hidden="true" required value={pending||error?"":"ready"} onChange={()=>{}} onInvalid={event=>event.preventDefault()}/>
-    <input ref={input} type="file" className="sr-only" accept={purpose==="announcement-image"?"image/jpeg,image/png,image/webp":"image/jpeg,image/png"} disabled={pending} aria-label={purpose==="event-poster"?c("صورة بوستر الفعالية","Event poster image"):imageLabel} onInvalid={event=>event.preventDefault()} onChange={event=>void upload(event.target.files?.[0])}/>
-    {preview?<><div className="event-poster-preview"><Image src={preview} alt={purpose==="event-poster"?c("معاينة بوستر الفعالية","Event poster preview"):imageLabel} fill unoptimized sizes="(max-width:767px) 100vw, 32rem" className="object-contain"/></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>input.current?.click()}><Pencil/>{c("تغيير","Change")}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={remove}><Trash2/>{c("حذف","Remove")}</Button></div></>:<div className="event-poster-dropzone" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();void upload(event.dataTransfer.files?.[0]);}}><Button type="button" variant="ghost" disabled={pending} onClick={()=>input.current?.click()}><Upload/><span>{pending?c("جارٍ الرفع…","Uploading…"):c("اسحب الصورة هنا أو اضغط للاختيار","Drop an image here or click to choose")}</span></Button><p><bdi>PNG</bdi> {c("أو","or")} <bdi>JPEG</bdi>{purpose==="announcement-image"&&<> {c("أو","or")} <bdi>WebP</bdi></>} · {c("حد أقصى","Maximum")} <bdi>5MB</bdi></p></div>}
+    <input ref={input} type="file" hidden accept={purpose==="announcement-image"?"image/jpeg,image/png,image/webp":"image/jpeg,image/png"} disabled={pending} aria-label={purpose==="event-poster"?c("صورة بوستر الفعالية","Event poster image"):imageLabel} onInvalid={event=>event.preventDefault()} onChange={event=>void upload(event.target.files?.[0])}/>
+    {preview?<><div className="event-poster-preview"><Image src={preview} alt={purpose==="event-poster"?c("معاينة بوستر الفعالية","Event poster preview"):imageLabel} fill unoptimized sizes="(max-width:767px) 100vw, 32rem" className="object-contain"/></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>input.current?.click()}><Pencil/>{c("تغيير","Change")}</Button><Button type="button" variant="ghost" size="sm" disabled={pending} onClick={remove}><Trash2/>{c("حذف","Remove")}</Button></div></>:<UploadArea locale={locale} busy={pending} onChoose={()=>input.current?.click()} onDrop={file=>void upload(file)} hint={`${purpose==="announcement-image"?"PNG / JPEG / WebP":"PNG / JPEG"} · ${c("حد أقصى","Maximum")} 5MB`}/>}
     {pending&&<p role="status">{c("جارٍ رفع الصورة…","Uploading image…")}</p>}{error&&<div className="flex flex-wrap items-center gap-2"><p role="alert" className="error-message">{error}</p>{retryFile&&<Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>void upload(retryFile)}>{c("إعادة المحاولة","Retry")}</Button>}</div>}
   </section>;
 }

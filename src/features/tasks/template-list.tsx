@@ -8,7 +8,7 @@ import {ListThumbnail} from "@/components/list-thumbnail";
 import {ListEmpty} from "@/components/list-empty";
 import {RowAction} from "@/components/row-action";
 import {ManagementActionSheet} from "@/components/management-action-sheet";
-import {Badge} from "@/components/ui/badge";
+import {OrganizationStatusBadge} from "@/features/organizations/organization-status-badge";
 import {FilterTabs} from "@/components/ui/filter-tabs";
 import {NativeSelect} from "@/components/ui/native-select";
 import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
@@ -39,10 +39,10 @@ export function TaskTemplateList({org,workspace,locale}:{org:string;workspace:Ta
    {scopes.length>0&&<ManagementActionSheet label={c("قالب جديد","New template")} title={c("إضافة قالب مهمة","Add a task template")} locale={locale} triggerSize="default" variant="default" icon={<Plus/>}>{editForm()}</ManagementActionSheet>}
   </SearchFilterToolbar>
   <DataTable canOpen={canEdit} tableKey="templates" label={c("قوالب المهام","Task templates")} locale={locale} items={rows} empty={empty} onOpen={row=>{if(canEdit(row))setEditing(row);}} sort={{value:sort,onChange:value=>update({templateSort:value})}} pagination={{page,more:(page+1)*25<filtered.length,onChange:value=>change({templatePage:String(value)})}} columns={[
-   {id:"name",label:c("القالب","Template"),sortKey:"name",render:row=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={LayoutTemplate} src={row.image_asset_id?`/files/${row.image_asset_id}/preview?thumbnail=1`:null}/><div className="min-w-0"><DataTableTitle>{row.name}</DataTableTitle><p className="line-clamp-2 text-sm text-muted-foreground" dir="auto">{row.description_template}</p></div></div>},
+   {id:"name",label:c("القالب","Template"),sortKey:"name",render:row=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={LayoutTemplate} src={row.image_asset_id?`/files/${row.image_asset_id}/preview?thumbnail=1`:null}/><div className="min-w-0"><DataTableTitle>{row.name}</DataTableTitle></div></div>},
    {id:"scope",label:c("النطاق","Scope"),className:"w-32",render:row=>workspace.scopes.find(scope=>scope.id===row.committee_id)?.name??c("الجهة بالكامل","Entire organization")},
    {id:"hours",label:c("الساعات","Hours"),className:"w-28",render:row=>formatHours(row.default_hours,locale)},
-   {id:"status",label:c("الحالة","Status"),className:"w-28",render:row=><Badge variant={row.is_active?"secondary":"outline"}>{row.is_active?c("نشط","Active"):c("موقوف","Inactive")}</Badge>},
+   {id:"status",label:c("الحالة","Status"),className:"w-28",render:row=><OrganizationStatusBadge status={row.is_active?"active":"inactive"}>{row.is_active?c("نشط","Active"):c("موقوف","Inactive")}</OrganizationStatusBadge>},
    {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:row=><div className="flex flex-wrap items-center gap-1">
     <RowAction label={c("تعديل القالب","Edit template")} disabled={!canEdit(row)} hint={c("تحتاج صلاحية إدارة القالب في نطاقه","Template management permission is required in this scope")} onClick={()=>setEditing(row)}><Pencil/></RowAction>
     {canEdit(row)?<ManagementActionSheet rowAction icon={<Copy/>} label={c("نسخ القالب","Copy template")} title={c("نسخة مستقلة من القالب","Independent template copy")} locale={locale}><TaskForm operation="template" fields={{org,source:row.id,description:"",hours:"0",active:"on"}} locale={locale} label={c("نسخ القالب","Copy template")} onSuccess={()=>router.refresh()}>{scopeField(row.committee_id)}<FormField label={c("اسم النسخة","Copy name")} required><Input name="title" required minLength={2} maxLength={120} defaultValue={`${row.name.slice(0,110)} (${c("نسخة","copy")})`}/></FormField></TaskForm></ManagementActionSheet>:<RowAction label={c("نسخ القالب","Copy template")} disabled hint={c("تحتاج صلاحية إدارة القالب في نطاقه","Template management permission is required in this scope")}><Copy/></RowAction>}

@@ -1,0 +1,13 @@
+import {beforeEach,expect,it,vi} from "vitest";
+const mocks=vi.hoisted(()=>({user:vi.fn(),directory:vi.fn(),preview:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({getVerifiedUser:mocks.user}));
+vi.mock("@/features/organizations/admin-directory-repository",()=>({adminDirectory:mocks.directory}));
+vi.mock("@/features/forms/template-list-repository",()=>({formPreview:mocks.preview}));
+import {GET} from "./route";
+import {GET as preview} from "../../organizations/[id]/forms/[template]/preview/route";
+const org="00000000-0000-4000-8000-000000000001",template="00000000-0000-4000-8000-000000000002";
+beforeEach(()=>vi.resetAllMocks());
+it("rejects anonymous reads before querying any private directory or form",async()=>{mocks.user.mockResolvedValue(null);for(const response of [await GET(new Request("http://localhost/api/admin/organizations")),await preview(new Request("http://localhost/preview"),{params:Promise.resolve({id:org,template})})]){expect(response.status).toBe(401);expect(response.headers.get("cache-control")).toBe("private, no-store");}expect(mocks.directory).not.toHaveBeenCalled();expect(mocks.preview).not.toHaveBeenCalled();});
+it("does not give a verified non-administrator the directory",async()=>{mocks.user.mockResolvedValue({id:"student"});mocks.directory.mockResolvedValue(null);expect((await GET(new Request("http://localhost/api/admin/organizations"))).status).toBe(403);expect(mocks.directory).toHaveBeenCalledWith("student");});
+it("passes verified identity and both identifiers to the scoped preview repository",async()=>{mocks.user.mockResolvedValue({id:"owner"});mocks.preview.mockResolvedValue({version:{id:template,definition:{sections:[]}},committees:[]});const response=await preview(new Request("http://localhost/preview"),{params:Promise.resolve({id:org,template})});expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toBe("private, no-store");expect(mocks.preview).toHaveBeenCalledWith("owner",org,template);});
+it("returns not found for an unauthorized or missing form and rejects invalid identifiers",async()=>{mocks.user.mockResolvedValue({id:"student"});mocks.preview.mockResolvedValue(undefined);expect((await preview(new Request("http://localhost/preview"),{params:Promise.resolve({id:org,template})})).status).toBe(404);mocks.preview.mockClear();expect((await preview(new Request("http://localhost/preview"),{params:Promise.resolve({id:"invalid",template})})).status).toBe(400);expect(mocks.preview).not.toHaveBeenCalled();});

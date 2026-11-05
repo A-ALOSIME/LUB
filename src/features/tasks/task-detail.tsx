@@ -1,11 +1,9 @@
-import {TaskParticipationBadge} from "./participation-badge";
 import {TaskPoster} from "./task-poster";
 import Link from "next/link";
 import {ChevronDown} from "lucide-react";
 import {ContentText} from "@/components/content-text";
 import {Card,CardHeader,CardTitle,CardContent} from "@/components/ui/card";
 import {Tooltip,TooltipTrigger,TooltipContent} from "@/components/ui/tooltip";
-import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Progress} from "@/components/ui/progress";
 import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
@@ -15,12 +13,11 @@ import {TaskParticipantsTable,TaskSubmissionsTable} from "./people-tables";
 import {createTranslator} from "@/lib/i18n";
 import {formatHours,formatCount} from "@/lib/display";
 import {formatRiyadhDateTime} from "@/lib/datetime";
-import {taskLabels,taskLabelsEn} from "./display";
 import type {TaskDetail,TaskWorkspace} from "./repository";
 import type {Locale} from "@/lib/preferences";
 export type TaskPanelQuery={page:number;teamPage:number;eventPage:number;participant:string|null;purpose?:"edit"|"link"|"view"|"student"};
 export function TaskDetailView({detail:d,page,teamPage,participant,locale="ar",section,onSectionChange,onNavigate,embedded=false}:{detail:TaskDetail;page:number;teamPage:number;participant:string|null;eventPage?:number;section?:string;onSectionChange?:(section:string)=>void;embedded?:boolean;locale?:Locale;workspace?:TaskWorkspace;onNavigate?:(query:Partial<TaskPanelQuery>)=>void}){
- const t=createTranslator(locale),task=d.task,labels=locale==="ar"?taskLabels:taskLabelsEn,base=d.canManage?`/manage/organizations/${task.organization_id}/tasks/${task.id}`:`/tasks/${task.id}`;
+ const t=createTranslator(locale),task=d.task,base=d.canManage?`/manage/organizations/${task.organization_id}/tasks/${task.id}`:`/tasks/${task.id}`;
  const start=task.starts_at?Date.parse(task.starts_at):null,end=task.due_at?Date.parse(task.due_at):null,now=d.asOf?Date.parse(d.asOf):(start??0),progress=start!==null&&end!==null&&end>start?Math.max(0,Math.min(100,(now-start)/(end-start)*100)):null;
  const open=d.current&&task.status_code==="Open"&&(start===null||start<=now),canSubmit=open&&d.own&&["Joined","In_Progress"].includes(d.own.status_code),canJoin=open&&(!d.own||d.own.withdrawn_at);
  const unavailable=d.own?.status_code==="Submitted"?t("لديك تسليم بانتظار المراجعة.","You have a submission awaiting review."):d.own?.status_code==="Approved"?t("تم اعتماد تسليمك؛ لا يمكن إرسال تسليم آخر.","Your submission was approved; further submissions are unavailable."):t("التسليم غير متاح لحالة المهمة أو المشاركة الحالية.","Submitting is unavailable for the current task or participation status.");
@@ -28,7 +25,7 @@ export function TaskDetailView({detail:d,page,teamPage,participant,locale="ar",s
  const taskTab={id:"task",label:t("المهمة","Task")},peopleTab={id:"participants",label:d.canManage?t("المنضمون للمهمة","Participants"):t("فريق المهمة","Task team")},submissionsTab={id:"submissions",label:d.canManage?t("كل التسليمات","All submissions"):t("تسليماتي","My submissions")};
  const sections=d.canManage?[taskTab,peopleTab,submissionsTab]:[taskTab,submissionsTab,peopleTab];
  return <div className="flex min-w-0 flex-col gap-6">
-  <header className="flex min-w-0 flex-col gap-3"><div className="flex flex-wrap items-center gap-3">{!embedded&&<h1 dir="auto" className="min-w-0 break-words text-3xl font-semibold leading-normal sm:text-4xl"><ContentText value={task.title}/></h1>}{d.canManage?<Badge variant="outline">{labels[task.status_code]??task.status_code}</Badge>:<TaskParticipationBadge status={d.own?.status_code??"Not_Joined"} locale={locale}/>}</div>{d.organizationName&&<p className="text-sm text-muted-foreground"><ContentText value={d.organizationName}/></p>}</header>
+  {!embedded&&<header className="flex min-w-0 flex-col gap-3"><div className="flex flex-wrap items-center gap-3">{!embedded&&<h1 dir="auto" className="min-w-0 break-words text-3xl font-semibold leading-normal sm:text-4xl"><ContentText value={task.title}/></h1>}</div></header>}
   <OrganizationSectionTabs section={section} onSectionChange={onSectionChange} items={sections} initialSection="task" defaultSection="task" sticky={false} label={t("تفاصيل المهمة","Task details")} dir={locale==="ar"?"rtl":"ltr"}>
    <OrganizationSectionTabPanel id="task"><div className={task.image_asset_id?"grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]":"flex min-w-0 flex-col gap-6"}><div className="flex min-w-0 flex-col gap-6">
     <Card><CardHeader><CardTitle role="heading" aria-level={2}>{t("المطلوب","What to do")}</CardTitle></CardHeader><CardContent className="flex flex-col gap-4"><p dir="auto" className="max-w-[70ch] whitespace-pre-wrap break-words text-base leading-8"><ContentText value={task.description}/></p><p className="text-muted-foreground">{t("الساعات المكتسبة: ","Earned hours: ")}{formatHours(task.default_hours,locale)}</p></CardContent></Card>

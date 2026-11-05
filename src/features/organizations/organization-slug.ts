@@ -51,3 +51,6 @@ export function suggestOrganizationSlug(name: string) {
       .replace(/-$/, "") || "organization"
   );
 }
+
+/** English identity is the sole source for new organization URLs. */
+export function englishOrganizationSlug(value:string){return value.toLowerCase().trim().replace(/[^a-z0-9 ]/g,"").replace(/ +/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");}
