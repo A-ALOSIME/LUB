@@ -19,6 +19,14 @@ vi.mock("../permissions/permission-editor", () => ({ permissionLabels: {}, scope
 
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 
+it("starts role editing from the existing committee deputy role",()=>{
+ const current={...workspace,canGrant:true,members:[{...workspace.members[0],roles:[{code:"CD",committee:"الميديا"}],committees:[{id:"media",name:"الميديا"}]}]};
+ render(<MemberDirectory organization="org" workspace={current} locale="ar"/>);
+ expect(screen.getAllByRole("columnheader").map(cell=>cell.textContent)).toContain("اللجان");
+ fireEvent.click(screen.getAllByRole("button",{name:"تغيير الدور"})[0]);
+ expect(screen.getByRole("combobox",{name:"الدور"}).textContent).toContain("نائب قائد اللجنة");
+});
+
 const workspace: OrganizationMemberWorkspace = {
   canManage: false,
   canGrant: false,

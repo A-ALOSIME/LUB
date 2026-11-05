@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import {Button} from "@/components/ui/button";
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 import {Check,Eye,Undo2,FileText,RotateCcw,SlidersHorizontal,X} from "lucide-react";
@@ -11,8 +13,9 @@ import {Textarea} from "@/components/ui/textarea";
 import {FormField} from "@/components/form-field";
 import {OrganizationStatusBadge} from "@/features/organizations/organization-status-badge";
 import {HourAdjustment} from "@/features/hours/hour-adjustment";
+import {formatNumber} from "@/lib/i18n";
 import {createTranslator} from "@/lib/i18n";
-import {formatCount,academicLevel,majorLabel} from "@/lib/display";
+import {academicLevel,majorLabel} from "@/lib/display";
 import {displayFileName} from "@/lib/file-name";
 import {formatRiyadhDate,formatRiyadhTime,formatRiyadhDateTime} from "@/lib/datetime";
 import type {Locale} from "@/lib/preferences";
@@ -27,19 +30,19 @@ export function TaskSubmissionStatus({submission,locale}:{submission:Submission;
 
 export function TaskParticipantsTable({detail,base,page,locale,onSelectParticipant}:{detail:TaskDetail;base:string;page:number;locale:Locale;onSelectParticipant?:(id:string)=>void}){
  const router=useRouter(),t=createTranslator(locale),[adjust,setAdjust]=useState<TaskDetail["team"][number]|null>(null);
- if(!detail.canManage)return <DataTable footer={formatCount(detail.team.length,"students",locale,"nominative","number")} items={detail.team} locale={locale} selection={false} tableKey="task-team" label={t("فريق المهمة","Task team")} empty={<p className="text-muted-foreground">{t("لم ينضم أحد بعد.","No one has joined yet.")}</p>} pagination={{page,more:detail.team.length>25,onChange:value=>router.push(navigate(base,{teamPage:String(value)}))}} columns={[
+ if(!detail.canManage)return <DataTable emptyAsRow summary={`${t("الإجمالي","Total")} · ${formatNumber(detail.team.length,locale)}`} items={detail.team} locale={locale} selection={false} tableKey="task-team" label={t("فريق المهمة","Task team")} empty={<p className="text-muted-foreground">{t("لم ينضم أحد بعد.","No one has joined yet.")}</p>} pagination={{page,more:detail.team.length>25,onChange:value=>router.push(navigate(base,{teamPage:String(value)}))}} columns={[
  {id:"name",label:t("الطالب","Student"),render:row=><Student name={row.name} locale={locale}/>},
- {id:"role",label:t("الدور","Role"),className:"w-28",render:row=>row.isLeader?<OrganizationStatusBadge status="active">{t("قائد الجهة","Organization leader")}</OrganizationStatusBadge>:null},
- {id:"joined",label:t("تاريخ الانضمام","Joined on"),className:"w-36",render:row=><DateCell at={row.joinedAt} locale={locale}/>},
+ {id:"role",label:t("الدور","Role"),className:"w-28",render:row=>row.isLeader?<OrganizationStatusBadge status="active">{t("رئيس النادي","Club president")}</OrganizationStatusBadge>:null},
  {id:"committee",label:t("اللجنة","Committee"),className:"w-40",render:row=>row.committee??t("بدون لجنة","No committee")},
+ {id:"joined",label:t("تاريخ الانضمام","Joined on"),className:"w-36",render:row=><DateCell at={row.joinedAt} locale={locale}/>},
  {id:"status",label:t("الحالة","Status"),className:"w-36",render:row=><TaskParticipationBadge status={row.status} locale={locale}/>}
  ]}/>;
  const open=(row:TaskDetail["team"][number])=>{if(onSelectParticipant)onSelectParticipant(row.id);else router.push(navigate(base,{section:"submissions",participant:row.id,page:null}));};
- return <><DataTable footer={formatCount(detail.team.length,"students",locale,"nominative","number")} items={detail.team} locale={locale} selection={false} tableKey="task-participants" label={t("عرض تفاصيل المشاركة","View participation details")} onOpen={open} empty={<p className="text-muted-foreground">{t("لم ينضم أحد بعد.","No one has joined yet.")}</p>} pagination={{page,more:detail.team.length>25,onChange:value=>router.push(navigate(base,{teamPage:String(value)}))}} columns={[
+ return <><DataTable emptyAsRow summary={`${t("الإجمالي","Total")} · ${formatNumber(detail.team.length,locale)}`} items={detail.team} locale={locale} selection={false} tableKey="task-participants" label={t("عرض تفاصيل المشاركة","View participation details")} onOpen={open} empty={<p className="text-muted-foreground">{t("لم ينضم أحد بعد.","No one has joined yet.")}</p>} pagination={{page,more:detail.team.length>25,onChange:value=>router.push(navigate(base,{teamPage:String(value)}))}} columns={[
  {id:"name",label:t("الطالب","Student"),render:row=><Student name={row.name} major={row.major} level={row.level} locale={locale}/>},
- {id:"role",label:t("الدور","Role"),className:"w-28",render:row=>row.isLeader?<OrganizationStatusBadge status="active">{t("قائد الجهة","Organization leader")}</OrganizationStatusBadge>:null},
- {id:"joined",label:t("تاريخ الانضمام","Joined on"),className:"w-36",render:row=><DateCell at={row.joinedAt} locale={locale}/>},
+ {id:"role",label:t("الدور","Role"),className:"w-28",render:row=>row.isLeader?<OrganizationStatusBadge status="active">{t("رئيس النادي","Club president")}</OrganizationStatusBadge>:null},
  {id:"committee",label:t("اللجنة","Committee"),className:"w-40",render:row=>row.committee??t("بدون لجنة","No committee")},
+ {id:"joined",label:t("تاريخ الانضمام","Joined on"),className:"w-36",render:row=><DateCell at={row.joinedAt} locale={locale}/>},
  {id:"status",label:t("الحالة","Status"),className:"w-36",render:row=><TaskParticipationBadge status={row.status} locale={locale}/>},
  {id:"actions",label:t("الإجراءات","Actions"),className:"w-28",render:row=><div className="flex flex-nowrap items-center gap-1"><RowAction label={t("عرض التفاصيل","View details")} onClick={()=>open(row)}><Eye/></RowAction><RowAction label={t("تعديل الساعات","Adjust hours")} disabled={!row.hourRecord?.canAdjust} hint={t("يتطلب سجل ساعات معتمدًا وصلاحية تعديل الساعات.","Requires an approved hours record and permission to adjust it.")} onClick={()=>setAdjust(row)}><SlidersHorizontal/></RowAction></div>}
  ]}/>{adjust?.hourRecord&&<ManagementActionSheet label="" title={t("تعديل ساعات المشاركة","Adjust participation hours")} locale={locale} open hideTrigger mobileBottomSheet onOpenChange={open=>{if(!open)setAdjust(null);}}><HourAdjustment record={adjust.hourRecord} locale={locale} onSuccess={()=>{setAdjust(null);router.refresh();}}/></ManagementActionSheet>}</>;
@@ -58,8 +61,9 @@ function WithdrawSubmission({submission,locale,enabled}:{submission:Submission;l
 
 export function TaskSubmissionsTable({detail,base,page,locale,canReview=detail.canReview??detail.canManage}:{detail:TaskDetail;base:string;page:number;locale:Locale;canReview?:boolean}){
  const [selected,setSelected]=useState<Submission|null>(null),router=useRouter(),t=createTranslator(locale);
- return <><DataTable items={detail.submissions} locale={locale} tableKey="task-submissions" label={t("عرض تفاصيل التسليم","View submission details")} onOpen={setSelected} empty={<p className="text-muted-foreground">{t("لا توجد تسليمات بعد","No submissions yet.")}</p>} pagination={{page,more:detail.submissions.length>20,onChange:value=>router.push(navigate(base,{page:String(value)}))}} columns={[
- ...(canReview?[{id:"student",label:t("الطالب","Student"),render:(row:Submission)=><Student name={row.name??t("الطالب","Student")} major={row.major} level={row.level} locale={locale}/>}]:[{id:"submission",label:t("التسليم","Submission"),render:(row:Submission)=><div><p>{t("تسليم","Submission")} {row.revision_number}</p><p className="line-clamp-2 text-sm text-muted-foreground">{row.message}</p></div>}]),
+ return <><DataTable emptyAsRow summary={`${t("الإجمالي","Total")} · ${formatNumber(detail.submissions.length,locale)}`} items={detail.submissions} locale={locale} tableKey="task-submissions" label={t("عرض تفاصيل التسليم","View submission details")} onOpen={setSelected} empty={<p className="text-muted-foreground">{!detail.canManage&&(!detail.own||detail.own.withdrawn_at)?<>{t("انضم للمهمة عشان تقدر تسلّم","Join the task to submit work")} <Button variant="ghost" nativeButton={false} render={<Link href={`${base}?section=task`}/>}>{t("العودة للمهمة","Back to task")}</Button></>:t("لا توجد تسليمات بعد","No submissions yet.")}</p>} pagination={{page,more:detail.submissions.length>20,onChange:value=>router.push(navigate(base,{page:String(value)}))}} columns={[
+ ...(detail.canManage?[{id:"student",label:t("الطالب","Student"),className:"w-56",render:(row:Submission)=><Student name={row.name??t("الطالب","Student")} major={row.major} level={row.level} locale={locale}/>}]:[]),
+ {id:"submission",label:t("التسليم","Submission"),render:(row:Submission)=><div><p>{t("تسليم","Submission")} {row.revision_number}</p><p className="line-clamp-2 text-sm text-muted-foreground">{row.message}</p></div>},
  {id:"date",label:t("وقت التسليم","Submitted on"),className:"w-44",render:row=><DateCell at={row.submitted_at} locale={locale}/>},
  {id:"status",label:t("الحالة","Status"),className:"w-36",render:row=><TaskSubmissionStatus submission={row} locale={locale}/>},
  {id:"actions",label:t("الإجراءات","Actions"),className:canReview?"w-44":"w-28",render:row=><div className="flex flex-nowrap items-center gap-1"><RowAction label={t("عرض الملف","View file")} disabled={!row.assets.length} hint={t("لا يوجد ملف مرفق بهذا التسليم.","This submission has no attachment.")} onClick={()=>setSelected(row)}><FileText/></RowAction>{!canReview&&<WithdrawSubmission submission={row} locale={locale} enabled={detail.task.status_code==="Open"&&(row.displayStatus??row.status_code)==="Submitted"}/>} {canReview&&(["Approved","Changes_Requested","Rejected"] as const).map(decision=><ReviewAction key={decision} submission={row} decision={decision} enabled={detail.task.status_code==="Open"&&(row.displayStatus??row.status_code)==="Submitted"} locale={locale}/>)}</div>}

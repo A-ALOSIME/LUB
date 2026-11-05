@@ -51,7 +51,7 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
     case "note": return sql`select lub.add_application_note(${uuid(form,"application")},${text(form,"body",3000)})`;
     case "bulk": {
      const ids=z.array(z.uuid()).min(1).max(100).parse(form.getAll("selected"));
-     return sql`select lub.bulk_decide_applications(${ids}::uuid[],${z.enum(["Accepted","Rejected","Interview"]).parse(form.get("status"))},${z.string().trim().max(3000).parse(form.get("message") ?? "")}) as id`;
+     return sql`select lub.bulk_decide_applications(array[${sql.join(ids.map(id=>sql`${id}`),sql`, `)}]::uuid[],${z.enum(["Accepted","Rejected","Interview"]).parse(form.get("status"))},${z.string().trim().max(3000).parse(form.get("message") ?? "")}) as id`;
     }
    }
   })();

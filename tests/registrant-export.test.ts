@@ -5,6 +5,14 @@ import {encryptIdentifier} from "../src/lib/identifiers";
 import {registrantsWorkbook,type RegistrantExportRecord} from "../supabase/functions/export-registrants/xlsx";
 import {createRegistrantsExportHandler} from "../supabase/functions/export-registrants/handler";
 afterEach(()=>vi.unstubAllEnvs());
+it("reports an hourly quota only for the explicit quota exception, not other PostgreSQL program limits",async()=>{
+ const id="00000000-0000-4000-8000-000000000001",env=(key:string)=>({SUPABASE_URL:"https://example.invalid",SUPABASE_ANON_KEY:"public-key",IDENTIFIER_ENCRYPTION_KEY:"configured"})[key as "SUPABASE_URL"];
+ for(const [message,status] of [["Export rate limit",429],["stack depth limit exceeded",502]] as const){
+  const handler=createRegistrantsExportHandler({env,fetcher:vi.fn(async(url:RequestInfo|URL)=>String(url).endsWith("/auth/v1/user")?Response.json({id}):Response.json({code:"54000",message},{status:500}))});
+  const response=await handler(new Request("https://edge.invalid",{method:"POST",headers:{authorization:"Bearer actual-token"},body:JSON.stringify({org:id,event:id,committee:null,q:"",state:"",locale:"ar"})}));
+  expect(response.status).toBe(status);expect(await response.text()).not.toContain(message);
+ }
+});
 it("writes accepted and recorded students once, preserves leading zeroes and uses real dates and right-aligned non-wrapped cells",async()=>{
  const secret=Buffer.alloc(32,3).toString("base64");vi.stubEnv("IDENTIFIER_ENCRYPTION_KEY",secret);vi.stubEnv("IDENTIFIER_LOOKUP_KEY",Buffer.alloc(32,4).toString("base64"));
  const user="00000000-0000-4000-8000-000000000001",base:RegistrantExportRecord={userId:user,isTest:false,name:"=1+1",universityCiphertext:encryptIdentifier("0441234567",user),nationalCiphertext:encryptIdentifier("1000000000",user,"national-id"),phone:"+966551234567",email:"student@example.invalid",major:"الحاسب",level:"12",registeredDate:"2026-11-03",status:"Recorded",hours:"2.6"};

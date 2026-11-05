@@ -23,7 +23,7 @@ export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<Wo
  case "archive":case "restore":case "delete":if(f.get("confirm")!=="on")throw new Error();return sql`select lub.event_list_action(${id(f,"event")},${operation},${revision(f)})`;
  case "duplicate":return sql`select lub.duplicate_event(${id(f,"event")}) as id`;
  case "register":return sql`select lub.register_event(${id(f,"event")},${optionalId(f,"version")},${text(f,"answers",128000)||"{}"}::jsonb,${f.get("revision")?revision(f):null}::int)`;
- case "review":{if(f.get("confirm")!=="on")throw new Error();const ids=z.array(z.uuid()).min(1).max(100).parse(f.getAll("selected"));return sql`select lub.review_event_registrations(${ids}::uuid[],${z.enum(["Accepted","Rejected"]).parse(f.get("status"))},${text(f,"message",1000)})`;}
+ case "review":{if(f.get("confirm")!=="on")throw new Error();const ids=z.array(z.uuid()).min(1).max(100).parse(f.getAll("selected"));return sql`select lub.review_event_registrations(array[${sql.join(ids.map(id=>sql`${id}`),sql`, `)}]::uuid[],${z.enum(["Accepted","Rejected"]).parse(f.get("status"))},${text(f,"message",1000)})`;}
  case "remove-registration":if(f.get("confirm")!=="on")throw new Error();return sql`select lub.remove_event_registration(${id(f,"registration")})`;
  case "policy":return sql`select lub.set_event_registration_policy(${id(f,"event")},${f.get("approval")==="on"},${revision(f)})`;
  case "reapply":if(f.get("confirm")!=="on")throw new Error();return sql`select lub.reapply_event_registration(${id(f,"registration")})`;

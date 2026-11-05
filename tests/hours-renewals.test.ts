@@ -26,6 +26,12 @@ beforeEach(async context=>{
  term="";if(!context.task.name.startsWith("requires a covering term"))term=(await db.query<{id:string}>("select lub.create_academic_term('2026-2027','T1','الفصل الأول',current_date-30,current_date+90) as id")).rows[0].id;await asUser(leader);
 });
 afterEach(async()=>{await db.exec("rollback");});afterAll(async()=>{await db.close();});
+it("allows a new renewal in the same term after a previous campaign is archived",async()=>{
+ const args=[org,term];const first=(await db.query<{id:string}>("select lub.create_renewal($1,$2,now(),now()+interval '1 day',false) as id",args)).rows[0].id;
+ await db.query("select lub.transition_campaign('renewal',$1,'publish','Draft')",[first]);await db.query("select lub.transition_campaign('renewal',$1,'close','Open')",[first]);await db.query("select lub.transition_campaign('renewal',$1,'archive','Closed')",[first]);
+ const second=(await db.query<{id:string}>("select lub.create_renewal($1,$2,now(),now()+interval '2 days',false) as id",args)).rows[0].id;
+ expect(second).not.toBe(first);expect((await db.query("select id from lub.renewal_campaigns where organization_id=$1",[org])).rows).toHaveLength(2);
+});
 it("awards a task once, preserves its pinned hours, and excludes voided history from balances",async()=>{
  const task=(await db.query<{id:string}>("select lub.save_task(null,$1,null,null,'تصميم','المخرج المطلوب',null,null,2,null) as id",[org])).rows[0].id;
  await db.query("select lub.change_task_status($1,'Open',1)",[task]);await asUser(member);

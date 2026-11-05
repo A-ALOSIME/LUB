@@ -28,7 +28,7 @@ import { HoursFields } from "@/features/hours/view";
 import { HoursForm } from "@/features/hours/form";
 import { WorkflowForm } from "@/features/forms/mutation-form";
 import { mutateOrganizationMembers } from "@/features/organizations/members-actions";
-import { Badge } from "@/components/ui/badge";
+
 import { RowAction } from "@/components/row-action";
 import { Button } from "@/components/ui/button";
 import {InputGroup,InputGroupInput,InputGroupAddon} from "@/components/ui/input-group";
@@ -43,7 +43,7 @@ import { OrganizationStatusBadge } from "@/features/organizations/organization-s
 import { formatRiyadhDate } from "@/lib/datetime";
 import { FormField } from "@/components/form-field";
 
-const roleNames: Record<string, [string, string]> = { OL: ["قائد الجهة", "Organization leader"], OD: ["نائب القائد", "Deputy leader"], CL: ["قائد لجنة", "Committee leader"], CD: ["نائب لجنة", "Committee deputy"], HRL:["قائد الموارد البشرية","HR lead"],HRD:["نائب الموارد البشرية","HR deputy"] };
+const roleNames: Record<string, [string, string]> = { OL: ["رئيس النادي", "Club president"], OD: ["نائب رئيس النادي", "Club vice president"], CL: ["قائد اللجنة", "Committee leader"], CD: ["نائب قائد اللجنة", "Deputy committee leader"], HRL:["قائد الموارد البشرية","HR lead"],HRD:["نائب الموارد البشرية","HR deputy"] };
 function date(value: string, locale: Locale) { return formatRiyadhDate(value, locale); }
 
 export function MemberDirectory({ organization, workspace, permissions, locale,initialFilters=initialMemberFilters }: {initialFilters?:MemberFilters; organization: string; workspace: OrganizationMemberWorkspace; permissions?: OrganizationPermissionWorkspace; locale: Locale }) {
@@ -68,12 +68,13 @@ export function MemberDirectory({ organization, workspace, permissions, locale,i
   const selectedMembers=members.filter(member=>checked.has(member.id)),bulkScopes=[...(data.canAddHours?[{id:"",name:c("الجهة بالكامل","Entire organization")}]:[]),...(selectedMembers[0]?.hourScopes??[]).filter(scope=>selectedMembers.every(member=>member.hourScopes.some(item=>item.id===scope.id)))];
   useEffect(()=>{for(const status of ["all","Active","Ended","Inactive"] as const)void client.prefetchQuery(memberListQuery(actor,organization,{q:"",status,committee:null,page:0}));},[actor,client,organization]);
   function stateBadge(status:string){return <OrganizationStatusBadge status={status==="Active"?"active":status==="Ended"?"ended":"inactive"}>{status==="Active"?c("نشطة","Active"):status==="Ended"?c("منتهية","Ended"):c("غير نشطة","Inactive")}</OrganizationStatusBadge>;}
-  function roleTags(member:OrganizationMemberWorkspace["members"][number]){return <div className="member-directory-tags">{member.roles.length?member.roles.map((role,i)=><Badge key={i} variant={role.code==="OL"?"default":"secondary"}>{roleNames[role.code]?.[en?1:0]??role.code}{role.committee&&<> · <bdi>{role.committee}</bdi></>}</Badge>):<span className="text-sm text-muted-foreground">{c("عضو","Member")}</span>}{!member.committees.length&&!member.roles.some(role=>["OL","OD"].includes(role.code))&&<span className="text-sm text-muted-foreground">{c("بدون لجنة","No committee")}</span>}{member.committees.map(x=><Badge key={x.id} variant="outline">{x.name}</Badge>)}</div>;}
+  function roleTags(member:OrganizationMemberWorkspace["members"][number]){return <div className="flex flex-col gap-1">{member.roles.length?member.roles.map((role,i)=><span key={i}>{roleNames[role.code]?.[en?1:0]??role.code}</span>):c("عضو","Member")}</div>;}
   const columns:DataTableColumn<OrganizationMemberWorkspace["members"][number]>[]=[
     {id:"name",sortKey:"name",label:c("الطالب","Student"),render:member=><div className="min-w-0"><p className="font-medium"><bdi>{member.name}</bdi></p></div>},
     {id:"university",label:c("الرقم الجامعي","University ID"),className:"w-32",render:member=><bdi dir="ltr">{member.universityId??c("غير مسجل","Not recorded")}</bdi>},
     {id:"membership",sortKey:"date",label:c("العضوية","Membership"),className:"w-40",render:member=><>{stateBadge(member.status)}<p className="text-sm text-muted-foreground">{c("منذ","Since")} {date(member.startDate,locale)}</p></>},
-    {id:"roles",label:c("الدور واللجان","Role and committees"),className:"w-48",render:roleTags},
+    {id:"roles",label:c("الدور","Role"),className:"w-32",render:roleTags},
+    {id:"committees",label:c("اللجان","Committees"),className:"w-28",render:member=>member.committees.map(row=>row.name).join("، ")},
     {id:"hours",label:c("الساعات المعتمدة","Approved hours"),className:"w-28",render:member=>formatHours(member.hours,locale)},
     {id:"actions",label:c("الإجراءات","Actions"),className:"w-52",renderMobile:member=><MemberActions organization={organization} member={member} workspace={data} onView={()=>openMember(member.id)} committees={permissions?.committees??[]} locale={locale} mobile/>,render:member=><MemberActions organization={organization} member={member} workspace={data} onView={()=>openMember(member.id)} committees={permissions?.committees??[]} locale={locale}/>}
   ];
@@ -130,13 +131,13 @@ function MemberActions({ organization, member, workspace, committees, locale, on
 }
 
 function PermissionGrantDialog({organization,member,committees,locale,open,onOpenChange,onSuccess,hideTrigger=false}:{organization:string;member:OrganizationMemberWorkspace["members"][number];committees:OrganizationPermissionWorkspace["committees"];locale:Locale;open?:boolean;onOpenChange?:(open:boolean)=>void;onSuccess?:()=>void;hideTrigger?:boolean}){
- const [role,setRole]=useState("Member"),[committee,setCommittee]=useState(member.committees[0]?.id??""),[confirm,setConfirm]=useState(false),c=createTranslator(locale);
+ const [role,setRole]=useState(member.roles.find(role=>["OL","OD","HRL","HRD","CL","CD"].includes(role.code))?.code??"Member"),[committee,setCommittee]=useState(committees.find(row=>row.name===member.roles.find(role=>["CL","CD"].includes(role.code))?.committee)?.id??member.committees[0]?.id??""),[confirm,setConfirm]=useState(false),c=createTranslator(locale);
  const hr=committees.some(row=>/^(لجنة )?الموارد البشرية$|^human resources$|^hr$/i.test(row.name.trim()));
  const scoped=["CL","CD"].includes(role);
  return <ManagementActionSheet label={c("تغيير الدور","Change role")} title={c(`دور ${member.name}`,`Role for ${member.name}`)} locale={locale} open={open} onOpenChange={onOpenChange} hideTrigger={hideTrigger}>
-  <div className="flex flex-col gap-5"><FormField label={c("الدور","Role")}><NativeSelect value={role} onChange={event=>setRole(event.target.value)}>{Object.entries({Member:["عضو","Member"],OD:["نائب قائد الجهة","Deputy organization leader"],CL:["قائد لجنة","Committee leader"],CD:["نائب لجنة","Committee deputy"],...(!hr?{HRL:["قائد الموارد البشرية","HR lead"],HRD:["نائب الموارد البشرية","HR deputy"]}:{})}).map(([code,names])=><option key={code} value={code}>{names[locale==="en"?1:0]}</option>)}</NativeSelect></FormField>
+  <div className="flex flex-col gap-5"><FormField label={c("الدور","Role")}><NativeSelect value={role} onChange={event=>setRole(event.target.value)}>{Object.entries({Member:["عضو","Member"],OD:["نائب رئيس النادي","Club vice president"],CL:["قائد اللجنة","Committee leader"],CD:["نائب قائد اللجنة","Deputy committee leader"],...(!hr?{HRL:["قائد الموارد البشرية","HR lead"],HRD:["نائب الموارد البشرية","HR deputy"]}:{})}).map(([code,names])=><option key={code} value={code}>{names[locale==="en"?1:0]}</option>)}</NativeSelect></FormField>
   {scoped&&<FormField label={c("اللجنة","Committee")} required><NativeSelect value={committee} onChange={event=>setCommittee(event.target.value)}><option value="">{c("اختر اللجنة","Choose a committee")}</option>{committees.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</NativeSelect></FormField>}
   <Button disabled={scoped&&!committee} onClick={()=>setConfirm(true)}>{c("حفظ الدور","Save role")}</Button></div>
-  <AlertDialog open={confirm} onOpenChange={setConfirm}><AlertDialogContent dir={locale==="ar"?"rtl":"ltr"}><AlertDialogHeader><AlertDialogTitle>{c(`تغيير دور ${member.name}؟`,`Change the role for ${member.name}?`)}</AlertDialogTitle><AlertDialogDescription>{c("ستنتهي الأدوار السابقة وتُطبّق صلاحيات الدور المختار فورًا مع الاحتفاظ بالسجل.","Previous roles will end and the new role permissions will apply immediately. History is retained.")}</AlertDialogDescription></AlertDialogHeader><WorkflowForm operation="set-role" fields={{org:organization,member:member.id,role,committee:scoped?committee:"",confirm:"on"}} label={c("تأكيد الدور","Confirm role")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>{setConfirm(false);onOpenChange?.(false);onSuccess?.();}} secondaryAction={<AlertDialogCancel>{c("إلغاء","Cancel")}</AlertDialogCancel>}/></AlertDialogContent></AlertDialog>
+  <AlertDialog open={confirm} onOpenChange={setConfirm}><AlertDialogContent dir={locale==="ar"?"rtl":"ltr"}><AlertDialogHeader><AlertDialogTitle>{c(`تغيير دور ${member.name}؟`,`Change the role for ${member.name}?`)}</AlertDialogTitle><AlertDialogDescription>{c("ستنتهي الأدوار السابقة وتُطبّق صلاحيات الدور المختار فورًا مع الاحتفاظ بالسجل.","Previous roles will end and the new role permissions will apply immediately. History is retained.")}</AlertDialogDescription></AlertDialogHeader><WorkflowForm inlineFooter operation="set-role" fields={{org:organization,member:member.id,role,committee:scoped?committee:"",confirm:"on"}} label={c("تأكيد الدور","Confirm role")} mutation={mutateOrganizationMembers} locale={locale} onSuccess={()=>{setConfirm(false);onOpenChange?.(false);onSuccess?.();}} secondaryAction={<AlertDialogCancel>{c("إلغاء","Cancel")}</AlertDialogCancel>}/></AlertDialogContent></AlertDialog>
  </ManagementActionSheet>;
 }

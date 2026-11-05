@@ -42,6 +42,14 @@ it("uses an explicit answered condition for dynamic committees without requestin
  expect(payload.sections[0].fields[1].condition).toEqual({fieldId:definition.sections[0].fields[0].id,operator:"Answered",value:"true"});
 });
 
+it("offers every earlier question as a presence-condition source and warns before discarding edits",()=>{
+ const definition=structuredClone(initial);definition.sections[0].fields.push({...definition.sections[0].fields[0],id:"00000000-0000-4000-8000-000000000004",label:"السؤال الثالث",type:"Date"});
+ render(<><a href="/elsewhere">مغادرة</a><FormEditor version="version" revision={1} initial={definition}/></>);
+ fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));fireEvent.click(screen.getByRole("button",{name:/^السؤال 3 ·/}));
+ const condition=document.querySelector('select[id$="-condition-form-value"]')!;expect(condition.textContent).toContain("السؤال الأول");expect(condition.textContent).toContain("السؤال الثاني");
+ fireEvent.change(screen.getByRole("textbox",{name:"السؤال"}),{target:{value:"تعديل غير محفوظ"}});fireEvent.click(screen.getByRole("link",{name:"مغادرة"}));expect(screen.getByRole("alertdialog").textContent).toContain("لديك تغييرات غير محفوظة");fireEvent.click(screen.getByRole("button",{name:"البقاء في المحرر"}));expect((screen.getByRole("textbox",{name:"السؤال"}) as HTMLInputElement).value).toBe("تعديل غير محفوظ");
+});
+
 it("exposes section actions directly without a menu",()=>{
  open();expect(screen.queryByRole("menu")).toBeNull();
  const copy=screen.getByRole("button",{name:/نسخ القسم/});fireEvent.click(copy);
@@ -50,9 +58,9 @@ it("exposes section actions directly without a menu",()=>{
 });
 
 it("drags question backgrounds while protecting fields and direct actions",()=>{
- open();const cards=document.querySelectorAll<HTMLElement>('[data-question-draggable="true"]');expect(cards).toHaveLength(2);
+ open();const cards=document.querySelectorAll<HTMLElement>('.editor-question [data-question-draggable="true"]');expect(cards).toHaveLength(2);
  const transfer={setData:vi.fn(),effectAllowed:""};fireEvent.mouseDown(cards[0]);expect(cards[0].draggable).toBe(true);fireEvent.dragStart(cards[0],{dataTransfer:transfer});fireEvent.drop(cards[1],{dataTransfer:transfer});expect(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/})).toBeTruthy();
- fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/}));const field=screen.getByRole("textbox",{name:"السؤال"});const card=field.closest<HTMLElement>('[data-question-draggable="true"]')!;fireEvent.mouseDown(field);expect(card.draggable).toBe(false);fireEvent.change(field,{target:{value:"كتابة طبيعية"}});expect((field as HTMLInputElement).value).toBe("كتابة طبيعية");const button=screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"});fireEvent.mouseDown(button);expect(card.draggable).toBe(false);fireEvent.click(button);expect(document.querySelectorAll('[data-question-draggable="true"]')).toHaveLength(3);
+ fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/}));const field=screen.getByRole("textbox",{name:"السؤال"});const card=field.closest<HTMLElement>('[data-question-draggable="true"]')!;fireEvent.mouseDown(field);expect(card.draggable).toBe(false);fireEvent.change(field,{target:{value:"كتابة طبيعية"}});expect((field as HTMLInputElement).value).toBe("كتابة طبيعية");const button=screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"});fireEvent.mouseDown(button);expect(card.draggable).toBe(false);fireEvent.click(button);expect(document.querySelectorAll('.editor-question [data-question-draggable="true"]')).toHaveLength(3);
 });
 
 it("publishes changes to a previously published form on save through the versioned workflow",async()=>{

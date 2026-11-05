@@ -1,11 +1,12 @@
 "use client";
 
+import {UnsavedChangesGuard} from "@/components/unsaved-changes-guard";
 import {ContentText} from "@/components/content-text";
 
 import {formatNumber,t as translateUi,createTranslator} from "@/lib/i18n";
 import {NumberText} from "@/components/number-text";
 import {useRouter} from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -98,12 +99,6 @@ export function FormEditor({
     [error, setError] = useState(""),
     [pending, startTransition] = useTransition();
   const dirty = JSON.stringify(definition) !== saved;
-  useEffect(() => {
-    if (!dirty) return;
-    const leave = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", leave);
-    return () => window.removeEventListener("beforeunload", leave);
-  }, [dirty]);
   const update = (si: number, fi: number, patch: Partial<QuestionField>) =>
     setDefinition((d) => ({
       ...d,
@@ -174,7 +169,7 @@ export function FormEditor({
               .some(
                 (previous) =>
                   previous.id === f.condition?.fieldId &&
-                  (f.condition?.operator === "Answered" || !previous.options.length ||
+                  (["Answered","NotAnswered"].includes(f.condition?.operator??"") || !previous.options.length ||
                     previous.options.some(
                       (o) => o.value === f.condition?.value,
                     )),
@@ -269,6 +264,7 @@ export function FormEditor({
   if(published)return <p role="status">{c("تم نشر النسخة","Version published")}</p>;
   return (
     <>
+      <UnsavedChangesGuard dirty={dirty} locale={locale}/>
       <form
         id={id}
         ref={formRef}
@@ -293,6 +289,8 @@ export function FormEditor({
           <EditorSection
             key={section.id}
             title={`${c("القسم", "Section")} ${formatNumber(si + 1,locale)}: ${section.title}`}
+            dragging={drag?.section===si&&drag.field===undefined}
+            onQuestionDragStart={event=>{setDrag({section:si});event.dataTransfer.setData("text/plain",section.id);event.dataTransfer.effectAllowed="move";}} onQuestionDragEnd={()=>setDrag(null)}
             defaultOpen={openedSections.includes(section.id)}
             onDrop={event=>{event.preventDefault();if(drag&&drag.field===undefined)moveSection(drag.section,si);setDrag(null);}}
             tools={<><Button type="button" variant="ghost" size="icon-sm" draggable aria-label={c("اسحب لإعادة ترتيب القسم","Drag to reorder section")} onDragStart={event=>{setDrag({section:si});event.dataTransfer.setData("text/plain",section.id);}} onDragEnd={()=>setDrag(null)}><GripVertical/></Button><EditorMenu label={`${c("أدوات القسم","Section actions")} ${formatNumber(si+1,locale)}`} locale={locale} upDisabled={!si} downDisabled={si===definition.sections.length-1} copyDisabled={definition.sections.length>=12} deleteDisabled={definition.sections.length===1} onUp={()=>moveSection(si,si-1)} onDown={()=>moveSection(si,si+1)} onCopy={()=>copySection(si)} onDelete={()=>setRemoval({title:section.title,section:si})}/></>}
@@ -342,9 +340,9 @@ export function FormEditor({
                   .flatMap((s, i) =>
                     i < si ? s.fields : i === si ? s.fields.slice(0, fi) : [],
                   )
-                  .filter((f) => ["Select","Radio","MultiSelect","Committee","Checkbox"].includes(f.type));
+;
                 return (
-                  <EditorSection key={field.id} kind="question" dragging={drag?.section===si&&drag.field===fi} onQuestionDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);event.dataTransfer.effectAllowed="move";}} onQuestionDragEnd={()=>setDrag(null)} defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · <ContentText value={field.label}/></span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge></>}
+                  <EditorSection key={field.id} kind="question" dragging={drag?.section===si&&drag.field===fi} onQuestionDragStart={event=>{event.stopPropagation();setDrag({section:si,field:fi});event.dataTransfer.setData("text/plain",field.id);event.dataTransfer.effectAllowed="move";}} onQuestionDragEnd={()=>setDrag(null)} defaultOpen={openedQuestions.includes(field.id)} title={<><span className="min-w-0 truncate">{c("السؤال","Question")} <NumberText value={fi+1}/> · <ContentText value={field.label}/>{field.required&&<span aria-label={c("مطلوب","Required")} className="ms-1 text-destructive">*</span>}</span><Badge variant="outline" className="editor-question-type">{en?fieldTypesEn[field.type]:fieldTypes[field.type]}</Badge></>}
                     onDrop={event=>{event.preventDefault();event.stopPropagation();if(drag?.section===si&&drag.field!==undefined)move(si,drag.field,fi);setDrag(null);}}
                     tools={<><div onClick={event=>event.stopPropagation()}>                            <div className="flex shrink-0 items-center gap-2">
                               <Switch
@@ -679,11 +677,11 @@ export function FormEditor({
 function EditorSection({title,tools,children,defaultOpen=false,kind="section",onDrop,onQuestionDragStart,onQuestionDragEnd,dragging=false}:{title:React.ReactNode;tools:React.ReactNode;children:React.ReactNode;defaultOpen?:boolean;kind?:"section"|"question";onDrop?:React.DragEventHandler<HTMLDivElement>;onQuestionDragStart?:React.DragEventHandler<HTMLDivElement>;onQuestionDragEnd?:React.DragEventHandler<HTMLDivElement>;dragging?:boolean}) {
  const [open,setOpen]=useState(defaultOpen);
  return <Collapsible open={open} onOpenChange={setOpen} className={`editor-panel editor-${kind}`} onDragOver={event=>event.preventDefault()} onDrop={onDrop}>
-  <Card className="gap-0 py-0" draggable={kind==="question"} data-question-draggable={kind==="question"||undefined} data-dragging={dragging||undefined}
-    onPointerDownCapture={event=>{if(kind==="question")event.currentTarget.draggable=!isQuestionInteractiveTarget(event.target);}}
-    onMouseDownCapture={event=>{if(kind==="question")event.currentTarget.draggable=!isQuestionInteractiveTarget(event.target);}}
-    onDragStart={event=>{if(kind!=="question")return;if(isQuestionInteractiveTarget(event.target)){event.preventDefault();return;}event.stopPropagation();onQuestionDragStart?.(event);}}
-    onDragEnd={onQuestionDragEnd}><CardHeader className="editor-section-header"><CardTitle className="min-w-0 flex-1"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="editor-collapse-heading"/>}><ChevronDown className={open?"rotate-180":""}/><span className="editor-heading-summary">{title}</span></CollapsibleTrigger></CardTitle><div className="editor-panel-tools">{tools}</div></CardHeader><CollapsibleContent className="editor-section-content"><CardContent className="flex flex-col gap-5 py-4">{children}</CardContent></CollapsibleContent></Card>
+  <Card className="gap-0 py-0" draggable data-question-draggable="true" data-dragging={dragging||undefined}
+    onPointerDownCapture={event=>{event.currentTarget.draggable=!isQuestionInteractiveTarget(event.target);}}
+    onMouseDownCapture={event=>{event.currentTarget.draggable=!isQuestionInteractiveTarget(event.target);}}
+    onDragStart={event=>{if(isQuestionInteractiveTarget(event.target)){event.preventDefault();return;}event.stopPropagation();onQuestionDragStart?.(event);}}
+    onDragEnd={onQuestionDragEnd}><CardHeader className="editor-section-header"><CardTitle className="min-w-0 flex-1"><CollapsibleTrigger render={<Button type="button" variant="ghost" data-drag-heading className="editor-collapse-heading"/>}><ChevronDown className={open?"rotate-180":""}/><span className="editor-heading-summary">{title}</span></CollapsibleTrigger></CardTitle><div className="editor-panel-tools">{tools}</div></CardHeader><CollapsibleContent className="editor-section-content"><CardContent className="flex flex-col gap-5 py-4">{children}</CardContent></CollapsibleContent></Card>
  </Collapsible>;
 }
 function EditorMenu({label,locale,upDisabled,downDisabled,copyDisabled,deleteDisabled,onUp,onDown,onCopy,onDelete}:{label:string;locale:Locale;upDisabled:boolean;downDisabled:boolean;copyDisabled:boolean;deleteDisabled:boolean;onUp:()=>void;onDown:()=>void;onCopy:()=>void;onDelete:()=>void}) {
@@ -706,4 +704,4 @@ function QuestionActions({label,locale,upDisabled,downDisabled,copyDisabled,dele
  ].map(({name,Icon,disabled,run,danger})=><RowAction key={name} label={`${name} · ${label}`} hint={name} disabled={disabled} danger={danger} onClick={run}><Icon/></RowAction>)}</>;
 }
 
-export function isQuestionInteractiveTarget(target:EventTarget|null){return target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="button"],[role="combobox"],[role="switch"],[role="checkbox"]');}
+export function isQuestionInteractiveTarget(target:EventTarget|null){return target instanceof Element&&!!target.closest('input,textarea,select,button:not([data-drag-heading]),a,[contenteditable="true"],[role="button"],[role="combobox"],[role="switch"],[role="checkbox"]');}

@@ -3,6 +3,7 @@ import {act,cleanup,fireEvent,render,screen,waitFor} from "@testing-library/reac
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {I18nProvider} from "@/components/i18n-provider";
 import type {ActivitySnapshot} from "./activity-data";
+vi.mock("@/features/hours/actions",()=>({mutateHours:vi.fn()}));
 vi.mock("./paged-activity-screen",()=>({PagedActivityScreen:()=>null}));
 vi.mock("next/navigation",()=>({useRouter:()=>({prefetch:vi.fn(),push:vi.fn()})}));
 const mocks=vi.hoisted(()=>({load:vi.fn(),version:vi.fn()}));

@@ -71,11 +71,11 @@ export function OrganizationProfileEditor({
     )
     .map(({ id, name }) => ({ id, name }));
   const tabs = [
-    {
+    ...(organization.canEdit?[{
       id: "about",
       label: c("الأساسية", "Basics"),
       icon: <Info aria-hidden="true" />,
-    },
+    }]:[]),
     ...(organization.canEdit
       ? [
           {
@@ -111,7 +111,7 @@ export function OrganizationProfileEditor({
   ];
   const initialSection = tabs.some((tab) => tab.id === section)
     ? section!
-    : "about";
+    : tabs[0]?.id??"";
   const publicPageButton = (
     <div className="organization-public-page-footer">
       <Button
@@ -144,7 +144,7 @@ export function OrganizationProfileEditor({
       <OrganizationSectionTabs
         items={tabs}
         initialSection={initialSection}
-        defaultSection="about"
+        defaultSection={tabs[0]?.id}
         legacyHashSections={{ "#committees": "committees" }}
         sticky={false}
         label={c("أقسام الجهة", "Organization sections")}

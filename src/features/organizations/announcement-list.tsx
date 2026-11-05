@@ -49,7 +49,7 @@ export function AnnouncementList({items,org,slug,locale="ar",filter:controlledFi
  {id:"name",label:c("الإعلان","Announcement"),render:item=><div className="flex min-w-0 items-center gap-3"><ListThumbnail src={item.imageAssetId?`/files/${item.imageAssetId}/preview?thumbnail=1`:null} icon={Megaphone}/><div className="min-w-0 flex-1"><h3><ItemTitle><ContentText value={item.title}/></ItemTitle></h3><p className="line-clamp-2 text-sm text-muted-foreground"><ContentText value={item.body}/></p>{item.pinned&&<Badge variant="outline">{c("مثبّت","Pinned")}</Badge>}</div></div>},
  {id:"date",label:<Button variant="ghost" size="sm" onClick={()=>change({announcementSort:sort==="asc"?"desc":"asc"})}>{c("التاريخ","Date")}</Button>,className:"w-40",render:item=><time>{formatRiyadhDate(item.publishedAt??item.createdAt??"",locale)}</time>},
  {id:"status",label:c("الحالة","Status"),className:"w-28",render:item=><OrganizationStatusBadge status={item.archived?"archived":item.published?"published":"draft"}>{item.archived?c("مؤرشف","Archived"):item.published?c("منشور","Published"):c("مسودة","Draft")}</OrganizationStatusBadge>},
- {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:actions}
+ {id:"actions",label:c("الإجراءات","Actions"),className:"w-56",render:actions}
  ]}/>
 
 

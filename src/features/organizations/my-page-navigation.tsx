@@ -169,12 +169,12 @@ export function MyPageNavigation({
 
   const organizationRoot = selectedOrganization ? `/manage/organizations/${selectedOrganization.id}` : "";
   const organizationLinks: SidebarLink[] = selectedOrganization ? [
-    {
+    ...(selectedOrganization.canEdit||selectedOrganization.canManageCommittees?[{
       href: organizationRoot,
       label: c("الجهة", "Organization"),
       icon: Landmark,
       active: pathname === organizationRoot,
-    },
+    }]:[]),
     ...(selectedOrganization.canMembers || selectedOrganization.canGrant ? [{
       href: `${organizationRoot}/members`,
       label: c("الأعضاء", "Members"),

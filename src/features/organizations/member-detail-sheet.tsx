@@ -19,7 +19,7 @@ import {createTranslator} from "@/lib/i18n";
 import type {Locale} from "@/lib/preferences";
 import type {MemberRecord} from "./member-types";
 
-export const memberRoleNames:Record<string,[string,string]>={OL:["قائد الجهة","Organization leader"],OD:["نائب القائد","Deputy leader"],CL:["قائد لجنة","Committee leader"],CD:["نائب لجنة","Committee deputy"],HRL:["قائد الموارد البشرية","HR lead"],HRD:["نائب الموارد البشرية","HR deputy"]};
+export const memberRoleNames:Record<string,[string,string]>={OL:["رئيس النادي","Club president"],OD:["نائب رئيس النادي","Club vice president"],CL:["قائد اللجنة","Committee leader"],CD:["نائب قائد اللجنة","Deputy committee leader"],HRL:["قائد الموارد البشرية","HR lead"],HRD:["نائب الموارد البشرية","HR deputy"]};
 export function CopyMemberValue({value,label,locale,section=false}:{value:string;label:string;locale:Locale;section?:boolean}){
  const [copied,setCopied]=useState(false),[failed,setFailed]=useState(false),c=createTranslator(locale);
  async function copy(){let timer:ReturnType<typeof setTimeout>|undefined;try{await Promise.race([navigator.clipboard.writeText(value),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error("Clipboard unavailable")),2000);})]);setCopied(true);setFailed(false);toast.add({title:c("تم النسخ","Copied"),type:"success",timeout:2000});setTimeout(()=>setCopied(false),2000);}catch{setFailed(true);}finally{clearTimeout(timer);}}

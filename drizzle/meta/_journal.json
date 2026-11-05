@@ -680,6 +680,20 @@
       "when": 1793829607000,
       "tag": "0096_restore_archived_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1793908800000,
+      "tag": "0097_repeated_renewal_campaigns",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1793908801000,
+      "tag": "0098_all_prior_form_conditions",
+      "breakpoints": true
     }
   ]
 }

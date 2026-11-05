@@ -1,4 +1,8 @@
 import {campaignList} from "@/features/renewals/campaign-list-repository";
+import {mutateEvent} from "@/features/events/actions";
+import {getOverviewUpdates} from "@/features/organizations/overview-updates";
+vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
+vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:"00000000-0000-4000-8000-000000000001"})}));
 import {templateList} from "@/features/forms/template-list-repository";
 import {listTasks} from "@/features/tasks/repository";
 import {organizationApplicationPage} from "@/features/forms/repository";
@@ -22,6 +26,21 @@ beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role 
 beforeEach(async()=>{await db.exec("begin");for(const [i,id] of [leader,student,peer].entries()){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into lub.users(id,email,email_verified_at) values($1,$2,now())",[id,`event${i}@example.invalid`]);await db.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,$2,'private',$3,'الحاسب','4')",[id,`طالب ${i}`,String(i).repeat(64)]);}await db.query("insert into lub.organizations(id,type_code,slug,name_ar) values($1,'Club','events-test','نادي الاختبار')",[org]);const m=(await db.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,leader])).rows[0].id;await db.query("insert into lub.role_assignments(organization_membership_id,organization_id,role_code,is_primary_leader,assigned_by_user_id) values($1,$2,'OL',true,$3)",[m,org,leader]);await actor(leader);});
 afterEach(async()=>{await db.exec("rollback");});afterAll(async()=>{await db.close();});
 async function create(capacity=1){return(await db.query<{id:string}>("select lub.save_event(null,$1,'ورشة الاختبار','وصف الفعالية','In_Person','القاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',$2,null,2,null) as id",[org,capacity])).rows[0].id;}
+it("limits overview updates to the authenticated student's own records",async()=>{
+ const event=await create(10);await db.query("select lub.change_event_status($1,'Published',1)",[event]);await actor(student);await db.query("select lub.register_event($1,null,'{}',null)",[event]);
+ expect((await getOverviewUpdates(student)).events).toEqual([{title:"ورشة الاختبار",status:"Accepted"}]);
+ const other=await getOverviewUpdates(peer);expect(other.events).toEqual([]);expect(other.requests).toEqual([]);expect(other.hours).toEqual([]);
+});
+it("accepts a new application after withdrawal without erasing the earlier decision history",async()=>{
+ const event=await create(10);await db.query("select lub.change_event_status($1,'Published',1)",[event]);await actor(student);
+ const registration=(await db.query<{id:string}>("select lub.register_event($1,null,'{}',null) as id",[event])).rows[0].id;
+ await actor(leader);await db.query("select lub.review_event_registrations(array[$1]::uuid[],'Accepted','')",[registration]);
+ await actor(student);await db.query("select lub.cancel_event_registration($1)",[registration]);await db.query("select lub.reapply_event_registration($1)",[registration]);
+ await actor(leader);const form=new FormData();form.set("operation","review");form.set("status","Accepted");form.set("confirm","on");form.append("selected",registration);
+ expect(await mutateEvent({},form)).toMatchObject({success:expect.any(String)});
+ expect((await db.query<{review_status_code:string}>("select review_status_code from lub.event_registrations where id=$1",[registration])).rows[0].review_status_code).toBe("Accepted");
+ expect((await db.query("select id from lub.event_registration_history where event_registration_id=$1 and status_code='Cancelled'",[registration])).rows).toHaveLength(1);
+});
 it("exports accepted and recorded registrants through expiring owner-bound tickets and excludes test accounts at source",async()=>{
  const event=await create(10);await db.query("select lub.change_event_status($1,'Published',1)",[event]);await actor(student);
  const registration=(await db.query<{id:string}>("select lub.register_event($1,null,'{}',null) as id",[event])).rows[0].id;

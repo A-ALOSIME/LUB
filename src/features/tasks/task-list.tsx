@@ -1,6 +1,6 @@
 "use client";
 import {useOptimisticRows} from "@/lib/optimistic-rows";
-import {useState} from "react";
+import {useRouter} from "next/navigation";
 import {useQueryClient} from "@tanstack/react-query";
 import {useQueryActor} from "@/components/private-query-provider";
 import {initialTaskPanelQuery,taskPanelQuery} from "./panel-query";
@@ -23,14 +23,15 @@ import type {TaskCard,TaskWorkspace} from "./repository";
 import type {Locale} from "@/lib/preferences";
 export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty,pagination}:{pagination?:import("@/components/data-table").DataTablePagination;empty?:React.ReactNode;activeStatus?:string;items:TaskCard[];mode:"available"|"mine"|"all";locale?:Locale;compact?:boolean;workspace?:TaskWorkspace}){
  void workspace;
- const labels=locale==="en"?taskLabelsEn:taskLabels,date=locale==="en"?formatTaskDateEn:formatTaskDate,[selected,setSelected]=useState<TaskCard|null>(null),client=useQueryClient(),actor=useQueryActor();
- const open=(row:TaskCard)=>setSelected(row),prefetch=(row:TaskCard)=>{void client.prefetchQuery(taskPanelQuery(actor,row.task.id,{...initialTaskPanelQuery,purpose:mode==="all"?"view":"student"}));};
+ const labels=locale==="en"?taskLabelsEn:taskLabels,date=locale==="en"?formatTaskDateEn:formatTaskDate,router=useRouter(),client=useQueryClient(),actor=useQueryActor();
+ const href=(row:TaskCard)=>`${mode==="all"?`/manage/organizations/${row.task.organization_id}/tasks/${row.task.id}`:`/tasks/${row.task.id}`}?returnTo=${encodeURIComponent(window.location.pathname+window.location.search)}`;
+ const open=(row:TaskCard)=>router.push(href(row)),prefetch=(row:TaskCard)=>{router.prefetch(href(row));void client.prefetchQuery(taskPanelQuery(actor,row.task.id,{...initialTaskPanelQuery,purpose:mode==="all"?"view":"student"}));};
  const projection=useOptimisticRows(items,row=>row.task.id);
  const optimistic=(row:TaskCard)=>(status:string,remove?:boolean)=>projection.change(row.task.id,item=>remove?null:{...item,task:{...item.task,status_code:status}});
  const rows=projection.items.filter(item=>!activeStatus||item.task.status_code===activeStatus).map(row=>({...row,id:row.task.id}));
  function actions(row:TaskCard){const task=row.task,p=row.participant,manage=mode==="all"&&row.can_manage&&!row.historical,editable=manage&&["Draft","Open"].includes(task.status_code),withdrawable=!row.historical&&task.status_code==="Open"&&p&&["Joined","In_Progress","Submitted"].includes(p.status_code);
   if(row.historical)return null;
-  return <div className="flex flex-wrap items-center gap-1"><RowAction label={t(locale,"عرض التفاصيل","View details")} onClick={()=>open(row)}><Eye/></RowAction>{mode==="all"?<>
+  return <div className="flex flex-nowrap items-center gap-1"><RowAction label={t(locale,"عرض التفاصيل","View details")} onClick={()=>open(row)}><Eye/></RowAction>{mode==="all"?<>
   {editable?<TaskPanelAction task={task.id} title={task.title} locale={locale} edit/>:<RowAction label={t(locale,"تعديل المهمة","Edit task")} disabled hint={!manage?t(locale,"تحتاج صلاحية إدارة المهام","Task management permission is required"):t(locale,"لا يمكن تعديل المهمة المغلقة","Closed tasks cannot be edited")}><Pencil/></RowAction>}
   <TaskEventLinkAction task={task.id} enabled={Boolean(editable)} locale={locale}/>
   <span role="separator" aria-orientation="vertical" className="mx-1 h-5 border-s border-border"/>
@@ -52,6 +53,6 @@ export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty
  {id:"submissionRate",label:t(locale,"نسبة التسليم","Submission rate"),className:"w-28",render:(row:TaskCard)=>`${row.summary?.participants?Math.round(row.summary.submitted/row.summary.participants*100):0}%`}
  ]:[]),
  {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-64":"w-36",render:actions}
- ]}/>{selected&&<TaskPanelAction key={selected.task.id} task={selected.task.id} title={selected.task.title} locale={locale} management={mode==="all"} open hideTrigger onOpenChange={open=>{if(!open)setSelected(null);}}/>}</>;
+ ]}/></>;
 }
 export {TaskPagination} from "./task-pagination";

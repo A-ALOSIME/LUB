@@ -1,5 +1,6 @@
 "use client";
 import {t as translateUi} from "@/lib/i18n";
+import {usePathname} from "next/navigation";
 import {useState} from "react";
 import Link from "next/link";
 import {MessageCircle,ExternalLink,X} from "lucide-react";
@@ -12,6 +13,7 @@ import {useIsMobile} from "@/hooks/use-mobile";
 import {ChatWidget} from "./chat-widget";
 
 export function DeferredChatWidget({locale}:{locale:"ar"|"en"}) {
+  const path=usePathname();
   const [open,setOpen]=useState(false),mobile=useIsMobile(),en=locale==="en";
   const title=<><LubSymbol className="size-6 shrink-0"/>{en?"LUB":<LubBrandName/>}</>;
   const launcher=<Button className="floating-assistant-link rounded-full" aria-label={translateUi((en) ? "en" : "ar", "اسأل لُبّ", "Ask LUB")}><MessageCircle/><span className="hidden sm:inline">{en?"Ask LUB":<>اسأل <LubBrandName/></>}</span></Button>;
@@ -20,6 +22,7 @@ export function DeferredChatWidget({locale}:{locale:"ar"|"en"}) {
     <Tooltip><TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label={translateUi((en) ? "en" : "ar", "إغلاق المحادثة", "Close chat")} onClick={()=>setOpen(false)}/>}><X/></TooltipTrigger><TooltipContent>{translateUi((en) ? "en" : "ar", "إغلاق المحادثة", "Close chat")}</TooltipContent></Tooltip>
   </div>;
   const body=<div className="min-h-0 flex-1"><ChatWidget locale={locale} inline embedded/></div>;
+  if(path==="/manage"||path?.startsWith("/manage/"))return null;
   if(mobile)return <Sheet open={open} onOpenChange={setOpen}>
     <SheetTrigger render={launcher}/>
     <SheetContent side="bottom" dir={en?"ltr":"rtl"} className="h-dvh max-h-dvh w-full gap-0 rounded-none p-0" showCloseButton={false}>

@@ -1,5 +1,8 @@
 "use client";
 
+import type {PublicTalent} from "./repository";
+import {MembershipHistory} from "./membership-history";
+import {OrganizationSectionTabs,OrganizationSectionTabPanel} from "@/features/organizations/organization-section-tabs";
 import {t as translateUi} from "@/lib/i18n";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useActionState } from "react";
@@ -7,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Empty, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -301,13 +304,15 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
   </form>;
 }
 
-export function TalentWorkspaceEditor({ data, user, pages, locale = "ar" }: { data: TalentWorkspace; user: string; pages: TalentPages; locale?: Locale }) {
+export function TalentWorkspaceEditor({ data, user, pages, locale = "ar",memberships=[] }: {memberships?:PublicTalent["organizations"]; data: TalentWorkspace; user: string; pages: TalentPages; locale?: Locale }) {
   const en = locale === "en";
   return <main id="main" dir={en ? "ltr" : "rtl"} className="workspace-content talent-settings-page flex min-w-0 flex-col gap-4">
     <header className="workspace-page-header">
       <h1>{translateUi((en) ? "en" : "ar", "ملفي المهاري", "My talent profile")}</h1>
     </header>
+    <OrganizationSectionTabs items={[{id:"profile",label:translateUi(locale,"الملف المهاري","Talent profile")},{id:"memberships",label:translateUi(locale,"عضوياتي وسجل أدواري","Memberships and role history")}]} initialSection="profile" defaultSection="profile" label={translateUi(locale,"أقسام الملف المهاري","Talent profile sections")} dir={en?"ltr":"rtl"} sticky={false}><OrganizationSectionTabPanel id="profile">
     <ProfileSettingsForm data={data} user={user} pages={pages} locale={locale} />
     <TalentPrivacyCard initial={{enabled:data.settings.public_profile_enabled,indexable:data.settings.public_profile_enabled&&(data.settings.allow_indexing??false),slug:data.settings.public_slug??""}} locale={locale}/>
+    </OrganizationSectionTabPanel><OrganizationSectionTabPanel id="memberships"><Card><CardHeader><CardTitle>{translateUi(locale,"عضوياتي وسجل أدواري","Memberships and role history")}</CardTitle></CardHeader><CardContent>{memberships.length?<MembershipHistory organizations={memberships} locale={locale}/>:<p className="text-sm text-muted-foreground">{translateUi(locale,"لا توجد عضويات.","No memberships yet.")}</p>}</CardContent></Card></OrganizationSectionTabPanel></OrganizationSectionTabs>
   </main>;
 }

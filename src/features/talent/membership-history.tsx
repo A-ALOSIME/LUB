@@ -14,7 +14,7 @@ import { OrganizationAvatar } from "./organization-avatars";
 
 export function roleLabel(code:string,type:string|undefined,locale:Locale){
  const council=type==="Council";
- return (locale==="en"?{OL:council?"Council leader":"Club leader",OD:"Deputy leader",CL:"Committee leader",CD:"Deputy committee leader",HRL:"HR lead",HRD:"HR deputy",Member:"Member"}:{OL:council?"قائد المجلس":"قائد النادي",OD:council?"نائب قائد المجلس":"نائب قائد النادي",CL:"قائد اللجنة",CD:"نائب قائد اللجنة",HRL:"قائد الموارد البشرية",HRD:"نائب الموارد البشرية",Member:"عضو"})[code as "OL"|"OD"|"CL"|"CD"|"HRL"|"HRD"|"Member"]??(translateUi((locale==="en") ? "en" : "ar", "عضو", "Member"));
+ return (locale==="en"?{OL:council?"Council president":"Club president",OD:council?"Council vice president":"Club vice president",CL:"Committee leader",CD:"Deputy committee leader",HRL:"HR lead",HRD:"HR deputy",Member:"Member"}:{OL:council?"رئيس المجلس":"رئيس النادي",OD:council?"نائب رئيس المجلس":"نائب رئيس النادي",CL:"قائد اللجنة",CD:"نائب قائد اللجنة",HRL:"قائد الموارد البشرية",HRD:"نائب الموارد البشرية",Member:"عضو"})[code as "OL"|"OD"|"CL"|"CD"|"HRL"|"HRD"|"Member"]??(translateUi((locale==="en") ? "en" : "ar", "عضو", "Member"));
 }
 export function MembershipHistory({organizations,locale="ar"}:{organizations:PublicTalent["organizations"];locale?:Locale}){
  const en=locale==="en";

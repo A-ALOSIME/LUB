@@ -111,7 +111,7 @@ export const definitionSchema = z
           const previous = seen.get(entry.condition.fieldId);
           if (
             !previous ||
-            previous.type === "File" ||
+            (previous.type === "File" && !["Answered","NotAnswered"].includes(entry.condition.operator)) ||
             (!["Answered","NotAnswered"].includes(entry.condition.operator) && previous.options.length &&
               !previous.options.some(
                 (o) => o.value === entry.condition?.value,

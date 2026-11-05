@@ -5,7 +5,8 @@ import {afterEach,expect,it,vi} from "vitest";
 import {ChatSessionProvider} from "./chat-session";
 import {DeferredChatWidget} from "./deferred-chat-widget";
 import {ChatWidget} from "./chat-widget";
-vi.mock("next/navigation",()=>({usePathname:()=>"/manage/organizations"}));
+const route=vi.hoisted(()=>({path:"/talents"}));
+vi.mock("next/navigation",()=>({usePathname:()=>route.path}));
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 function Fixture(){const [page,setPage]=useState(false);return <ChatSessionProvider locale="ar"><button onClick={()=>setPage(true)}>انتقال للمواهب</button>{page&&<p>المواهب</p>}<DeferredChatWidget locale="ar"/></ChatSessionProvider>;}
 it("opens a chat without navigating, keeps it open through page changes and carries answers into the full page",async()=>{
@@ -30,3 +31,5 @@ it("finishes a pending answer after the panel closes and restores it on reopenin
  stream.enqueue(new TextEncoder().encode('data: {"type":"delta","text":"وصل الرد"}\n\ndata: {"type":"done"}\n\n'));stream.close();
  fireEvent.click(screen.getByRole("button",{name:"اسأل لُبّ"}));await screen.findByText("وصل الرد");expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("does not render the launcher or conversation on any management route",()=>{route.path="/manage/organizations/org/tasks";render(<ChatSessionProvider locale="ar"><DeferredChatWidget locale="ar"/></ChatSessionProvider>);expect(screen.queryByRole("button",{name:"اسأل لُبّ"})).toBeNull();route.path="/talents";});

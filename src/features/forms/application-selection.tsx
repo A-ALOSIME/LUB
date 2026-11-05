@@ -97,7 +97,7 @@ export function ApplicationSelection({
       bulkDecisions={canBulk ? ["Accepted", "Rejected", "Interview"] : []}
       showCommittee={rows.some((r) => !!r.committee)}
     >
-      {(choose) =>
+      {() =>
         selected && (
           <Dialog open onOpenChange={closeDetail}>
             <DialogContent
@@ -133,42 +133,6 @@ export function ApplicationSelection({
                 >
                   {detail?<ApplicationDetail detail={detail} locale={locale}/>:result.isError?<Alert><AlertDescription>{c("تعذّر عرض الطلب. حاول مجددًا.","Unable to load this application. Please try again.")}</AlertDescription></Alert>:<Skeleton className="h-40 w-full"/>}
                 </div>
-                  {detail?.canReview &&
-                    ["Submitted", "Interview"].includes(
-                      detail.status_code,
-                    ) && (
-                      <div className="management-action-footer is-modal-footer">
-                        <Button
-                          onClick={() =>
-                            choose([detail.id], "Accepted")
-                          }
-                        >
-                          {c("قبول", "Accept")}
-                        </Button>
-                        <Button
-                          variant="danger-outline"
-                          onClick={() =>
-                            choose([detail.id], "Rejected")
-                          }
-                        >
-                          {c("رفض", "Reject")}
-                        </Button>
-                        {detail.status_code ===
-                          "Submitted" && (
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              choose(
-                                [detail.id],
-                                "Interview",
-                              )
-                            }
-                          >
-                            {c("جدولة مقابلة", "Schedule interview")}
-                          </Button>
-                        )}
-                      </div>
-                    )}
               </ManagementActionProvider>
             </DialogContent>
           </Dialog>
