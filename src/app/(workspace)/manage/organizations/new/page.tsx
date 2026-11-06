@@ -1,7 +1,7 @@
+import {BackLink} from "@/components/back-link";
 import {t as translateUi} from "@/lib/i18n";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/button";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { localizedMetadata } from "@/lib/localized-metadata";
 import { getPreferences } from "@/lib/preferences";
@@ -20,14 +20,7 @@ export default async function NewOrganizationPage() {
   const en = locale === "en";
   return (
     <main id="main" className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <Button
-        variant="ghost"
-        className="self-start"
-        nativeButton={false}
-        render={<Link href="/manage/organizations" />}
-      >
-        {translateUi((en) ? "en" : "ar", "رجوع للجهات", "Back to organizations")}
-      </Button>
+      <BackLink href={"/manage/organizations"}>{translateUi((en) ? "en" : "ar", "رجوع للجهات", "Back to organizations")}</BackLink>
       <header className="workspace-page-header">
         <h1>{translateUi((en) ? "en" : "ar", "إضافة جهة", "Add organization")}</h1>
       </header>

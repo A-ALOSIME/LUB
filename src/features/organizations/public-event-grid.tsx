@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 import Image from "next/image";
-import Link from "next/link";
+import {OriginLink as Link} from "@/components/origin-link";
 import {Pin} from "lucide-react";
 import {Card,CardContent} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";

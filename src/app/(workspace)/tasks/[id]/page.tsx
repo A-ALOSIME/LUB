@@ -1,9 +1,9 @@
+import {BackLink} from "@/components/back-link";
 import {taskReturnPath} from "@/features/tasks/task-navigation";
 import {t as translateUi} from "@/lib/i18n";
 import {localizedMetadata} from "@/lib/localized-metadata";
-import Link from "next/link";
-import {Button} from "@/components/ui/button";
-import {ArrowLeft} from "lucide-react";
+
+
 import {notFound} from "next/navigation";
 import {z} from "zod";
 import {requireManagementUser as requireUser} from "@/features/organizations/access";
@@ -16,5 +16,5 @@ export default async function TaskPage({params,searchParams}:{params:Promise<{id
 const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.page??0);const teamPage=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.teamPage??0);
  const detail=await taskDetail(user.id,id,null,page,teamPage,"student");if(!detail)notFound();
 
- return <><main id="main" className="min-w-0"><Button className="mb-6" variant="ghost" size="sm" nativeButton={false} render={<Link href={taskReturnPath(query.returnTo,"/activity?tab=tasks")}/>}><ArrowLeft className="rtl:rotate-180"/>{translateUi((locale==="en") ? "en" : "ar", "الرجوع للمهام", "Back to tasks")}</Button><FullTaskPage detail={detail} page={page} teamPage={teamPage} participant={null} locale={locale}/></main></>;
+ return <><main id="main" className="min-w-0"><BackLink className="mb-6" href={taskReturnPath(query.returnTo,"/activity?tab=tasks")}>{translateUi((locale==="en") ? "en" : "ar", "الرجوع للمهام", "Back to tasks")}</BackLink><FullTaskPage detail={detail} page={page} teamPage={teamPage} participant={null} locale={locale}/></main></>;
 }

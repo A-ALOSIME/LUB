@@ -1,5 +1,6 @@
 "use client";
 
+import {useOriginHref} from "@/components/origin-link";
 import {EventRequestActions} from "./event-request-actions";
 import {SelfHoursRequestAction} from "@/features/hours/self-request-action";
 import {ContentText} from "@/components/content-text";
@@ -35,12 +36,13 @@ type MyEvent = {registration_id?:string;attendance_hours?:string;canWithdraw?:bo
 
 export function ActivityEventRows({ events, page, locale,onPageChange,hidePagination=false,empty }: { empty?:React.ReactNode;hidePagination?:boolean;events: MyEvent[]; page: number; locale: Locale;onPageChange?:(page:number)=>void }) {
   const router=useRouter();
+  const originHref=useOriginHref();
   const en = locale === "en"
   const date=(value:string)=>formatRiyadhDate(value,locale)
   const eventState=(event:MyEvent)=>event.registration==="Cancelled"?translateUi((en) ? "en" : "ar", "مسحوب", "Withdrawn"):event.review_status==="Rejected"?translateUi((en) ? "en" : "ar", "مرفوض", "Registration rejected"):event.review_status==="Pending"?translateUi((en) ? "en" : "ar", "بانتظار الموافقة", "Awaiting approval"):event.review_status==="Recorded"?translateUi(locale,"مرصودة","Recorded"):event.attendance==="Present"?translateUi((en) ? "en" : "ar", "حضور مؤكد", "Attendance confirmed"):event.attendance==="Absent"?translateUi((en) ? "en" : "ar", "لم تحضر", "Did not attend"):event.attendance==="Excused"?translateUi((en) ? "en" : "ar", "معذور", "Excused"):translateUi((en) ? "en" : "ar", "مقبول · بانتظار تأكيد الحضور", "Accepted · awaiting attendance confirmation")
 
   return <div className="flex min-w-0 flex-col gap-3">
-    {events.length ? <ItemTable pagination={hidePagination?undefined:{page,more:events.length>25,onChange:value=>{if(onPageChange)onPageChange(value);else router.push(`/activity?tab=events&page=${value}`);}}} items={events} href={event=>`/events/${event.id}`} label={translateUi(locale,"عرض تفاصيل الفعالية","View event details")} columns={[
+    {events.length ? <ItemTable pagination={hidePagination?undefined:{page,more:events.length>25,onChange:value=>{if(onPageChange)onPageChange(value);else router.push(`/activity?tab=events&page=${value}`);}}} items={events} href={event=>originHref(`/events/${event.id}`)} label={translateUi(locale,"عرض تفاصيل الفعالية","View event details")} columns={[
       {id:"name",label:translateUi(locale,"الفعالية","Event"),render:event=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={CalendarDays} src={event.has_poster?`/event-posters/${event.id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={event.title}/></ItemTitle>{event.org_name&&<p className="text-sm text-muted-foreground"><ContentText value={event.org_name}/></p>}{event.contributions?.map(contribution=><p key={contribution.kind} className="text-sm text-muted-foreground">{contribution.title}</p>)}</div></div>},
       {id:"hours",label:translateUi(locale,"ساعات الحضور","Attendance hours"),className:"w-32",render:event=>formatHours(event.attendance_hours??0,locale)},
       {id:"status",label:translateUi(locale,"الحالة","Status"),className:"w-44",render:event=><OrganizationStatusBadge status={statusTone(event.review_status??event.attendance)}>{eventState(event)}</OrganizationStatusBadge>},
@@ -57,11 +59,11 @@ export function ActivityEventRows({ events, page, locale,onPageChange,hidePagina
 }
 
 export function ActivityAvailableEvents({events,locale,empty}:{empty?:React.ReactNode;events:EventCard[];locale:Locale}){
- const c=createTranslator(locale);
- return <ItemTable items={events} href={event=>`/events/${event.id}`} label={c("عرض تفاصيل الفعالية","View event details")} empty={empty??<WorkspaceEmptyState icon={CalendarDays} title={c("لا توجد فعاليات متاحة الآن","No events available right now")} description={c("تفقّد الصفحة لاحقًا للاطلاع على الفعاليات الجديدة.","Check again later for new events.")}/>} columns={[
+ const c=createTranslator(locale),originHref=useOriginHref();
+ return <ItemTable items={events} href={event=>originHref(`/events/${event.id}`)} label={c("عرض تفاصيل الفعالية","View event details")} empty={empty??<WorkspaceEmptyState icon={CalendarDays} title={c("لا توجد فعاليات متاحة الآن","No events available right now")} description={c("تفقّد الصفحة لاحقًا للاطلاع على الفعاليات الجديدة.","Check again later for new events.")}/>} columns={[
  {id:"name",label:c("الفعالية","Event"),render:event=><div className="flex min-w-0 items-center gap-3"><ListThumbnail icon={CalendarDays} src={event.has_poster?`/event-posters/${event.id}?thumbnail=1`:null}/><div className="min-w-0 flex-1"><ItemTitle><ContentText value={event.title}/></ItemTitle><p className="text-sm text-muted-foreground"><ContentText value={event.org_name}/></p></div></div>},
  {id:"date",label:c("التاريخ","Date"),className:"w-40",render:event=><time>{formatRiyadhDate(event.starts_at,locale)}</time>},
- {id:"actions",label:c("الإجراءات","Actions"),className:"w-24",render:event=><div className="flex items-center gap-1"><RowAction label={c("عرض التفاصيل","View details")} href={`/events/${event.id}`}><Eye/></RowAction><RowAction label={c("التسجيل في الفعالية","Register for event")} href={`/events/${event.id}`} disabled={!event.open}><UserPlus/></RowAction></div>}
+ {id:"actions",label:c("الإجراءات","Actions"),className:"w-24",render:event=><div className="flex items-center gap-1"><RowAction label={c("عرض التفاصيل","View details")} href={originHref(`/events/${event.id}`)}><Eye/></RowAction><RowAction label={c("التسجيل في الفعالية","Register for event")} href={originHref(`/events/${event.id}`)} disabled={!event.open}><UserPlus/></RowAction></div>}
  ]}/>;
 }
 

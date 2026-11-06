@@ -1,3 +1,5 @@
+import {BackLink} from "@/components/back-link";
+import {listReturnPath} from "@/lib/return-navigation";
 import {localizedMetadata} from "@/lib/localized-metadata";
 
 import {notFound} from "next/navigation";
@@ -25,11 +27,12 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
  }catch{return localizedMetadata("تفاصيل الفعالية","Event details");}
 }
 
-export default async function EventPage({params}:{params:Promise<{id:string}>}){
+export default async function EventPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{returnTo?:string}>}){
  const {id}=await params;
  if(!z.uuid().safeParse(id).success)notFound();
  const [user,{locale}]=await Promise.all([getVerifiedUser(),getPreferences()]);
 
+ const query=await searchParams;
  const superAdmin=user?await isSuperAdminUser(user.id):false;
  const data=await eventDetail(superAdmin?null:user?.id??null,id);
  if(!data||(data.event.status_code==="Draft"&&!data.canManage))notFound();
@@ -53,5 +56,5 @@ export default async function EventPage({params}:{params:Promise<{id:string}>}){
   ...(imageUrls.length?{image:imageUrls}:{}),
  }:null;
 
- return <>{schema&&<JsonLd data={schema}/>}<main id="main" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10"><EventContent data={data} user={Boolean(user&&!superAdmin)} superAdmin={superAdmin} locale={locale}/></main></>;
+ return <>{schema&&<JsonLd data={schema}/>}<main id="main" className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10"><BackLink className="mb-6" href={listReturnPath(query.returnTo,"/events/discover")}>{locale==="ar"?"رجوع للفعاليات":"Back to events"}</BackLink><EventContent data={data} user={Boolean(user&&!superAdmin)} superAdmin={superAdmin} locale={locale}/></main></>;
 }

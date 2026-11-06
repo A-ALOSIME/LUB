@@ -1,8 +1,8 @@
+import {BackLink} from "@/components/back-link";
 import {t as translateUi} from "@/lib/i18n";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
+
 import { loadManagementPageData } from "@/features/organizations/access";
 import { isSuperAdminUser } from "@/features/auth/authorization";
 import { requireVerifiedProxyIdentity } from "@/features/auth/session";
@@ -35,14 +35,7 @@ export default async function AdminEditOrganization({
   if (!managed?.organization.adminIdentity) notFound();
   return (
     <main id="main" className="flex min-w-0 flex-col gap-5">
-      <Button
-        variant="ghost"
-        className="self-start"
-        nativeButton={false}
-        render={<Link href="/manage/organizations" />}
-      >
-        {translateUi((locale === "en") ? "en" : "ar", "رجوع للجهات", "Back to organizations")}
-      </Button>
+      <BackLink href={"/manage/organizations"}>{translateUi((locale === "en") ? "en" : "ar", "رجوع للجهات", "Back to organizations")}</BackLink>
       <OrganizationProfileEditor
         managed={managed}
         locale={locale}

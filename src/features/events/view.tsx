@@ -11,6 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatHours } from "@/lib/display";
 import Link from "next/link";
+import {OriginLink} from "@/components/origin-link";
 import type { ReactNode } from "react";
 import type { EventCard, EventDetail } from "./repository";
 import { EventIcon } from "./icon";
@@ -56,7 +57,7 @@ export function EventCards({
               localOrganization?.logoSrc;
         return (
           <li key={e.id}><Card className="h-full gap-0 py-0 transition-colors hover:bg-muted/40">
-            <Link href={`/events/${e.id}`} className="event-card flex min-w-0 flex-1 flex-col">
+            <OriginLink href={`/events/${e.id}`} className="event-card flex min-w-0 flex-1 flex-col">
               <EventPoster
                 src={e.has_poster ? `/event-posters/${e.id}` : null}
                 title={e.title}
@@ -102,7 +103,7 @@ export function EventCards({
               >
                 {translateUi((en) ? "en" : "ar", "عرض الفعالية", "View event")}
               </span>
-            </Link>
+            </OriginLink>
           </Card></li>
         );
       })}
@@ -269,17 +270,7 @@ export function EventContent({
             <h1 dir="auto" className="event-detail-title">
               {e.title?<ContentText autoTranslate={e.status_code!=="Draft"} value={e.title}/>:c("فعالية بدون عنوان", "Untitled event")}
             </h1>
-            <OrganizationStatusBadge
-              status={
-                e.status_code === "Published"
-                  ? "published"
-                  : e.status_code === "Draft"
-                    ? "draft"
-                    : "closed"
-              }
-            >
-              {labels[e.status_code]}
-            </OrganizationStatusBadge>
+            {e.status_code!=="Published"&&<OrganizationStatusBadge status={e.status_code==="Draft"?"draft":"closed"}>{labels[e.status_code]}</OrganizationStatusBadge>}
           </div>
           {facts}
           {e.description && (

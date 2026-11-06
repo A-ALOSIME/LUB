@@ -1,9 +1,9 @@
+import {BackLink} from "@/components/back-link";
 import {t as translateUi} from "@/lib/i18n";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+
 import {
   publicTalent,
   talentPages,
@@ -13,7 +13,7 @@ import { talentReturnPath } from "@/features/talent/filters";
 import { PublicTalentView } from "@/features/talent/view";
 import { getVerifiedUser } from "@/features/auth/session";
 import { getPreferences } from "@/lib/preferences";
-import { Button } from "@/components/ui/button";
+
 import {translatePublicContent} from "@/lib/public-content-translation";
 export async function generateMetadata({
   params,
@@ -70,15 +70,7 @@ export default async function TalentProfile({
       dir={en ? "ltr" : "rtl"}
       className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6 sm:px-8"
     >
-      <Button
-        nativeButton={false}
-        variant="ghost"
-        className="self-start"
-        render={<Link href={from} />}
-      >
-        <ArrowLeft className="rtl:rotate-180" />
-        {translateUi((en) ? "en" : "ar", "العودة لاكتشاف المواهب", "Back to talent discovery")}
-      </Button>
+      <BackLink href={from}>{translateUi((en) ? "en" : "ar", "العودة لاكتشاف المواهب", "Back to talent discovery")}</BackLink>
       <PublicTalentView
         profile={profile}
         pages={pages}

@@ -1,6 +1,6 @@
 "use client";
-import Link from "next/link";
-import {Button} from "@/components/ui/button";
+import {BackLink} from "@/components/back-link";
+
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 import {Check,Undo2,FileText,RotateCcw,X} from "lucide-react";
@@ -59,7 +59,7 @@ function WithdrawSubmission({submission,locale,enabled}:{submission:Submission;l
 
 export function TaskSubmissionsTable({detail,base,page,locale,canReview=detail.canReview??detail.canManage}:{detail:TaskDetail;base:string;page:number;locale:Locale;canReview?:boolean}){
  const [selected,setSelected]=useState<Submission|null>(null),router=useRouter(),t=createTranslator(locale);
- return <><DataTable emptyAsRow summary={`${t("الإجمالي","Total")} · ${formatNumber(detail.submissions.length,locale)}`} items={detail.submissions} locale={locale} tableKey="task-submissions" label={t("عرض تفاصيل التسليم","View submission details")} onOpen={setSelected} empty={<p className="text-muted-foreground">{!detail.canManage&&(!detail.own||detail.own.withdrawn_at)?<>{t("انضم للمهمة عشان تقدر تسلّم","Join the task to submit work")} <Button variant="ghost" nativeButton={false} render={<Link href={`${base}?section=task`}/>}>{t("العودة للمهمة","Back to task")}</Button></>:t("لا توجد تسليمات بعد","No submissions yet.")}</p>} pagination={{page,more:detail.submissions.length>20,onChange:value=>router.push(navigate(base,{page:String(value)}))}} columns={[
+ return <><DataTable emptyAsRow summary={`${t("الإجمالي","Total")} · ${formatNumber(detail.submissions.length,locale)}`} items={detail.submissions} locale={locale} tableKey="task-submissions" label={t("عرض تفاصيل التسليم","View submission details")} onOpen={setSelected} empty={<p className="text-muted-foreground">{!detail.canManage&&(!detail.own||detail.own.withdrawn_at)?<>{t("انضم للمهمة عشان تقدر تسلّم","Join the task to submit work")} <BackLink href={`${base}?section=task`}>{t("العودة للمهمة","Back to task")}</BackLink></>:t("لا توجد تسليمات بعد","No submissions yet.")}</p>} pagination={{page,more:detail.submissions.length>20,onChange:value=>router.push(navigate(base,{page:String(value)}))}} columns={[
  ...(detail.canManage?[{id:"student",label:t("الطالب","Student"),className:"w-56",render:(row:Submission)=><Student name={row.name??t("الطالب","Student")} major={row.major} level={row.level} locale={locale}/>}]:[]),
  {id:"submission",label:t("التسليم","Submission"),render:(row:Submission)=><div><p>{t("تسليم","Submission")} {row.revision_number}</p></div>},
  {id:"date",label:t("وقت التسليم","Submitted on"),className:"w-44",render:row=><DateCell at={row.submitted_at} locale={locale}/>},

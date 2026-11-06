@@ -1,3 +1,5 @@
+import {BackLink} from "@/components/back-link";
+import {listReturnPath} from "@/lib/return-navigation";
 import {requestTime} from "@/lib/request-time";
 import {translateContent} from "@/lib/content-translation";
 
@@ -10,7 +12,7 @@ import {Button} from "@/components/ui/button";
 import {PublicRegistration,RegistrationStatusBadge} from "@/features/forms/public-registration";
 import {registrationReadiness} from "@/features/forms/repository";
 import {PublicAnnouncements} from "@/features/organizations/public-announcements";
-import { ArrowRight, Settings2, Megaphone } from "lucide-react";
+import {Settings2, Megaphone} from "lucide-react";
 import { notFound } from "next/navigation";
 import {PublicBackgroundRefresh} from "@/features/organizations/public-background-refresh";
 import { PublicEventGrid } from "@/features/organizations/public-event-grid";
@@ -83,7 +85,7 @@ function profileGroupLabel(group: OrganizationProfileGroup, en: boolean): string
 
 export default async function OrganizationPage({ params, searchParams }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ committeePage?: string | string[]; section?: string | string[] }>;
+  searchParams: Promise<{ committeePage?: string | string[]; section?: string | string[]; returnTo?: string | string[] }>;
 }) {
   const { slug } = await params;
   const [preferences,user] = await Promise.all([getPreferences(),getVerifiedUser()]);
@@ -92,7 +94,7 @@ export default async function OrganizationPage({ params, searchParams }: {
   const query = await searchParams;
   let detail: Awaited<ReturnType<typeof getPublicOrganization>>;
   try { detail = await getPublicOrganization(slug); }
-  catch { return <><main id="main" className="mx-auto max-w-3xl px-5 py-14"><h1 className="text-3xl font-bold">{translateUi((en) ? "en" : "ar", "تعذّر تحميل الجهة", "Could not load this organization")}</h1><p className="mt-5 leading-8 text-muted">{translateUi((en) ? "en" : "ar", "حاول تحديث الصفحة بعد قليل.", "Please refresh the page in a moment.")}</p><Link className="text-link mt-6 inline-block" href="/organizations">{translateUi((en) ? "en" : "ar", "العودة للأندية والمجالس", "Back to clubs and councils")}</Link></main></>; }
+  catch { return <><main id="main" className="mx-auto max-w-3xl px-5 py-14"><BackLink className="mb-6" href="/organizations">{translateUi(en?"en":"ar","العودة للأندية والمجالس","Back to clubs and councils")}</BackLink><h1 className="text-3xl font-bold">{translateUi((en) ? "en" : "ar", "تعذّر تحميل الجهة", "Could not load this organization")}</h1><p className="mt-5 leading-8 text-muted">{translateUi((en) ? "en" : "ar", "حاول تحديث الصفحة بعد قليل.", "Please refresh the page in a moment.")}</p></main></>; }
   if (!detail) notFound();
 
   const { organization, committees, contacts, leadership, rounds, upcomingEvents, announcements } = detail;
@@ -164,7 +166,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     ...(logoUrl?{logo:logoUrl}:{}),
     ...(sameAs.length?{sameAs:[...new Set(sameAs)]}:{}),
   }}/>}<main id="main" className="mx-auto max-w-7xl px-5 pb-20 pt-9 sm:px-8 sm:pt-12">
-    <div className="flex flex-wrap items-center justify-between gap-3"><Button nativeButton={false} variant="ghost" render={<Link href="/organizations"/>}><ArrowRight/>{translateUi((en) ? "en" : "ar", "الأندية والمجالس", "Clubs and councils")}</Button>{canManageOrganization&&<Button nativeButton={false} variant="outline" render={<Link href={`/manage/organizations/${organization.id}`}/>}><Settings2/>{translateUi((en) ? "en" : "ar", "إعدادات الجهة", "Organization settings")}</Button>}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><BackLink href={listReturnPath(typeof query.returnTo==="string"?query.returnTo:undefined,"/organizations")}>{translateUi(en?"en":"ar", query.section==="announcements"&&query.returnTo?"رجوع للإعلانات":"رجوع للأندية والمجالس", query.section==="announcements"&&query.returnTo?"Back to announcements":"Back to clubs and councils")}</BackLink>{canManageOrganization&&<Button nativeButton={false} variant="outline" render={<Link href={`/manage/organizations/${organization.id}`}/>}><Settings2/>{translateUi((en) ? "en" : "ar", "إعدادات الجهة", "Organization settings")}</Button>}</div>
     <header id="organization-overview" className="organization-hero organization-section-nav-target mt-6">
       {profile?.coverSrc && <figure className={"organization-hero-cover" + (profile?.imageTheme ? " organization-hero-cover--" + profile.imageTheme : "")}><Image src={profile.coverSrc} alt={translateUi((en) ? "en" : "ar", profile.imageTheme === "ieee" ? `شعار ${organization.nameAr}` : `غلاف ${organization.nameAr}`, profile.imageTheme === "ieee" ? `Logo of ${organization.nameAr}` : `${organization.nameAr} banner`)} fill sizes="(max-width: 767px) 100vw, 1200px" unoptimized className="organization-hero-cover-image" /></figure>}
       <div className={"organization-hero-main" + (profile?.coverSrc ? " organization-hero-main--cover" : "") + (profile?.coverSrc && organization.logoUrl ? " organization-hero-main--custom-cover" : "")}>
