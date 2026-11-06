@@ -8,7 +8,6 @@ import {NumberText} from "@/components/number-text";
 import { PublicEventRegistration } from "./public-registration";
 import { EventPoster } from "./poster";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatHours } from "@/lib/display";
 import Link from "next/link";
@@ -89,9 +88,6 @@ export function EventCards({
                 {(e.location_type_code!=="Unknown"||e.location_text)&&<p className="event-card-meta">
                   <EventIcon name="location" />
                   <span>{e.location_text?<ContentText autoTranslate value={e.location_text}/>:labels[e.location_type_code]}</span>
-                  <Badge variant="outline">
-                    {labels[e.location_type_code]}
-                  </Badge>
                 </p>}
               </div>
               <div className="event-card-organization">
@@ -269,9 +265,6 @@ export function EventContent({
               <bdi><ContentText autoTranslate value={data.org_name}/></bdi>
             </span>
           </Link>
-          <p className="event-detail-status">
-            <Badge variant="outline">{labels[e.location_type_code]}</Badge>
-          </p>
           <div className="flex flex-wrap items-center gap-2">
             <h1 dir="auto" className="event-detail-title">
               {e.title?<ContentText autoTranslate={e.status_code!=="Draft"} value={e.title}/>:c("فعالية بدون عنوان", "Untitled event")}
