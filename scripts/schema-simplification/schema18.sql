@@ -202,7 +202,7 @@ CREATE TABLE lub.organization_content (
  CHECK(kind='Event' OR (starts_at IS NULL AND ends_at IS NULL AND form_id IS NULL AND status_code NOT IN ('Completed','Cancelled'))),
  CHECK(pinned_at IS NULL OR (kind='Announcement' AND status_code='Published')),
  CHECK(NOT is_featured OR kind='Event'),
- CHECK(kind<>'Event' OR status_code IN ('Draft','Archived') OR
+ CHECK(kind<>'Event' OR status_code IN ('Draft','Archived') OR (status_code='Cancelled' AND published_at IS NULL) OR
   (starts_at IS NOT NULL AND ends_at IS NOT NULL AND ends_at>starts_at AND registration_opens_at IS NOT NULL
    AND registration_closes_at IS NOT NULL AND registration_closes_at>registration_opens_at AND registration_closes_at<=starts_at))
 );

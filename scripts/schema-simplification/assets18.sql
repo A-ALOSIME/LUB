@@ -74,11 +74,16 @@ BEGIN
 END; $$;
 CREATE TRIGGER referenced_asset_delete BEFORE DELETE ON lub.assets FOR EACH ROW EXECUTE FUNCTION lub.guard_asset_delete();
 CREATE FUNCTION lub.guard_nested_asset_references() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE refs jsonb; ref uuid;
+DECLARE refs jsonb; ref uuid; photo jsonb;
 BEGIN
  IF TG_TABLE_NAME='task_participants' THEN
   SELECT coalesce(jsonb_agg(f),'[]') INTO refs FROM jsonb_array_elements(NEW.submissions) s CROSS JOIN LATERAL jsonb_array_elements(s->'attachments') f;
- ELSIF TG_TABLE_NAME='organization_content' THEN refs:=NEW.attachments||NEW.public_photos;
+ ELSIF TG_TABLE_NAME='organization_content' THEN
+  IF jsonb_array_length(NEW.public_photos)>4 THEN RAISE EXCEPTION 'Too many public photos'; END IF;
+  FOR photo IN SELECT value FROM jsonb_array_elements(NEW.public_photos) LOOP
+   IF (photo?'assetId')=(photo?'url') OR (photo?'url' AND (jsonb_typeof(photo->'url') IS DISTINCT FROM 'string' OR length(photo->>'url')>2048 OR photo->>'url'!~*'^https://[^/@[:space:]]+([/?#][^[:space:]]*)?$')) THEN RAISE EXCEPTION 'Invalid public photo'; END IF;
+  END LOOP;
+  refs:=NEW.attachments||coalesce((SELECT jsonb_agg(f) FROM jsonb_array_elements(NEW.public_photos) f WHERE f?'assetId'),'[]');
  ELSE refs:=NEW.attachments; END IF;
  FOR ref IN SELECT DISTINCT (f->>'assetId')::uuid FROM jsonb_array_elements(refs) f ORDER BY 1 LOOP
   IF ref IS NULL THEN RAISE EXCEPTION 'Asset reference required' USING ERRCODE='23503'; END IF;
