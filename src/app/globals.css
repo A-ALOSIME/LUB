@@ -1118,7 +1118,7 @@ a.organization-social-link:focus-visible:not(input,select,textarea) { outline: 2
 .organization-committee-actions form > fieldset { display: block; min-width: 0; margin: 0; }
 .organization-committee-actions button { min-height: 2.1rem; padding: .25rem .55rem; font-size: .75rem; }
 .committee-visibility-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 1rem; }
-.organization-status-badge { border: 0; background: color-mix(in srgb, currentColor 8%, transparent); }
+.organization-status-badge { border: 0; background: color-mix(in srgb, currentColor 10%, transparent); }
 .organization-status-badge--positive { color: #047857; }
 .organization-status-badge--warning { color: #92400e; }
 .organization-status-badge--negative { color: #be123c; }

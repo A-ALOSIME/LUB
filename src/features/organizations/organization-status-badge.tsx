@@ -8,7 +8,7 @@ const negative = new Set<OrganizationStatus>(["rejected","cancelled"]);
 
 export function OrganizationStatusBadge({ status, children }: { status: OrganizationStatus; children: string }) {
   const tone = (status==="open"||status==="interview"||status==="working")?"info":positive.has(status) ? "positive" : warning.has(status) ? "warning" : negative.has(status) ? "negative" : "neutral";
-  return <Badge variant="outline" data-status={status} className={`organization-status-badge organization-status-badge--${tone}`}>{children}</Badge>;
+  return <Badge variant="outline" data-status={status} className={`rounded-[0.3rem] organization-status-badge organization-status-badge--${tone}`}>{children}</Badge>;
 }
 
 export function statusTone(code:string):OrganizationStatus {

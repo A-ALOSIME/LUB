@@ -1,11 +1,10 @@
 "use client";
 
-import {UploadArea} from "@/components/upload-area";
 import {t as translateUi} from "@/lib/i18n";
 import {OrganizationLogo} from "@/components/organization-logo";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
-import { LoaderCircle, RotateCcw } from "lucide-react";
+import { Camera, LoaderCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/preferences";
 import { useActionToast } from "@/components/action-toast";
@@ -78,8 +77,10 @@ export function OrganizationLogoEditor({ organizationId, organizationName, logoU
 
   return <div className="organization-logo-editor">
     <div className={`organization-logo-preview${error ? " has-error" : ""}`}>
-      <OrganizationLogo name={organizationName} src={currentLogo} size="lg"/>
-      <UploadArea locale={locale} busy={pending} hint="PNG / SVG · 2MB" onChoose={()=>inputRef.current?.click()} onDrop={file=>{const input=inputRef.current;if(!input)return;const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event("change",{bubbles:true}));}}/>
+      <button type="button" className="organization-settings-logo" aria-label={translateUi(en ? "en" : "ar", "تغيير شعار الجهة", "Change organization logo")} disabled={pending} onClick={()=>inputRef.current?.click()}>
+        <OrganizationLogo name={organizationName} src={currentLogo} className="size-full"/>
+        <Camera aria-hidden="true" className="organization-logo-change-icon"/>
+      </button>
       <input ref={inputRef} id={`organization-logo-${organizationId}`} type="file" accept="image/png,image/svg+xml,.png,.svg" disabled={pending} hidden aria-label={translateUi((en) ? "en" : "ar", "اختيار شعار الجهة", "Choose an organization logo")} onChange={upload} />
       <p className="organization-logo-hint">{translateUi((en) ? "en" : "ar", "PNG أو SVG · بحد أقصى 2 ميجابايت", "PNG or SVG · up to 2 MB")}</p>
     </div>
