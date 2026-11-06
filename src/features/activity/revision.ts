@@ -26,6 +26,6 @@ export async function activityRevision(user:string){return withUser(user,async t
 });}
 
 export async function notificationRevision(user:string){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select md5(coalesce(jsonb_agg(jsonb_build_array(id,created_at,read_at) order by id),'[]')::text) as version from lub.notifications where recipient_user_id=${user}`);
+ const rows=await tx.execute(sql`select lub.notification_fingerprint() as version`);
  return String(rows[0]?.version??"");
 });}

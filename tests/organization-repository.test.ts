@@ -198,7 +198,7 @@ it("reads hours and renewals with scoped totals, bounded lists and the genuine r
 
 it("reads scoped tasks, selected submissions, personal summaries and former-member history through real repository SQL",async()=>{
  await engine.exec("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('test','T1','الفصل التجريبي',current_date-30,current_date+90)");
- const {listTasks,taskWorkspace,taskDetail,taskNotifications}=await import("@/features/tasks/repository");
+ const {listTasks,taskWorkspace,taskDetail}=await import("@/features/tasks/repository");
  const {getMyPageData}=await import("@/features/organizations/my-page-repository");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
  const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
@@ -220,7 +220,8 @@ it("reads scoped tasks, selected submissions, personal summaries and former-memb
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.review_task_submission($1,'Rejected','تعديل',null)",[submission]);await engine.exec("reset role");
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_task_status($1,'Completed',2)",[task]);await engine.exec("reset role");
  expect((await listTasks(admin,{view:"available",page:0})).items.map(x=>x.task.id)).not.toContain(task);expect((await listTasks(admin,{view:"mine",page:0})).items.find(x=>x.task.id===task)?.task.status_code).toBe("Completed");
- expect((await taskNotifications(admin,0))[0].target_url).toBe(`/tasks/${task}`);
+ // This fixture runs the baseline domain; the current notification repository is exercised against schema18 separately.
+ expect((await engine.query<{target_url:string}>("select target_url from lub.notifications where recipient_user_id=$1 order by created_at desc,id limit 1",[admin])).rows[0].target_url).toBe(`/tasks/${task}`);
  await engine.query("update lub.organization_memberships set status_code='Ended',end_date=current_date where id=$1",[member]);
  const history=await taskDetail(admin,task);expect(history?.current).toBe(false);expect(history?.team).toEqual([]);expect(history?.submissions[0].message).toBe("مخرج");expect((await listTasks(admin,{view:"mine",page:0})).items.find(x=>x.task.id===task)?.historical).toBe(true);
 });

@@ -64,10 +64,10 @@ export async function taskDetail(user:string,id:string,participant:string|null=n
 });}
 export type TaskNotification={id:string;type_code:string;title:string;body:string;target_url:string;created_at:string;read_at:string|null};
 export async function taskNotifications(user:string,page:number,unreadOnly=false){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select id,type_code,title,body,target_url,created_at,read_at from lub.notifications where (${unreadOnly}::boolean=false or read_at is null) order by created_at desc,id limit 26 offset ${page*25}`);
+ const rows=await tx.execute(sql`select * from lub.notification_feed(${page}::int,${unreadOnly}::boolean)`);
  return rows as unknown as TaskNotification[];
 });}
 export async function taskNotificationCounts(user:string){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select count(*)::int as "all",count(*) filter(where read_at is null)::int as unread from lub.notifications`);
+ const rows=await tx.execute(sql`select * from lub.notification_counts()`);
  return rows[0] as unknown as {all:number;unread:number};
 });}

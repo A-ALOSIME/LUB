@@ -45,7 +45,7 @@ export async function mutateTask(_previous:TaskState,f:FormData):Promise<TaskSta
  case "review":return sql`select lub.review_task_submission(${id(f,"submission")},${z.enum(["Approved","Rejected"]).parse(f.get("status"))},${text(f,"note",3000,0)},${f.get("hours")?hours(f):null}::numeric)`;
  case "close":if(f.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.close_task_participant(${id(f,"participant")})`;
  case "read":return sql`select lub.read_task_notification(${id(f,"notification")})`;
- case "read-all":return sql`select lub.read_task_notification(n.id) from lub.notifications n where n.recipient_user_id=${user.id} and n.read_at is null`;
+ case "read-all":return sql`select lub.read_all_task_notifications()`;
  }
  })();
  const rows=await withUser(user.id,async tx=>{
