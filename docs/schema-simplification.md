@@ -42,6 +42,16 @@ Keep optional public profiles, personal identifiers private, existing role scope
 
 Supabase-managed schemas are outside this count. No permanent compatibility tables/views disguising the old 62-table model. Historical migration files stay intact. Nested identifiers require database/server validation, per-owner write authorization and atomic updates. Public DTOs must never serialize complete user/organization records.
 
+## Nested contracts implemented so far
+
+- `organizations.forms`: entries contain `id`, `name`, optional `sourceFormId`, timestamps, and one `version` with the same entry ID, current optimistic `revision`, `status_code` and `definition`. No independent version archive. Library reads omit definitions except for the selected entry. Organization row locks serialize edits/deletion with campaign/content reference creation.
+- Registration `membership_cases`: `form_snapshot` copies the exact definition/revision at submission. It is immutable even when the live form changes; editing answers uses the stored snapshot and response revision. `answers` retain question IDs; `attachments` use `{id: questionId, assetId}` so file-to-question association survives. Hidden answers are removed and cannot remain required. The database trigger rejects unknown answers, mismatched attachments and snapshot rewrites.
+- `users.notifications`: entries use `id`, `typeCode`, `title`, `body`, `targetUrl`, `createdAt`, `readAt`. Writes occur inside the domain transaction, so a failed decision produces no orphan notification.
+- Pending registration cases are unique by campaign/student; renewal cases remain unique for every response state. A withdrawn application may be replaced, and an accepted student's ended membership permits a new application while keeping the old accepted case/history.
+- Registration drafts permit missing dates/form and do not require an academic term; renewal campaigns require a term. Published registration requires a complete date interval and published form. Preserving this distinction avoids accidentally changing existing draft behavior when merging the campaign types.
+
+The isolated SQL modules are a tested storage contract, not yet a production migration. Remaining repositories, scoped DTOs, storage HTTP services and retained workflow browser tests must be completed before cutover.
+
 ## Cutover gates
 
 1. Baseline tag and readable private schema/account export; isolated database guard and recovery rehearsal.

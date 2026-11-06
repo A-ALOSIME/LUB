@@ -31,6 +31,32 @@ afterEach(async () => { await db.exec("rollback"); });
 afterAll(async () => { await db?.close(); });
 
 describe("18-table storage contract", () => {
+  it("does not expose tasks through future/expired memberships or privately archived content", async () => {
+    await db.query("update lub.organization_memberships set start_date=lub.today_riyadh()+1 where user_id=$1", [id(7)]);
+    await db.query("insert into lub.tasks(id,organization_id,created_by_user_id,title,description,status_code) values($1,$2,$3,'مهمة منشورة','مخرج','Open')", [id(850), id(100), id(1)]);
+    await db.query("insert into lub.organization_content(id,organization_id,kind,title,status_code,published_at) values($1,$2,'Event','فعالية أرشيفية','Archived',now())", [id(851), id(100)]);
+    await db.query("insert into lub.organization_content(id,organization_id,kind,title,status_code,archived_at,published_at) values($1,$2,'Event','فعالية أخفيت إدارياً','Archived',now(),now())", [id(852), id(100)]);
+    await actor(7);
+    expect((await db.query("select id from lub.tasks")).rows).toEqual([]);
+    expect((await db.query("select id from lub.organization_content")).rows).toEqual([{ id: id(851) }]);
+    await db.exec("reset role");
+    await db.query("update lub.organization_memberships set start_date=lub.today_riyadh()-10,end_date=lub.today_riyadh()-1 where user_id=$1", [id(7)]);
+    await actor(7); expect((await db.query("select id from lub.tasks")).rows).toEqual([]);
+    await db.exec("reset role"); await db.query("update lub.organizations set status_code='Inactive' where id=$1", [id(100)]);
+    await actor(8); expect((await db.query("select id from lub.organization_content")).rows).toEqual([]);
+  });
+  it("scopes available tasks to the student's committee and retains access to their own past participation", async () => {
+    for (const [n, committee] of [[860, null], [861, id(200)]] as const) await db.query("insert into lub.tasks(id,organization_id,committee_id,created_by_user_id,title,description,status_code) values($1,$2,$3,$4,'مهمة','مخرج','Open')", [id(n), id(100), committee, id(1)]);
+    await actor(7); expect((await db.query("select id from lub.tasks order by id")).rows).toEqual([{ id: id(860) }]);
+    await db.exec("reset role");
+    await db.query("insert into lub.committee_memberships(organization_id,organization_membership_id,committee_id) values($1,$2,$3)", [id(100), id(307), id(200)]);
+    await actor(7); expect((await db.query("select id from lub.tasks order by id")).rows).toEqual([{ id: id(860) }, { id: id(861) }]);
+    await db.exec("reset role");
+    await db.query("insert into lub.task_participants(task_id,organization_id,organization_membership_id,user_id) values($1,$2,$3,$4)", [id(861), id(100), id(307), id(7)]);
+    await db.query("update lub.organization_memberships set status_code='Ended',end_date=lub.today_riyadh() where id=$1", [id(307)]);
+    await db.query("update lub.tasks set status_code='Completed' where id=$1", [id(861)]);
+    await actor(7); expect((await db.query("select id from lub.tasks")).rows).toEqual([{ id: id(861) }]);
+  });
   it("uses exactly the approved tables with RLS, without legacy compatibility views", async () => {
     const rows = (await db.query<{ name: string; rls: boolean }>("select c.relname name,c.relrowsecurity rls from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='lub' and c.relkind='r' order by c.relname")).rows;
     expect(rows.map(row => row.name)).toEqual(["academic_terms", "access_assignments", "assets", "committee_memberships", "committees", "event_registrations", "history_events", "membership_campaigns", "membership_cases", "organization_content", "organization_memberships", "organization_opening_requests", "organizations", "private_student_identifiers", "skills", "task_participants", "tasks", "users"]);

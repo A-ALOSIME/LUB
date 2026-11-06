@@ -61,7 +61,7 @@ CREATE TABLE lub.organizations (
  mission varchar(3000) NOT NULL DEFAULT '', mission_en varchar(3000) NOT NULL DEFAULT '',
  public_profile_content jsonb, logo_url text NOT NULL DEFAULT '',
  status_code text NOT NULL DEFAULT 'Active' CHECK(status_code IN ('Active','Inactive','Archived')),
- is_test boolean NOT NULL DEFAULT false, show_leadership_publicly boolean NOT NULL DEFAULT true,
+ is_test boolean NOT NULL DEFAULT false, show_leadership_publicly boolean NOT NULL DEFAULT true, links_customized boolean NOT NULL DEFAULT false,
  self_report_hours_enabled boolean NOT NULL DEFAULT false, archived_at timestamptz,
  links jsonb NOT NULL DEFAULT '[]' CHECK(lub.valid_records(links)),
  interests jsonb NOT NULL DEFAULT '[]' CHECK(jsonb_typeof(interests)='array' AND jsonb_array_length(interests)<=20),
@@ -149,14 +149,16 @@ CREATE TABLE lub.assets (
 );
 CREATE TABLE lub.membership_campaigns (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES lub.organizations(id),
- kind text NOT NULL CHECK(kind IN ('Registration','Renewal')), academic_term_id uuid NOT NULL REFERENCES lub.academic_terms(id),
+ kind text NOT NULL CHECK(kind IN ('Registration','Renewal')), academic_term_id uuid REFERENCES lub.academic_terms(id),
  title varchar(120) NOT NULL, title_en varchar(120), form_id uuid,
- opens_at timestamptz NOT NULL, closes_at timestamptz NOT NULL,
+ opens_at timestamptz, closes_at timestamptz,
  status_code text NOT NULL DEFAULT 'Draft' CHECK(status_code IN ('Draft','Open','Paused','Closed','Archived')),
  minimum_hours numeric(8,2) NOT NULL DEFAULT 0 CHECK(minimum_hours>=0),
+ allow_withdrawal boolean NOT NULL DEFAULT true,
  allowed_majors jsonb NOT NULL DEFAULT '[]' CHECK(jsonb_typeof(allowed_majors)='array'), exclude_leadership boolean NOT NULL DEFAULT false,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
- UNIQUE(id,organization_id,kind), CHECK(closes_at>opens_at), CHECK(kind='Registration' OR form_id IS NULL)
+ UNIQUE(id,organization_id,kind), CHECK(opens_at IS NULL OR closes_at IS NULL OR closes_at>opens_at), CHECK(kind='Registration' OR (form_id IS NULL AND academic_term_id IS NOT NULL)),
+ CHECK(status_code IN ('Draft','Archived') OR (opens_at IS NOT NULL AND closes_at IS NOT NULL AND closes_at>opens_at))
 );
 CREATE TABLE lub.membership_cases (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), campaign_id uuid NOT NULL, organization_id uuid NOT NULL,
@@ -175,9 +177,11 @@ CREATE TABLE lub.membership_cases (
  CHECK((kind='Registration' AND status_code IN ('Submitted','Interview','Accepted','Rejected','Withdrawn'))
   OR (kind='Renewal' AND organization_membership_id IS NOT NULL AND status_code IN ('Pending','Renewed','Declined','No_Response')))
 );
-CREATE UNIQUE INDEX one_live_membership_case ON lub.membership_cases(campaign_id,user_id) WHERE status_code<>'Withdrawn';
+CREATE UNIQUE INDEX one_pending_registration_case ON lub.membership_cases(campaign_id,user_id) WHERE kind='Registration' AND status_code IN ('Submitted','Interview');
+CREATE UNIQUE INDEX one_renewal_case ON lub.membership_cases(campaign_id,user_id) WHERE kind='Renewal';
 CREATE TABLE lub.organization_content (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES lub.organizations(id),
+ created_by_user_id uuid REFERENCES lub.users(id), duplicated_from_content_id uuid REFERENCES lub.organization_content(id),
  kind text NOT NULL CHECK(kind IN ('Event','Announcement')), title varchar(120) NOT NULL, title_en varchar(120),
  body varchar(6000) NOT NULL DEFAULT '', body_en varchar(6000) NOT NULL DEFAULT '',
  status_code text NOT NULL DEFAULT 'Draft' CHECK(status_code IN ('Draft','Published','Completed','Cancelled','Archived')),
@@ -187,6 +191,7 @@ CREATE TABLE lub.organization_content (
  location_text varchar(500), online_url varchar(2048), capacity integer CHECK(capacity BETWEEN 1 AND 10000),
  attendance_hours numeric(6,2) NOT NULL DEFAULT 0 CHECK(attendance_hours BETWEEN 0 AND 1000),
  requires_review boolean NOT NULL DEFAULT true, registration_paused boolean NOT NULL DEFAULT false,
+ archived_from_status text CHECK(archived_from_status IN ('Draft','Published','Completed','Cancelled','Archived')), archived_from_published_at timestamptz,
  pinned_at timestamptz, is_featured boolean NOT NULL DEFAULT false, source_date_text varchar(1000),
  public_report varchar(5000) NOT NULL DEFAULT '', public_photos jsonb NOT NULL DEFAULT '[]' CHECK(lub.valid_records(public_photos)),
  skill_ids jsonb NOT NULL DEFAULT '[]' CHECK(lub.valid_ids(skill_ids)),
@@ -298,6 +303,17 @@ $$;
 CREATE FUNCTION lub.owns_membership(target uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT EXISTS(SELECT 1 FROM lub.organization_memberships m WHERE m.id=target AND m.user_id=auth.uid());
 $$;
+CREATE FUNCTION lub.task_scope_member(target_org uuid,target_committee uuid DEFAULT NULL) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+ SELECT lub.is_student_account(auth.uid()) AND EXISTS(SELECT 1 FROM lub.organizations o WHERE o.id=target_org AND o.status_code='Active')
+  AND EXISTS(SELECT 1 FROM lub.organization_memberships m WHERE m.organization_id=target_org AND m.user_id=auth.uid() AND m.status_code='Active'
+   AND m.start_date<=lub.today_riyadh() AND (m.end_date IS NULL OR m.end_date>lub.today_riyadh())
+   AND (target_committee IS NULL OR EXISTS(SELECT 1 FROM lub.committee_memberships cm JOIN lub.committees c ON c.id=cm.committee_id AND c.organization_id=cm.organization_id
+    WHERE cm.organization_membership_id=m.id AND cm.committee_id=target_committee AND cm.status_code='Active' AND c.status_code='Active'
+     AND cm.start_date<=lub.today_riyadh() AND (cm.end_date IS NULL OR cm.end_date>lub.today_riyadh()))));
+$$;
+CREATE FUNCTION lub.owns_task_participation(target uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+ SELECT lub.is_student_account(auth.uid()) AND EXISTS(SELECT 1 FROM lub.task_participants p WHERE p.task_id=target AND p.user_id=auth.uid());
+$$;
 CREATE FUNCTION lub.public_profile(target_slug uuid,locale text DEFAULT 'ar') RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT jsonb_build_object('slug',u.public_slug,'name',CASE WHEN locale='en' THEN coalesce(nullif(u.full_name_en,''),u.full_name_ar) ELSE u.full_name_ar END,
   'major',u.major_name,'level',u.academic_level,'bio',CASE WHEN locale='en' THEN coalesce(nullif(u.bio_en,''),u.bio) ELSE u.bio END,
@@ -372,21 +388,21 @@ ALTER TABLE lub.history_events ENABLE ROW LEVEL SECURITY;
 
 GRANT SELECT ON lub.users,lub.organizations,lub.committees,lub.organization_memberships,lub.committee_memberships,lub.access_assignments,lub.academic_terms,lub.organization_opening_requests,lub.skills,lub.assets,lub.membership_campaigns,lub.membership_cases,lub.organization_content,lub.event_registrations,lub.tasks,lub.task_participants,lub.history_events TO authenticated;
 REVOKE SELECT ON lub.organizations FROM authenticated;
-GRANT SELECT(id,type_code,slug,name_ar,name_en,summary,summary_en,mission,mission_en,public_profile_content,logo_url,status_code,is_test,show_leadership_publicly,self_report_hours_enabled,archived_at,links,interests,created_at,updated_at) ON lub.organizations TO authenticated;
+GRANT SELECT(id,type_code,slug,name_ar,name_en,summary,summary_en,mission,mission_en,public_profile_content,logo_url,status_code,is_test,show_leadership_publicly,self_report_hours_enabled,archived_at,links_customized,links,interests,created_at,updated_at) ON lub.organizations TO authenticated;
 CREATE POLICY own_account ON lub.users FOR SELECT TO authenticated USING(id=auth.uid());
 CREATE POLICY organization_read ON lub.organizations FOR SELECT TO authenticated USING(status_code='Active' OR lub.is_super_admin());
-CREATE POLICY committee_read ON lub.committees FOR SELECT TO authenticated USING(is_public OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'MEMBERS_VIEW',id));
+CREATE POLICY committee_read ON lub.committees FOR SELECT TO authenticated USING((is_public AND status_code='Active' AND EXISTS(SELECT 1 FROM lub.organizations o WHERE o.id=organization_id AND o.status_code='Active')) OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'MEMBERS_VIEW',id));
 CREATE POLICY membership_read ON lub.organization_memberships FOR SELECT TO authenticated USING(user_id=auth.uid() OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'MEMBERS_VIEW'));
 CREATE POLICY committee_membership_read ON lub.committee_memberships FOR SELECT TO authenticated USING(lub.owns_membership(organization_membership_id) OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'MEMBERS_VIEW',committee_id));
 CREATE POLICY role_read ON lub.access_assignments FOR SELECT TO authenticated USING(user_id=auth.uid() OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'MEMBERS_VIEW',committee_id));
 CREATE POLICY term_read ON lub.academic_terms FOR SELECT TO authenticated USING(true);
-CREATE POLICY opening_read ON lub.organization_opening_requests FOR SELECT TO authenticated USING(applicant_user_id=auth.uid() OR lub.is_super_admin());
+CREATE POLICY opening_read ON lub.organization_opening_requests FOR SELECT TO authenticated USING((applicant_user_id=auth.uid() AND EXISTS(SELECT 1 FROM lub.users u WHERE u.id=auth.uid() AND u.status_code='Active')) OR lub.is_super_admin());
 CREATE POLICY skill_read ON lub.skills FOR SELECT TO authenticated USING(is_active OR lub.is_super_admin());
 CREATE POLICY own_asset ON lub.assets FOR SELECT TO authenticated USING(owner_user_id=auth.uid() OR lub.is_super_admin());
-CREATE POLICY campaign_read ON lub.membership_campaigns FOR SELECT TO authenticated USING(status_code='Open' OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'REGISTRATION_ROUNDS_MANAGE') OR lub.has_org_permission(organization_id,'RENEWALS_MANAGE'));
+CREATE POLICY campaign_read ON lub.membership_campaigns FOR SELECT TO authenticated USING((status_code='Open' AND EXISTS(SELECT 1 FROM lub.organizations o WHERE o.id=organization_id AND o.status_code='Active')) OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'REGISTRATION_ROUNDS_MANAGE') OR lub.has_org_permission(organization_id,'RENEWALS_MANAGE'));
 CREATE POLICY case_read ON lub.membership_cases FOR SELECT TO authenticated USING(user_id=auth.uid() OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'APPLICATIONS_VIEW'));
-CREATE POLICY content_read ON lub.organization_content FOR SELECT TO authenticated USING((status_code IN ('Published','Completed','Archived') AND deleted_at IS NULL) OR lub.is_super_admin() OR lub.has_org_permission(organization_id,CASE WHEN kind='Event' THEN 'EVENTS_MANAGE' ELSE 'ANNOUNCEMENTS_MANAGE' END));
+CREATE POLICY content_read ON lub.organization_content FOR SELECT TO authenticated USING(((status_code IN ('Published','Completed') OR (kind='Event' AND status_code='Archived')) AND published_at IS NOT NULL AND archived_at IS NULL AND deleted_at IS NULL AND EXISTS(SELECT 1 FROM lub.organizations o WHERE o.id=organization_id AND o.status_code='Active')) OR lub.is_super_admin() OR lub.has_org_permission(organization_id,CASE WHEN kind='Event' THEN 'EVENTS_MANAGE' ELSE 'ANNOUNCEMENTS_MANAGE' END));
 CREATE POLICY registration_read ON lub.event_registrations FOR SELECT TO authenticated USING(user_id=auth.uid() OR lub.is_super_admin() OR lub.has_org_permission(organization_id,'EVENT_REGISTRATIONS_REVIEW'));
-CREATE POLICY task_read ON lub.tasks FOR SELECT TO authenticated USING(lub.is_super_admin() OR lub.has_org_permission(organization_id,'TASKS_MANAGE',committee_id) OR (status_code='Open' AND deleted_at IS NULL AND EXISTS(SELECT 1 FROM lub.organization_memberships m WHERE m.organization_id=tasks.organization_id AND m.user_id=auth.uid() AND m.status_code='Active')));
+CREATE POLICY task_read ON lub.tasks FOR SELECT TO authenticated USING(lub.is_super_admin() OR lub.has_org_permission(organization_id,'TASKS_MANAGE',committee_id) OR lub.owns_task_participation(id) OR (status_code='Open' AND deleted_at IS NULL AND lub.task_scope_member(organization_id,committee_id)));
 CREATE POLICY participant_read ON lub.task_participants FOR SELECT TO authenticated USING(user_id=auth.uid() OR lub.is_super_admin() OR EXISTS(SELECT 1 FROM lub.tasks t WHERE t.id=task_id AND lub.has_org_permission(t.organization_id,'TASKS_REVIEW',t.committee_id)));
 CREATE POLICY history_read ON lub.history_events FOR SELECT TO authenticated USING(lub.is_super_admin() OR lub.has_org_permission(organization_id,'MEMBERS_VIEW') OR (membership_case_id IS NOT NULL AND EXISTS(SELECT 1 FROM lub.membership_cases c WHERE c.id=membership_case_id AND c.user_id=auth.uid())) OR (event_registration_id IS NOT NULL AND EXISTS(SELECT 1 FROM lub.event_registrations r WHERE r.id=event_registration_id AND r.user_id=auth.uid())) OR (organization_membership_id IS NOT NULL AND lub.owns_membership(organization_membership_id)));
