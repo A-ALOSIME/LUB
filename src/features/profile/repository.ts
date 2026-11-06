@@ -1,7 +1,6 @@
 import "server-only";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { getDb, withUser } from "@/db/client";
-import { users, studentProfiles } from "@/db/schema";
 import {
   encryptIdentifier,
   decryptIdentifier,
@@ -12,41 +11,23 @@ import type { VerifiedUser } from "@/features/auth/session";
 
 export async function getAccountStatus(userId: string) {
   return withUser(userId, async (tx) => {
-    const [account] = await tx
-      .select({ status: users.statusCode })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    return account?.status;
+    const [account] = await tx.execute(sql`select status_code as status from lub.users where id=${userId} limit 1`);
+    return account ? String(account.status) : undefined;
   });
 }
 
 export async function getAccountReadiness(userId: string) {
   return withUser(userId, async (tx) => {
-    const [account] = await tx
-      .select({ status: users.statusCode, onboarded: studentProfiles.userId })
-      .from(users)
-      .leftJoin(studentProfiles, eq(studentProfiles.userId, users.id))
-      .where(eq(users.id, userId))
-      .limit(1);
-    return { status: account?.status, onboarded: Boolean(account?.onboarded) };
+    const [account] = await tx.execute(sql`select status_code as status,onboarded_at is not null as onboarded from lub.users where id=${userId} limit 1`);
+    return { status: account ? String(account.status) : undefined, onboarded: Boolean(account?.onboarded) };
   });
 }
 
 export async function getStudentProfile(userId: string) {
   return withUser(userId, async (tx) => {
-    const [profile] = await tx
-      .select({
-        fullName: studentProfiles.fullNameAr,
-        major: studentProfiles.majorName,
-        academicLevel: studentProfiles.academicLevel,
-        phone: users.phone,
-      })
-      .from(studentProfiles)
-      .innerJoin(users, eq(users.id, studentProfiles.userId))
-      .where(eq(studentProfiles.userId, userId))
-      .limit(1);
-    return profile;
+    const [profile] = await tx.execute(sql`select full_name_ar as "fullName",major_name as major,academic_level as "academicLevel",phone
+      from lub.users where id=${userId} and status_code='Active' and onboarded_at is not null limit 1`);
+    return profile ? { fullName: String(profile.fullName), major: String(profile.major), academicLevel: String(profile.academicLevel), phone: typeof profile.phone === "string" ? profile.phone : null } : undefined;
   });
 }
 export type StudentProfile = NonNullable<

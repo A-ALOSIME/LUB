@@ -18,7 +18,14 @@ async function restore() {
   const db = postgres(url.toString(), { max: 1, ssl: false, onnotice: () => {} });
   try {
     const [existing] = await db<{ count: number }[]>`select count(*)::int as count from pg_tables where schemaname='lub'`;
-    if (existing.count) throw new Error("Recovery rehearsal requires an empty application schema.");
+    if (existing.count) {
+      if (process.env.LUB_REPLACE_SANDBOX_SCHEMA !== "yes") throw new Error("Recovery requires an empty schema or explicit owned-sandbox replacement flag.");
+      await db.begin(async tx => {
+        const wrappers = await tx<{ statement: string }[]>`select format('drop function if exists %I.%I(%s) cascade',n.nspname,p.proname,pg_get_function_identity_arguments(p.oid)) as statement from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosrc ~ 'lub[.]'`;
+        for (const row of wrappers) await tx.unsafe(row.statement);
+        await tx.unsafe("drop schema lub cascade");
+      });
+    }
     // Database-test scaffold only. It does not establish a browser session or replace Supabase token verification.
     await db.unsafe(`do $$begin
       if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
@@ -28,6 +35,8 @@ async function restore() {
       if not exists(select 1 from pg_roles where rolname='supabase_admin') then create role supabase_admin nologin; end if;
       if not exists(select 1 from pg_roles where rolname='lub_runtime') then create role lub_runtime nologin; end if;
       end$$;
+      grant anon,authenticated to lub_runtime;
+      create schema if not exists extensions;
       create schema if not exists auth; create table if not exists auth.users(id uuid primary key);
       create or replace function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
       grant usage on schema auth to anon,authenticated,service_role;
@@ -39,12 +48,12 @@ async function restore() {
         select exists(select 1 from unnest(expected_operations) op where regexp_replace(current_setting('storage.operation',true),'^storage[.]','')=regexp_replace(op,'^storage[.]',''));
       $$;`);
     const listing = execFileSync("docker", ["run", "--rm", "--mount", `type=bind,source=${directory},target=/backup,readonly`, "postgres:17", "pg_restore", "--list", "/backup/schema-before.dump"], { encoding: "utf8", windowsHide: true });
-    // public exists already. Native pg_restore handles its own psql-only restriction commands.
+    // These platform schemas exist already; clean only objects selected from the pinned archive.
     const listPath = join(directory, "restore.list");
-    writeFileSync(listPath, listing.split("\n").filter(line => !/^\d+;\s+\d+\s+\d+\s+SCHEMA - public\s/.test(line)).join("\n"), { mode: 0o600 });
+    writeFileSync(listPath, listing.split("\n").filter(line => !/^\d+;\s+\d+\s+\d+\s+SCHEMA - (public|extensions)\s/.test(line)).join("\n"), { mode: 0o600 });
     execFileSync("docker", ["cp", join(directory, "schema-before.dump"), `${SANDBOX.container}:/tmp/schema-before.dump`], { stdio: "pipe", windowsHide: true });
     execFileSync("docker", ["cp", listPath, `${SANDBOX.container}:/tmp/restore.list`], { stdio: "pipe", windowsHide: true });
-    execFileSync("docker", ["exec", SANDBOX.container, "pg_restore", "--exit-on-error", "--single-transaction", "--no-owner", "--username=postgres", `--dbname=${SANDBOX.database}`, "--use-list=/tmp/restore.list", "/tmp/schema-before.dump"], { stdio: "pipe", windowsHide: true });
+    execFileSync("docker", ["exec", SANDBOX.container, "pg_restore", "--clean", "--if-exists", "--exit-on-error", "--single-transaction", "--no-owner", "--username=postgres", `--dbname=${SANDBOX.database}`, "--use-list=/tmp/restore.list", "/tmp/schema-before.dump"], { stdio: "pipe", windowsHide: true });
     const [result] = await db<{ tables: number; functions: number; policies: number }[]>`select
       (select count(*)::int from pg_tables where schemaname='lub') as tables,
       (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='lub') as functions,

@@ -8,7 +8,7 @@ export function requireSandboxUrl(input: string) {
   try { url = new URL(input); } catch { throw new Error("An isolated PostgreSQL URL is required."); }
   if (!["postgres:", "postgresql:"].includes(url.protocol) ||
       !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) ||
-      url.port !== SANDBOX.port || url.pathname !== `/${SANDBOX.database}` || !url.username || !url.password) {
+      url.port !== SANDBOX.port || url.pathname !== `/${SANDBOX.database}` || url.search || url.hash || !url.username || !url.password) {
     throw new Error("Refusing a database outside the schema-simplification sandbox.");
   }
   return url;

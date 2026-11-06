@@ -11,6 +11,7 @@ describe("schema simplification isolation", () => {
     "postgresql://postgres:secret@127.0.0.1:55418/postgres",
     "postgresql://postgres@127.0.0.1:55418/lub_simplification",
     "https://postgres:secret@127.0.0.1:55418/lub_simplification",
+    "postgresql://postgres:secret@127.0.0.1:55418/lub_simplification?host=db.example.com",
     "not a URL",
   ])("refuses other databases without leaking the connection string", input => {
     expect(() => requireSandboxUrl(input)).toThrow(/isolated|outside/);

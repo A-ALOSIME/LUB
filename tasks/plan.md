@@ -7,7 +7,8 @@ Contract: `docs/schema-simplification.md`; approved discussion is preserved in D
 - [x] Capture and verify private schema/account baseline: 6 accounts/profiles; archive SHA256 75be19eb8fc9a72b9a8bf7a47479715b65c5389288e6586f1f6c2924ea7e641c.
 - [x] Start isolated PostgreSQL database and rehearse baseline structure recovery: 62 tables, 271 functions, 79 policies restored. Actual Supabase Auth/Storage HTTP services are not yet configured or tested locally.
 - [x] Record baseline check/build results: final infrastructure lint/types and 1023 tests/230 files passed; build passed on the unchanged retry required by the existing Next security advisory (no suppression or dependency change). Baseline recovery and isolation are verified; retained application workflows still use the old schema at this checkpoint.
-- [ ] Prove 18-table schema and scoped security on an isolated database.
+- [x] Prove initial 18-table contract on isolated PostgreSQL: 18 tables, 18 RLS-enabled, zero views; rehearse 18 → 62 → 18 recovery. Remaining mutation/DTO coverage is a gate for later slices.
+- [x] Port account/profile persistence and avatar authorization to merged users; preserve encryption, private identifiers, verified identity and graduate academic levels. Full lint/types and 1033 tests/231 files passed; build passed unchanged retry for the existing Next advisory. Actual concurrent profile-skill assignment blocks deletion and rejects it with SQLSTATE 23503. Live services remain untouched.
 - [ ] Convert account/profile/roles/skills and manual bilingual content.
 - [ ] Convert organizations/forms/campaigns/applications/renewals/history.
 - [ ] Convert content/events/attendance/attachments and direct XLSX.
