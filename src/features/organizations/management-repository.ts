@@ -300,7 +300,7 @@ export async function saveAnnouncement(userId: string, organizationId: string, i
 export async function changeAnnouncementState(userId:string,organizationId:string,announcementId:string,operation:"pin"|"archive"|"restore"|"delete",pinned=false){
  return withUser(userId,async tx=>{
   await requirePermission(tx,organizationId,"ANNOUNCEMENTS_MANAGE");
-  const rows=await tx.execute(sql`select id from lub.announcements where id=${announcementId} and organization_id=${organizationId}`);if(!rows.length)throw new Error("FORBIDDEN");
+  const rows=await tx.execute(sql`select id from lub.organization_content where id=${announcementId} and organization_id=${organizationId} and kind='Announcement'`);if(!rows.length)throw new Error("FORBIDDEN");
   await tx.execute(sql`select lub.change_announcement_state(${announcementId},${operation},${pinned})`);
  });
 }
