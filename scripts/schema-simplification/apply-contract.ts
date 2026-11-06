@@ -5,7 +5,7 @@ import { join } from "node:path";
 import postgres from "postgres";
 import { BASELINE_COMMIT, requireOutsideRepository, requireSandboxUrl, SANDBOX } from "./guards";
 
-const contractFiles = ["schema18.sql", "account18.sql", "administration18.sql", "opening18.sql", "forms18.sql", "form-library18.sql", "campaigns18.sql", "hours18.sql", "tasks18.sql", "assets18.sql"];
+const contractFiles = ["schema18.sql", "account18.sql", "administration18.sql", "opening18.sql", "forms18.sql", "form-library18.sql", "campaigns18.sql", "renewals18.sql", "hours18.sql", "tasks18.sql", "assets18.sql"];
 
 async function apply() {
   if (process.env.LUB_REPLACE_SANDBOX_SCHEMA !== "yes") throw new Error("Explicit owned-sandbox replacement flag required.");
