@@ -143,7 +143,8 @@ it("creates academic terms with server-side inclusive overlap and complete-perio
   await denied(() => db.query("select lub.create_academic_term('2026-2027','T2','الفصل الثاني','2027-04-01','2027-03-01')"));
   await denied(() => db.query("select lub.create_academic_term('2026-2027','T2','الفصل الثاني','2027-01-01',null)"));
   await db.query("select lub.create_academic_term('2026-2027','T2','الفصل الثاني','2027-01-01','2027-03-01')");
-  expect((await db.query("select * from lub.academic_terms")).rows).toHaveLength(2);
+  await db.query("select lub.create_academic_term('2026-2027','T3','فترة قصيرة','2027-06-01','2027-06-01')");
+  expect((await db.query("select * from lub.academic_terms")).rows).toHaveLength(3);
 });
 it("projects management navigation from real scoped roles without exposing private account data", async () => {
   await actor(1); const org = await create("new-club", "admin18-2@example.invalid");

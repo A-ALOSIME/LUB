@@ -19,3 +19,4 @@ Contract: `docs/schema-simplification.md`; approved discussion is preserved in D
 - [ ] Full checks/build/browser and recovery tests, review, merge and deployment verification.
 
 Live service tests and local tests must be reported separately. Production is unchanged until cutover gates pass. Never load a production DATABASE_URL into the sandbox environment.
+- [x] Implement task/submission and embedded-hour SQL contract: owner/scope/revision guards, immutable submission snapshots, file references, review/withdraw/rejoin, duplicate task, and one scoped queue of all pending hours without history/export. Real owned PostgreSQL passed English/Arabic display-name and text-only submissions, concurrent duplicate rejection (P0001), exactly one 5-hour award. Final lint/types and 1072 tests/235 files plus build passed. Task/hour application repositories/UI and actual HTTP upload remain unported/unverified; production unchanged.

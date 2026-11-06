@@ -149,7 +149,7 @@ BEGIN
  IF NOT lub.is_super_admin() THEN RAISE EXCEPTION 'Administrator required' USING ERRCODE='42501'; END IF;
  PERFORM pg_catalog.pg_advisory_xact_lock(762015);
  IF year IS NULL OR length(trim(year)) NOT BETWEEN 1 AND 20 OR code IS NULL OR length(trim(code)) NOT BETWEEN 1 AND 20
-  OR name IS NULL OR length(trim(name)) NOT BETWEEN 2 AND 120 OR starts IS NULL OR ends IS NULL OR ends<=starts THEN RAISE EXCEPTION 'Invalid term period'; END IF;
+  OR name IS NULL OR length(trim(name)) NOT BETWEEN 2 AND 120 OR starts IS NULL OR ends IS NULL OR ends<starts THEN RAISE EXCEPTION 'Invalid term period'; END IF;
  IF EXISTS(SELECT 1 FROM lub.academic_terms t WHERE t.start_date<=ends AND t.end_date>=starts) THEN RAISE EXCEPTION 'Overlapping term'; END IF;
  INSERT INTO lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) VALUES(trim(year),trim(code),trim(name),starts,ends) RETURNING id INTO result;
  RETURN result;
