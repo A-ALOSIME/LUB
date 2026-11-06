@@ -43,6 +43,14 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllEnvs());
 
+it("rejects removed template uploads before storage or database access", async () => {
+  const request = new NextRequest("http://127.0.0.1:3000/files/upload?purpose=template-image", { method: "POST", headers: { origin: "http://127.0.0.1:3000" }, body: new FormData() });
+  const response = await POST(request);
+  expect(response.status).toBe(400);
+  expect((await response.json()).error).toBe("unsupported_upload_purpose");
+  expect(mocks.execute).not.toHaveBeenCalled(); expect(mocks.upload).not.toHaveBeenCalled();
+});
+
 it("rejects an event poster when the user cannot manage that organization", async () => {
   mocks.execute.mockResolvedValueOnce([{ allowed: false }]);
 

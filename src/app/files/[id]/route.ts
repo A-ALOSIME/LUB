@@ -11,7 +11,7 @@ export async function GET(_request: Request,{params}:{params:Promise<{id:string}
  const user=await getVerifiedUser();if(!user)return new NextResponse(null,{status:401});
  const {id}=await params;if(!z.uuid().safeParse(id).success)return new NextResponse(null,{status:404});
  try {
-  const rows=await withUser(user.id,tx=>tx.execute(sql`select object_key,file_name,mime_type,size_bytes from lub.application_assets where id=${id}`));
+  const rows=await withUser(user.id,tx=>tx.execute(sql`select object_key,file_name,mime_type,size_bytes from lub.assets where id=${id}`));
   const asset=rows[0];if(!asset)return new NextResponse(null,{status:404});
   const client=await createClient();const bucket=client.storage.from("lub-application-files");
   const downloaded=await bucket.download(String(asset.object_key));if(downloaded.error||!downloaded.data||downloaded.data.size!==Number(asset.size_bytes))throw new Error("asset content");

@@ -18,7 +18,7 @@ export async function GET(
   try {
     const rows = await withUser(user.id, (tx) =>
       tx.execute(
-        sql`select object_key,mime_type,size_bytes,thumbnail_png_base64 from lub.application_assets where id=${id}`,
+        sql`select object_key,mime_type,size_bytes,thumbnail_png_base64 from lub.assets where id=${id}`,
       ),
     );
     const asset = rows[0];
