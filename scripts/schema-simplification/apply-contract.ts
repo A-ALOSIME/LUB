@@ -24,8 +24,9 @@ async function apply() {
       for (const row of wrappers) await tx.unsafe(row.statement);
       // Deliberately destructive only inside the owned local database validated above.
       await tx.unsafe("drop schema if exists lub cascade");
-      await tx.unsafe(readFileSync("scripts/schema-simplification/schema18.sql", "utf8"));
-      await tx.unsafe(readFileSync("scripts/schema-simplification/account18.sql", "utf8"));
+      for (const file of ["schema18.sql", "account18.sql", "administration18.sql", "opening18.sql"]) {
+        await tx.unsafe(readFileSync(`scripts/schema-simplification/${file}`, "utf8"));
+      }
       const [count] = await tx<{ tables: number }[]>`select count(*)::int as tables from pg_tables where schemaname='lub'`;
       if (count.tables !== 18) throw new Error("18-table contract failed.");
     });
@@ -33,8 +34,8 @@ async function apply() {
       (select count(*)::int from pg_tables where schemaname='lub') as tables,
       (select count(*)::int from pg_tables where schemaname='lub' and rowsecurity) as secured,
       (select count(*)::int from pg_views where schemaname='lub') as views`;
-    const schemaSha256 = createHash("sha256").update(readFileSync("scripts/schema-simplification/schema18.sql")).digest("hex");
-    writeFileSync(join(directory, "schema18-verification.json"), JSON.stringify({ ...result, schemaSha256, baseline: BASELINE_COMMIT, scope: "database contract only; application repositories not yet ported" }, null, 2), { mode: 0o600 });
+    const sourceHashes = Object.fromEntries(["schema18.sql", "account18.sql", "administration18.sql", "opening18.sql"].map(file => [file, createHash("sha256").update(readFileSync(`scripts/schema-simplification/${file}`)).digest("hex")]));
+    writeFileSync(join(directory, "schema18-verification.json"), JSON.stringify({ ...result, sourceHashes, baseline: BASELINE_COMMIT, scope: "account and administrative slices; remaining application repositories not yet ported" }, null, 2), { mode: 0o600 });
     console.log(JSON.stringify({ ...result, localOnly: true, applicationReady: false }));
   } finally { await db.end(); }
 }
