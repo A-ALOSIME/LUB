@@ -31,9 +31,22 @@ async function verify(){
    await tx`select lub.event_list_action(${event!},'archive',3)`;
    await tx`select lub.event_list_action(${event!},'restore',4)`;
   });
-  // Seed an elapsed-event attendance fixture; this is not a registration UI or wall-clock test.
+  const registration=await db.begin(async tx=>{
+   await tx`select set_config('request.jwt.claim.sub',${student},true),set_config('role','authenticated',true)`;
+   const [row]=await tx<{id:string}[]>`select lub.register_event(${event!},null,'{}',null) id`;
+   await tx`select lub.cancel_event_registration(${row.id})`;
+   await tx`select lub.reapply_event_registration(${row.id})`;return row.id;
+  });
+  await db.begin(async tx=>{
+   await tx`select set_config('request.jwt.claim.sub',${leader},true),set_config('role','authenticated',true)`;
+   await tx`select lub.review_event_registrations(${[registration]}::uuid[],'Accepted','')`;
+  });
+  // Advance an isolated fixture to an elapsed event; this is not a UI or wall-clock test.
   await db`update lub.organization_content set starts_at=now()-interval '2 hours',ends_at=now()-interval '1 hour',registration_opens_at=now()-interval '2 days',registration_closes_at=now()-interval '1 day' where id=${event}`;
-  await db`insert into lub.event_registrations(event_id,organization_id,user_id,review_status_code,attendance,checked_in_at) values(${event},${org},${student},'Accepted','Present',now())`;
+  await db.begin(async tx=>{
+   await tx`select set_config('request.jwt.claim.sub',${leader},true),set_config('role','authenticated',true)`;
+   await tx`select lub.mark_event_attendance(${registration},'Present')`;
+  });
   await db`insert into lub.academic_terms(id,academic_year,term_code,name_ar,start_date,end_date) values(${term},'proof',${term.slice(0,8)},'فصل اختبار',lub.today_riyadh()-2,lub.today_riyadh()+2)`;
   await db.begin(async tx=>{
    await tx`select set_config('request.jwt.claim.sub',${leader},true),set_config('role','authenticated',true)`;
@@ -41,7 +54,7 @@ async function verify(){
   });
   const [hours]=await db<{count:number;amount:string}[]>`select jsonb_array_length(hours) count,(hours->0->>'hours') amount from lub.organization_memberships where id=${member.id}`;
   assert.equal(hours.count,1);assert.equal(Number(hours.amount),3);
-  const result={database:"owned local PostgreSQL",publishedPoster:true,archiveRestore:true,completedAttendanceFixture:true,hourAwards:1,hours:3,registrationWorkflowTested:false,httpTested:false};
+  const result={database:"owned local PostgreSQL",publishedPoster:true,archiveRestore:true,completedAttendanceFixture:true,hourAwards:1,hours:3,registrationWorkflowTested:true,withdrawReapplyAccepted:true,httpTested:false};
   writeFileSync(join(directory,"event-verification.json"),JSON.stringify(result,null,2),{mode:0o600});console.log(JSON.stringify(result));
  }finally{
   await db`delete from lub.history_events where organization_id=${org}`;await db`delete from lub.event_registrations where organization_id=${org}`;
