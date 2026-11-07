@@ -130,3 +130,11 @@ END; $$;
 REVOKE ALL ON FUNCTION lub.skill_key(text),lub.skill_category_labels(text),lub.resolve_profile_skill_key(text),lub.skill_catalog_rows(text),lub.profile_skill_details(uuid,boolean),lub.public_profile_skills(uuid),lub.own_profile_skills(uuid),lub.save_profile_skill_selection(uuid,jsonb),lub.save_talent_skill(text,boolean),lub.save_talent_catalog_skill(text,text,text),lub.remove_talent_skill(text),lub.set_activity_skill_tags(text,uuid,jsonb,int) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION lub.skill_key(text),lub.skill_catalog_rows(text),lub.own_profile_skills(uuid),lub.save_profile_skill_selection(uuid,jsonb),lub.save_talent_skill(text,boolean),lub.save_talent_catalog_skill(text,text,text),lub.remove_talent_skill(text),lub.set_activity_skill_tags(text,uuid,jsonb,int) TO authenticated;
 GRANT EXECUTE ON FUNCTION lub.public_profile_skills(uuid) TO anon,authenticated;
+
+CREATE FUNCTION lub.activity_skill_items(ids jsonb) RETURNS jsonb LANGUAGE sql STABLE SET search_path='' AS $$
+ SELECT coalesce(jsonb_agg(jsonb_build_object('key',s.canonical_key,'labelAr',s.name_ar,'labelEn',coalesce(s.name_en,s.name_ar),
+  'category',lub.skill_category_labels(s.category_code),'featured',false,'order',ordinal-1,'tasks',0,'events',0,
+  'filterValue',coalesce(s.name_en,s.name_ar)) ORDER BY ordinal),'[]')
+ FROM jsonb_array_elements_text(ids) WITH ORDINALITY AS tags(skill_id,ordinal) JOIN lub.skills s ON s.id=skill_id::uuid;
+$$;
+REVOKE ALL ON FUNCTION lub.activity_skill_items(jsonb) FROM PUBLIC,anon,authenticated;

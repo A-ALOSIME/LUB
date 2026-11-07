@@ -49,7 +49,6 @@ function card({
       default_hours: "2",
       status_code: status,
       revision: 1,
-      task_template_id: null,
     },
     org_name: "نادي التقنية",
     participant,

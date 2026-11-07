@@ -3,65 +3,38 @@ import { sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
 export {taskLabels,formatTaskDate} from "./display";
 import type {ProfileSkill} from "@/features/talent/profile-skills-model";
-export type Task={skills?:ProfileSkill[];id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;task_template_id:string|null;event_id?:string|null;image_asset_id?:string|null;has_event_poster?:boolean};
+export type Task={skills?:ProfileSkill[];id:string;organization_id:string;committee_id:string|null;title:string;description:string;starts_at:string|null;due_at:string|null;default_hours:string;status_code:string;revision:number;event_id?:string|null;image_asset_id?:string|null;has_event_poster?:boolean};
 export type Participant={id:string;user_id:string;status_code:string;approved_hours_override:string|null;joined_at:string;closed_at:string|null;withdrawn_at?:string|null};
-export type Submission={name?:string;major?:string;level?:string;displayStatus?:string;review_decision_code?:string|null;withdrawn_at?:string|null;id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;task_revision_id:string;task_revision_number:number;task_snapshot:Task;assets:Array<{id:string;name:string}>};
-export type TaskTemplate={image_asset_id?:string|null;skills?:ProfileSkill[];id:string;organization_id:string;committee_id:string|null;name:string;description_template:string;default_hours:string;is_active:boolean;revision:number};
+export type Submission={name?:string;major?:string;level?:string;displayStatus?:string;review_decision_code?:string|null;withdrawn_at?:string|null;id:string;revision_number:number;message:string;status_code:string;submitted_at:string;review_note:string|null;reviewed_at:string|null;assets:Array<{id:string;name:string}>};
 export type TaskCard={can_manage?:boolean;summary?:{participants:number;submitted:number}|null;task:Omit<Task,"description">&{description?:string};org_name:string;participant:Participant|null;historical:boolean;latest_submission:{status_code:string}|null;approved_hours:string|null};
-export type TaskDetail={organizationName?:string;asOf?:string;summary?:{participants:number;submitted:number}|null;task:Task;canReview?:boolean;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string;major?:string;level?:string;joinedAt?:string;committee?:string;isLeader?:boolean;hourRecord?:{id:string;hours:string;canAdjust:boolean}|null}>;submissions:Submission[];history:Array<{id:string;revision_number:number;snapshot_json:Task;changed_at:string}>;linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
-export type TaskWorkspace={name:string;scopes:Array<{id:string|null;name:string;tasks:boolean;templates:boolean}>;templates:TaskTemplate[]};
-export async function taskWorkspace(user:string,org:string){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select o.name_ar as name,
- coalesce((select jsonb_agg(s) from (select null::uuid as id,'الجهة بالكامل' as name,lub.has_org_permission(o.id,'TASKS_MANAGE') as tasks,lub.has_org_permission(o.id,'TASK_TEMPLATES_MANAGE') as templates union all select c.id,c.name,lub.has_org_permission(o.id,'TASKS_MANAGE',c.id),lub.has_org_permission(o.id,'TASK_TEMPLATES_MANAGE',c.id) from lub.committees c where c.organization_id=o.id and c.status_code='Active') s where s.tasks or s.templates),'[]') as scopes,
- coalesce((select jsonb_agg(t) from (select template.*,lub.task_template_skills(template.id) as skills from lub.task_templates template where organization_id=o.id order by created_at desc,id limit 1000) t),'[]') as templates
- from lub.organizations o where o.id=${org} and lub.has_task_access(o.id)`);
- return rows[0] as unknown as TaskWorkspace|undefined;
-});}
-export async function listTasks(user:string,options:{org?:string;view:"available"|"mine"|"all";page:number|null;q?:string;status?:string;sort?:"asc"|"desc"}){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`with visible as (
- select to_jsonb(t) as task,t.organization_id,t.created_at,case when ${options.view==="available"} and p.withdrawn_at is not null and t.status_code='Open' then null else to_jsonb(p) end as participant,false as historical from lub.tasks t left join lub.task_participants p on p.task_id=t.id and p.user_id=${user}
- where (${options.org??null}::uuid is null or t.organization_id=${options.org??null}::uuid) and ((${options.view==='all'} and lub.can_manage_task(t.id)) or p.id is not null or (t.status_code='Open' and (t.starts_at is null or t.starts_at<=statement_timestamp())))
- union all select r.snapshot_json,(r.snapshot_json->>'organization_id')::uuid,p.joined_at,to_jsonb(p),true from lub.task_participants p join lateral(select r.* from lub.task_revisions r where r.task_id=p.task_id order by r.revision_number desc limit 1) r on true
- where p.user_id=${user} and not exists(select 1 from lub.tasks t where t.id=p.task_id) and (${options.org??null}::uuid is null or (r.snapshot_json->>'organization_id')::uuid=${options.org??null}::uuid))
- select (v.task-'description')||jsonb_build_object('has_event_poster',(exists(select 1 from lub.public_event_poster((v.task->>'event_id')::uuid)) or exists(select 1 from lub.event_assets a where a.event_id=(v.task->>'event_id')::uuid and a.asset_type_code='Poster'))) as task,lub.can_manage_task((v.task->>'id')::uuid) as can_manage,lub.task_summary((v.task->>'id')::uuid) as summary,o.name_ar as org_name,v.participant,v.historical,
- (select jsonb_build_object('status_code',s.status_code) from lub.task_submissions s where s.task_participant_id=(v.participant->>'id')::uuid order by s.revision_number desc limit 1) as latest_submission,
- (select h.hours::text from lub.hour_records h where h.task_participant_id=(v.participant->>'id')::uuid and h.status_code='Approved' limit 1) as approved_hours
- from visible v join lub.organizations o on o.id=v.organization_id
- where ((${options.view==='mine'} and v.participant is not null and (v.historical or v.participant->>'withdrawn_at' is null)) or
- (${options.view==='available'} and not v.historical and v.task->>'status_code'='Open') or
- (${options.view==='all'} and not v.historical)) and (${options.status??''}='' or v.task->>'status_code'=${options.status??''}) and position(lub.arabic_search_key(${options.q??''}) in lub.arabic_search_key(v.task->>'title'||' '||o.name_ar))>0
- order by v.created_at ${options.sort==="asc"?sql`asc`:sql`desc`},v.task->>'id' limit ${options.page===null?51:26} offset ${(options.page??0)*25}`);
- const items=rows as unknown as TaskCard[];return {items:options.page===null?items:items.slice(0,25),more:options.page!==null&&items.length>25};
-});}
-export async function taskDetail(user:string,id:string,participant:string|null=null,revisionPage=0,_teamPage=0,presentation:"student"|"management"="management",eventChoices=false,includeWork=true){void _teamPage;return withUser(user,async tx=>{
- const rows=await tx.execute(sql`select (select o.name_ar from lub.organizations o join lub.tasks t on t.organization_id=o.id where t.id=${id}) as "organizationName",to_char(statement_timestamp() at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "asOf",
- coalesce((select to_jsonb(t)||case when lub.can_manage_task(t.id) then jsonb_build_object('skills',lub.activity_skill_selection('Task',t.id)) else '{}'::jsonb end from lub.tasks t where t.id=${id}),(select r.snapshot_json from lub.task_revisions r where r.task_id=${id} order by r.revision_number desc limit 1)) as task,
- case when ${includeWork} and ${presentation==="management"} then lub.task_summary(${id}) end as summary,(${presentation==="management"} and lub.can_manage_task(${id})) as "canManage",(${presentation==="management"} and lub.can_review_task(${id})) as "canReview",lub.can_read_task(${id}) as current,
- (select jsonb_build_object('id',e.id,'title',e.title,'status',e.status_code) from lub.events e where ${presentation==="management"} and e.id=(select t.event_id from lub.tasks t where t.id=${id})) as "linkedEvent",
- case when ${eventChoices} and (${presentation==="management"} and lub.can_manage_task(${id})) then coalesce((select jsonb_agg(e) from(select e.id,e.title,e.status_code as status from lub.events e where e.organization_id=(select t.organization_id from lub.tasks t where t.id=${id}) and e.status_code<>'Cancelled' order by e.starts_at desc,e.id limit 1000) e),'[]') else '[]'::jsonb end as "eventChoices",
- case when ${includeWork} then (select to_jsonb(p) from lub.task_participants p where p.task_id=${id} and p.user_id=${user}) end as own,
- case when ${includeWork} then (select to_jsonb(p) from lub.task_participants p where p.task_id=${id} and ((p.id=${participant}::uuid and (${presentation==="management"} and lub.can_manage_task(${id}))) or (${participant}::uuid is null and p.user_id=${user})) limit 1) end as selected,
- case when ${includeWork} then coalesce((select max(s.revision_number) from lub.task_submissions s join lub.task_participants p on p.id=s.task_participant_id where p.task_id=${id} and p.user_id=${user}),0) else 0 end as "lastRevision",
- case when not ${includeWork} then '[]'::jsonb when ${presentation==="management"} and lub.can_manage_task(${id}) then lub.task_people(${id},0) else lub.task_team_details(${id},0) end as team,
- case when ${includeWork} then lub.task_submission_page(${id}::uuid,${participant}::uuid,0::int,${presentation==="management"}) else '[]'::jsonb end as submissions,
- coalesce((select jsonb_agg(r order by r.revision_number desc) from (select id,revision_number,snapshot_json,changed_at from lub.task_revisions where task_id=${id} and ${includeWork} and (${presentation==="management"} and lub.can_manage_task(${id})) order by revision_number desc limit 21 offset ${revisionPage*20}) r),'[]') as history`);
- const data=rows[0] as unknown as TaskDetail|undefined;
- if(data?.task&&includeWork){
-  let batch=data.team;const team:TaskDetail["team"]=[];
-  for(let page=0;page<=10000;page++){
-   team.push(...batch.slice(0,25));if(batch.length<=25)break;
-   const [next]=await tx.execute<{people:TaskDetail["team"]}>(data.canManage?sql`select lub.task_people(${id},${(page+1)*25}) people`:sql`select lub.task_team_details(${id},${(page+1)*25}) people`);batch=next?.people??[];
-  }
-  data.team=team;
-  let submissions=data.submissions;const all:Submission[]=[];
-  for(let page=0;page<=10000;page++){
-   all.push(...submissions.slice(0,20));if(submissions.length<=20)break;
-   const [next]=await tx.execute<{items:Submission[]}>(sql`select lub.task_submission_page(${id}::uuid,${participant}::uuid,${(page+1)*20}::int,${presentation==="management"}) items`);submissions=next?.items??[];
-  }
-  data.submissions=all;
- }
- return data?.task?data:undefined;
-});}
+export type TaskDetail={organizationName?:string;asOf?:string;summary?:{participants:number;submitted:number}|null;task:Task;canReview?:boolean;canManage:boolean;current:boolean;own:Participant|null;selected:Participant|null;lastRevision:number;team:Array<{id:string;name:string;status:string;major?:string;level?:string;joinedAt?:string;committee?:string;isLeader?:boolean;hourRecord?:{id:string;hours:string;canAdjust:boolean}|null}>;submissions:Submission[];linkedEvent:{id:string;title:string;status:string}|null;eventChoices:Array<{id:string;title:string;status:string}>};
+export type TaskWorkspace = { name: string; scopes: Array<{ id: string | null; name: string }> };
+export async function taskWorkspace(user: string, org: string) {
+  return withUser(user, async tx => {
+    const [row] = await tx.execute<{ data: TaskWorkspace | null }>(sql`select lub.task_workspace(${org}::uuid) as data`);
+    return row?.data ?? undefined;
+  });
+}
+
+export async function listTasks(user: string, options: { org?: string; view: "available" | "mine" | "all"; page: number | null; q?: string; status?: string; sort?: "asc" | "desc" }) {
+  return withUser(user, async tx => {
+    const [row] = await tx.execute<{ data: TaskCard[] }>(sql`
+      select lub.task_card_page(${options.org ?? null}::uuid,${options.view},${options.page}::int,${options.q ?? ""},${options.status ?? ""},${options.sort === "asc"}) as data`);
+    const items = row?.data ?? [];
+    return { items: options.page === null ? items : items.slice(0, 25), more: options.page !== null && items.length > 25 };
+  });
+}
+
+
+export async function taskDetail(user: string, id: string, participant: string | null = null, _submissionPage = 0, _teamPage = 0, presentation: "student" | "management" = "management", eventChoices = false, includeWork = true) {
+  void _submissionPage;
+  void _teamPage;
+  return withUser(user, async tx => {
+    const [row] = await tx.execute<{ data: TaskDetail | null }>(sql`
+      select lub.task_detail(${id}::uuid,${participant}::uuid,${presentation === "management"},${eventChoices},${includeWork}) as data`);
+    return row?.data ?? undefined;
+  });
+}
 export type TaskNotification={id:string;type_code:string;title:string;body:string;target_url:string;created_at:string;read_at:string|null};
 export async function taskNotifications(user:string,page:number,unreadOnly=false){return withUser(user,async tx=>{
  const rows=await tx.execute(sql`select * from lub.notification_feed(${page}::int,${unreadOnly}::boolean)`);

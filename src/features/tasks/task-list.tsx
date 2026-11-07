@@ -33,6 +33,7 @@ export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty
   if(row.historical)return null;
   return <div className="flex flex-nowrap items-center gap-1"><RowAction label={t(locale,"عرض التفاصيل","View details")} onClick={()=>open(row)}><Eye/></RowAction>{mode==="all"?<>
   {editable?<TaskPanelAction task={task.id} title={task.title} locale={locale} edit/>:<RowAction label={t(locale,"تعديل المهمة","Edit task")} disabled hint={!manage?t(locale,"تحتاج صلاحية إدارة المهام","Task management permission is required"):t(locale,"لا يمكن تعديل المهمة المغلقة","Closed tasks cannot be edited")}><Pencil/></RowAction>}
+  {manage&&<TaskDecision kind="duplicate" task={task.id} revision={task.revision} title={task.title} locale={locale}/>}
   <TaskEventLinkAction task={task.id} enabled={Boolean(editable)} locale={locale}/>
   <span role="separator" aria-orientation="vertical" className="mx-1 h-5 border-s border-border"/>
   {manage&&task.status_code==="Draft"?<TaskDecision optimistic={optimistic(row)} kind="publish" task={task.id} revision={task.revision} title={task.title} locale={locale}/>:<RowAction label={t(locale,"نشر المهمة","Publish task")} disabled hint={!manage?t(locale,"تحتاج صلاحية إدارة المهام","Task management permission is required"):t(locale,"النشر متاح للمسودة فقط","Only drafts can be published")}><Send/></RowAction>}
@@ -52,7 +53,7 @@ export function TaskList({items,mode,locale="ar",activeStatus="",workspace,empty
  {id:"participants",label:t(locale,"المنضمون","Participants"),className:"w-24",render:(row:TaskCard)=>row.summary?.participants??0},
  {id:"submissionRate",label:t(locale,"نسبة التسليم","Submission rate"),className:"w-28",render:(row:TaskCard)=>`${row.summary?.participants?Math.round(row.summary.submitted/row.summary.participants*100):0}%`}
  ]:[]),
- {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-64":"w-36",render:actions}
+ {id:"actions",label:t(locale,"الإجراءات","Actions"),className:mode==="all"?"w-72":"w-36",render:actions}
  ]}/></>;
 }
 export {TaskPagination} from "./task-pagination";

@@ -1,13 +1,12 @@
 import {createTranslator} from "@/lib/i18n";
 
 
-import { Clock3, ClipboardCheck, LayoutTemplate } from "lucide-react";
+import { Clock3, ClipboardCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { OrganizationSectionTabPanel, OrganizationSectionTabs } from "@/features/organizations/organization-section-tabs";
 import { loadManagementPageData } from "@/features/organizations/access";
 import {TaskComposer} from "@/features/tasks/task-composer";
-import {TaskTemplateList} from "@/features/tasks/template-list";
 import {TaskManagementList} from "@/features/tasks/management-list";
 import { taskWorkspace, listTasks } from "@/features/tasks/repository";
 import { hoursWorkspace } from "@/features/hours/repository";
@@ -24,7 +23,7 @@ export async function generateMetadata() {
 export default async function ManageTasksPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{
-    page?: string; taskPage?: string; template?: string; section?: string;
+    page?: string; taskPage?: string; section?: string;
     taskSearch?:string;taskStatus?:string;taskSort?:string;
   }>;
 }) {
@@ -41,22 +40,18 @@ export default async function ManageTasksPage({ params, searchParams }: {
     listTasks(userId, { org: id, view: "all", ...taskFilters }),
     hoursWorkspace(userId, id),
   ]));
-  const taskAccess = Boolean(workspace?.scopes.some(scope => scope.tasks || scope.templates));
+  const taskAccess = Boolean(workspace?.scopes.length);
   const hoursAccess = Boolean(hours);
   if (!taskAccess && !hoursAccess) notFound();
 
-  const taskScopes = workspace?.scopes.filter(scope => scope.tasks) ?? [];
-  const templateScopes = workspace?.scopes.filter(scope => scope.templates) ?? [];
-  const source = workspace?.templates.find(template => template.id === query.template && template.is_active);
-  const taskCreateAction = taskScopes.length > 0 && workspace && <TaskComposer org={id} workspace={workspace} source={source} locale={locale} initiallyOpen={Boolean(source)}/>;
+  const taskCreateAction = workspace && taskAccess && <TaskComposer org={id} workspace={workspace} locale={locale}/>;
 
   const items = [
     ...(taskAccess ? [{ id: "tasks", label: c("المهام", "Tasks"), icon: <ClipboardCheck aria-hidden="true" /> }] : []),
-    ...(templateScopes.length ? [{ id: "templates", label: c("القوالب", "Templates"), icon: <LayoutTemplate aria-hidden="true" /> }] : []),
     ...(hoursAccess ? [{ id: "hours", label: c("الساعات", "Hours"), icon: <Clock3 aria-hidden="true" /> }] : []),
   ];
   const defaultSection = taskAccess ? "tasks" : "hours";
-  const initialSection = query.section === "hours" && hoursAccess ? "hours" : query.section === "templates" && templateScopes.length ? "templates" : defaultSection;
+  const initialSection = query.section === "hours" && hoursAccess ? "hours" : defaultSection;
 
   const taskToolbarAction = taskCreateAction;
 
@@ -67,7 +62,6 @@ export default async function ManageTasksPage({ params, searchParams }: {
           <TaskManagementList initialFilters={taskFilters} organization={id} initial={tasks??{items:[],more:false}} page={taskPage} locale={locale} actions={taskToolbarAction}/>
         </section>
       </OrganizationSectionTabPanel>}
-      {templateScopes.length>0&&workspace&&<OrganizationSectionTabPanel id="templates"><TaskTemplateList org={id} workspace={workspace} locale={locale}/></OrganizationSectionTabPanel>}
       {hoursAccess && <OrganizationSectionTabPanel id="hours">
         {hours ? <HoursWorkspaceView data={hours} org={id} locale={locale} /> : null}
       </OrganizationSectionTabPanel>}

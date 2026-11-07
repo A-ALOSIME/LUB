@@ -46,12 +46,7 @@ CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SE
     FROM jsonb_array_elements(e.public_photos) WITH ORDINALITY AS photos(p,ordinal) WHERE p?'url'),'[]'),
    'revision',CASE WHEN access.manage THEN e.revision ELSE 0 END,'registration_form_template_id',CASE WHEN access.manage THEN e.form_id END,
    'has_poster',e.primary_image_id IS NOT NULL,'requires_approval',e.requires_review)
-   || CASE WHEN access.manage THEN jsonb_build_object('skills',coalesce((
-     SELECT jsonb_agg(jsonb_build_object('key',s.canonical_key,'labelAr',s.name_ar,'labelEn',coalesce(s.name_en,s.name_ar),
-      'category',lub.skill_category_labels(s.category_code),'featured',false,'order',ordinal-1,'tasks',0,'events',0,
-      'filterValue',coalesce(s.name_en,s.name_ar)) ORDER BY ordinal)
-     FROM jsonb_array_elements_text(e.skill_ids) WITH ORDINALITY AS tags(skill_id,ordinal) JOIN lub.skills s ON s.id=skill_id::uuid
-    ),'[]')) ELSE '{}' END,
+   || CASE WHEN access.manage THEN jsonb_build_object('skills',lub.activity_skill_items(e.skill_ids)) ELSE '{}' END,
   'org_name',o.name_ar,'org_logo',o.logo_url,'org_type_code',o.type_code,'slug',o.slug,
   'status',u.status_code,'onboarded',u.onboarded_at IS NOT NULL,
   'open',lub.event_registration_open(e.id),

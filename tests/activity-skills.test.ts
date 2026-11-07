@@ -10,7 +10,8 @@ import {
   it,
   vi,
 } from "vitest";
-import { applyMigrations, storageFixture } from "./storage-fixture";
+import { storageFixture } from "./storage-fixture";
+import { readFileSync } from "node:fs";
 import type { ProfileSkill } from "@/features/talent/profile-skills-model";
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({
@@ -100,23 +101,18 @@ beforeAll(async () => {
     `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`,
   );
   await storageFixture(db);
-  await applyMigrations(db);
+  for (const file of ["schema18.sql","administration18.sql","campaigns18.sql","hours18.sql","tasks18.sql","assets18.sql","skill-catalog18.sql","skills18.sql","task-reads18.sql"]) {
+    await db.exec(readFileSync("scripts/schema-simplification/"+file,"utf8"));
+  }
 }, 30000);
 beforeEach(async () => {
   await db.exec("begin");
   for (const [i, user] of [leader, student].entries()) {
     await db.query("insert into auth.users values($1)", [user]);
     await db.query(
-      "insert into lub.users(id,email,email_verified_at) values($1,$2,now())",
-      [user, `skills${i}@example.invalid`],
+      "insert into lub.users(id,email,email_verified_at,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level,onboarded_at,public_profile_enabled) values($1,$2,now(),$3,'private',$4,'نظم معلومات','4',now(),true)",
+      [user, `skills${i}@example.invalid`, `طالب ${i}`, String(i).repeat(64)],
     );
-    await db.query(
-      "insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,$2,'private',$3,'الحاسب','4')",
-      [user, `طالب ${i}`, String(i).repeat(64)],
-    );
-    await db.query("insert into lub.profile_settings(user_id) values($1)", [
-      user,
-    ]);
   }
   await db.query(
     "insert into lub.organizations(id,type_code,slug,name_ar) values($1,'Club','skills-test','نادي المهارات')",
@@ -131,7 +127,7 @@ beforeEach(async () => {
     ).rows[0].id;
     if (user === leader)
       await db.query(
-        "insert into lub.role_assignments(organization_membership_id,organization_id,role_code,is_primary_leader,assigned_by_user_id) values($1,$2,'OL',true,$3)",
+        "insert into lub.access_assignments(organization_membership_id,organization_id,role_code,user_id,assigned_by_user_id) values($1,$2,'OL',$3,$3)",
         [m, org, leader],
       );
   }
@@ -140,11 +136,11 @@ beforeEach(async () => {
   );
   await actor(student);
   await db.query(
-    "select lub.save_talent_skill('Python',true),lub.save_talent_settings('',true)",
+    "select lub.save_talent_skill('Python',true)",
   );
   studentSlug = (
     await db.query<{ public_slug: string }>(
-      "select public_slug from lub.profile_settings where user_id=$1",
+      "select public_slug from lub.users where id=$1",
       [student],
     )
   ).rows[0].public_slug;
@@ -212,14 +208,7 @@ it("rolls back a task edit with an invalid skill, rejects members, preserves omi
   expect(await revision("tasks", task)).toBe(before);
   await actor(student);
   expect((await mutateTask({}, form(edit, ["sql"]))).error).toBeDefined();
-  expect(
-    (
-      await db.query<{ skills: unknown[] }>(
-        "select lub.activity_skill_selection('Task',$1) as skills",
-        [task],
-      )
-    ).rows[0].skills,
-  ).toEqual([]);
+  expect(await taskDetail(student, task)).toBeUndefined();
   await actor(leader);
   expect(
     (await mutateTask({}, form({ ...edit, title: "عنوان محفوظ" }))).success,

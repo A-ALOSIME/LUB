@@ -1,9 +1,56 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
-import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
+import { storageFixture } from "./storage-fixture";
+
+vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
+vi.mock("@/features/auth/session", () => ({ requireUser: async () => ({ id: currentActor }) }));
+vi.mock("@/features/auth/authorization", () => ({ studentOperationError: async () => null }));
+vi.mock("@/db/client", () => ({
+  withUser: async <T>(owner: string, operation: (tx: { execute: (query: SQL) => Promise<unknown[]> }) => Promise<T>) => {
+    const previous = currentActor;
+    await db.exec("savepoint app_operation");
+    try {
+      await asUser(owner);
+      const result = await operation({ execute: async query => {
+        const compiled = new PgDialect().sqlToQuery(query);
+        return (await db.query(compiled.sql,compiled.params)).rows;
+      }});
+      await asUser(previous);
+      await db.exec("release savepoint app_operation");
+      return result;
+    } catch (error) {
+      currentActor = previous;
+      await db.exec("rollback to savepoint app_operation; release savepoint app_operation");
+      throw error;
+    }
+  },
+}));
+import { listTasks, taskDetail, taskWorkspace } from "@/features/tasks/repository";
+import { mutateTask } from "@/features/tasks/actions";
+import { activityRevision } from "@/features/activity/revision";
+
+let currentActor: string;
+async function asUser(owner: string) {
+  currentActor = owner;
+  await db.exec("reset role");
+  await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)", [owner]);
+}
+
+function form(values: Record<string, string>) {
+  const result = new FormData();
+  for (const [key, value] of Object.entries(values)) result.set(key,value);
+  return result;
+}
+
+
 const id = (n: number) => `40000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 let db: PGlite;
-async function actor(n: number) { await db.exec("reset role"); await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)", [id(n)]); }
+async function actor(n: number) { await asUser(id(n)); }
 async function denied(run: () => Promise<unknown>) { await db.exec("savepoint denied"); await expect(run()).rejects.toThrow(); await db.exec("rollback to savepoint denied; release savepoint denied"); }
 async function task(committee: string | null = id(200)) {
   const result = (await db.query<{ id: string }>("select lub.save_task(null,$1,$2,'إعداد التصميم','صمم بوستر الفعالية',now()-interval '1 hour',now()+interval '1 day',5,null) id", [id(100), committee])).rows[0].id;
@@ -18,7 +65,8 @@ async function submissions(participant: string) { await db.exec("reset role"); r
 beforeAll(async () => {
   db = new PGlite();
   await db.exec("create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;");
-  for (const file of ["schema18.sql", "administration18.sql", "hours18.sql", "campaigns18.sql", "tasks18.sql"]) await db.exec(readFileSync(`scripts/schema-simplification/${file}`, "utf8"));
+  await storageFixture(db);
+  for (const file of ["schema18.sql", "administration18.sql", "hours18.sql", "campaigns18.sql", "tasks18.sql", "assets18.sql", "skills18.sql", "task-reads18.sql"]) await db.exec(readFileSync(`scripts/schema-simplification/${file}`, "utf8"));
 }, 30000);
 beforeEach(async () => {
   await db.exec("begin");
@@ -119,4 +167,111 @@ it("checks poster ownership and media type without changing the task on failure"
   await actor(1); for (const n of [906, 907]) await denied(() => db.query("select lub.set_task_image($1,$2,2)", [work, id(n)]));
   await db.query("select lub.set_task_image($1,$2,2)", [work, id(905)]); await denied(() => db.query("select lub.set_task_image($1,null,2)", [work]));
   await db.exec("reset role"); expect((await db.query("select image_asset_id,revision from lub.tasks where id=$1", [work])).rows).toEqual([{ image_asset_id: id(905), revision: 3 }]);
+});
+
+it("lists drafts only for managers, scopes student lists, and preserves bounded result pages", async () => {
+  await actor(1);
+  const draft = (await db.query<{id:string}>("select lub.save_task(null,$1,$2,'مسودة خاصة','وصف',null,null,1,null) id",[id(100),id(200)])).rows[0].id;
+  const visible = await task();
+  for(let n=0;n<27;n++) await task();
+  expect((await taskWorkspace(id(1),id(100)))?.scopes).toContainEqual({id:id(201),name:"لجنة"});
+  expect(await taskWorkspace(id(4),id(100))).toBeUndefined();
+  expect((await listTasks(id(1),{org:id(100),view:"all",page:0,status:"Draft"})).items.map(row=>row.task.id)).toEqual([draft]);
+  expect((await listTasks(id(4),{org:id(100),view:"all",page:0})).items).toEqual([]);
+  expect((await listTasks(id(5),{view:"available",page:0})).items).toEqual([]);
+  const paged = await listTasks(id(4),{view:"available",page:0});
+  expect(paged.items).toHaveLength(25);
+  expect(paged.more).toBe(true);
+  const managed = await listTasks(id(1),{org:id(100),view:"all",page:0});
+  expect(managed.items).toHaveLength(25);
+  expect(managed.more).toBe(true);
+  expect(managed.items[0].task).not.toHaveProperty("description");
+  expect(managed.items[0].task).not.toHaveProperty("skills");
+  expect((await listTasks(id(4),{view:"available",page:null})).items).toHaveLength(28);
+  expect((await listTasks(id(4),{view:"available",page:0,q:"مسودة خاصة"})).items).toEqual([]);
+  expect((await listTasks(id(4),{view:"mine",page:0})).items).toEqual([]);
+  const before = await activityRevision(id(1));
+  await actor(4);
+  const participant = await join(visible);
+  expect(await activityRevision(id(1))).not.toBe(before);
+  expect(before).toHaveLength(32);
+  await submit(participant);
+  const [mine] = (await listTasks(id(4),{view:"mine",page:0})).items;
+  expect(mine).toMatchObject({participant:{id:participant},latest_submission:{status_code:"Submitted"},summary:{participants:1,submitted:1}});
+  expect(mine.participant).not.toHaveProperty("submissions");
+  await db.query("select lub.withdraw_task_participation($1)",[participant]);
+  expect((await listTasks(id(4),{view:"mine",page:0})).items).toEqual([]);
+  expect((await listTasks(id(4),{view:"available",page:null})).items.find(row=>row.task.id===visible)?.participant).toBeNull();
+  await join(visible);
+  await actor(1);
+  await db.query("select lub.delete_task($1,2)",[visible]);
+  expect((await listTasks(id(4),{view:"mine",page:0})).items[0]).toMatchObject({historical:true,task:{id:visible}});
+});
+
+it("creates and duplicates drafts through the source action and publishes without templates", async () => {
+  await actor(3);
+  const values = {operation:"save-task",org:id(100),committee:id(201),title:"مهمة لجنة ثانية",description:"المطلوب",hours:"3"};
+  const created = await mutateTask({},form({...values,intent:"draft"}));
+  expect(created.success).toBeTruthy();
+  expect(created.task).toBeTruthy();
+  expect((await listTasks(id(3),{org:id(100),view:"all",page:0})).items[0].task.status_code).toBe("Draft");
+  const copied = await mutateTask({},form({operation:"duplicate",task:created.task!,confirm:"on"}));
+  expect(copied.success).toBeTruthy();
+  expect(copied.task).not.toBe(created.task);
+  expect((await listTasks(id(3),{org:id(100),view:"all",page:0})).items.find(row=>row.task.id===copied.task)?.task).toMatchObject({id:copied.task,title:"نسخة من مهمة لجنة ثانية",status_code:"Draft"});
+  const published = await mutateTask({},form({...values,intent:"publish"}));
+  expect(published.success).toBeTruthy();
+  expect((await listTasks(id(5),{view:"available",page:0})).items[0].task.id).toBe(published.task);
+  await actor(5);
+  expect((await mutateTask({},form({operation:"duplicate",task:created.task!,confirm:"on"}))).error).toBeTruthy();
+});
+
+it.each([null,"work.pdf","تسليم عربي.pdf"])("submits through the source action with attachment %s and keeps retry errors actionable", async (name) => {
+  await actor(1);const work = await task();await actor(4);const participant=await join(work);
+  const payload=form({operation:"submit",participant,message:"",revision:"2",lastRevision:"0"});
+  expect((await mutateTask({},payload)).submissionError).toBe("empty");
+  payload.set("message","المخرج جاهز");
+  payload.set("revision","1");
+  expect((await mutateTask({},payload)).submissionError).toBe("task-changed");
+  payload.set("revision","2");
+  await actor(5);
+  expect((await mutateTask({},payload)).submissionError).toBe("access");
+  if(name){
+    await db.exec("reset role");
+    await db.query("insert into lub.assets(id,owner_user_id,object_key,file_name,mime_type,size_bytes) values($1,$2,$3,$4,'application/pdf',100)", [id(901),id(5),id(5)+"/"+id(901)+".pdf",name]);
+    await actor(4);
+    payload.append("asset",id(901));
+    expect((await mutateTask({},payload)).submissionError).toBe("attachment");
+    await db.exec("reset role");
+    await db.query("insert into lub.assets(id,owner_user_id,object_key,file_name,mime_type,size_bytes) values($1,$2,$3,$4,'application/pdf',100)", [id(902),id(4),id(4)+"/"+id(902)+".pdf",name]);
+    payload.set("asset",id(902));
+  }
+  await actor(4);
+  expect((await mutateTask({},payload)).success).toBeTruthy();
+  expect((await mutateTask({},payload)).submissionError).toBe("pending");
+  expect(await submissions(participant)).toMatchObject([{message:"المخرج جاهز",attachments:name?[{assetId:id(902)}]:[]}]);
+  expect((await db.query("select hours from lub.organization_memberships where id=$1",[id(304)])).rows[0]).toEqual({hours:[]});
+});
+
+it("keeps selected submissions owner-scoped and blocks another committee's manager from reviewing", async () => {
+  await actor(1);
+  const work = await task(id(201));
+  await actor(5); const person = await join(work); const submitted = await submit(person);
+  const student = await taskDetail(id(5),work,null,0,0,"student");
+  expect(student?.own?.id).toBe(person);
+  expect(student?.submissions).toMatchObject([{id:submitted,message:"أنجزت المطلوب"}]);
+  expect(student?.submissions[0]).not.toHaveProperty("task_snapshot");
+  expect(student?.team[0]).not.toHaveProperty("major");
+  expect((await taskDetail(id(5),work,person,0,0,"student"))?.submissions).toEqual([]);
+  expect(await taskDetail(id(4),work,null,0,0,"student")).toBeUndefined();
+  const unrelated = await taskDetail(id(2),work,person);
+  expect(unrelated).toMatchObject({canManage:true,canReview:false,selected:null,submissions:[]});
+  const manager = await taskDetail(id(1),work,person);
+  expect(manager).toMatchObject({canManage:true,canReview:true,selected:{id:person},submissions:[{id:submitted,major:"نظم معلومات"}]});
+  expect(manager).not.toHaveProperty("history");
+  expect((await taskDetail(id(1),work,null,0,0,"management",false,false))?.team).toEqual([]);
+  await db.exec("reset role");
+  await db.query("update lub.organization_memberships set status_code='Ended',end_date=lub.today_riyadh() where id=$1",[id(305)]);
+  const former = await taskDetail(id(5),work,null,0,0,"student");
+  expect(former).toMatchObject({current:false,team:[],submissions:[{id:submitted}]});
 });

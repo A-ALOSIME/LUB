@@ -113,12 +113,12 @@ it("executes safe talent DTOs and combines private readiness with workspace in o
 });
 
 it("combines public organization sections in one select and keeps eligibility separate from public data",async()=>{
- const{taskDetail}=await import("@/features/tasks/repository");const{initialDefinition}=await import("@/features/forms/definition");
+ const{initialDefinition}=await import("@/features/forms/definition");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
  const event=(await engine.query<{id:string}>("select lub.save_event(null,$1,'فعالية عامة','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',5,null,0,null) as id",[org])).rows[0].id;
  const task=(await engine.query<{id:string}>("select lub.save_task(null,$1,null,null,'مهمة مرتبطة','وصف داخلي',null,null,0,null) as id",[org])).rows[0].id;await engine.query("select lub.link_task_event($1,$2,1)",[task,event]);await engine.exec("reset role");
  visitorSelects=0;expect((await getPublicOrganization('tech'))?.upcomingEvents).toEqual([]);expect(visitorSelects).toBe(1);expect((await getPublicDirectory(discoverySchema.parse({upcoming:'on'}))).organizations).toEqual([]);expect((await getPublicDirectory(discoverySchema.parse({open:'on'}))).organizations).toEqual([]);
- scopedReads=0;expect((await taskDetail(leader,task))?.linkedEvent?.id).toBe(event);expect(scopedReads).toBe(1);expect(await taskDetail(admin,task)).toBeUndefined();
+ expect((await engine.query("select event_id from lub.tasks where id=$1",[task])).rows[0]).toEqual({event_id:event});
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_event_status($1,'Published',1)",[event]);
  const template=(await engine.query<{id:string}>("select lub.create_form($1,'نموذج عام',null) as id",[org])).rows[0].id;const version=(await engine.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;
  await engine.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await engine.query("select lub.publish_form_version($1)",[version]);const round=(await engine.query<{id:string}>("select lub.create_registration_round($1,$2,'التسجيل المفتوح',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;await engine.query("select lub.change_round_status($1,'Open')",[round]);await engine.exec("reset role");
@@ -154,34 +154,25 @@ it("preserves the legacy personal hours balance in the recovery schema",async()=
  const {getMyPageData}=await import("@/features/organizations/my-page-repository");expect((await getMyPageData(learner)).hours).toBe("40.50");
 });
 
-it("reads scoped tasks, selected submissions, personal summaries and former-member history through real repository SQL",async()=>{
+it("preserves the legacy task overview, notifications and former-member submissions for recovery",async()=>{
  await engine.exec("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('test','T1','الفصل التجريبي',current_date-30,current_date+90)");
- const {listTasks,taskWorkspace,taskDetail}=await import("@/features/tasks/repository");
  const {getMyPageData}=await import("@/features/organizations/my-page-repository");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
  const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
  const task=(await engine.query<{id:string}>("select lub.save_task(null,$1,null,null,'مهمة فعلية','وصفها',null,null,2,null) as id",[org])).rows[0].id;
  await engine.query("select lub.change_task_status($1,'Open',1)",[task]);await engine.exec("reset role");
- expect((await taskWorkspace(leader,org))?.scopes[0].tasks).toBe(true);expect(await taskWorkspace(admin,org)).toBeUndefined();
- expect((await listTasks(leader,{org,view:"all",page:0})).items.map(x=>x.task.id)).toContain(task);
- expect((await listTasks(admin,{view:"available",page:0})).items.map(x=>x.task.id)).toContain(task);
- expect((await listTasks(admin,{view:"mine",page:0})).items).toHaveLength(0);
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec("set role authenticated");
  const participant=(await engine.query<{id:string}>("select lub.join_task($1) as id",[task])).rows[0].id;
  const submission=(await engine.query<{id:string}>("select lub.submit_task($1,'مخرج',array[]::uuid[],0,2) as id",[participant])).rows[0].id;await engine.exec("reset role");
- const joinedTasks=await listTasks(admin,{view:"available",page:0});expect(joinedTasks.items.find(x=>x.task.id===task)?.participant?.id).toBe(participant);expect(joinedTasks.items.find(x=>x.task.id===task)?.latest_submission?.status_code).toBe("Submitted");
- const detail=await taskDetail(leader,task,participant);expect(detail?.selected?.id).toBe(participant);expect(detail?.submissions[0].id).toBe(submission);expect(detail?.submissions[0].task_snapshot.description).toBe("وصفها");expect(detail?.team[0].name).toBe("المشرف");
- const studentView=await taskDetail(leader,task,null,0,0,"student");expect(studentView?.canManage).toBe(false);expect(studentView?.history).toEqual([]);expect(studentView?.submissions).toEqual([]);expect(studentView?.linkedEvent).toBeNull();expect(studentView?.eventChoices).toEqual([]);
 
  expect((await getMyPageData(admin)).tasks[0].id).toBe(task);
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.review_task_submission($1,'Rejected','تعديل',null)",[submission]);await engine.exec("reset role");
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_task_status($1,'Completed',2)",[task]);await engine.exec("reset role");
- expect((await listTasks(admin,{view:"available",page:0})).items.map(x=>x.task.id)).not.toContain(task);expect((await listTasks(admin,{view:"mine",page:0})).items.find(x=>x.task.id===task)?.task.status_code).toBe("Completed");
  // This fixture runs the baseline domain; the current notification repository is exercised against schema18 separately.
  expect((await engine.query<{target_url:string}>("select target_url from lub.notifications where recipient_user_id=$1 order by created_at desc,id limit 1",[admin])).rows[0].target_url).toBe(`/tasks/${task}`);
  await engine.query("update lub.organization_memberships set status_code='Ended',end_date=current_date where id=$1",[member]);
- const history=await taskDetail(admin,task);expect(history?.current).toBe(false);expect(history?.team).toEqual([]);expect(history?.submissions[0].message).toBe("مخرج");expect((await listTasks(admin,{view:"mine",page:0})).items.find(x=>x.task.id===task)?.historical).toBe(true);
+ expect((await engine.query("select message from lub.task_submissions where id=$1",[submission])).rows[0]).toEqual({message:"مخرج"});
 });
 
 it("reads active organizations without an account, and explicitly includes archives when requested", async () => {

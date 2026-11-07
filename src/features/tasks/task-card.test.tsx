@@ -14,7 +14,7 @@ import {PrivateQueryProvider} from "@/components/private-query-provider";
 import type {ReactElement} from "react";
 const render=(ui:ReactElement)=>rtlRender(<PrivateQueryProvider actorId="test-actor">{ui}</PrivateQueryProvider>);
 afterEach(()=>{cleanup();navigation.push.mockClear();navigation.prefetch.mockClear();});
-const task:TaskCard={task:{id:"task",organization_id:"org",committee_id:null,title:"مهمة التصميم",description:"الوصف",default_hours:"2",status_code:"Open",revision:1,starts_at:null,due_at:null,task_template_id:null},org_name:"المجلس",participant:null,historical:false,can_manage:false,latest_submission:null,approved_hours:null};
+const task:TaskCard={task:{id:"task",organization_id:"org",committee_id:null,title:"مهمة التصميم",description:"الوصف",default_hours:"2",status_code:"Open",revision:1,starts_at:null,due_at:null},org_name:"المجلس",participant:null,historical:false,can_manage:false,latest_submission:null,approved_hours:null};
 it("opens full task pages from the rectangle and retains the eye shortcut",()=>{
  render(<TaskList items={[task]} mode="available"/>);
  fireEvent.click(screen.getAllByRole("row",{name:"عرض تفاصيل المهمة"})[0]);

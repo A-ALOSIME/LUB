@@ -3,16 +3,9 @@ import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
 // Production postgres-js disables type discovery and falls back to String(array); mirror that boundary.
 vi.mock("@/db/client",()=>({withUser:async(userId:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await asUser(userId);await db.exec("savepoint with_user");try{const result=await operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params.map(value=>Array.isArray(value)?String(value):value))).rows;}});await db.exec("release savepoint with_user");return result;}catch(error){await db.exec("rollback to savepoint with_user; release savepoint with_user");throw error;}}}));
-import {activityRevision} from "../src/features/activity/revision";
-import {listTasks,taskDetail} from "../src/features/tasks/repository";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
-vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
-vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:currentActor})}));
-vi.mock("@/features/auth/authorization",()=>({studentOperationError:async()=>null}));
-import {mutateTask} from "../src/features/tasks/actions";
-let currentActor:string;
 let db: PGlite;
 const leader="00000000-0000-4000-8000-000000000001", member="00000000-0000-4000-8000-000000000002", other="00000000-0000-4000-8000-000000000003";
 const org="00000000-0000-4000-8000-000000000101", committee="00000000-0000-4000-8000-000000000201";
@@ -24,7 +17,7 @@ beforeAll(async()=>{
  await storageFixture(db);
  await applyMigrations(db);
 },30000);
-async function asUser(id:string){currentActor=id;await db.exec("reset role");await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)",[id]);}
+async function asUser(id:string){await db.exec("reset role");await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)",[id]);}
 async function denied(fn:()=>Promise<unknown>){await db.exec("savepoint denied");await expect(fn()).rejects.toThrow();await db.exec("rollback to savepoint denied; release savepoint denied");}
 beforeEach(async()=>{
  await db.exec("begin"); memberships=[];
@@ -144,16 +137,11 @@ it("never overwrites submission content or final reviews, and blocks new submiss
  await asUser(leader);await db.query("select lub.change_task_status($1,'Completed',2)",[task]);await asUser(member);await denied(()=>submit(p,4));
 });
 
-it("includes authorized drafts in the management directory without revealing them to students",async()=>{
- const task=await create();
- const managed=await listTasks(leader,{org,view:"all",page:0});expect(managed.items.map(item=>item.task.id)).toContain(task);expect(managed.items[0].task.status_code).toBe("Draft");
- expect((await listTasks(member,{org,view:"all",page:0})).items).toHaveLength(0);expect((await listTasks(member,{org,view:"available",page:0})).items).toHaveLength(0);
-});
 it("soft-deletes a task while retaining participant submissions and revision history",async()=>{
  const task=await openTask(),p=await join(task);await submit(p);await asUser(leader);
  await db.query("select lub.delete_task($1,2)",[task]);
- expect((await listTasks(leader,{org,view:"all",page:0})).items).toHaveLength(0);
- await asUser(member);expect((await listTasks(member,{org,view:"mine",page:0})).items[0].historical).toBe(true);
+ expect((await db.query("select id from lub.tasks where id=$1 and lub.can_manage_task(id)",[task])).rows).toHaveLength(0);
+ await asUser(member);expect((await db.query("select id from lub.task_revisions where task_id=$1",[task])).rows.length).toBeGreaterThan(0);
  expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[p])).rows).toHaveLength(1);
 });
 it("allows a participant to withdraw without destroying submissions or changing another student's participation",async()=>{
@@ -170,51 +158,14 @@ it("guards removal and task images, preserves bound images, and exposes accurate
  await db.query("select lub.set_task_image($1,$2,1)",[task,asset]);
  expect((await db.query<{allowed:boolean}>("select lub.can_delete_application_object($1) as allowed",[key])).rows[0].allowed).toBe(false);
  await db.query("select lub.change_task_status($1,'Open',2)",[task]);await join(task);
- expect((await listTasks(member,{org,view:"mine",page:0})).items[0].summary?.participants).toBe(1);
+ expect((await db.query<{summary:{participants:number}}>("select lub.task_summary($1) summary",[task])).rows[0].summary.participants).toBe(1);
  expect((await db.query("select id from lub.application_assets where id=$1",[asset])).rows).toHaveLength(1);
  await denied(()=>db.query("select lub.delete_task($1,3)",[task]));await denied(()=>db.query("select lub.set_task_image($1,$2,3)",[task,asset]));
  await asUser(leader);await db.query("select lub.set_task_image($1,null,3)",[task]);
  expect((await db.query<{allowed:boolean}>("select lub.can_delete_application_object($1) as allowed",[key])).rows[0].allowed).toBe(false);
 });
 
-it("returns every activity task for a complete snapshot while retaining paged management reads",async()=>{
- for(let i=0;i<28;i++)await openTask();
- const paged=await listTasks(leader,{view:"available",page:0}),complete=await listTasks(leader,{view:"available",page:null});
- expect(paged.items).toHaveLength(25);expect(paged.more).toBe(true);expect(complete.items).toHaveLength(28);expect(complete.more).toBe(false);
-});
-it("returns all submissions to authorized managers but keeps student reads owner-scoped",async()=>{
- const task=await openTask();const first=await join(task);await submit(first,0);const second=await join(task,other);await submit(second,0);
- const managerView=await taskDetail(leader,task),studentView=await taskDetail(member,task),crossOwner=await taskDetail(member,task,second);
- expect(managerView?.canManage).toBe(true);expect(managerView?.submissions).toHaveLength(2);expect(studentView?.canManage).toBe(false);expect(studentView?.submissions).toHaveLength(1);expect(studentView?.history).toHaveLength(0);expect(crossOwner?.submissions).toHaveLength(0);
-});
 
-it("refreshes the actor-scoped activity fingerprint when another participant joins a managed task",async()=>{
- const task=await openTask(),before=await activityRevision(leader);await join(task,member);const after=await activityRevision(leader);expect(before).toHaveLength(32);expect(after).not.toBe(before);
-});
-
-it.each([false,true])("submits through the real server action, with attachments=%s, without awarding hours prematurely",async(withAttachment)=>{
- const task=await openTask(),p=await join(task);
- const form=new FormData();form.set("operation","submit");form.set("participant",p);form.set("message","المخرج جاهز للمراجعة");form.set("revision","2");form.set("lastRevision","0");
- if(withAttachment){const asset="00000000-0000-4000-8000-000000000399";await db.query("select lub.register_application_asset($1,$2,'work.pdf','application/pdf',100)",[asset,`${member}/${asset}`]);form.append("asset",asset);}
- const result=await mutateTask({},form);expect(result.success).toBeTruthy();expect(result.error).toBeUndefined();
- expect((await db.query("select status_code from lub.task_participants where id=$1",[p])).rows[0]).toEqual({status_code:"Submitted"});expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[p])).rows).toHaveLength(1);expect((await db.query("select id from lub.hour_records")).rows).toHaveLength(0);
-});
-
-it("returns actionable errors for empty work, stale task versions, pending reviews and other accounts",async()=>{
- const task=await openTask(),participant=await join(task);
- const form=new FormData();for(const [key,value]of Object.entries({operation:"submit",participant,message:"",revision:"2",lastRevision:"0"}))form.set(key,value);
- expect((await mutateTask({},form)).submissionError).toBe("empty");form.set("message","المخرج");form.set("revision","1");
- expect((await mutateTask({},form)).submissionError).toBe("task-changed");form.set("revision","2");
- await asUser(other);expect((await mutateTask({},form)).submissionError).toBe("access");await asUser(member);
- expect((await mutateTask({},form)).success).toBeTruthy();expect((await mutateTask({},form)).submissionError).toBe("pending");
- expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(1);
-});
-it("rejects another student's attachment without blaming task settings",async()=>{
- const task=await openTask(),participant=await join(task),asset="00000000-0000-4000-8000-000000000398";
- await asUser(other);await db.query("select lub.register_application_asset($1,$2,'work.pdf','application/pdf',100)",[asset,`${other}/${asset}`]);await asUser(member);
- const form=new FormData();for(const [key,value]of Object.entries({operation:"submit",participant,message:"المخرج",revision:"2",lastRevision:"0",asset}))form.set(key,value);
- expect((await mutateTask({},form)).submissionError).toBe("attachment");expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(0);
-});
 
 it.each(["work.pdf","تسليم عربي.pdf"])("registers %s only as display metadata with a UUID extension key",async(name)=>{
  await asUser(member);const asset="00000000-0000-4000-8000-000000000397",key=`${member}/${asset}.pdf`;
@@ -230,7 +181,6 @@ it("rejoins an own withdrawal, preserves the earlier submission and accepts a ne
  const task=await openTask(),participant=await join(task),original=await submit(participant);
  await db.query("select lub.withdraw_task_participation($1)",[participant]);
  const old=(await db.query<{id:string;message:string;withdrawn_at:string;reviewed_at:string|null}>("select id,message,withdrawn_at,reviewed_at from lub.task_submissions where id=$1",[original])).rows[0];expect(old.message).toBe("المخرج الأول");expect(old.withdrawn_at).not.toBeNull();expect(old.reviewed_at).toBeNull();
- const available=await listTasks(member,{view:"available",page:0});expect(available.items.find(row=>row.task.id===task)?.participant).toBeNull();expect((await listTasks(member,{view:"mine",page:0})).items).toHaveLength(0);
  await asUser(other);await denied(()=>db.query("select lub.withdraw_task_participation($1)",[participant]));
  expect(await join(task)).toBe(participant);const fresh=await submit(participant,1,"نسخة جديدة بعد العودة");expect(fresh).not.toBe(original);
  expect((await db.query("select id from lub.task_submissions where task_participant_id=$1",[participant])).rows).toHaveLength(2);expect((await db.query("select id from lub.task_submissions where task_participant_id=$1 and status_code='Submitted' and withdrawn_at is null",[participant])).rows).toHaveLength(1);

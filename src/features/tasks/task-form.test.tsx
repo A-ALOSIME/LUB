@@ -25,10 +25,10 @@ it("initializes editing dates in Riyadh and submits the explicit timezone",()=>{
 });
 
 it("requires a confirmation and retains the chosen creation intent",async()=>{
- save.mockClear();render(<TaskForm operation="save-task" label="حفظ" creationActions canSaveTemplate><label>العنوان<input name="title" defaultValue="تصميم منشور"/></label></TaskForm>);
- fireEvent.click(screen.getByRole("button",{name:"حفظ كقالب"}));expect(screen.getByRole("alertdialog")).toBeTruthy();expect(save).not.toHaveBeenCalled();
+ save.mockClear();render(<TaskForm operation="save-task" label="حفظ" creationActions><label>العنوان<input name="title" defaultValue="تصميم منشور"/></label></TaskForm>);
+ fireEvent.click(screen.getByRole("button",{name:"حفظ كمسودة"}));expect(screen.getByRole("alertdialog")).toBeTruthy();expect(save).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole("button",{name:"تأكيد"}));await waitFor(()=>expect(save).toHaveBeenCalledOnce());
- expect(save.mock.calls[0][1].get("intent")).toBe("template");expect(save.mock.calls[0][1].get("title")).toBe("تصميم منشور");
+ expect(save.mock.calls[0][1].get("intent")).toBe("draft");expect(save.mock.calls[0][1].get("title")).toBe("تصميم منشور");
 });
 
 it("keeps a successful inline join open without an extra Start work step",async()=>{

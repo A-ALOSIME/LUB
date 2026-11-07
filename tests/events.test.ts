@@ -2,7 +2,6 @@ import {mutateEvent} from "@/features/events/actions";
 import {getOverviewUpdates} from "@/features/organizations/overview-updates";
 vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
 vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:"00000000-0000-4000-8000-000000000001"})}));
-import {listTasks} from "@/features/tasks/repository";
 import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
@@ -169,12 +168,7 @@ it("archives events without dropping registrations and only deletes unused draft
  expect((await db.query("select id from lub.events where id=$1",[draft])).rows).toHaveLength(0);
 });
 
-it("bounds the task page and omits task descriptions and skills from list DTOs",async()=>{
- for(let i=0;i<54;i++){
-  await create();
-  await db.query("select lub.save_task(null,$1,null,null,$2,'تفاصيل لا تحملها القائمة',null,null,1,null)",[org,`مهمة ${i}`]);
- }
- const tasks=await listTasks(leader,{org,view:'all',page:0});expect(tasks.items).toHaveLength(25);expect(tasks.more).toBe(true);expect(tasks.items[0].task).not.toHaveProperty('description');expect(tasks.items[0].task).not.toHaveProperty('skills');
+it("keeps the member directory inaccessible to anonymous users",async()=>{
  await db.exec('reset role');expect((await db.query<{allowed:boolean}>("select has_function_privilege('anon','lub.organization_member_directory(uuid,text,text,uuid,integer)','execute') as allowed")).rows[0].allowed).toBe(false);
 });
 
