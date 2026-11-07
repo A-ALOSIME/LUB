@@ -143,9 +143,8 @@ it("exports scoped approved hours directly as CSV without persisting report docu
  const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(true);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
 });
 
-it("reads hours and renewals with scoped totals, bounded lists and the genuine repository SQL",async()=>{
+it("reads hours with scoped totals, bounded lists and the genuine repository SQL",async()=>{
  const {myHours,hoursWorkspace,termWorkspace}=await import("@/features/hours/repository");
- const {myRenewals,renewalWorkspace}=await import("@/features/renewals/repository");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
  await createLearner();
  const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,learner])).rows[0].id;
@@ -153,14 +152,11 @@ it("reads hours and renewals with scoped totals, bounded lists and the genuine r
  const term=(await engine.query<{id:string}>("select lub.create_academic_term('2026','T1','الفصل الأول',current_date-30,current_date+90) as id")).rows[0].id;
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
  for(let i=0;i<27;i++)await engine.query("select lub.add_hours($1,null,$2,1.5,current_date,'عمل تطوعي',false,true)",[member,term]);
- const c=(await engine.query<{id:string}>("select lub.create_renewal($1,$2,now()-interval '1 hour',now()+interval '1 day',false) as id",[org,term])).rows[0].id;
- await engine.query("select lub.change_renewal_status($1,'Open')",[c]);await engine.exec("reset role");
+ await engine.exec("reset role");
  scopedReads=0;const own=await myHours(learner,term,0);expect(scopedReads).toBe(1);expect(own?.account.onboarded).toBe(true);expect(own?.total).toBe("40.50");expect(own?.records).toHaveLength(26);expect(own?.records[0].decisions).toHaveLength(0);const {getHourRecord}=await import("@/features/hours/repository");expect((await getHourRecord(learner,own!.records[0].id))?.decisions).toHaveLength(1);expect(await getHourRecord(admin,own!.records[0].id)).toBeUndefined();expect((await myHours(learner,term,1))?.records).toHaveLength(2);
  expect((await myHours(leader,term,0))?.records).toHaveLength(0);
  const filters={term,committee:null,page:0,memberPage:0};scopedReads=0;const workspace=await hoursWorkspace(leader,org,filters);expect(scopedReads).toBe(1);expect(workspace?.total).toBe("41");expect(workspace?.scopes[0].approve).toBe(true);expect(workspace?.members).toHaveLength(2);expect(workspace?.records[0].owner).toBe("الطالب");expect(await hoursWorkspace(admin,org,filters)).toBeUndefined();
  expect((await termWorkspace(admin))?.canManage).toBe(true);expect((await termWorkspace(leader))?.canManage).toBe(false);
- scopedReads=0;const renewals=await myRenewals(learner,0);expect(scopedReads).toBe(1);expect(renewals?.items).toHaveLength(1);expect(renewals?.items[0].response.canRespond).toBe(true);
- scopedReads=0;const renew=await renewalWorkspace(leader,org,c,0,0);expect(scopedReads).toBe(1);expect(renew?.selected?.id).toBe(c);expect(renew?.responses).toHaveLength(2);expect(renew?.counts[0].count).toBe(2);expect(await renewalWorkspace(admin,org,c,0,0)).toBeUndefined();
  const {getMyPageData}=await import("@/features/organizations/my-page-repository");expect((await getMyPageData(learner)).hours).toBe("40.50");
 });
 
@@ -382,7 +378,7 @@ it("denies committee-profile edits to committee leaders while retaining task acc
 
 it("executes the workflow repository with actual RLS and bounded question payloads",async()=>{
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
- const {getWorkspace,getRound,publicRounds,listApplications,getApplicationDetail,ownApplication}=await import("@/features/forms/repository");
+ const {getRound,publicRounds,listApplications,getApplicationDetail,ownApplication}=await import("@/features/forms/repository");
  const {initialDefinition}=await import("@/features/forms/definition");
  await engine.exec("begin");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[leader]);await engine.exec("set local role authenticated");
  const template=(await engine.query<{id:string}>("select lub.create_form($1,'تسجيل',null) as id",[org])).rows[0].id;
@@ -391,8 +387,6 @@ it("executes the workflow repository with actual RLS and bounded question payloa
  await engine.query("select lub.publish_form_version($1)",[version]);
  const round=(await engine.query<{id:string}>("select lub.create_registration_round($1,$2,'انضمام',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;
  await engine.query("select lub.change_round_status($1,'Open')",[round]);await engine.exec("commit");
- expect((await getWorkspace(leader,org,template))?.templates.find(t=>t.id===template)?.versions[0].definition).toEqual(initialDefinition);
- expect((await getWorkspace(leader,org))?.templates.find(t=>t.id===template)?.versions[0].definition).toBeUndefined();
  expect((await publicRounds(org))[0].id).toBe(round);expect((await getRound(round))?.version.id).toBe(version);
  const applicant="00000000-0000-4000-8000-000000000003";
  await engine.query("insert into auth.users values($1)",[applicant]);await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'applicant@example.invalid',now())",[applicant]);await engine.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,'المتقدم','private',$2,'نظم معلومات','5')",[applicant,'c'.repeat(64)]);

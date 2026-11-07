@@ -20,14 +20,10 @@ const detailColumns=sql`lub.application_committee_labels(a.id) as committee_labe
  coalesce((select jsonb_agg(jsonb_build_object('to_status_code',h.to_status_code,'created_at',h.created_at,'reason',h.reason) order by h.created_at,h.id) from lub.application_status_history h where h.application_id=a.id),'[]') as history`;
 export async function getWorkspace(user: string, org: string, selected: string | null = null) {
  return withUser(user, async tx => {
-  const rows = await tx.execute(sql`select o.name_ar as name,(select status_code from lub.users where id=${user}) as "accountStatus",exists(select 1 from lub.student_profiles where user_id=${user}) as onboarded,
-   (select count(*)::int from lub.form_templates where organization_id=o.id) as template_count,
-   (select coalesce(jsonb_agg(c),'[]') from unnest(array['FORMS_MANAGE','REGISTRATION_ROUNDS_MANAGE','APPLICATIONS_VIEW','APPLICATIONS_REVIEW','APPLICATIONS_BULK_ACTION']) c where lub.has_org_permission(o.id,c) or exists(select 1 from lub.committees cc where cc.organization_id=o.id and lub.has_org_permission(o.id,c,cc.id))) as allowed,
-   coalesce((select jsonb_agg(t) from (select t.id,t.name,t.organization_id,lub.can_delete_form(t.id) as can_delete,(select count(*)::int from lub.events e where e.registration_form_template_id=t.id) as event_count,lub.form_last_updated(t.id) as updated_at,(select count(*)::int from lub.registration_rounds rr where rr.form_template_id=t.id) as round_count,(select count(*)::int from lub.form_versions vv where vv.form_template_id=t.id) as version_count,coalesce((select jsonb_agg(case when t.id=${selected}::uuid then to_jsonb(v) else to_jsonb(v)-'definition' end order by v.version_number desc) from (select * from lub.form_versions vv where vv.form_template_id=t.id order by vv.version_number desc limit 2) v),'[]') as versions from lub.form_templates t where t.organization_id=o.id or t.is_system_template order by (t.id=${selected}::uuid) desc,t.created_at desc,t.id limit 51) t),'[]') as templates,
-   coalesce((select jsonb_agg(r) from (select r.id,r.title,r.status_code,r.allow_withdrawal,r.minimum_approved_hours,r.allowed_majors,coalesce(r.form_template_id::text,'') as form_template_id,coalesce(r.opens_at::text,'') as opens_at,coalesce(r.closes_at::text,'') as closes_at,lub.round_is_open(r.id) as open,lub.round_application_count(r.id) as application_count from lub.registration_rounds r where r.organization_id=o.id order by r.created_at desc,r.id limit 51) r),'[]') as rounds,
-   coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.name)) from lub.committees c where c.organization_id=o.id and c.status_code='Active'),'[]') as committees
-   from lub.organizations o where o.id=${org}`);
-  return rows[0] as unknown as OrganizationRegistrationWorkspace | undefined;
+  const [row]=await tx.execute<{data:OrganizationRegistrationWorkspace|null}>(sql`
+   select lub.registration_management_page(${org},${selected}) as data
+  `);
+  return row?.data??undefined;
  });
 }
 export async function publicRounds(org: string) {

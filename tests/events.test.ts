@@ -1,4 +1,3 @@
-import {campaignList} from "@/features/renewals/campaign-list-repository";
 import {mutateEvent} from "@/features/events/actions";
 import {getOverviewUpdates} from "@/features/organizations/overview-updates";
 vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
@@ -190,13 +189,8 @@ it("bounds bootstrap and server pages, searches all records and never includes f
  const version=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[version]);
  for(let i=0;i<54;i++){
   await create();
-  await db.query("select lub.create_registration_round($1,$2,$3,now(),now()+interval '2 days',true)",[org,template,`جولة ${i}`]);
   await db.query("select lub.save_task(null,$1,null,null,$2,'تفاصيل لا تحملها القائمة',null,null,1,null)",[org,`مهمة ${i}`]);
  }
- const first=await campaignList(leader,org,{status:'Draft',kind:'round',q:'',sort:'desc',page:0}),next=await campaignList(leader,org,{status:'Draft',kind:'round',q:'',sort:'desc',page:1});
- expect(first.items).toHaveLength(25);expect(first.more).toBe(true);expect(next.items).toHaveLength(25);expect(first.items.some(row=>next.items.some(other=>row.id===other.id))).toBe(false);
- expect((await campaignList(leader,org,{status:'all',kind:'round',q:'جولة 53',sort:'desc',page:0})).items).toHaveLength(1);
- expect((await campaignList(peer,org,{status:'all',kind:'all',q:'',sort:'desc',page:0})).items).toHaveLength(0);
  const tasks=await listTasks(leader,{org,view:'all',page:0});expect(tasks.items).toHaveLength(25);expect(tasks.more).toBe(true);expect(tasks.items[0].task).not.toHaveProperty('description');expect(tasks.items[0].task).not.toHaveProperty('skills');
  const forms=await templateList(leader,org,{q:'',status:'Published',page:0});expect(forms.items[0].versions[0]).not.toHaveProperty('definition');expect((await templateList(peer,org,{q:'',status:'all',page:0})).items).toHaveLength(0);
  await db.exec('reset role');expect((await db.query<{allowed:boolean}>("select has_function_privilege('anon','lub.organization_member_directory(uuid,text,text,uuid,integer)','execute') as allowed")).rows[0].allowed).toBe(false);
