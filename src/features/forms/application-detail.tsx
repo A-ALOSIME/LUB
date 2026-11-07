@@ -1,8 +1,7 @@
 
 import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
-import { ExternalLink, LockKeyhole } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
 import { RequestStatusBadge } from "./request-status-badge";
 import type { Detail } from "./repository";
 import type { Locale } from "@/lib/preferences";
@@ -80,22 +79,6 @@ export function ApplicationDetail({
             );
           })}
       </dl>
-      {detail.messages.length > 0 && (
-        <section>
-          <h2 className="font-medium">
-            {translateUi((en) ? "en" : "ar", "رسائل المقابلة", "Interview messages")}
-          </h2>
-          {detail.messages.map((m, i) => (
-            <p
-              key={i}
-              dir="auto"
-              className="mt-3 whitespace-pre-wrap leading-relaxed"
-            >
-              <ContentText value={m.body}/>
-            </p>
-          ))}
-        </section>
-      )}
       <section>
         <h2 className="font-medium">
           {translateUi((en) ? "en" : "ar", "سجل الطلب", "Application history")}
@@ -119,27 +102,7 @@ export function ApplicationDetail({
           ))}
         </ol>
       </section>
-      {detail.canReview && detail.notes.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LockKeyhole className="size-4" />
-              {translateUi((en) ? "en" : "ar", "للمراجعين فقط", "Reviewers only")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {detail.notes.map((n, i) => (
-              <p
-                key={i}
-                dir="auto"
-                className="whitespace-pre-wrap leading-relaxed"
-              >
-                <ContentText value={n.body}/>
-              </p>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   );
 }

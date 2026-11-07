@@ -2,8 +2,8 @@ CREATE FUNCTION lub.round_list_item(c lub.membership_campaigns) RETURNS jsonb LA
  SELECT jsonb_build_object('id',c.id,'title',c.title,'status_code',c.status_code,'allow_withdrawal',c.allow_withdrawal,
   'minimum_approved_hours',c.minimum_hours,'allowed_majors',c.allowed_majors,'form_template_id',coalesce(c.form_id::text,''),
   'opens_at',coalesce(c.opens_at::text,''),'closes_at',coalesce(c.closes_at::text,''),'open',lub.round_is_open(c.id),
-  'application_count',(SELECT count(*) FROM lub.membership_cases a JOIN lub.users u ON u.id=a.user_id
-   WHERE a.campaign_id=c.id AND NOT u.is_test_account AND lub.is_student_account(u.id)));
+  'application_count',CASE WHEN lub.has_org_permission(c.organization_id,'REGISTRATION_ROUNDS_MANAGE') THEN (SELECT count(*) FROM lub.membership_cases a JOIN lub.users u ON u.id=a.user_id
+   WHERE a.campaign_id=c.id AND NOT u.is_test_account AND lub.is_student_account(u.id)) ELSE 0 END);
 $$;
 
 CREATE FUNCTION lub.renewal_list_item(c lub.membership_campaigns,org_name text) RETURNS jsonb LANGUAGE sql STABLE SET search_path='' AS $$

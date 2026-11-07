@@ -9,15 +9,9 @@ export type Template = { id: string; name: string; organization_id: string | nul
 export type Version = { id: string; version_number: number; status_code: string; revision: number; definition: FormDefinition };
 export type Round = { minimum_approved_hours?:string|number;allowed_majors?:string[]; id: string; title: string; status_code: string; opens_at: string; closes_at: string; form_template_id: string; allow_withdrawal: boolean; open: boolean; application_count?:number };
 export type Application = { id: string; status_code: string; created_at: string; title: string; round_id: string; slug: string; organization_name: string; name: string; major: string; level: string; committee: string | null; round_open: boolean; allow_withdrawal: boolean; has_active_application: boolean; has_newer_application: boolean; canReview: boolean; canBulk: boolean };
-export type Detail = { id: string; organization_id:string; canStaff:boolean; status_code: string; version: Version; response_revision: number; answers: Answers; requested_committee_id: string | null; committee_labels?:{legacy:string|null;answers:Record<string,string>}; messages: Array<{ body: string; created_at: string }>; notes: Array<{ body: string; created_at: string }>; history: Array<{ to_status_code: string; created_at: string; reason: string | null }>; canReview: boolean };
+export type Detail = { id: string; organization_id:string; canStaff:boolean; status_code: string; version: Version; response_revision: number; answers: Answers; requested_committee_id: string | null; committee_labels?:{legacy:string|null;answers:Record<string,string>}; history: Array<{ to_status_code: string; created_at: string; reason: string | null }>; canReview: boolean };
 type Readiness={accountStatus:string|null;onboarded:boolean};
 export type OrganizationRegistrationWorkspace = Readiness & { name: string; allowed: string[]; templates: Template[]; template_count?:number;rounds: Round[]; committees: Array<{ id: string; name: string }> };
-const detailColumns=sql`lub.application_committee_labels(a.id) as committee_labels,a.id,r.organization_id,a.status_code,a.requested_committee_id,f.answers,f.revision as response_revision,to_jsonb(v) as version,
- lub.can_read_application(a.id,'APPLICATIONS_REVIEW') as "canReview",
- (lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION')) as "canStaff",
- coalesce((select jsonb_agg(m order by m.created_at) from lub.application_messages m where m.application_id=a.id),'[]') as messages,
- coalesce((select jsonb_agg(n order by n.created_at) from lub.application_internal_notes n where n.application_id=a.id),'[]') as notes,
- coalesce((select jsonb_agg(jsonb_build_object('to_status_code',h.to_status_code,'created_at',h.created_at,'reason',h.reason) order by h.created_at,h.id) from lub.application_status_history h where h.application_id=a.id),'[]') as history`;
 export async function getWorkspace(user: string, org: string, selected: string | null = null) {
  return withUser(user, async tx => {
   const [row]=await tx.execute<{data:OrganizationRegistrationWorkspace|null}>(sql`
@@ -26,125 +20,70 @@ export async function getWorkspace(user: string, org: string, selected: string |
   return row?.data??undefined;
  });
 }
-export async function publicRounds(org: string) {
- return withVisitor(async tx => {
-  const rows = await tx.execute(sql`select id,title,status_code,opens_at,closes_at,form_template_id,allow_withdrawal,lub.round_is_open(id) as open from lub.registration_rounds where organization_id=${org} and status_code='Open' and closes_at>statement_timestamp() order by opens_at limit 1`);
-  return rows as unknown as Round[];
+export async function publicRounds(org:string) {
+ return withVisitor(async tx=>{
+  const [row]=await tx.execute<{data:Round|null}>(sql`select lub.public_registration_round(${org}) as data`);
+  return row?.data?[row.data]:[];
  });
 }
-export async function getRound(round: string, user?: string) {
- const read = async (tx: import("@/db/client").Transaction) => {
-  const rows = await tx.execute(sql`select r.*,o.slug,o.name_ar as name,lub.round_is_open(r.id) as open,
-   ${user?sql`(select status_code from lub.users where id=${user})`:sql`null`} as "accountStatus",
-   ${user?sql`exists(select 1 from lub.student_profiles where user_id=${user})`:sql`false`} as onboarded,
-   ${user?sql`(select to_jsonb(d) from (select ${detailColumns} from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.form_responses f on f.id=a.form_response_id join lub.form_versions v on v.id=f.form_version_id where a.registration_round_id=${round} and a.applicant_user_id=${user} order by case when a.status_code='Withdrawn' then 1 else 0 end,a.created_at desc,a.id desc limit 1) d)`:sql`null`} as application,
-   (select to_jsonb(v) from lub.form_versions v where v.form_template_id=r.form_template_id and v.status_code='Published' order by v.version_number desc limit 1) as version,
-   coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.name)) from lub.form_committee_options(r.organization_id) c),'[]') as committees from lub.registration_rounds r join lub.organizations o on o.id=r.organization_id where r.id=${round}`);
-  return rows[0] as unknown as (Readiness & Round & { application:Detail|null;slug: string; name: string; version: Version; committees: Array<{ id: string; name: string }> }) | undefined;
+type RegistrationRoundPage=Readiness&Round&{organization_id:string;application:Detail|null;slug:string;name:string;version:Version|null;committees:Array<{id:string;name:string}>;canReapply:boolean};
+export async function getRound(round:string,user?:string) {
+ const read=async(tx:import("@/db/client").Transaction)=>{
+  const [row]=await tx.execute<{data:RegistrationRoundPage|null}>(sql`select lub.registration_round_page(${round}) as data`);
+  return row?.data??undefined;
  };
- return user ? withUser(user, read) : withVisitor(read);
+ return user?withUser(user,read):withVisitor(read);
 }
 export async function getApplicationDetail(user:string,application:string){return withUser(user,async tx=>{const rows=await tx.execute<{detail:Detail&{campaign_title:string;created_at:string}|null}>(sql`select lub.application_detail(${application},false) detail`);return rows[0]?.detail??undefined;});}
 export async function ownApplication(user: string, round: string) {
- return withUser(user, async tx => { const rows = await tx.execute(sql`select id from lub.membership_applications where applicant_user_id=${user} and registration_round_id=${round}`); return rows[0]?.id as string | undefined; });
+ return withUser(user,async tx=>{
+  const [row]=await tx.execute<{id:string}>(sql`
+   select id from lub.membership_cases where kind='Registration' and user_id=auth.uid() and campaign_id=${round}
+   order by submitted_at desc,id desc limit 1
+  `);
+  return row?.id;
+ });
 }
 export type Filters = { q: string; status: string; committee: string; major: string; level: string; from: string; to: string; page: number; lookup: string; activity?: string;round?:string };
 export type OrganizationApplicationStatusCounts = { all: number; submitted: number; accepted: number; rejected: number; interview: number;withdrawn?:number };
-export async function countOrganizationApplicationStatuses(user: string, org: string, filters: Filters): Promise<OrganizationApplicationStatusCounts> {
- return withUser(user, async tx => {
-  const rows = await tx.execute(sql`select count(*)::int as "all",
-   count(*) filter (where a.status_code='Submitted')::int as submitted,
-   count(*) filter (where a.status_code='Accepted')::int as accepted,
-   count(*) filter (where a.status_code='Rejected')::int as rejected,
-   count(*) filter (where a.status_code='Interview')::int as interview,count(*) filter(where a.status_code='Withdrawn')::int as withdrawn
-   from lub.membership_applications a
-   join lub.registration_rounds r on r.id=a.registration_round_id
-   join lub.organizations o on o.id=r.organization_id
-   join lateral lub.application_profiles(o.id) p on p.application_id=a.id
-   where o.id=${org} and lub.is_counted_student(a.applicant_user_id)
-   and (lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))
-   and (${filters.q}='' or position(lower(${filters.q}) in lower(p.full_name))>0)
-   and (${filters.round??""}='' or r.id::text=${filters.round??""})
-   and (${filters.committee}='' or a.requested_committee_id::text=${filters.committee})
-   and (${filters.major}='' or p.major=${filters.major}) and (${filters.level}='' or p.level=${filters.level})
-   and (${filters.lookup}='' or p.university_lookup=${filters.lookup})
-   and (${filters.from}='' or a.created_at>=nullif(${filters.from},'')::date)
-   and (${filters.to}='' or a.created_at<nullif(${filters.to},'')::date+interval '1 day')
-   and (${filters.activity ?? ""}='' or (${filters.activity ?? ""}='prior' and exists(select 1 from lub.application_prior_member(a.id))) or (${filters.activity ?? ""}='first' and not exists(select 1 from lub.application_prior_member(a.id))))`);
-  const counts = rows[0] as Record<keyof OrganizationApplicationStatusCounts, number | string>;
-  return { all: Number(counts.all ?? 0), submitted: Number(counts.submitted ?? 0), accepted: Number(counts.accepted ?? 0), rejected: Number(counts.rejected ?? 0), interview: Number(counts.interview ?? 0),withdrawn:Number(counts.withdrawn??0) };
+type ApplicationPage={items:Application[];counts:OrganizationApplicationStatusCounts};
+async function readApplications(user:string,org:string|null,filters:Filters|null,pageSize:number){
+ return withUser(user,async tx=>{
+  const [row]=await tx.execute<{data:ApplicationPage}>(sql`
+   select lub.application_list(${org},${JSON.stringify(filters??{})}::jsonb,${((filters?.page??1)-1)*25},${pageSize}) as data
+  `);
+  return row.data;
  });
 }
-export type OwnApplicationCounts = { all: number; review: number; accepted: number; rejected: number; withdrawn: number;interview?:number };
-export async function countOwnApplications(user: string): Promise<OwnApplicationCounts> {
- return withUser(user, async tx => {
-  const rows = await tx.execute(sql`select count(*) as "all",
-   count(*) filter (where status_code='Submitted') as review,count(*) filter (where status_code='Interview') as interview,
-   count(*) filter (where status_code='Accepted') as accepted,
-   count(*) filter (where status_code='Rejected') as rejected,
-   count(*) filter (where status_code='Withdrawn') as withdrawn
-   from lub.membership_applications where applicant_user_id=${user}`);
-  const counts = rows[0] as Record<keyof OwnApplicationCounts, number | string>;
-  return {
-   all: Number(counts.all ?? 0),
-   review: Number(counts.review ?? 0),
-   accepted: Number(counts.accepted ?? 0),
-   rejected: Number(counts.rejected ?? 0),
-   withdrawn: Number(counts.withdrawn ?? 0),
-  };
- });
+export async function countOrganizationApplicationStatuses(user:string,org:string,filters:Filters){
+ return (await readApplications(user,org,filters,0)).counts;
 }
-export async function listApplications(user: string, org?: string, filters?: Filters) {
- return withUser(user, async tx => {
-  const rows = await tx.execute(sql`select a.id,a.status_code,a.created_at,r.title,r.id as round_id,o.slug,o.name_ar as organization_name,p.full_name as name,p.major,p.level,c.name as committee,r.allow_withdrawal,lub.round_is_open(r.id) as round_open,
-   exists(select 1 from lub.membership_applications active_application where active_application.registration_round_id=a.registration_round_id and active_application.applicant_user_id=a.applicant_user_id and active_application.id<>a.id and active_application.status_code<>'Withdrawn') as has_active_application,
-   exists(select 1 from lub.membership_applications newer_application where newer_application.registration_round_id=a.registration_round_id and newer_application.applicant_user_id=a.applicant_user_id and (newer_application.created_at>a.created_at or (newer_application.created_at=a.created_at and newer_application.id>a.id))) as has_newer_application,
-   lub.can_read_application(a.id,'APPLICATIONS_REVIEW') as "canReview",lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION') as "canBulk"
-   from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.organizations o on o.id=r.organization_id
-   join lateral lub.application_profiles(o.id) p on p.application_id=a.id left join lub.committees c on c.id=a.requested_committee_id
-   where ${org ? sql`o.id=${org}` : sql`a.applicant_user_id=${user}`}
-   and ${org ? sql`(lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))` : sql`true`}
-   and (${filters?.q ?? ""}='' or position(lower(${filters?.q ?? ""}) in lower(p.full_name))>0)
-   and (${filters?.status ?? ""}='' or a.status_code=${filters?.status ?? ""} or (${filters?.status ?? ""}='review' and a.status_code in ('Submitted','Interview')))
-   and (${filters?.round??""}='' or r.id::text=${filters?.round??""})
-   and (${filters?.committee ?? ""}='' or a.requested_committee_id::text=${filters?.committee ?? ""})
-   and (${filters?.major ?? ""}='' or p.major=${filters?.major ?? ""}) and (${filters?.level ?? ""}='' or p.level=${filters?.level ?? ""})
-   and (${filters?.lookup ?? ""}='' or p.university_lookup=${filters?.lookup ?? ""})
-   and (${filters?.from ?? ""}='' or a.created_at>=nullif(${filters?.from ?? ""},'')::date)
-   and (${filters?.to ?? ""}='' or a.created_at<nullif(${filters?.to ?? ""},'')::date+interval '1 day')
-   and (${filters?.activity ?? ""}='' or (${filters?.activity ?? ""}='prior' and exists(select 1 from lub.application_prior_member(a.id))) or (${filters?.activity ?? ""}='first' and not exists(select 1 from lub.application_prior_member(a.id))))
-   order by a.created_at desc,a.id limit 26 offset ${((filters?.page ?? 1)-1)*25}`);
-  return rows as unknown as Application[];
- });
+export type OwnApplicationCounts={all:number;review:number;accepted:number;rejected:number;withdrawn:number;interview?:number};
+export async function countOwnApplications(user:string):Promise<OwnApplicationCounts>{
+ const {counts}=await readApplications(user,null,null,0);
+ return {all:counts.all,review:counts.submitted,interview:counts.interview,accepted:counts.accepted,rejected:counts.rejected,withdrawn:counts.withdrawn??0};
+}
+export async function listApplications(user:string,org?:string,filters?:Filters){
+ return (await readApplications(user,org??null,filters??null,26)).items;
 }
 
 export async function getOwnApplicationDetail(user:string,application:string){return withUser(user,async tx=>{const rows=await tx.execute<{detail:(Detail&{campaign_title:string;created_at:string})|null}>(sql`select lub.application_detail(${application},true) detail`);return rows[0]?.detail??undefined;});}
 
-export type RegistrationReadiness={active:boolean;onboarded:boolean;hours:number;major:string|null;member:boolean;application:{id:string;status_code:string}|null};
+export type RegistrationReadiness={active:boolean;onboarded:boolean;hours:number;major:string|null;member:boolean;canReapply?:boolean;application:{id:string;status_code:string}|null};
 export async function registrationReadiness(user:string,organization:string,round:string|null):Promise<RegistrationReadiness>{
- return withUser(user,async tx=>{const [row]=await tx.execute(sql`select u.status_code='Active' and u.email_verified_at is not null as active,p.user_id is not null as onboarded,p.major_name as major,coalesce((select sum(h.hours) from lub.hour_records h join lub.organization_memberships m on m.id=h.organization_membership_id where m.user_id=${user} and h.status_code='Approved'),0)::text as hours,exists(select 1 from lub.organization_memberships m where m.organization_id=${organization} and m.user_id=${user} and m.status_code='Active' and m.start_date<=current_date and (m.end_date is null or m.end_date>current_date)) as member,(select jsonb_build_object('id',a.id,'status_code',a.status_code) from lub.membership_applications a where a.applicant_user_id=${user} and a.registration_round_id=${round}::uuid order by a.created_at desc,a.id desc limit 1) as application from lub.users u left join lub.student_profiles p on p.user_id=u.id where u.id=${user}`);return {...row,hours:Number(row?.hours??0)} as RegistrationReadiness;});
+ return withUser(user,async tx=>{
+  const [row]=await tx.execute<{data:RegistrationReadiness|null}>(sql`select lub.registration_readiness(${organization},${round}) as data`);
+  return row?.data??{active:false,onboarded:false,hours:0,major:null,member:false,application:null};
+ });
+}
+export async function managedRound(user:string,org:string,id:string){
+ return withUser(user,async tx=>{
+  const [row]=await tx.execute<{data:Round|null}>(sql`select lub.managed_registration_round(${org},${id}) as data`);
+  return row?.data??undefined;
+ });
 }
 
-export async function managedRound(user:string,org:string,id:string){return withUser(user,async tx=>{const rows=await tx.execute(sql`select r.*,lub.round_is_open(r.id) as open,lub.round_application_count(r.id) as application_count from lub.registration_rounds r where r.organization_id=${org} and r.id=${id} and lub.has_org_permission(${org},'REGISTRATION_ROUNDS_MANAGE')`);return rows[0] as unknown as Round|undefined;});}
-
-export async function organizationApplicationPage(user:string,org:string,filters:Filters){return withUser(user,async tx=>{
- const rows=await tx.execute(sql`with profiles as materialized (select * from lub.application_profiles(${org})),source as materialized (select not lub.is_counted_student(a.applicant_user_id) as "isTest",a.id,a.status_code,a.created_at,r.title,r.id as round_id,o.slug,o.name_ar as organization_name,p.full_name as name,p.major,p.level,c.name as committee,r.allow_withdrawal,lub.round_is_open(r.id) as round_open,
-   exists(select 1 from lub.membership_applications active_application where active_application.registration_round_id=a.registration_round_id and active_application.applicant_user_id=a.applicant_user_id and active_application.id<>a.id and active_application.status_code<>'Withdrawn') as has_active_application,
-   exists(select 1 from lub.membership_applications newer_application where newer_application.registration_round_id=a.registration_round_id and newer_application.applicant_user_id=a.applicant_user_id and (newer_application.created_at>a.created_at or (newer_application.created_at=a.created_at and newer_application.id>a.id))) as has_newer_application,
-   lub.can_read_application(a.id,'APPLICATIONS_REVIEW') as "canReview",lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION') as "canBulk"
-   from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id join lub.organizations o on o.id=r.organization_id
-   join profiles p on p.application_id=a.id left join lub.committees c on c.id=a.requested_committee_id
-   where ${org ? sql`o.id=${org}` : sql`a.applicant_user_id=${user}`}
-   and ${org ? sql`(lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW') or lub.has_org_permission(r.organization_id,'APPLICATIONS_VIEW',a.requested_committee_id) or lub.can_read_application(a.id,'APPLICATIONS_REVIEW') or lub.can_read_application(a.id,'APPLICATIONS_BULK_ACTION'))` : sql`true`}
-   and (${filters?.q ?? ""}='' or position(lower(${filters?.q ?? ""}) in lower(p.full_name))>0)
-   and (${filters?.round??""}='' or r.id::text=${filters?.round??""})
-   and (${filters?.committee ?? ""}='' or a.requested_committee_id::text=${filters?.committee ?? ""})
-   and (${filters?.major ?? ""}='' or p.major=${filters?.major ?? ""}) and (${filters?.level ?? ""}='' or p.level=${filters?.level ?? ""})
-   and (${filters?.lookup ?? ""}='' or p.university_lookup=${filters?.lookup ?? ""})
-   and (${filters?.from ?? ""}='' or a.created_at>=nullif(${filters?.from ?? ""},'')::date)
-   and (${filters?.to ?? ""}='' or a.created_at<nullif(${filters?.to ?? ""},'')::date+interval '1 day')
-   and (${filters?.activity ?? ""}='' or (${filters?.activity ?? ""}='prior' and exists(select 1 from lub.application_prior_member(a.id))) or (${filters?.activity ?? ""}='first' and not exists(select 1 from lub.application_prior_member(a.id))))),filtered as(select * from source where ${filters.status}='' or status_code=${filters.status})
- select coalesce((select jsonb_agg(row) from (select * from filtered order by created_at desc,id limit 26 offset ${(filters.page-1)*25}) row),'[]') as items,
- (select jsonb_build_object('all',count(*)::int,'submitted',count(*) filter(where status_code='Submitted')::int,'interview',count(*) filter(where status_code='Interview')::int,'accepted',count(*) filter(where status_code='Accepted')::int,'rejected',count(*) filter(where status_code='Rejected')::int,'withdrawn',count(*) filter(where status_code='Withdrawn')::int) from source where not "isTest") as counts`);
- const data=rows[0] as unknown as {items:Application[];counts:OrganizationApplicationStatusCounts};return {...data,items:data.items.slice(0,25),more:data.items.length>25};
-});}
+export async function organizationApplicationPage(user:string,org:string,filters:Filters){
+ const {items,counts}=await readApplications(user,org,filters,26);
+ return {items:items.slice(0,25),counts,more:items.length>25};
+}

@@ -19,6 +19,7 @@ export function ApplicationForm({
   initial = {},
   application,
   revision,
+  formRevision,
   committees,
   event,
   mutation,
@@ -32,6 +33,7 @@ export function ApplicationForm({
   initial?: Answers;
   application?: string;
   revision?: number;
+  formRevision?:number;
   committees: Array<{ id: string; name: string }>;
   event?: string;
   mutation?: Parameters<typeof WorkflowForm>[0]["mutation"];
@@ -86,6 +88,7 @@ export function ApplicationForm({
         version,
         answers: JSON.stringify(answers),
         ...(event ? { event, revision: String(revision ?? "") } : {}),
+        ...(formRevision!==undefined ? {formRevision:String(formRevision)} : {}),
         ...(application ? { application, revision: String(revision) } : {}),
       }}
       label={

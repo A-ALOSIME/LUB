@@ -1,11 +1,41 @@
 import { PGlite } from "@electric-sql/pglite";
+import {PgDialect} from "drizzle-orm/pg-core";
+import type {SQL} from "drizzle-orm";
 import { readFileSync } from "node:fs";
-import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { FormDefinition } from "@/features/forms/definition";
 
 const id = (n: number) => `20000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-let db: PGlite;
+let db: PGlite, currentUser:string, reads:number;
+const dialect=new PgDialect();
+type Executor={execute:(query:SQL)=>Promise<Record<string,unknown>[]>};
+async function scoped<T>(user:string|null,run:(tx:Executor)=>Promise<T>){
+ await db.exec("savepoint source_workflow");
+ try {
+  await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role',$2,true)",[user??"",user?"authenticated":"anon"]);
+  const value=await run({execute:async statement=>{
+   reads++;
+   const query=dialect.sqlToQuery(statement);
+   return (await db.query<Record<string,unknown>>(query.sql,query.params)).rows;
+  }});
+  await db.exec("release savepoint source_workflow");
+  return value;
+ } catch(error) {
+  await db.exec("rollback to savepoint source_workflow;release savepoint source_workflow");
+  throw error;
+ }
+}
+vi.mock("server-only",()=>({}));
+vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
+vi.mock("@/db/client",()=>({withUser:scoped,withVisitor:<T>(run:(tx:Executor)=>Promise<T>)=>scoped(null,run)}));
+vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:currentUser})}));
+vi.mock("@/features/auth/authorization",()=>({studentOperationError:async()=>undefined}));
+import {mutateWorkflow} from "@/features/forms/actions";
+import {getRound,publicRounds,getApplicationDetail,getOwnApplicationDetail,ownApplication,registrationReadiness,listApplications,organizationApplicationPage} from "@/features/forms/repository";
+import {ownRequestPage} from "@/features/forms/own-request-repository";
+import {formPreview,templateList} from "@/features/forms/template-list-repository";
 async function actor(n: number) {
+  currentUser=id(n);
   await db.exec("reset role"); await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)", [id(n)]);
 }
 async function denied(run: () => Promise<unknown>) {
@@ -21,10 +51,10 @@ const definition = (): FormDefinition => ({ layout: "SinglePage", sections: [{ i
 beforeAll(async () => {
   db = new PGlite();
   await db.exec("create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;");
-  for (const file of ["schema18.sql", "administration18.sql", "forms18.sql", "form-library18.sql", "campaigns18.sql"]) await db.exec(readFileSync(`scripts/schema-simplification/${file}`, "utf8"));
+  for (const file of ["schema18.sql", "administration18.sql", "forms18.sql", "form-library18.sql", "campaigns18.sql","renewals18.sql","campaign-reads18.sql","application-reads18.sql"]) await db.exec(readFileSync(`scripts/schema-simplification/${file}`, "utf8"));
 }, 30000);
 beforeEach(async () => {
-  await db.exec("begin");
+  reads=0;await db.exec("begin");
   for (let n = 1; n <= 3; n++) {
     await db.query("insert into auth.users values($1)", [id(n)]);
     await db.query("insert into lub.users(id,email,email_verified_at,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level,onboarded_at) values($1,$2,now(),'طالب اختبار','encrypted',$3,'نظم معلومات','5',now())", [id(n), `form18-${n}@example.invalid`, String(n).repeat(64)]);
@@ -106,14 +136,14 @@ async function publishedRound() {
   const round = (await db.query<{ id: string }>("select lub.save_registration_round(null,$1,$2,'جولة التسجيل',now()-interval '1 hour',now()+interval '1 day',true,true) id", [id(100), form])).rows[0].id;
   return { form, round };
 }
-async function submit(round: string, form: string, text: string, application: string | null = null, revision: number | null = null) {
+async function submit(round: string, form: string, text: string, application: string | null = null, revision = 2) {
   return (await db.query<{ id: string }>("select lub.submit_application($1,$2,$3::jsonb,null,$4,$5) id", [round, form, JSON.stringify({ [id(801)]: true, [id(802)]: text }), application, revision])).rows[0].id;
 }
 it("keeps the actual submitted question snapshot after edits and uses the new definition for later applicants", async () => {
   const { form, round } = await publishedRound(); await actor(2); const first = await submit(round, form, "إجابة أولى");
   await actor(1); const edited = definition(); edited.sections[0].fields[1].label = "حدثنا عن خبرتك";
   await db.query("select lub.save_form_draft($1,$2::jsonb,2)", [form, JSON.stringify(edited)]);
-  await actor(3); const second = await submit(round, form, "إجابة ثانية");
+  await actor(3); await denied(()=>submit(round,form,"نسخة قديمة")); const second = await submit(round, form, "إجابة ثانية",null,3);
   await actor(2); await submit(round, form, "عدّلت إجابتي", first, 1);
   await denied(() => submit(round, form, "تعديل قديم", first, 1));
   await denied(() => submit(round, form, "طلب مكرر"));
@@ -159,4 +189,82 @@ it("rejects attempts to rewrite a submitted question snapshot or detach its answ
   const { form, round } = await publishedRound(); await actor(2); const application = await submit(round, form, "إجابتي");
   await db.exec("reset role"); await denied(() => db.query("update lub.membership_cases set form_snapshot='{}' where id=$1", [application]));
   await denied(() => db.query("update lub.membership_cases set answers=$2::jsonb where id=$1", [application, JSON.stringify({ [id(999)]: "حقل غير معروف" })]));
+});
+
+function fields(values:Record<string,string>){
+ const form=new FormData();for(const [name,value] of Object.entries(values))form.set(name,value);return form;
+}
+
+it("uses the real application action and scopes the published round, current questions and submitted answers",async()=>{
+ const {form,round}=await publishedRound();
+ expect((await publicRounds(id(100))).map(item=>item.id)).toEqual([round]);
+ expect(await getRound(round)).toMatchObject({version:{id:form,revision:2},application:null,canReapply:false});
+ expect(await registrationReadiness(id(1),id(100),round)).toMatchObject({active:true,onboarded:true,hours:0,member:true,application:null});
+ await actor(2);
+ const input=fields({operation:"submit",round,version:form,formRevision:"2",answers:JSON.stringify({[id(801)]:true,[id(802)]:"أرغب في المشاركة"})});
+ expect((await mutateWorkflow({},input)).success).toBeDefined();
+ const application=(await ownApplication(id(2),round))!;
+ expect(await getApplicationDetail(id(2),application)).toMatchObject({id:application,canStaff:false,answers:{[id(802)]:"أرغب في المشاركة"}});
+ expect(await getOwnApplicationDetail(id(1),application)).toBeUndefined();
+ expect(await getApplicationDetail(id(3),application)).toBeUndefined();
+ expect(await getApplicationDetail(id(1),application)).toMatchObject({canStaff:true,canReview:true,history:[{to_status_code:"Submitted"}]});
+ expect((await listApplications(id(1),id(100)))[0]).toMatchObject({id:application,name:"طالب اختبار"});
+ expect((await getRound(round))?.application).toBeNull();
+ await actor(1);
+ const updated=definition();updated.sections[0].fields[1].label="سؤال جديد";
+ await db.query("select lub.save_form_draft($1,$2,2)",[form,JSON.stringify(updated)]);
+ await actor(3);expect((await mutateWorkflow({},input)).error).toBeDefined();
+ await actor(2);input.set("application",application);input.set("revision","1");
+ expect((await mutateWorkflow({},input)).success).toBeDefined();
+ expect((await getRound(round,id(2)))?.application?.version.definition).toEqual(definition());
+ expect((await mutateWorkflow({},fields({operation:"withdraw",application}))).success).toBeDefined();
+ expect(await getRound(round,id(2))).toMatchObject({canReapply:true,application:{status_code:"Withdrawn"}});
+ input.delete("application");input.set("formRevision","3");
+ expect((await mutateWorkflow({},input)).success).toBeDefined();
+ expect((await getRound(round,id(2)))?.application?.version.definition).toEqual(updated);
+ await actor(1);
+ await db.query("select lub.change_round_status($1,'Closed')",[round]);
+ expect(await getRound(round)).toBeUndefined();
+ expect(await getRound(round,id(3))).toBeUndefined();
+ expect(await getRound(round,id(2))).toMatchObject({open:false,canReapply:false,version:{definition:updated}});
+});
+
+it("preserves leader requirements atomically when the registration editor submits a draft",async()=>{
+ const input=fields({operation:"create-round",org:id(100),title:"جولة بشروط",intent:"draft","requirements-present":"on",minimumHours:"12.5",allowedMajor:"نظم معلومات"});
+ expect((await mutateWorkflow({},input)).success).toBeDefined();
+ const current=async()=> (await db.query<{id:string;title:string;minimum_hours:string;allowed_majors:string[]}>("select id,title,minimum_hours,allowed_majors from lub.membership_campaigns where organization_id=$1",[id(100)])).rows[0];
+ const created=await current();
+ expect(created).toMatchObject({title:"جولة بشروط",minimum_hours:"12.50",allowed_majors:["نظم معلومات"]});
+ input.set("operation","save-round");input.set("round",created.id);input.set("title","لا يُحفظ");input.set("allowedMajor","تخصص غير صالح");
+ expect((await mutateWorkflow({},input)).error).toBeDefined();expect(await current()).toEqual(created);
+ input.set("title","جولة محدثة");input.delete("allowedMajor");input.set("minimumHours","0");
+ expect((await mutateWorkflow({},input)).success).toBeDefined();
+ expect(await current()).toMatchObject({title:"جولة محدثة",minimum_hours:"0.00",allowed_majors:[]});
+});
+
+it("keeps list projections bounded and returns scoped counts, preview and personal request tabs",async()=>{
+ const filters={q:"",status:"",committee:"",major:"",level:"",from:"",to:"",page:1,lookup:"",round:"",activity:""};
+ expect(await organizationApplicationPage(id(1),id(100),filters)).toEqual({items:[],counts:{all:0,submitted:0,interview:0,accepted:0,rejected:0,withdrawn:0},more:false});
+ const {form,round}=await publishedRound();
+ expect((await templateList(id(1),id(100),{q:"",status:"Published",page:0})).items[0].versions[0]).not.toHaveProperty("definition");
+ expect((await formPreview(id(1),id(100),form))?.version.definition).toEqual(definition());
+ expect((await templateList(id(3),id(100),{q:"",status:"all",page:0})).items).toEqual([]);
+ expect(await formPreview(id(3),id(100),form)).toBeUndefined();
+ await actor(2);const application=await submit(round,form,"أرغب في المشاركة");
+ reads=0;const populated=await organizationApplicationPage(id(1),id(100),filters);expect(reads).toBe(1);
+ expect(populated.items).toHaveLength(1);expect(populated.counts).toMatchObject({all:1,submitted:1,interview:0});
+ expect(populated.items[0]).toMatchObject({id:application,name:"طالب اختبار",status_code:"Submitted"});
+ expect(populated.items[0]).not.toHaveProperty("answers");expect(populated.items[0]).not.toHaveProperty("avatar");
+ expect(await organizationApplicationPage(id(1),id(100),{...filters,status:"Accepted"})).toMatchObject({items:[],counts:{submitted:1}});
+ expect(await organizationApplicationPage(id(3),id(100),filters)).toMatchObject({items:[],counts:{all:0}});
+ await db.exec("reset role");
+ await db.query("insert into lub.organization_opening_requests(applicant_user_id,name_ar,type_code,summary,mission) values($1,'نادي بحث','Club','نبذة','رسالة الجهة')",[id(2)]);
+ const request={q:"",sort:"desc" as const,status:"all",page:0};
+ expect(await ownRequestPage(id(2),{...request,tab:"organizations"})).toMatchObject({total:1,items:[{status:"Pending",canWithdraw:true}]});
+ expect((await ownRequestPage(id(3),{...request,tab:"organizations"})).items).toEqual([]);
+ expect((await ownRequestPage(id(2),{...request,tab:"applications"})).items).toMatchObject([{id:application,status:"Submitted"}]);
+ expect((await ownRequestPage(id(3),{...request,tab:"applications"})).items).toEqual([]);
+ expect((await ownRequestPage(id(2),{...request,tab:"renewals"})).items).toEqual([]);
+ expect((await ownRequestPage(id(2),{...request,q:"بحث",tab:"organizations"})).total).toBe(1);
+ expect((await ownRequestPage(id(2),{...request,status:"Accepted",tab:"organizations"})).items).toEqual([]);
 });

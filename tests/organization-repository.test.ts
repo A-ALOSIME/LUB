@@ -125,7 +125,6 @@ it("combines public organization sections in one select and keeps eligibility se
  await engine.query("insert into lub.committees(organization_id,name,is_public) select $1,'لجنة '||i,true from generate_series(1,26)i",[org]);
  visitorSelects=0;const detail=await getPublicOrganization('tech');expect(visitorSelects).toBe(1);expect(detail?.upcomingEvents.map(e=>e.id)).toEqual([event]);expect(detail?.rounds).toEqual([{id:round,title:'التسجيل المفتوح',open:true,status_code:'Open',minimum_approved_hours:0,allowed_majors:[],opens_at:expect.any(String),closes_at:expect.any(String)}]);expect(detail?.moreCommittees).toBe(false);expect(detail?.committees).toHaveLength(27);
  expect((await getPublicDirectory(discoverySchema.parse({upcoming:'on',open:'on'}))).organizations.map(o=>o.id)).toEqual([org]);
- const {registrationReadiness}=await import("@/features/forms/repository");expect(await registrationReadiness(leader,org,round)).toMatchObject({active:true,onboarded:true,hours:0,member:true,application:null});
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_round_status($1,'Closed')",[round]);await engine.exec("reset role");expect((await getPublicOrganization('tech'))?.rounds).toMatchObject([{id:round,open:false,status_code:'Closed'}]);expect((await getPublicDirectory(discoverySchema.parse({open:'on'}))).organizations).toEqual([]);
 
 });
@@ -376,26 +375,6 @@ it("denies committee-profile edits to committee leaders while retaining task acc
 });
 
 
-it("executes the workflow repository with actual RLS and bounded question payloads",async()=>{
- await appointPrimaryLeader(admin,org,"leader@example.invalid");
- const {getRound,publicRounds,listApplications,getApplicationDetail,ownApplication}=await import("@/features/forms/repository");
- const {initialDefinition}=await import("@/features/forms/definition");
- await engine.exec("begin");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[leader]);await engine.exec("set local role authenticated");
- const template=(await engine.query<{id:string}>("select lub.create_form($1,'تسجيل',null) as id",[org])).rows[0].id;
- const version=(await engine.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;
- await engine.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);
- await engine.query("select lub.publish_form_version($1)",[version]);
- const round=(await engine.query<{id:string}>("select lub.create_registration_round($1,$2,'انضمام',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;
- await engine.query("select lub.change_round_status($1,'Open')",[round]);await engine.exec("commit");
- expect((await publicRounds(org))[0].id).toBe(round);expect((await getRound(round))?.version.id).toBe(version);
- const applicant="00000000-0000-4000-8000-000000000003";
- await engine.query("insert into auth.users values($1)",[applicant]);await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'applicant@example.invalid',now())",[applicant]);await engine.query("insert into lub.student_profiles(user_id,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level) values($1,'المتقدم','private',$2,'نظم معلومات','5')",[applicant,'c'.repeat(64)]);
- await engine.exec("begin");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[admin]);await engine.exec("set local role authenticated;savepoint admin_denied");
- await expect(engine.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:"مشاركة"})])).rejects.toThrow();await engine.exec("rollback to savepoint admin_denied;release savepoint admin_denied");await engine.query("select set_config('request.jwt.claim.sub',$1,true)",[applicant]);
- const app=(await engine.query<{id:string}>("select lub.submit_application($1,$2,$3::jsonb,null,null,null) as id",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:"مشاركة"})])).rows[0].id;await engine.exec("commit");
- expect((await listApplications(leader,org))[0].name).toBe("المتقدم");expect((await getApplicationDetail(applicant,app))?.answers).toEqual({[initialDefinition.sections[0].fields[0].id]:"مشاركة"});
- expect(await ownApplication(applicant,round)).toBe(app);
-});
 it("supplies the personal dashboard in one scoped read without another user's private records",async()=>{
  const {getMyPageData}=await import("@/features/organizations/my-page-repository");
  await engine.exec(`insert into lub.profile_settings(user_id) values('${leader}'),('${admin}')`);
@@ -438,18 +417,6 @@ it('creates an organization with its optional leader in one transaction and roll
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec('set role authenticated');await engine.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-organization-logos',$1,$2)",[`organizations/${created.id}/00000000-0000-4000-8000-000000000888.png`,admin]);await engine.exec('reset role');
 });
 
-
-it("persists leader round requirements atomically with creation and rolls back invalid edits",async()=>{
- await appointPrimaryLeader(admin,org,"leader@example.invalid");
- const {mutateWorkflow}=await import("@/features/forms/actions");
- const form=new FormData();for(const [key,value] of Object.entries({operation:"create-round",org,title:"جولة بشروط",intent:"draft","requirements-present":"on",minimumHours:"12.5"}))form.set(key,value);form.append("allowedMajor","نظم معلومات");
- expect((await mutateWorkflow({},form)).success).toBeDefined();
- const [created]=(await database.execute<{id:string;title:string;minimum_approved_hours:string;allowed_majors:string[]}>(sql`select id,title,minimum_approved_hours,allowed_majors from lub.registration_rounds where organization_id=${org}`)).rows;
- expect(created).toMatchObject({title:"جولة بشروط",minimum_approved_hours:"12.50",allowed_majors:["نظم معلومات"]});
- form.set("operation","save-round");form.set("round",created.id);form.set("title","لا يُحفظ");form.set("allowedMajor","تخصص غير صالح");expect((await mutateWorkflow({},form)).error).toBeDefined();
- const [unchanged]=(await database.execute<{title:string;minimum_approved_hours:string;allowed_majors:string[]}>(sql`select title,minimum_approved_hours,allowed_majors from lub.registration_rounds where id=${created.id}`)).rows;expect(unchanged).toMatchObject({title:"جولة بشروط",minimum_approved_hours:"12.50",allowed_majors:["نظم معلومات"]});
- form.set("title","جولة محدثة");form.delete("allowedMajor");form.set("minimumHours","0");expect((await mutateWorkflow({},form)).success).toBeDefined();const [cleared]=(await database.execute<{minimum_approved_hours:string;allowed_majors:string[]}>(sql`select minimum_approved_hours,allowed_majors from lub.registration_rounds where id=${created.id}`)).rows;expect(cleared).toMatchObject({minimum_approved_hours:"0.00",allowed_majors:[]});
-});
 
 it("uses academic year and readable semester names in export metadata without exposing the internal term code",async()=>{
  await appointPrimaryLeader(admin,org,"leader@example.invalid");const term=(await engine.query<{id:string}>("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('2026-2027','INTERNAL-ONLY','الفصل الدراسي الأول','2026-09-01','2026-12-31') returning id")).rows[0].id;

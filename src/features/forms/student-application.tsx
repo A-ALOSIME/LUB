@@ -18,6 +18,7 @@ export function StudentApplication({
   detail,
   form,
   canEdit,
+  canReapply,
   canWithdraw,
   name,
   locale,
@@ -25,6 +26,7 @@ export function StudentApplication({
   detail: Detail;
   form: ReactNode;
   canEdit: boolean;
+  canReapply:boolean;
   canWithdraw: boolean;
   name: string;
   locale: Locale;
@@ -41,17 +43,17 @@ export function StudentApplication({
           form
         ) : (
           <ApplicationDetail
-            detail={{ ...detail, canReview: false, notes: [] }}
+            detail={{ ...detail, canReview: false }}
             locale={locale}
           />
         )}
       </CardContent>
       <CardFooter className="flex-wrap gap-3 border-border">
-        {canEdit && (
+        {(canEdit||canReapply) && (
           <Button variant="outline" onClick={() => setEditing(!editing)}>
             {editing
               ? c("إلغاء التعديل", "Cancel editing")
-              : detail.status_code === "Withdrawn"
+              : canReapply
                 ? c("تقديم مجددًا", "Apply again")
                 : c("تعديل الطلب", "Edit application")}
           </Button>

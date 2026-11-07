@@ -25,7 +25,8 @@ export function RegistrationCallToAction({round,slug,locale,signedIn,application
  const c=createTranslator(locale),timing=registrationTiming(round,now),eligibility=registrationEligibility(round,readiness),own=readiness?.application??application;
  const path=round?`/organizations/${slug}/apply/${round.id}`:"";
  let label=c("قدّم الآن","Apply now"),reason="",href:string|undefined;
- if(readiness?.member||own?.status_code==="Accepted")label=c("أنت عضو في هذه الجهة","You are a member of this organization");
+ if(readiness?.member||(own?.status_code==="Accepted"&&readiness?.canReapply===undefined))label=c("أنت عضو في هذه الجهة","You are a member of this organization");
+ else if(readiness?.canReapply&&(timing.status==="open"||timing.status==="closing")){label=c("تقديم مجددًا","Apply again");href=path;}
  else if(own&&["Submitted","Interview"].includes(own.status_code))label=c("طلبك قيد المراجعة","Your application is under review");
  else if(own?.status_code==="Rejected"){label=c("طلبك مرفوض","Your application was declined");reason=c("رُفض طلبك في هذه الجولة.","Your application for this round was declined.");}
  else if(own?.status_code==="Withdrawn"){label=c("طلبك مسحوب","Your application was withdrawn");reason=c("راجع طلباتك لإمكانية التقديم مجددًا.","Check your applications for reapplication options.");}

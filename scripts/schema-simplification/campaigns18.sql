@@ -86,7 +86,7 @@ BEGIN
  IF target_application IS NULL THEN
   IF EXISTS(SELECT 1 FROM lub.membership_cases c WHERE c.campaign_id=target_round AND c.user_id=auth.uid() AND c.status_code IN ('Submitted','Interview','Rejected')) THEN RAISE EXCEPTION 'Existing application'; END IF;
   SELECT f->'version' INTO version FROM lub.organizations o CROSS JOIN LATERAL jsonb_array_elements(o.forms) f WHERE o.id=campaign.organization_id AND f->>'id'=campaign.form_id::text;
-  IF version IS NULL OR version->>'status_code'<>'Published' OR version->>'id' IS DISTINCT FROM target_version::text THEN RAISE EXCEPTION 'Refresh form'; END IF;
+  IF version IS NULL OR version->>'status_code'<>'Published' OR version->>'id' IS DISTINCT FROM target_version::text OR (version->>'revision')::int IS DISTINCT FROM expected_revision THEN RAISE EXCEPTION 'Refresh form'; END IF;
  ELSE
   SELECT * INTO original FROM lub.membership_cases c WHERE c.id=target_application AND c.campaign_id=target_round AND c.user_id=auth.uid() AND c.status_code IN ('Submitted','Interview') FOR UPDATE;
   IF original.id IS NULL OR original.response_revision IS DISTINCT FROM expected_revision OR original.form_snapshot->>'id' IS DISTINCT FROM target_version::text THEN RAISE EXCEPTION 'Locked or stale application'; END IF;
@@ -96,8 +96,8 @@ BEGIN
  selected:=lub.form_committee_answer(version->'definition',cleaned,campaign.organization_id);
  IF committee IS NOT NULL THEN RAISE EXCEPTION 'Select a committee through the form question'; END IF;
  IF target_application IS NULL THEN
-  INSERT INTO lub.membership_cases(campaign_id,organization_id,kind,user_id,status_code,requested_committee_id,form_snapshot,answers,attachments)
-   VALUES(target_round,campaign.organization_id,'Registration',auth.uid(),'Submitted',selected,version,cleaned,lub.form_answer_attachments(version->'definition',cleaned)) RETURNING id INTO result;
+  INSERT INTO lub.membership_cases(campaign_id,organization_id,kind,user_id,status_code,requested_committee_id,form_snapshot,answers,attachments,submitted_at)
+   VALUES(target_round,campaign.organization_id,'Registration',auth.uid(),'Submitted',selected,version,cleaned,lub.form_answer_attachments(version->'definition',cleaned),clock_timestamp()) RETURNING id INTO result;
   INSERT INTO lub.history_events(organization_id,membership_case_id,event_code,to_status_code,actor_user_id) VALUES(campaign.organization_id,result,'ApplicationSubmitted','Submitted',auth.uid());
  ELSE
   result:=original.id;

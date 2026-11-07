@@ -2,10 +2,7 @@ import {mutateEvent} from "@/features/events/actions";
 import {getOverviewUpdates} from "@/features/organizations/overview-updates";
 vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
 vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:"00000000-0000-4000-8000-000000000001"})}));
-import {templateList} from "@/features/forms/template-list-repository";
 import {listTasks} from "@/features/tasks/repository";
-import {organizationApplicationPage} from "@/features/forms/repository";
-import {ownRequestPage} from "@/features/forms/own-request-repository";
 import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
@@ -172,45 +169,15 @@ it("archives events without dropping registrations and only deletes unused draft
  expect((await db.query("select id from lub.events where id=$1",[draft])).rows).toHaveLength(0);
 });
 
-it("keeps all three request list reads owner-scoped and paginated with their real states",async()=>{
- const filters={q:"",sort:"desc" as const,status:"all",page:0};
- await actor(student);
- await db.query("select lub.submit_organization_request('نادي بحث','Club','نبذة','رسالة الجهة','[]',null)");
- const openings=await ownRequestPage(student,{...filters,tab:"organizations"});expect(openings.items).toHaveLength(1);expect(openings.items[0].status).toBe("Pending");expect(openings.items[0].canWithdraw).toBe(true);
- expect((await ownRequestPage(peer,{...filters,tab:"organizations"})).items).toHaveLength(0);
- expect((await ownRequestPage(student,{...filters,tab:"applications"})).items).toHaveLength(0);
- expect((await ownRequestPage(student,{...filters,tab:"renewals"})).items).toHaveLength(0);
- expect((await ownRequestPage(student,{...filters,q:"بحث",tab:"organizations"})).total).toBe(1);
- expect((await ownRequestPage(student,{...filters,status:"Accepted",tab:"organizations"})).items).toHaveLength(0);
-});
-
-it("bounds bootstrap and server pages, searches all records and never includes form/task definitions in list DTOs",async()=>{
- const template=(await db.query<{id:string}>("select lub.create_form($1,'نموذج التسجيل',null) as id",[org])).rows[0].id;
- const version=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[version]);
+it("bounds the task page and omits task descriptions and skills from list DTOs",async()=>{
  for(let i=0;i<54;i++){
   await create();
   await db.query("select lub.save_task(null,$1,null,null,$2,'تفاصيل لا تحملها القائمة',null,null,1,null)",[org,`مهمة ${i}`]);
  }
  const tasks=await listTasks(leader,{org,view:'all',page:0});expect(tasks.items).toHaveLength(25);expect(tasks.more).toBe(true);expect(tasks.items[0].task).not.toHaveProperty('description');expect(tasks.items[0].task).not.toHaveProperty('skills');
- const forms=await templateList(leader,org,{q:'',status:'Published',page:0});expect(forms.items[0].versions[0]).not.toHaveProperty('definition');expect((await templateList(peer,org,{q:'',status:'all',page:0})).items).toHaveLength(0);
  await db.exec('reset role');expect((await db.query<{allowed:boolean}>("select has_function_privilege('anon','lub.organization_member_directory(uuid,text,text,uuid,integer)','execute') as allowed")).rows[0].allowed).toBe(false);
 });
 
-it("returns application rows and full status counters in one scoped page read",async()=>{
- const filters={q:'',status:'',committee:'',major:'',level:'',from:'',to:'',page:1,lookup:'',round:'',activity:''};
- const result=await organizationApplicationPage(leader,org,filters);expect(result.items).toEqual([]);expect(result.counts).toEqual({all:0,submitted:0,interview:0,accepted:0,rejected:0,withdrawn:0});expect(result.more).toBe(false);
- const blocked=await organizationApplicationPage(peer,org,filters);expect(blocked.items).toEqual([]);expect(blocked.counts.all).toBe(0);
- await actor(leader);
- const template=(await db.query<{id:string}>("select lub.create_form($1,'نموذج الطلب',null) as id",[org])).rows[0].id;
- const version=(await db.query<{id:string}>("select id from lub.form_versions where form_template_id=$1",[template])).rows[0].id;
- await db.query("select lub.save_form_draft($1,$2::jsonb,1)",[version,JSON.stringify(initialDefinition)]);await db.query("select lub.publish_form_version($1)",[version]);
- const round=(await db.query<{id:string}>("select lub.create_registration_round($1,$2,'جولة الطلب',now()-interval '1 hour',now()+interval '1 day',true) as id",[org,template])).rows[0].id;await db.query("select lub.change_round_status($1,'Open')",[round]);
- await actor(student);await db.query("select lub.submit_application($1,$2,$3::jsonb,null,null,null)",[round,version,JSON.stringify({[initialDefinition.sections[0].fields[0].id]:'أرغب بالمشاركة'})]);
- const populated=await organizationApplicationPage(leader,org,filters);expect(populated.items).toHaveLength(1);expect(populated.counts).toMatchObject({all:1,submitted:1,interview:0});expect(populated.items[0]).toMatchObject({name:'طالب 1',status_code:'Submitted'});expect(populated.items[0]).not.toHaveProperty('answers');expect(populated.items[0]).not.toHaveProperty('avatar');
- const accepted=await organizationApplicationPage(leader,org,{...filters,status:'Accepted'});expect(accepted.items).toEqual([]);expect(accepted.counts.submitted).toBe(1);
- expect((await organizationApplicationPage(peer,org,filters)).items).toEqual([]);
-
-});
 it("withdraws before event start even after registration closes, retains history, and reapplies once within the window",async()=>{
  const event=await create(3);await publish(event);await actor(student);const registration=await register(event);await actor(peer);await denied(()=>db.query("select lub.cancel_event_registration($1)",[registration]));await actor(student);
  await db.query("select lub.cancel_event_registration($1)",[registration]);expect((await db.query<{status_code:string}>("select status_code from lub.event_registrations where id=$1",[registration])).rows[0].status_code).toBe("Cancelled");
