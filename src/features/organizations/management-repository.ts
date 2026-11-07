@@ -5,7 +5,7 @@ import {decodeMemberWorkspace} from "./member-identifiers";
 import { cache } from "react";
 import { asc, eq, sql } from "drizzle-orm";
 import { withUser, type Transaction } from "@/db/client";
-import { users, organizations, organizationMemberships } from "@/db/schema";
+import { users, organizations } from "@/db/schema";
 import { normalizeOrganizationContact, storedLinksToContactChannels } from "./contact-channels";
 import { normalizePublicTags } from "./public-repository";
 import {announcementSchema} from "./validation";
@@ -160,12 +160,17 @@ export async function endOrganizationMembership(userId: string, membershipId: st
   return withUser(userId, tx => tx.execute(sql`select lub.end_organization_membership(${membershipId},${reason})`));
 }
 
+export type MembershipHistoryRow = {
+  id: string; organizationName: string; logo: string | null; type: string; hours: string; slug: string; organizationStatus: string;
+  statusCode: string; startDate: string; endDate: string | null;
+  roles: Array<{ code: string; startDate: string; endDate: string | null; hours?: string }>;
+};
+
 export async function getMembershipHistory(userId: string) {
-  return withUser(userId, tx => tx.select({ id: organizationMemberships.id, organizationName: organizations.nameAr, logo:organizations.logoUrl, type:organizations.typeCode, hours:sql<string>`coalesce((select sum(h.hours) from lub.hour_records h where h.organization_id=lub.organizations.id and h.organization_membership_id in (select id from lub.organization_memberships where user_id=${userId}) and h.status_code='Approved'),0)::text`, slug: organizations.slug, organizationStatus: organizations.statusCode,
-    statusCode: organizationMemberships.statusCode, startDate: organizationMemberships.startDate, endDate: organizationMemberships.endDate,
-    roles: sql<Array<{ code: string; startDate: string; endDate: string | null; hours?:string }>>`coalesce((select jsonb_agg(jsonb_build_object('code',r.role_code,'startDate',r.start_date,'endDate',r.end_date) order by r.start_date,r.id) from lub.role_assignments r where r.organization_membership_id=lub.organization_memberships.id),'[]'::jsonb)`,
-  }).from(organizationMemberships).innerJoin(organizations, eq(organizations.id, organizationMemberships.organizationId))
-    .where(eq(organizationMemberships.userId, userId)).orderBy(asc(organizations.nameAr), asc(organizationMemberships.startDate)));
+  return withUser(userId, async tx => {
+    const [row] = await tx.execute<{ data: MembershipHistoryRow[] }>(sql`select lub.own_membership_history() as data`);
+    return row?.data ?? [];
+  });
 }
 
 export async function createOrganization(userId: string, input: CreateOrganizationInput, leaderEmail?: string) {

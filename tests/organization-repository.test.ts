@@ -29,9 +29,11 @@ vi.mock("@/db/client", () => ({
 }));
 import { getPublicDirectory, getPublicOrganization } from "./legacy-public-organization-repository";
 import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
-import { appointPrimaryLeader, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getMembershipHistory } from "@/features/organizations/management-repository";
+import { appointPrimaryLeader, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins } from "@/features/organizations/management-repository";
 
 import { getManagementOrganization, saveOrganizationProfile, saveOrganizationLogo, saveCommittee, copyCommittee, setCommitteeStatus } from "./legacy-organization-editor";
+
+import { getMembershipHistory } from "./legacy-membership-history";
 
 const admin = "00000000-0000-4000-8000-000000000001";
 const leader = "00000000-0000-4000-8000-000000000002";
@@ -167,12 +169,12 @@ it("preserves the legacy personal hours balance in the recovery schema",async()=
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
  for(let i=0;i<27;i++)await engine.query("select lub.add_hours($1,null,$2,1.5,current_date,'عمل تطوعي',false,true)",[member,term]);
  await engine.exec("reset role");
- const {getMyPageData}=await import("@/features/organizations/my-page-repository");expect((await getMyPageData(learner)).hours).toBe("40.50");
+ const {getMyPageData}=await import("./legacy-my-page");expect((await getMyPageData(learner)).hours).toBe("40.50");
 });
 
 it("preserves the legacy task overview, notifications and former-member submissions for recovery",async()=>{
  await engine.exec("insert into lub.academic_terms(academic_year,term_code,name_ar,start_date,end_date) values('test','T1','الفصل التجريبي',current_date-30,current_date+90)");
- const {getMyPageData}=await import("@/features/organizations/my-page-repository");
+ const {getMyPageData}=await import("./legacy-my-page");
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
  const member=(await engine.query<{id:string}>("insert into lub.organization_memberships(organization_id,user_id) values($1,$2) returning id",[org,admin])).rows[0].id;
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
@@ -342,7 +344,7 @@ it("denies committee-profile edits to committee leaders while retaining task acc
 
 
 it("supplies the personal dashboard in one scoped read without another user's private records",async()=>{
- const {getMyPageData}=await import("@/features/organizations/my-page-repository");
+ const {getMyPageData}=await import("./legacy-my-page");
  await engine.exec(`insert into lub.profile_settings(user_id) values('${leader}'),('${admin}')`);
  await appointPrimaryLeader(admin,org,"leader@example.invalid");
  const data=await getMyPageData(leader);expect(data.profile?.fullName).toBe("القائد");expect(data.access.superAdmin).toBe(false);expect(data.memberships[0].roles[0].code).toBe("OL");

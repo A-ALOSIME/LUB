@@ -29,7 +29,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
       {notice === "signout-failed" && <p role="alert" className="error-message mb-6">{translateUi((en) ? "en" : "ar", "تعذّر تسجيل الخروج. حاول مرة ثانية.", "Could not sign out. Please try again.")}</p>}
 
           <header id="overview" className="workspace-page-header scroll-mt-6">
-            <h1>{translateUi((en) ? "en" : "ar", "أهلًا، ", "Hello, ")}<bdi>{profile.fullName}</bdi></h1>
+            <h1>{translateUi((en) ? "en" : "ar", "أهلًا، ", "Hello, ")}<bdi>{en?(profile.nameEn?.trim()||profile.fullName):profile.fullName}</bdi></h1>
           </header>
 
           <OverviewUpdatesView data={updates} locale={locale}/>

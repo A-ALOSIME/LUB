@@ -23,10 +23,12 @@ vi.mock("@/db/client", () => ({
     }catch(error){await db.exec("rollback to savepoint source_read;release savepoint source_read");throw error;}
   },
 }));
-import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName,getManagementOrganization,saveOrganizationProfile,saveOrganizationLogo,saveCommittee,copyCommittee,setCommitteeStatus,getOrganizationMemberDirectory,endOrganizationMembership} from "@/features/organizations/management-repository";
+import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName,getManagementOrganization,saveOrganizationProfile,saveOrganizationLogo,saveCommittee,copyCommittee,setCommitteeStatus,getOrganizationMemberDirectory,endOrganizationMembership,getMembershipHistory} from "@/features/organizations/management-repository";
 import { adminDirectory } from "@/features/organizations/admin-directory-repository";
 import { openingRequests, ownOpeningRequest } from "@/features/organization-requests/repository";
 
+import { getMyPageData } from "@/features/organizations/my-page-repository";
+import { getOverviewUpdates } from "@/features/organizations/overview-updates";
 import { storageFixture } from "./storage-fixture";
 import { organizationProfileSchema } from "@/features/organizations/validation";
 
@@ -49,6 +51,7 @@ beforeAll(async () => {
   await storageFixture(db);
   await db.exec(readFileSync("scripts/schema-simplification/organization-editor18.sql", "utf8"));
   await db.exec(readFileSync("scripts/schema-simplification/members18.sql", "utf8"));
+  await db.exec(readFileSync("scripts/schema-simplification/own-workspace18.sql", "utf8"));
 }, 30000);
 beforeEach(async () => {
   sourceReads=0;await db.exec("begin");
@@ -314,4 +317,32 @@ it("scopes members to their committee, preserves term totals and keeps identifyi
   await endOrganizationMembership(id(2),id(104),"انتهت العضوية");
   const [{ ended }] = (await db.query<{ ended: object }>("select lub.member_profile($1,$2) ended",[org,id(104)])).rows;
   expect(ended).toMatchObject({status:"Ended",hours:14,events:[{code:"Ended",actor:"طالب 2"}]});
+});
+
+it("shows only the student's own overview records and uses embedded hours and role history", async () => {
+  await actor(1);
+  const org=await create("overview-club","admin18-2@example.invalid");
+  const testOrg=(await db.query<{id:string}>("select lub.admin_create_organization('جهة تجريبية','Club','demo-organization','','',null) id")).rows[0].id;
+  await db.exec("reset role");
+  await db.query("update lub.organizations set name_en='Overview Club' where id=$1",[org]);
+  await db.query("update lub.organizations set is_test=true where id=$1",[testOrg]);
+  await db.query("update lub.users set full_name_en='Test student' where id=$1",[id(3)]);
+  await db.query("insert into lub.organization_memberships(id,organization_id,user_id,hours) values($1,$2,$3,$4::jsonb),($5,$6,$3,'[]')",
+   [id(301),org,id(3),JSON.stringify([{id:id(800),hours:5.5,status_code:"Approved",activity_date:"2026-11-07",created_at:"2026-11-07T10:00:00Z"}]),id(302),testOrg]);
+  await db.query("insert into lub.tasks(id,organization_id,created_by_user_id,title,title_en,description,status_code) values($1,$2,$3,'مهمة الفريق','Team task','تفاصيل','Open')",[id(501),org,id(2)]);
+  await db.query("insert into lub.task_participants(task_id,organization_id,organization_membership_id,user_id) values($1,$2,$3,$4)",[id(501),org,id(301),id(3)]);
+  await db.query("insert into lub.organization_content(id,organization_id,kind,title,title_en,status_code) values($1,$2,'Event','فعالية مسجلة','Registered event','Draft')",[id(502),org]);
+  await db.query("insert into lub.event_registrations(event_id,organization_id,user_id,review_status_code) values($1,$2,$3,'Accepted')",[id(502),org,id(3)]);
+  await db.query("insert into lub.organization_opening_requests(applicant_user_id,name_ar,type_code,summary,mission) values($1,'جهة مقترحة','Club','نبذة','هدف')",[id(3)]);
+  const account=await getMyPageData(id(3));
+  expect(account.profile).toMatchObject({nameEn:"Test student",fullName:"طالب 3"});
+  expect(account.memberships.map(m=>m.slug)).toEqual(["overview-club"]);
+  expect(account.hours).toBe("5.5");
+  expect(JSON.stringify(account)).not.toMatch(/encrypted|university_id|@example.invalid/);
+  expect(await getOverviewUpdates(id(3))).toMatchObject({
+    tasks:[{titleEn:"Team task",status:"Joined"}],events:[{titleEn:"Registered event",status:"Accepted"}],
+    hours:[{titleEn:"Overview Club",status:"Approved",hours:"5.5"}],requests:[{title:"جهة مقترحة",status:"Pending"}],
+  });
+  expect(await getOverviewUpdates(id(4))).toEqual({tasks:[],events:[],hours:[],requests:[]});
+  expect((await getMembershipHistory(id(2)))[0]?.roles).toMatchObject([{code:"OL"}]);
 });

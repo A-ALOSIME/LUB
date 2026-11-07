@@ -1,5 +1,5 @@
 import {mutateEvent} from "@/features/events/actions";
-import {getOverviewUpdates} from "@/features/organizations/overview-updates";
+import {getOverviewUpdates} from "./legacy-overview-updates";
 vi.mock("next/cache",()=>({revalidatePath:vi.fn(),updateTag:vi.fn()}));
 vi.mock("@/features/auth/session",()=>({requireUser:async()=>({id:"00000000-0000-4000-8000-000000000001"})}));
 import {PgDialect} from "drizzle-orm/pg-core";
