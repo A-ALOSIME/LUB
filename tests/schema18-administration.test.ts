@@ -52,6 +52,7 @@ beforeAll(async () => {
   await db.exec(readFileSync("scripts/schema-simplification/organization-editor18.sql", "utf8"));
   await db.exec(readFileSync("scripts/schema-simplification/members18.sql", "utf8"));
   await db.exec(readFileSync("scripts/schema-simplification/own-workspace18.sql", "utf8"));
+  await db.exec(readFileSync("scripts/schema-simplification/exports18.sql", "utf8"));
 }, 30000);
 beforeEach(async () => {
   sourceReads=0;await db.exec("begin");
@@ -302,6 +303,32 @@ it("scopes members to their committee, preserves term totals and keeps identifyi
   expect(JSON.stringify(scoped)).not.toMatch(/private-national|universityCiphertext|@example.invalid/);
   expect(await getOrganizationMemberDirectory(id(4),org)).toBeUndefined();
 
+  await actor(3);
+  // A past membership contributes the original join date, without adding an export row.
+  await db.exec("reset role");
+  const event=id(880);
+  await db.query("insert into lub.organization_memberships(organization_id,user_id,start_date,end_date,status_code) values($1,$2,lub.today_riyadh()-240,lub.today_riyadh()-200,'Ended')",[org,id(4)]);
+  await db.query("insert into lub.organization_content(id,organization_id,kind,title,status_code) values($1,$2,'Event','Workshop','Draft')",[event,org]);
+  await db.query("insert into lub.event_registrations(event_id,organization_id,user_id,review_status_code) values($1,$2,$3,'Accepted'),($1,$2,$4,'Pending'),($1,$2,$5,'Accepted'),($1,$2,$6,'Accepted')",[event,org,id(4),id(3),id(5),id(2)]);
+  const rows=async (term: string|null) => (await db.query<{data:{records:{userId:string;hours:number;startDate:string}[]}}>(
+    "select public.export_member_rows($1,'','all',null,$2) data",[org,term])).rows[0].data.records;
+  const registrants=async () => (await db.query<{data:{records:{userId:string;status:string}[]}}>(
+    "select public.export_registrant_rows($1,$2,null,'','') data",[org,event])).rows[0].data.records;
+  await actor(2);
+  const whole=await rows(null);
+  const [{first}]=(await db.query<{first:string}>("select (lub.today_riyadh()-240)::text first")).rows;
+  expect(whole.filter(row=>row.userId===id(4))).toEqual([expect.objectContaining({hours:14,startDate:first})]);
+  expect(whole.map(row=>row.userId)).not.toContain(id(5));
+  expect((await rows(id(900))).find(row=>row.userId===id(4))?.hours).toBe(5);
+  expect((await registrants()).map(row=>row.userId)).toEqual([id(2),id(4)]);
+  await actor(3);
+  expect((await rows(null)).map(row=>row.userId)).toEqual([id(3),id(4)]);
+  expect((await registrants()).map(row=>row.userId)).toEqual([id(4)]);
+  await actor(4);
+  await denied(()=>rows(null));
+  await denied(registrants);
+  await db.exec("set local role anon");
+  await denied(()=>rows(null));
   await actor(3);
   const [{ record }] = (await db.query<{ record: object }>("select lub.member_profile($1,$2) record",[org,id(104)])).rows;
   expect(record).toMatchObject({ nationalCiphertext:"private-national",email:"admin18-4@example.invalid",avatar:null });
