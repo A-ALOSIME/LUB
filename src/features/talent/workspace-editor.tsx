@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Empty, EmptyTitle } from "@/components/ui/empty";
@@ -221,6 +222,14 @@ function ProfileSettingsForm({ data, pages, locale }: { data: TalentWorkspace; u
               <Field>
                 <FieldLabel htmlFor="talent-bio">{translateUi((en) ? "en" : "ar", "نبذة عني", "About me")}</FieldLabel>
                 <Textarea id="talent-bio" name="bio" rows={4} maxLength={1000} defaultValue={data.bio} placeholder={translateUi((en) ? "en" : "ar", "اكتب نبذة قصيرة عنك…", "A short introduction…")} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="talent-name-en">{translateUi(locale, "الاسم بالإنجليزية (اختياري)", "English name (optional)")}</FieldLabel>
+                <Input id="talent-name-en" name="nameEn" dir="ltr" maxLength={120} defaultValue={data.nameEn ?? ""} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="talent-bio-en">{translateUi(locale, "النبذة بالإنجليزية (اختيارية)", "English bio (optional)")}</FieldLabel>
+                <Textarea id="talent-bio-en" name="bioEn" dir="ltr" rows={4} maxLength={1000} defaultValue={data.bioEn ?? ""} />
               </Field>
             </FieldGroup>
 

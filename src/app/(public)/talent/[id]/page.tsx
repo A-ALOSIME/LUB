@@ -14,7 +14,7 @@ import { PublicTalentView } from "@/features/talent/view";
 import { getVerifiedUser } from "@/features/auth/session";
 import { getPreferences } from "@/lib/preferences";
 
-import {translatePublicContent} from "@/lib/public-content-translation";
+
 export async function generateMetadata({
   params,
 }: {
@@ -31,7 +31,9 @@ export async function generateMetadata({
   });
   if (!p) return { robots: { index: false, follow: false } };
   const {locale}=await getPreferences();
-  const [title,description]=locale==='en'?await Promise.all([translatePublicContent(p.name),p.bio?translatePublicContent(p.bio):Promise.resolve(`${p.major} · LUB`)]):[p.name,p.bio??`${p.major} · لُبّ`];
+  const title = locale === "en" ? p.nameEn?.trim() || p.name : p.name;
+  const description = (locale === "en" ? p.bioEn?.trim() || p.bio : p.bio)
+    || (locale === "en" ? `${p.major} · LUB` : `${p.major} · لُبّ`);
   const image = p.avatar_version
       ? `/talent/${p.id}/avatar?v=${encodeURIComponent(p.avatar_version)}`
       : "/brand/share-card.png";

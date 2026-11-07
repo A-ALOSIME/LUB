@@ -124,10 +124,16 @@ it("features only a published event from its own organization", async () => {
 });
 
 it("executes safe talent DTOs and combines private readiness with workspace in one query",async()=>{
- const {talentDirectory,publicTalent,talentWorkspace}=await import("@/features/talent/repository");const pages={organizations:0,events:0,projects:0,sources:0};
- expect(await publicTalent(leader,pages)).toBeNull();expect(await talentDirectory("",null,0)).toEqual([]);scopedReads=0;const workspace=await talentWorkspace(leader,pages);expect(scopedReads).toBe(1);expect(workspace?.onboarded).toBe(true);expect(workspace?.settings).toEqual({public_profile_enabled:false});
+ const {talentDirectory,publicTalent}=await import("@/features/talent/repository");const pages={organizations:0,events:0,projects:0,sources:0};
+ // Run the old owner projection only against the frozen recovery fixture.
+ const { withUser } = await import("@/db/client");
+ const talentWorkspace = async (user: string) => withUser(user, async tx => {
+   const [row] = await tx.execute<{ data: { onboarded: boolean; settings: { public_profile_enabled: boolean; public_slug?: string } } }>(sql`select w.data || jsonb_build_object('settings',coalesce(w.data->'settings','{}'::jsonb)||coalesce((select jsonb_build_object('public_slug',public_slug,'allow_indexing',allow_indexing) from lub.profile_settings where user_id=${user}),'{}'::jsonb)) as data from (select lub.talent_workspace(0,0) as data) w`);
+   return row.data;
+ });
+ expect(await publicTalent(leader,pages)).toBeNull();expect(await talentDirectory("",null,0)).toEqual([]);scopedReads=0;const workspace=await talentWorkspace(leader);expect(scopedReads).toBe(1);expect(workspace?.onboarded).toBe(true);expect(workspace?.settings).toEqual({public_profile_enabled:false});
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.save_talent_settings('نبذة',true)");await engine.query("select lub.save_talent_skill('تصميم',true)");await engine.exec("reset role");
- const settings=(await talentWorkspace(leader,pages))!.settings;expect(settings).toMatchObject({public_slug:expect.any(String),allow_indexing:false});const slug=settings.public_slug!;expect(slug).not.toBe(leader);expect((await talentDirectory("القائد","تصميم",0)).map(p=>p.id)).toEqual([slug]);expect((await publicTalent(slug,pages))?.skills).toEqual(["تصميم"]);expect(JSON.stringify(await publicTalent(slug,pages))).not.toMatch(/secret2|lookup|university/);expect(JSON.stringify(await publicTalent(slug,pages))).not.toContain(leader);
+ const settings=(await talentWorkspace(leader))!.settings;expect(settings).toMatchObject({public_slug:expect.any(String),allow_indexing:false});const slug=settings.public_slug!;expect(slug).not.toBe(leader);expect((await talentDirectory("القائد","تصميم",0)).map(p=>p.id)).toEqual([slug]);expect((await publicTalent(slug,pages))?.skills).toEqual(["تصميم"]);expect(JSON.stringify(await publicTalent(slug,pages))).not.toMatch(/secret2|lookup|university/);expect(JSON.stringify(await publicTalent(slug,pages))).not.toContain(leader);
 });
 
 it("combines public organization sections in one select and keeps eligibility separate from public data",async()=>{

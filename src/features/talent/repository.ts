@@ -8,6 +8,7 @@ import type { TalentFilters } from "./filters";
 export function talentOrganizationLogo(name:string,logo:string|null|undefined){return logo?.trim()||((localOrganizationContent(name,"Club")??localOrganizationContent(name,"Council"))?.logoSrc??null);}
 export type TalentOrganization = {
   name: string;
+  nameEn?: string | null;
   slug: string;
   logo: string | null;
 };
@@ -15,8 +16,10 @@ export type TalentCard = {
   organizations?: TalentOrganization[];
   id: string;
   name: string;
+  nameEn?: string | null;
   major: string;
   bio: string | null;
+  bioEn?: string | null;
   skills: string[];
   level: string;
   total: string | null;
@@ -30,6 +33,7 @@ export type PublicTalent = Omit<TalentCard, "organizations"> & {
   organizations: Array<{
     id: string;
     name: string;
+    nameEn?: string | null;
     slug: string;
     logo?: string | null;
     type?: string;
@@ -51,8 +55,10 @@ export type PublicTalent = Omit<TalentCard, "organizations"> & {
   events: Array<{
     href: string;
     title: string;
+    titleEn?: string | null;
     starts_at: string;
     organization: string;
+    organizationEn?: string | null;
     archived: boolean;
     attendance: string | null;
     contributions: Array<{ kind: string; title: string }>;
@@ -68,6 +74,8 @@ export type TalentWorkspace = {
   status: string | null;
   onboarded: boolean;
   bio: string;
+  bioEn?: string | null;
+  nameEn?: string | null;
   settings: {
     public_profile_enabled: boolean;
     public_slug?: string;
@@ -111,7 +119,7 @@ async function readTalentDirectory(
 }
 const readPopularTalent = unstable_cache(
   async () => readTalentDirectory("", null, 0),
-  ["public-talent-directory-first-page-v3"],
+  ["public-talent-directory-first-page-v4"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export function talentDirectory(q: string, skill: string | null, page: number) {
@@ -141,7 +149,7 @@ const readPublicTalent = unstable_cache(
     if (!profile) throw new PublicTalentNotFound();
     return profile;
   },
-  ["public-talent-profile-first-page-v7"],
+  ["public-talent-profile-first-page-v8"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export async function publicTalent(id: string, pages: TalentPages) {
@@ -157,7 +165,7 @@ export async function publicTalent(id: string, pages: TalentPages) {
 export async function talentWorkspace(user: string, pages: TalentPages) {
   return withUser(user, async (tx) => {
     const rows = await tx.execute(
-      sql`select w.data || jsonb_build_object('settings',coalesce(w.data->'settings','{}'::jsonb)||coalesce((select jsonb_build_object('public_slug',public_slug,'allow_indexing',allow_indexing) from lub.profile_settings where user_id=${user}),'{}'::jsonb)) as workspace from (select lub.talent_workspace(${pages.projects * 25},${pages.sources * 25}) as data) w`,
+      sql`select lub.talent_workspace(${pages.projects * 25},${pages.sources * 25}) as workspace`,
     );
     return rows[0]?.workspace as TalentWorkspace | null;
   });
@@ -209,7 +217,7 @@ const popular = unstable_cache(
       sort: "relevance",
       page: 0,
     }),
-  ["public-talent-search-v6"],
+  ["public-talent-search-v7"],
   { revalidate: 30, tags: ["public-talent"] },
 );
 export function searchTalent(filters: TalentFilters) {
@@ -226,7 +234,7 @@ export function searchTalent(filters: TalentFilters) {
 export async function isTalentOwner(user: string, slug: string) {
   return withUser(user, async (tx) => {
     const rows = await tx.execute(
-      sql`select public_slug=${slug}::uuid as owner from lub.profile_settings where user_id=${user}`,
+      sql`select public_slug=${slug}::uuid as owner from lub.users where id=${user}`,
     );
     return !!rows[0]?.owner;
   });

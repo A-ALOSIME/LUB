@@ -9,20 +9,29 @@ const mocks=vi.hoisted(()=>({user:vi.fn()}));
 type Executor={execute:(query:SQL)=>Promise<Record<string,unknown>[]>};
 vi.mock("server-only",()=>({}));
 vi.mock("@/features/auth/authorization",()=>({requireStudentUser:mocks.user}));
-vi.mock("next/cache",()=>({updateTag:vi.fn(),revalidatePath:vi.fn()}));
-vi.mock("@/db/client",()=>({withUser:async<T>(user:string,operation:(tx:Executor)=>Promise<T>)=>{
+vi.mock("next/cache",()=>({updateTag:vi.fn(),revalidatePath:vi.fn(),unstable_cache:(fn:unknown)=>fn}));
+vi.mock("@/db/client",()=>({
+ withVisitor:async<T>(read:(tx:Executor)=>Promise<T>)=>{
+  await db.exec("savepoint visitor_talent;reset role;set local role anon");
+  try { return await read({execute:async query=>(await database.execute(query)).rows as Record<string,unknown>[]}); }
+  finally { await db.exec("rollback to savepoint visitor_talent;release savepoint visitor_talent"); }
+ },
+ withUser:async<T>(user:string,operation:(tx:Executor)=>Promise<T>)=>{
  await db.exec("savepoint source_action");
  try{await database.execute(sql`select set_config('request.jwt.claim.sub',${user},true),set_config('role','authenticated',true)`);const result=await operation({execute:async query=>(await database.execute(query)).rows as Record<string,unknown>[]});await db.exec("release savepoint source_action");return result;}
  catch(error){await db.exec("rollback to savepoint source_action;release savepoint source_action");throw error;}
 }}));
+import { publicTalent, searchTalent, talentWorkspace } from "@/features/talent/repository";
+import { storageFixture } from "./storage-fixture";
 import {searchProfileSkillCatalog,saveProfileSkills,loadProfileSkills} from "@/features/talent/profile-skill-actions";
 async function actor(n:number){await db.exec("reset role");await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)",[id(n)]);}
 async function denied(run:()=>Promise<unknown>){await db.exec("savepoint denied");await expect(run()).rejects.toThrow();await db.exec("rollback to savepoint denied;release savepoint denied");}
 type Skill={key:string;labelAr:string;labelEn:string;featured:boolean;order:number;tasks:number;events:number;category:{key:string;labelAr:string;labelEn:string}};
 async function own(n=1){return(await db.query<{skills:Skill[]}>("select lub.own_profile_skills($1) skills",[id(400+n)])).rows[0].skills;}
 beforeAll(async()=>{
- db=new PGlite();database=drizzle(db);await db.exec("create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;");
- for(const file of ["schema18.sql","administration18.sql","forms18.sql","form-library18.sql","campaigns18.sql","hours18.sql","tasks18.sql","announcements18.sql","events18.sql","event-registration18.sql","skill-catalog18.sql","skills18.sql"])await db.exec(readFileSync(`scripts/schema-simplification/${file}`,"utf8"));
+ db=new PGlite();database=drizzle(db);await db.exec("create role anon;create role authenticated;create role lub_runtime;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;");
+ await storageFixture(db);
+ for(const file of ["schema18.sql","account18.sql","administration18.sql","forms18.sql","form-library18.sql","campaigns18.sql","hours18.sql","tasks18.sql","announcements18.sql","events18.sql","event-registration18.sql","skill-catalog18.sql","skills18.sql","members18.sql","talent18.sql"])await db.exec(readFileSync(`scripts/schema-simplification/${file}`,"utf8"));
 },30000);
 beforeEach(async()=>{
  mocks.user.mockResolvedValue({id:id(1)});await db.exec("begin");for(let n=1;n<=3;n++){await db.query("insert into auth.users values($1)",[id(n)]);await db.query("insert into lub.users(id,email,email_verified_at,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level,onboarded_at,public_slug) values($1,$2,now(),'طالب','encrypted',$3,'نظم معلومات','5',now(),$4)",[id(n),`skills18-${n}@example.invalid`,String(n).repeat(64),id(400+n)]);}
@@ -73,4 +82,37 @@ it("runs real skill search/load/save server actions against merged storage and p
  expect((await loadProfileSkills(id(401))).skills).toMatchObject([{key:"python"}]);
  expect(await saveProfileSkills(id(402),[])).toEqual({error:true});
  expect((await loadProfileSkills(id(401))).skills).toMatchObject([{key:"python",featured:true}]);
+});
+
+it("discovers and serves only public eligible profiles, including stored English and approved portfolio work",async()=>{
+ await actor(1);
+ await db.query("select lub.save_talent_bio('نبذة الطالب','English introduction','Student Leader')");
+ await db.query("select lub.save_talent_skill('بايثون',true)");
+ await db.query("select lub.save_talent_privacy(true,true)");
+ const link=(await db.query<{id:string}>("select lub.save_talent_link(null,'GitHub','GitHub','https://github.com/student',true) id")).rows[0].id;
+ const task=(await db.query<{id:string}>("select lub.save_task(null,$1,null,'مهمة المشروع','مطلوب',null,null,3,null) id",[id(100)])).rows[0].id;
+ await db.exec("reset role");
+ await db.query("insert into lub.task_participants(id,task_id,organization_id,organization_membership_id,user_id,status_code) values($1,$2,$3,$4,$5,'Approved')",[id(811),task,id(100),id(301),id(1)]);
+ await db.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-avatars',$1,$2)",[id(1)+"/avatar.webp",id(1)]);
+ await db.query("update lub.users set is_test_account=true,public_profile_enabled=true where id=$1",[id(3)]);
+ await actor(2);
+ await denied(()=>db.query("select lub.remove_talent_link($1)",[link]));
+ await denied(()=>db.query("select lub.save_talent_project(null,$1,null,'نسخ الإنجاز','',false)",[id(811)]));
+ await actor(1);
+ await db.query("select lub.save_talent_project(null,$1,null,'عملي المعتمد','وصف العمل',true)",[id(811)]);
+
+ const pages={organizations:0,events:0,projects:0,sources:0};
+ const profile=await publicTalent(id(401),pages);
+ expect(profile).toMatchObject({id:id(401),nameEn:"Student Leader",bioEn:"English introduction",skills:["بايثون"],
+  indexable:true,avatar_version:expect.any(String),projects:[{title:"عملي المعتمد",featured:true}],
+  links:[{kind:"GitHub",value:"https://github.com/student"}]});
+ expect(JSON.stringify(profile)).not.toMatch(/encrypted|@example.invalid|university_id|c0000000-0000-4000-8000-000000000001/);
+ const filtered=await searchTalent({q:"student leader",skills:["python"],major:"",level:"",minHours:0,sort:"relevance",page:0});
+ expect(filtered).toMatchObject({total:1,available:1,items:[{id:id(401),nameEn:"Student Leader"}]});
+ expect(await publicTalent(id(403),pages)).toBeNull();
+ expect(await talentWorkspace(id(1),pages)).toMatchObject({nameEn:"Student Leader",bioEn:"English introduction",projects:[{id:id(811)}]});
+ await actor(1);
+ await db.query("select lub.save_talent_privacy(false,true)");
+ expect(await publicTalent(id(401),pages)).toBeNull();
+ expect((await talentWorkspace(id(1),pages))?.settings).toMatchObject({public_profile_enabled:false,allow_indexing:false});
 });

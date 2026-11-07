@@ -36,7 +36,7 @@ export async function mutateTalent(_previous: WorkflowState, form: FormData): Pr
       switch (operation) {
         case "profile":
         case "profile-content": {
-          if(operation==="profile-content")await tx.execute(sql`select lub.save_talent_bio(${text(form,"bio",1000)})`);
+          if(operation==="profile-content")await tx.execute(sql`select lub.save_talent_bio(${text(form,"bio",1000)},${form.has("bioEn")?text(form,"bioEn",1000):null},${form.has("nameEn")?text(form,"nameEn",120):null})`);
           else await tx.execute(sql`select lub.save_talent_settings(${text(form, "bio", 1000)},${checked(form, "enabled")},${checked(form,"indexable")})`);
 
           const linkIds = z.array(z.uuid()).max(10).parse(form.getAll("linkId"));
