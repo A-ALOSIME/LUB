@@ -74,10 +74,11 @@ END; $$;
 CREATE FUNCTION lub.add_hours(member uuid,committee uuid,term uuid,amount numeric,day date,reason text,self_report boolean DEFAULT false) RETURNS uuid LANGUAGE sql SECURITY DEFINER SET search_path='' AS $$
  SELECT lub.add_hours(member,committee,term,amount,day,reason,self_report,false);
 $$;
-CREATE FUNCTION lub.review_hours(target uuid,status text,note text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+CREATE FUNCTION lub.review_hours(target uuid,status text,note text,expected_org uuid DEFAULT NULL) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE entry jsonb;
 BEGIN
  entry:=lub.lock_hour_record(target);
+ IF expected_org IS NOT NULL AND (entry->>'organization_id')::uuid<>expected_org THEN RAISE EXCEPTION 'Hour organization mismatch' USING ERRCODE='42501'; END IF;
  IF NOT lub.can_approve_hours((entry->>'organization_id')::uuid,(entry->>'committee_id')::uuid) THEN RAISE EXCEPTION 'Permission required' USING ERRCODE='42501'; END IF;
  IF status IS NULL OR NOT ((entry->>'status_code'='Pending' AND status IN ('Approved','Rejected')) OR (entry->>'status_code'='Approved' AND status='Voided'))
   OR note IS NULL OR length(note)>3000 OR (status IN ('Rejected','Voided') AND length(trim(note))=0) THEN RAISE EXCEPTION 'Invalid review'; END IF;
@@ -108,22 +109,91 @@ END; $$;
 
 REVOKE ALL ON FUNCTION lub.hour_storage_owner(uuid),lub.lock_hour_record(uuid),lub.store_hour_entry(uuid,uuid,jsonb),lub.check_hour_entries(),
  lub.can_approve_hours(uuid,uuid),lub.add_hours(uuid,uuid,uuid,numeric,date,text,boolean,boolean),lub.add_hours(uuid,uuid,uuid,numeric,date,text,boolean),
- lub.review_hours(uuid,text,text),lub.adjust_hours(uuid,numeric,numeric,text),lub.withdraw_self_report_hours(uuid),lub.set_self_report_hours(uuid,boolean) FROM PUBLIC,anon;
+ lub.review_hours(uuid,text,text,uuid),lub.adjust_hours(uuid,numeric,numeric,text),lub.withdraw_self_report_hours(uuid),lub.set_self_report_hours(uuid,boolean) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION lub.can_approve_hours(uuid,uuid),lub.add_hours(uuid,uuid,uuid,numeric,date,text,boolean,boolean),lub.add_hours(uuid,uuid,uuid,numeric,date,text,boolean),
- lub.review_hours(uuid,text,text),lub.adjust_hours(uuid,numeric,numeric,text),lub.withdraw_self_report_hours(uuid),lub.set_self_report_hours(uuid,boolean) TO authenticated;
+ lub.review_hours(uuid,text,text,uuid),lub.adjust_hours(uuid,numeric,numeric,text),lub.withdraw_self_report_hours(uuid),lub.set_self_report_hours(uuid,boolean) TO authenticated;
+
+
+-- The personal ledger and pending review queue share the same record projection.
+CREATE FUNCTION lub.hour_item(entry jsonb,member lub.organization_memberships,org_name text,term_name text,committee_name text,owner_name text,reviewer_name text,can_review boolean) RETURNS jsonb
+LANGUAGE sql STABLE SET search_path='' AS $$
+ SELECT (entry - ARRAY['source_id','requested_by_user_id','reviewed_by_user_id','hours']) ||
+  jsonb_build_object('hours',entry->>'hours','organization_id',member.organization_id,'organization_membership_id',member.id,
+   'owner',owner_name,'org_name',org_name,'term_name',term_name,'committee_name',committee_name,'reviewer',reviewer_name,
+   'canReview',can_review,'canWithdraw',member.user_id=auth.uid() AND entry->>'source_code'='SELF_REPORTED'
+    AND entry->>'status_code'='Pending' AND entry->>'requested_by_user_id'=auth.uid()::text);
+$$;
 
 CREATE FUNCTION lub.hours_review_workspace(org uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
- SELECT jsonb_build_object('name',o.name_ar,'selfEnabled',o.self_report_hours_enabled,'canPolicy',lub.has_org_permission(org,'ORG_PROFILE_MANAGE'),
-  'records',coalesce((SELECT jsonb_agg(row ORDER BY row.created_at DESC,row.id) FROM (
-   SELECT h->>'id' AS id,m.id AS organization_membership_id,org AS organization_id,(h->>'committee_id')::uuid AS committee_id,
-    (h->>'academic_term_id')::uuid AS academic_term_id,(h->>'hours')::numeric::text AS hours,h->>'source_code' AS source_code,h->>'description' AS description,
-    h->>'status_code' AS status_code,h->>'activity_date' AS activity_date,h->>'created_at' AS created_at,u.full_name_ar AS owner,
-    o.name_ar AS org_name,t.name_ar AS term_name,c.name AS committee_name,true AS "canReview"
+ SELECT jsonb_build_object('selfEnabled',o.self_report_hours_enabled,'canPolicy',lub.has_org_permission(org,'ORG_PROFILE_MANAGE'),
+  'records',coalesce((SELECT jsonb_agg(lub.hour_item(h,m,o.name_ar,t.name_ar,c.name,u.full_name_ar,NULL,true)
+   ORDER BY h->>'created_at' DESC,h->>'id')
    FROM lub.organization_memberships m JOIN lub.users u ON u.id=m.user_id CROSS JOIN LATERAL jsonb_array_elements(m.hours) h
-    JOIN lub.academic_terms t ON t.id=(h->>'academic_term_id')::uuid LEFT JOIN lub.committees c ON c.id=(h->>'committee_id')::uuid AND c.organization_id=m.organization_id
+   JOIN lub.academic_terms t ON t.id=(h->>'academic_term_id')::uuid LEFT JOIN lub.committees c ON c.id=(h->>'committee_id')::uuid
    WHERE m.organization_id=org AND h->>'status_code'='Pending' AND lub.can_approve_hours(org,(h->>'committee_id')::uuid)
-  ) row),'[]'))
+  ),'[]'))
  FROM lub.organizations o WHERE o.id=org AND lub.has_hours_access(org);
 $$;
-REVOKE ALL ON FUNCTION lub.hours_review_workspace(uuid) FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION lub.hours_review_workspace(uuid) TO authenticated;
+
+CREATE FUNCTION lub.hour_details(target uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+ SELECT lub.hour_item(h,m,o.name_ar,t.name_ar,c.name,owner.full_name_ar,reviewer.full_name_ar,access.can_review)
+ FROM lub.organization_memberships m JOIN lub.organizations o ON o.id=m.organization_id JOIN lub.users owner ON owner.id=m.user_id
+ CROSS JOIN LATERAL jsonb_array_elements(m.hours) h
+ JOIN lub.academic_terms t ON t.id=(h->>'academic_term_id')::uuid
+ LEFT JOIN lub.committees c ON c.id=(h->>'committee_id')::uuid
+ LEFT JOIN lub.users reviewer ON reviewer.id=(h->>'reviewed_by_user_id')::uuid
+ CROSS JOIN LATERAL (SELECT lub.can_approve_hours(m.organization_id,(h->>'committee_id')::uuid) AS can_review) access
+ WHERE m.id=lub.hour_storage_owner(target) AND h->>'id'=target::text AND lub.is_student_account(auth.uid())
+  AND (m.user_id=auth.uid() OR access.can_review);
+$$;
+
+CREATE FUNCTION lub.my_hours(term uuid DEFAULT NULL, page integer DEFAULT NULL, status text DEFAULT NULL, query text DEFAULT '') RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+ WITH account AS MATERIALIZED (
+  SELECT id,status_code,onboarded_at,is_test_account FROM lub.users WHERE id=auth.uid()
+ ), memberships AS MATERIALIZED (
+  SELECT m,o.name_ar AS org_name,o.self_report_hours_enabled,o.status_code AS org_status,o.is_test
+  FROM account u JOIN lub.organization_memberships m ON m.user_id=u.id JOIN lub.organizations o ON o.id=m.organization_id
+  WHERE lub.is_student_account(u.id)
+ ), filtered AS MATERIALIZED (
+  SELECT m,org_name,h,(h->>'hours')::numeric AS hours,h->>'status_code' AS state,h->>'created_at' AS created,h->>'id' AS id,
+   NOT is_test AND NOT (SELECT is_test_account FROM account) AS counted
+  FROM memberships CROSS JOIN LATERAL jsonb_array_elements((m).hours) h
+  WHERE (term IS NULL OR h->>'academic_term_id'=term::text)
+   AND position(lub.arabic_search_key(left(coalesce(query,''),120)) IN lub.arabic_search_key(org_name||' '||(h->>'description')))>0
+ ), page_rows AS (
+  SELECT * FROM filtered WHERE status IS NULL OR state=status ORDER BY created DESC,id
+  LIMIT CASE WHEN page IS NULL THEN 51 ELSE 26 END OFFSET (least(greatest(page,0),10000)*25)
+ ), totals AS (
+  SELECT coalesce(sum(hours) FILTER(WHERE state='Approved' AND counted),0)::text AS approved,
+   coalesce(sum(hours) FILTER(WHERE state='Pending' AND counted),0)::text AS pending,
+   coalesce(sum(hours) FILTER(WHERE state='Rejected' AND counted),0)::text AS rejected,
+   count(*) FILTER(WHERE state='Approved' AND counted) AS "approvedCount",
+   count(*) FILTER(WHERE state='Pending' AND counted) AS "pendingCount",
+   count(*) FILTER(WHERE state='Rejected' AND counted) AS "rejectedCount"
+  FROM filtered
+ )
+ SELECT jsonb_build_object('isTest',u.is_test_account,'account',jsonb_build_object('status',u.status_code,'onboarded',u.onboarded_at IS NOT NULL),
+  'terms',coalesce((SELECT jsonb_agg(t ORDER BY t.start_date DESC) FROM (SELECT * FROM lub.academic_terms ORDER BY start_date DESC LIMIT 100) t),'[]'),
+  'records',coalesce((SELECT jsonb_agg(lub.hour_item(f.h,f.m,f.org_name,t.name_ar,c.name,NULL,r.full_name_ar,false)
+    ORDER BY f.created DESC,f.id) FROM page_rows f JOIN lub.academic_terms t ON t.id=(f.h->>'academic_term_id')::uuid
+    LEFT JOIN lub.committees c ON c.id=(f.h->>'committee_id')::uuid LEFT JOIN lub.users r ON r.id=(f.h->>'reviewed_by_user_id')::uuid),'[]'),
+  'total',totals.approved,'hoursByStatus',to_jsonb(totals),
+  'byOrg',coalesce((SELECT jsonb_agg(a ORDER BY a.name) FROM (
+    SELECT org_name AS name,sum(hours)::text AS total FROM filtered WHERE state='Approved' AND counted GROUP BY (m).organization_id,org_name ORDER BY org_name LIMIT 100
+  ) a),'[]'),
+  'memberships',coalesce((SELECT jsonb_agg(x ORDER BY x.name) FROM (
+   SELECT (m).id,(m).organization_id AS org,org_name AS name,self_report_hours_enabled AS self,
+    coalesce((SELECT jsonb_agg(jsonb_build_object('id',c.id,'name',c.name) ORDER BY c.name,c.id)
+      FROM lub.committee_memberships cm JOIN lub.committees c ON c.id=cm.committee_id
+      WHERE cm.organization_membership_id=(m).id AND cm.status_code='Active' AND cm.start_date<=lub.today_riyadh()
+       AND (cm.end_date IS NULL OR cm.end_date>lub.today_riyadh()) AND c.status_code='Active'),'[]') AS committees
+   FROM memberships WHERE (m).status_code='Active' AND (m).start_date<=lub.today_riyadh()
+    AND ((m).end_date IS NULL OR (m).end_date>lub.today_riyadh()) AND org_status='Active' ORDER BY org_name LIMIT 100
+  ) x),'[]'))
+ FROM account u CROSS JOIN totals;
+$$;
+
+REVOKE ALL ON FUNCTION lub.hour_item(jsonb,lub.organization_memberships,text,text,text,text,text,boolean),
+ lub.hours_review_workspace(uuid),lub.hour_details(uuid),lub.my_hours(uuid,integer,text,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION lub.hours_review_workspace(uuid),lub.hour_details(uuid),lub.my_hours(uuid,integer,text,text) TO authenticated;

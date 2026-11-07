@@ -6,14 +6,9 @@ import {privateJson} from "@/lib/private-query";
 import {ContentText} from "@/components/content-text";
 
 import {createTranslator} from "@/lib/i18n";
-import {NumberText} from "@/components/number-text";
 import { useState } from "react";
-import { Check, Eye, SlidersHorizontal, X, ChevronDown, Undo2 } from "lucide-react";
+import { Check, Eye, X, Undo2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import {HourAdjustment} from "./hour-adjustment";
-import {Collapsible,CollapsibleTrigger,CollapsibleContent} from "@/components/ui/collapsible";
-import {Button} from "@/components/ui/button";
-import {Separator} from "@/components/ui/separator";
 import {DataTable} from "@/components/data-table";
 import { OrganizationStatusBadge } from "@/features/organizations/organization-status-badge";
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription} from "@/components/ui/alert-dialog";
@@ -36,7 +31,7 @@ const labels: Record<string, [string, string]> = {
   MANUAL: ["إضافة يدوية", "Manual entry"],
   SELF_REPORTED: ["طلب ذاتي", "Self-reported"],
   TASK: ["مهمة", "Task"],
-  EVENT: ["فعالية", "Event"],
+  EVENT_ATTENDANCE: ["فعالية", "Event"],
 };
 export function HourStatus({
   status,
@@ -69,32 +64,15 @@ function RecordActions({
   locale: Locale;initialDetails?:boolean;hideActions?:boolean;onClose?:()=>void;personal?:boolean;
 }) {
   const [action, setAction] = useState<
-      "adjust" | "details" | "approve" | "reject" | "withdraw" | null
+      "details" | "approve" | "reject" | "withdraw" | null
     >(initialDetails?"details":null),
     en = locale === "en",
     c = createTranslator((en) ? "en" : "ar");
-  const actor=useQueryActor(),details=useQuery({queryKey:["hour-record",actor,row.organization_id,row.id,row.hours,row.status_code],queryFn:({signal})=>privateJson<HourRecord>(`/api/hours/${row.id}`,signal),enabled:action==="details"});
+  const actor=useQueryActor(),details=useQuery({queryKey:["hour-record",actor,row.organization_id,row.id,row.updated_at??row.hours,row.status_code],queryFn:({signal})=>privateJson<HourRecord>(`/api/hours/${row.id}`,signal),enabled:action==="details"});
   const record=details.data??row;
-  const editable =
-    !personal && record.canReview && ["Pending", "Approved"].includes(record.status_code);
   return (
     <>
       {!hideActions&&<div className="hours-row-actions">
-        {!personal&&<>        <RowAction
-          label={c("تعديل الساعات", "Adjust hours")}
-          hint={
-            !editable
-              ? c(
-                  "يتطلب صلاحية تعديل الساعات وسجلًا قابلًا للتعديل.",
-                  "Requires hours permission and an editable record.",
-                )
-              : undefined
-          }
-          disabled={!editable}
-          onClick={() => setAction("adjust")}
-        >
-          <SlidersHorizontal />
-        </RowAction></>}
         <RowAction
           label={c("عرض التفاصيل", "View details")}
           onClick={() => setAction("details")}
@@ -126,24 +104,6 @@ function RecordActions({
         {personal&&record.source_code==="SELF_REPORTED"&&<RowAction label={c("سحب طلب الساعات","Withdraw hours request")} danger disabled={!record.canWithdraw} hint={c("يمكن سحب طلبك الذاتي وهو بانتظار الاعتماد فقط","Only your pending self-reported request can be withdrawn")} onClick={()=>setAction("withdraw")}><Undo2/></RowAction>}
       </div>}
       <AlertDialog open={action==="withdraw"} onOpenChange={open=>{if(!open)setAction(null);}}><AlertDialogContent dir={en?"ltr":"rtl"}><AlertDialogHeader><AlertDialogTitle>{c("سحب طلب الساعات؟","Withdraw hours request?")}</AlertDialogTitle><AlertDialogDescription>{c("سيصبح الطلب مسحوبًا ويبقى في سجلك، ولن تُحتسب ساعاته.","The request will remain in your history as withdrawn and its hours will not count.")}</AlertDialogDescription></AlertDialogHeader><ManagementActionProvider locale={locale} close={()=>setAction(null)}><HoursForm operation="withdraw-self" fields={{record:record.id}} locale={locale} label={c("سحب الطلب","Withdraw request")}/></ManagementActionProvider></AlertDialogContent></AlertDialog>
-      {action === "adjust" && (
-        <ManagementActionSheet
-          label=""
-          title={c("تعديل الساعات", "Adjust hours")}
-          locale={locale}
-          open
-          onOpenChange={(open) => {
-            if (!open) setAction(null);onClose?.();
-          }}
-          hideTrigger
-        >
-          <HourAdjustment
-            record={record}
-            locale={locale}
-            onSuccess={() => setAction(null)}
-          />
-        </ManagementActionSheet>
-      )}
       {action === "details" && (
         <ManagementActionSheet
           label=""
@@ -156,7 +116,7 @@ function RecordActions({
           hideTrigger
           presentation="sheet"
         >
-          <div className="hour-record-details">{details.isError&&<p role="alert" className="text-sm text-muted-foreground">{c("تعذّر تحميل سجل القرارات. أغلق التفاصيل وحاول مجددًا.","Could not load the decision history. Close details and try again.")}</p>}
+          <div className="hour-record-details">{details.isError&&<p role="alert" className="text-sm text-muted-foreground">{c("تعذّر تحديث تفاصيل الساعات.","Could not refresh the hours details.")}</p>}
             <HourStatus status={record.status_code} locale={locale}/>
             <dl className="hour-detail-fields">
               <div>
@@ -177,79 +137,12 @@ function RecordActions({
               </div>
 
             </dl>
-            {record.decisions.length > 0 && (
-              <><Separator/><Collapsible className="hour-decision-details">
-                <CollapsibleTrigger render={<Button type="button" variant="ghost" className="hour-detail-toggle"/>}>
-                  <ChevronDown aria-hidden="true" />
-                  {c("تفاصيل القرار", "Decision details")}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="flex flex-col gap-3 pt-3">
-                  {record.decisions.map((decision, index) => (
-                    <div key={index}>
-                      <HourStatus
-                        status={decision.status_code}
-                        locale={locale}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        {formatRiyadhDateTime(
-                          decision.created_at,
-                          locale,
-                          true,
-                        )}
-                      </p>
-                      {decision.note && (
-                        <p className="whitespace-pre-wrap">{decision.note}</p>
-                      )}
-                    </div>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible></>
-            )}
-            <Separator/><Collapsible>
-              <CollapsibleTrigger render={<Button type="button" variant="ghost" className="hour-detail-toggle"/>}><ChevronDown/>
-                {c("سجل التعديلات", "Adjustment history")}
-              </CollapsibleTrigger><CollapsibleContent className="pt-3">
-              {record.adjustments?.length ? (
-                <ol className="flex flex-col gap-4">
-                  {record.adjustments.map((item, index) => {
-                    const delta =
-                      Number(item.after_hours) - Number(item.before_hours);
-                    return (
-                      <li key={index} className="border-s border-border ps-3">
-                        <p>
-                          {c("تعديل", "Adjustment")}{" "}
-                          <bdi dir="ltr">
-                            {delta > 0 ? "+" : "−"}
-                            <NumberText value={Math.abs(delta)}/>{" "}
-                            {en
-                              ? "hours"
-                              : Math.abs(delta) >= 3 && Math.abs(delta) <= 10
-                                ? "ساعات"
-                                : "ساعة"}
-                          </bdi>
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatRiyadhDateTime(item.created_at, locale, true)}{" "}
-                          · {c("بواسطة", "by")} {item.actor_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {c(`من ${item.before_hours} إلى ${item.after_hours} ساعة`,`From ${item.before_hours} to ${item.after_hours} hours`)}
-                        </p>
-                        {item.note && (
-                          <p className="whitespace-pre-wrap text-sm">
-                            {item.note}
-                          </p>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {c("لم تُعدّل ساعات هذا السجل.", "No adjustments yet.")}
-                </p>
-              )}
-            </CollapsibleContent></Collapsible>
+            {(record.review_note || record.reviewed_at) && <div className="space-y-2 border-t border-border pt-3">
+              <p className="font-medium">{c("آخر مراجعة", "Latest review")}</p>
+              {record.reviewer && <p dir="auto">{record.reviewer}</p>}
+              {record.reviewed_at && <time className="text-sm text-muted-foreground">{formatRiyadhDateTime(record.reviewed_at, locale, true)}</time>}
+              {record.review_note && <p className="whitespace-pre-wrap break-words" dir="auto">{record.review_note}</p>}
+            </div>}
           </div>
         </ManagementActionSheet>
       )}
@@ -279,6 +172,7 @@ function RecordActions({
             operation="review"
             fields={{
               record: record.id,
+              org: record.organization_id,
               status: action === "reject" ? "Rejected" : "Approved",
               ...(action === "approve" ? { note: "" } : {}),
             }}
@@ -322,8 +216,7 @@ export function HoursRecordTable({
   const en = locale === "en",
     c = createTranslator((en) ? "en" : "ar"),
     records = items;
-  const source = (record: HourRecord) =>
-    `${labels[record.source_code]?.[en ? 1 : 0] ?? record.source_code}${!personal && record.context?.added_by ? ` ${c("بواسطة", "by")} ${record.context.added_by}` : ""}`;
+  const source = (record: HourRecord) => labels[record.source_code]?.[en ? 1 : 0] ?? record.source_code;
   const identity = (record: HourRecord) => (
     <div className="flex min-w-0 items-center gap-2.5">
 
@@ -343,11 +236,11 @@ export function HoursRecordTable({
       <DataTable pagination={pagination} items={records} locale={locale} tableKey="hours" label={c("تفاصيل سجل الساعات","Hours record details")} onOpen={setSelected} columns={[
         {id:"name",label:personal?c("الجهة","Organization"):c("العضو","Member"),render:identity},
         ...(!personal?[
-          {id:"committee",label:c("اللجنة","Committee"),className:"w-32",render:(record:HourRecord)=>record.context?.committee_name??c("بدون لجنة","No committee")}
+          {id:"committee",label:c("اللجنة","Committee"),className:"w-32",render:(record:HourRecord)=>record.committee_name??c("بدون لجنة","No committee")}
         ]:[]),
         {id:"hours",label:c("الساعات","Hours"),className:"w-28",render:record=>formatHours(record.hours,locale)},
         {id:"date",label:c("التاريخ","Date"),className:"w-40",render:record=><time>{formatRiyadhDate(record.activity_date,locale)}</time>},
-        ...(personal?[{id:"source",label:c("المصدر","Source"),className:"w-40",render:source}]:[]),
+        {id:"source",label:c("المصدر","Source"),className:"w-40",render:source},
         {id:"status",label:c("الحالة","Status"),className:"w-36",render:record=><HourStatus status={record.status_code} locale={locale}/>},
         {id:"actions",label:c("الإجراءات","Actions"),className:"w-40",render:record=><RecordActions record={record} personal={personal} locale={locale}/>}
       ]}/>

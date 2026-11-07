@@ -1,6 +1,23 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
-import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
+
+
+import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
+import type { SQL } from "drizzle-orm";
+import { getHourRecord, hoursWorkspace, myHours, termWorkspace } from "@/features/hours/repository";
+
+let database: PgliteDatabase;
+let reads = 0;
+vi.mock("server-only", () => ({}));
+vi.mock("@/db/client", () => ({
+  withUser: async <T>(owner: string, operation: (tx: { execute: (query: SQL) => Promise<unknown[]> }) => Promise<T>) => {
+    const [session] = (await db.query<{ owner: string; role: string }>("select auth.uid() owner,current_user role")).rows;
+    expect(session).toEqual({ owner, role: "authenticated" });
+    return operation({ execute: async query => { reads++; return (await database.execute(query)).rows; } });
+  },
+}));
+
 
 const id = (n: number) => `30000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 let db: PGlite;
@@ -13,6 +30,7 @@ type Hour = { id: string; hours: number; status_code: string; review_note: strin
 async function saved(member = 4) { await db.exec("reset role"); return (await db.query<{ hours: Hour[] }>("select hours from lub.organization_memberships where id=$1", [id(300 + member)])).rows[0].hours; }
 beforeAll(async () => {
   db = new PGlite();
+  database = drizzle(db);
   await db.exec("create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;");
   for (const file of ["schema18.sql", "administration18.sql", "hours18.sql"]) await db.exec(readFileSync(`scripts/schema-simplification/${file}`, "utf8"));
 }, 30000);
@@ -75,4 +93,49 @@ it("returns one scoped pending queue for self-requests and deputy additions with
   expect((await db.query<{ data: typeof queue }>("select lub.hours_review_workspace($1) data", [id(100)])).rows[0].data.records.map(row => row.id)).toEqual([own]);
   await actor(6); expect((await db.query<{ data: typeof queue }>("select lub.hours_review_workspace($1) data", [id(100)])).rows[0].data.records.map(row => row.id).sort()).toEqual([own, other].sort());
   await actor(4); expect((await db.query<{ data: unknown }>("select lub.hours_review_workspace($1) data", [id(100)])).rows[0].data).toBeNull();
+});
+
+it("reads the owner's bounded ledger, current reviewer, and term totals in one repository call", async () => {
+  await actor(1);
+  for (let n = 0; n < 27; n++) await add(4, 1.5, false, id(200), true);
+  await db.query("select lub.set_self_report_hours($1,true)", [id(100)]);
+  await actor(4);
+  const pending = await add(4, 2, true);
+  reads = 0;
+  const first = await myHours(id(4), id(500), 0);
+  expect(reads).toBe(1);
+  expect(first?.account.onboarded).toBe(true);
+  expect(first?.total).toBe("40.5");
+  expect(first?.records).toHaveLength(26);
+  expect(first?.hoursByStatus).toMatchObject({ approvedCount: 27, pendingCount: 1, rejectedCount: 0 });
+  expect(first?.memberships[0]).toMatchObject({ self: true, committees: [{ id: id(200), name: "المحتوى" }] });
+  expect((await myHours(id(4), id(500), 1))?.records).toHaveLength(3);
+  expect((await myHours(id(4), id(500), 0, "Pending", "تطوعي"))?.records).toMatchObject([{ id: pending, canWithdraw: true }]);
+  expect((await myHours(id(4), id(501), 0))?.total).toBe("0");
+  expect((await myHours(id(4), id(500), 0, null, "not found"))?.records).toEqual([]);
+  expect((await myHours(id(4), null, null))?.records).toHaveLength(28);
+  await actor(2);
+  expect(await hoursWorkspace(id(2), id(100))).toMatchObject({ canPolicy: false, records: [{ id: pending, committee_name: "المحتوى", canReview: true }] });
+  await denied(() => db.query("select lub.review_hours($1,'Rejected','سبب الرفض',$2)", [pending, id(101)]));
+  await db.query("select lub.review_hours($1,'Rejected','سبب الرفض',$2)", [pending, id(100)]);
+  expect((await hoursWorkspace(id(2), id(100)))?.records).toEqual([]);
+  await actor(5);
+  expect(await getHourRecord(id(5), pending)).toBeUndefined();
+  expect((await myHours(id(5), id(500), 0))?.records).toEqual([]);
+  await actor(4);
+  expect(await getHourRecord(id(4), pending)).toMatchObject({ review_note: "سبب الرفض", reviewer: "طالب اختبار", canWithdraw: false });
+  expect(await getHourRecord(id(4), pending)).not.toHaveProperty("reviewed_by_user_id");
+  expect(await getHourRecord(id(4), pending)).not.toHaveProperty("decisions");
+  expect((await termWorkspace(id(4)))?.canManage).toBe(false);
+});
+
+it("keeps demonstration hours visible to their owner while excluding them from counted totals", async () => {
+  await db.query("update lub.users set is_test_account=true where id=$1", [id(4)]);
+  await actor(1);
+  await add(4, 2);
+  await actor(4);
+  const ledger = await myHours(id(4), id(500), 0);
+  expect(ledger?.isTest).toBe(true);
+  expect(ledger?.records).toHaveLength(1);
+  expect(ledger?.hoursByStatus).toMatchObject({ approved: "0", approvedCount: 0 });
 });

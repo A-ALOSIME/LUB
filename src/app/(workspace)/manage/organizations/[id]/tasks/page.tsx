@@ -24,8 +24,8 @@ export async function generateMetadata() {
 export default async function ManageTasksPage({ params, searchParams }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{
-    page?: string; taskPage?: string; hoursPage?: string; template?: string; section?: string;
-    taskSearch?:string;taskStatus?:string;taskSort?:string;memberPage?: string; term?: string; committee?: string; hourStatus?: string; q?:string;
+    page?: string; taskPage?: string; template?: string; section?: string;
+    taskSearch?:string;taskStatus?:string;taskSort?:string;
   }>;
 }) {
   const [{ locale }, { id }, query] = await Promise.all([getPreferences(), params, searchParams]);
@@ -34,24 +34,13 @@ export default async function ManageTasksPage({ params, searchParams }: {
   if (!z.uuid().safeParse(id).success) notFound();
 
   const number = (value?: string) => z.coerce.number().int().min(0).max(10000).catch(0).parse(value ?? "0");
-  const uuid = (value?: string) => z.uuid().nullable().catch(null).parse(value ?? null);
-  const hourStatus = (["Approved", "Pending", "Rejected"] as const).find(status => status === query.hourStatus) ?? null;
   const taskPage = number(query.taskPage ?? query.page);
   const taskFilters={q:(query.taskSearch??"").slice(0,120),status:["Draft","Open","Completed","Cancelled"].includes(query.taskStatus??"")?query.taskStatus!:"",page:taskPage,sort:query.taskSort==="asc"?"asc" as const:"desc" as const};
-  const filters = {
-    page: number(query.hoursPage),
-    memberPage: number(query.memberPage),
-    term: uuid(query.term),
-    committee: uuid(query.committee),
-    status: hourStatus,
-    q:typeof query.q==="string"?query.q.trim().slice(0,120):"",
-  };
-  const { data: [workspace, tasks, hoursResult] } = await loadManagementPageData(userId => Promise.all([
+  const { data: [workspace, tasks, hours] } = await loadManagementPageData(userId => Promise.all([
     taskWorkspace(userId, id),
     listTasks(userId, { org: id, view: "all", ...taskFilters }),
-    hoursWorkspace(userId, id, filters).then(value => ({ status: "fulfilled" as const, value }), () => ({ status: "rejected" as const })),
+    hoursWorkspace(userId, id),
   ]));
-  const hours = hoursResult.status === "fulfilled" ? hoursResult.value : undefined;
   const taskAccess = Boolean(workspace?.scopes.some(scope => scope.tasks || scope.templates));
   const hoursAccess = Boolean(hours);
   if (!taskAccess && !hoursAccess) notFound();
@@ -80,7 +69,7 @@ export default async function ManageTasksPage({ params, searchParams }: {
       </OrganizationSectionTabPanel>}
       {templateScopes.length>0&&workspace&&<OrganizationSectionTabPanel id="templates"><TaskTemplateList org={id} workspace={workspace} locale={locale}/></OrganizationSectionTabPanel>}
       {hoursAccess && <OrganizationSectionTabPanel id="hours">
-        {hours ? <HoursWorkspaceView data={hours} org={id} filters={filters} locale={locale} /> : null}
+        {hours ? <HoursWorkspaceView data={hours} org={id} locale={locale} /> : null}
       </OrganizationSectionTabPanel>}
     </OrganizationSectionTabs>
   </div>;
