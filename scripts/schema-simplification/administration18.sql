@@ -1,13 +1,16 @@
 -- Scoped administrative operations on the simplified storage contract.
-CREATE FUNCTION lub.admin_create_organization(request_name text,kind text,request_slug text,description text,goals text,candidate_email text DEFAULT NULL)
+CREATE FUNCTION lub.admin_create_organization(request_name text,kind text,request_slug text,description text,goals text,candidate_email text DEFAULT NULL,request_name_en text DEFAULT NULL)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE result uuid;
 BEGIN
  IF NOT lub.is_super_admin() THEN RAISE EXCEPTION 'Super Admin required' USING ERRCODE='42501'; END IF;
  IF request_name IS NULL OR kind IS NULL OR request_slug IS NULL OR description IS NULL OR goals IS NULL THEN RAISE EXCEPTION 'Invalid organization'; END IF;
+ IF request_name_en IS NOT NULL AND (length(trim(request_name_en)) NOT BETWEEN 1 AND 80
+  OR trim(request_name_en)!~'^[A-Za-z0-9 ]+$'
+  OR request_slug<>regexp_replace(lower(trim(request_name_en)),' +','-','g')) THEN RAISE EXCEPTION 'Invalid English organization identity'; END IF;
  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(lub.arabic_search_key(trim(request_name)),0));
  IF EXISTS(SELECT 1 FROM lub.organizations o WHERE lub.arabic_search_key(o.name_ar)=lub.arabic_search_key(trim(request_name))) THEN RAISE EXCEPTION 'ORGANIZATION_NAME_EXISTS'; END IF;
- INSERT INTO lub.organizations(name_ar,type_code,slug,summary,mission) VALUES(trim(request_name),kind,request_slug,description,goals) RETURNING id INTO result;
+ INSERT INTO lub.organizations(name_ar,name_en,type_code,slug,summary,mission) VALUES(trim(request_name),trim(request_name_en),kind,request_slug,description,goals) RETURNING id INTO result;
  IF nullif(trim(candidate_email),'') IS NOT NULL THEN PERFORM lub.set_primary_leader(result,candidate_email); END IF;
  RETURN result;
 END; $$;
@@ -134,12 +137,23 @@ BEGIN
   AND NOT EXISTS(SELECT 1 FROM lub.organizations o WHERE o.slug=candidate AND (except_org IS NULL OR o.id<>except_org));
 END; $$;
 
+
+CREATE FUNCTION lub.admin_update_organization_identity(target uuid,new_slug text,kind text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+BEGIN
+ IF NOT lub.is_super_admin() THEN RAISE EXCEPTION 'Super Admin required' USING ERRCODE='42501'; END IF;
+ IF new_slug IS NULL OR length(new_slug) NOT BETWEEN 1 AND 80 OR new_slug!~'^[a-z0-9]+(-[a-z0-9]+)*$'
+  OR kind IS NULL OR kind NOT IN ('Club','Council') THEN RAISE EXCEPTION 'Invalid organization identity'; END IF;
+ UPDATE lub.organizations SET slug=new_slug,type_code=kind,updated_at=now() WHERE id=target;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Organization not found'; END IF;
+END; $$;
+
 CREATE INDEX organizations_status_name_idx ON lub.organizations(status_code,name_ar,id);
 CREATE INDEX opening_requests_status_created_idx ON lub.organization_opening_requests(status_code,created_at DESC,id);
 CREATE INDEX access_assignments_user_scope_idx ON lub.access_assignments(user_id,organization_id,role_code);
 CREATE INDEX organization_memberships_user_scope_idx ON lub.organization_memberships(user_id,organization_id,status_code);
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA lub FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION lub.admin_create_organization(text,text,text,text,text,text),lub.set_primary_leader(uuid,text),lub.remove_primary_leader(uuid),lub.set_organization_status(uuid,text),
+GRANT EXECUTE ON FUNCTION lub.admin_create_organization(text,text,text,text,text,text,text),lub.admin_update_organization_identity(uuid,text,text),lub.set_primary_leader(uuid,text),lub.remove_primary_leader(uuid),lub.set_organization_status(uuid,text),
  lub.grant_super_admin(text),lub.end_super_admin(uuid),lub.list_super_admins(),lub.admin_account_directory(),lub.admin_leader_candidates(text),lub.admin_directory_snapshot(),
  lub.admin_organization_directory(text,text,text,int),lub.admin_organization_identity(uuid),lub.admin_organization_slug_available(text,uuid) TO authenticated;
 

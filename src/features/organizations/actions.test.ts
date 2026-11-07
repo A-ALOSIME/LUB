@@ -69,7 +69,7 @@ it("fails closed for inactive accounts and does not echo external database detai
   expect(response.error).toBeDefined();
   expect(mocks.revalidate).not.toHaveBeenCalled();
 });
-it('creates with a verified actor and optional leader, then returns to the directory',async()=>{mocks.create.mockResolvedValue({id:org});await expect(mutateOrganization({},form({operation:'create-org',nameAr:'نادي جديد',nameEn:'New Club',slug:'ignored-client-input',typeCode:'Club',summary:'',mission:'',email:'leader@example.invalid',userId:'forged'}))).rejects.toThrow(`REDIRECT:/manage/organizations?tab=organizations&notice=created`);expect(mocks.create).toHaveBeenCalledWith('verified-user',{nameAr:'نادي جديد',slug:'new-club',typeCode:'Club',summary:'',mission:''},'leader@example.invalid');});
+it('creates with a verified actor and optional leader, then returns to the directory',async()=>{mocks.create.mockResolvedValue({id:org});await expect(mutateOrganization({},form({operation:'create-org',nameAr:'نادي جديد',nameEn:'New Club',slug:'ignored-client-input',typeCode:'Club',summary:'',mission:'',email:'leader@example.invalid',userId:'forged'}))).rejects.toThrow(`REDIRECT:/manage/organizations?tab=organizations&notice=created`);expect(mocks.create).toHaveBeenCalledWith('verified-user',{nameAr:'نادي جديد',nameEn:'New Club',slug:'new-club',typeCode:'Club',summary:'',mission:''},'leader@example.invalid');});
 
 it("requires confirmation for leader removal and derives its actor from the session",async()=>{
  expect((await mutateOrganization({},form({operation:"remove-leader",organizationId:org}))).error).toBeDefined();expect(mocks.remove).not.toHaveBeenCalled();

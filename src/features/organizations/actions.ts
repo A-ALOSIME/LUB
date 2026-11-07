@@ -26,7 +26,7 @@ export async function mutateOrganization(_previous: MutationState, form: FormDat
     const texts = { nameAr: form.get("nameAr"), summary: form.get("summary") ?? "", mission: form.get("mission") ?? "" };
     switch (operation) {
       case "create-org":
-        {const english=organizationEnglishNameSchema.safeParse(form.get("nameEn"));if(!english.success)return {error:"اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط.",fieldErrors:{nameEn:["اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط."]}};const email=String(form.get("email")??"").trim();const created=await createOrganization(user.id,createOrganizationSchema.parse({...texts,slug:englishOrganizationSlug(english.data),typeCode:form.get("typeCode")}),email?emailSchema.parse(email):undefined);createdId=created.id;}
+        {const english=organizationEnglishNameSchema.safeParse(form.get("nameEn"));if(!english.success)return {error:"اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط.",fieldErrors:{nameEn:["اكتب اسم الجهة بالإنجليزية بأحرف وأرقام ومسافات فقط."]}};const email=String(form.get("email")??"").trim();const created=await createOrganization(user.id,createOrganizationSchema.parse({...texts,nameEn:english.data,slug:englishOrganizationSlug(english.data),typeCode:form.get("typeCode")}),email?emailSchema.parse(email):undefined);createdId=created.id;}
         break;
       case "org-profile":
         {

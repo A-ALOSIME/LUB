@@ -4,7 +4,7 @@ import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { sql } from "drizzle-orm";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
-import { discoverySchema, organizationProfileSchema, organizationPublicProfileContentSchema } from "@/features/organizations/validation";
+import { discoverySchema, organizationProfileSchema, organizationPublicProfileContentSchema, type CreateOrganizationInput } from "@/features/organizations/validation";
 
 let engine: PGlite;
 let database: PgliteDatabase<typeof schema>;
@@ -29,12 +29,26 @@ vi.mock("@/db/client", () => ({
 }));
 import { getPublicDirectory, getPublicOrganization } from "./legacy-public-organization-repository";
 import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
-import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
+import { appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
 
 const admin = "00000000-0000-4000-8000-000000000001";
 const leader = "00000000-0000-4000-8000-000000000002";
 const org = "00000000-0000-4000-8000-000000000101";
 const learner="00000000-0000-4000-8000-000000000009";
+
+// The recovery schema uses its original row-level creation path.
+async function createOrganization(userId: string, input: CreateOrganizationInput, leaderEmail?: string) {
+  return database.transaction(async tx => {
+    await tx.execute(sql`select set_config('request.jwt.claim.sub',${userId},true)`);
+    await tx.execute(sql`set local role authenticated`);
+    const [created] = await tx.insert(schema.organizations).values({
+      nameAr: input.nameAr, slug: input.slug, typeCode: input.typeCode, summary: input.summary, mission: input.mission,
+    }).returning({ id: schema.organizations.id });
+    if (leaderEmail) await tx.execute(sql`select lub.set_primary_leader(${created.id},${leaderEmail})`);
+    return created;
+  });
+}
+
 async function createLearner() {
  await engine.query("insert into auth.users values($1)",[learner]);
  await engine.query("insert into lub.users(id,email,email_verified_at) values($1,'learner@example.invalid',now())",[learner]);

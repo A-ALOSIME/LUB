@@ -168,16 +168,16 @@ export async function getMembershipHistory(userId: string) {
     .where(eq(organizationMemberships.userId, userId)).orderBy(asc(organizations.nameAr), asc(organizationMemberships.startDate)));
 }
 
-export async function createOrganization(userId: string, input: CreateOrganizationInput, leaderEmail?:string) {
+export async function createOrganization(userId: string, input: CreateOrganizationInput, leaderEmail?: string) {
   return withUser(userId, async tx => {
-    await requireSuperAdmin(tx);
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(lub.arabic_search_key(${input.nameAr}),0))`);
-    const [existing]=await tx.select({id:organizations.id}).from(organizations).where(sql`lub.arabic_search_key(${organizations.nameAr})=lub.arabic_search_key(${input.nameAr})`).limit(1);if(existing)throw new Error("ORGANIZATION_NAME_EXISTS");
-    const [created]=await tx.insert(organizations).values(input).returning({id:organizations.id});
-    if(leaderEmail)await tx.execute(sql`select lub.set_primary_leader(${created.id},${leaderEmail})`);
-    return created;
+    const [row] = await tx.execute<{ id: string }>(sql`
+      select lub.admin_create_organization(
+        ${input.nameAr}, ${input.typeCode}, ${input.slug}, ${input.summary}, ${input.mission}, ${leaderEmail ?? null}, ${input.nameEn ?? null}
+      ) as id`);
+    return { id: row.id };
   });
 }
+
 export async function appointPrimaryLeader(userId: string, organizationId: string, email: string) {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); await tx.execute(sql`select lub.set_primary_leader(${organizationId},${email})`); });
 }

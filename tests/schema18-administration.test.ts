@@ -22,7 +22,7 @@ vi.mock("@/db/client", () => ({
     }catch(error){await db.exec("rollback to savepoint source_read;release savepoint source_read");throw error;}
   },
 }));
-import {getManagementOverview,getAdminAccountProfile,updateAdminAccountName} from "@/features/organizations/management-repository";
+import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName} from "@/features/organizations/management-repository";
 import { adminDirectory } from "@/features/organizations/admin-directory-repository";
 import { openingRequests, ownOpeningRequest } from "@/features/organization-requests/repository";
 
@@ -190,4 +190,22 @@ it("projects management navigation from real scoped roles without exposing priva
   const serialized = JSON.stringify(data); for (const secret of ["@example.invalid", "encrypted", "notifications", "university_id"]) expect(serialized).not.toContain(secret);
   await actor(3); expect((await db.query<{ data: typeof data }>("select lub.management_overview() data")).rows[0].data.access.organizations).toEqual([]);
   await actor(1); expect((await db.query<{ data: typeof data }>("select lub.management_overview() data")).rows[0].data).toMatchObject({ access: { superAdmin: true, organizations: [] }, summary: { activeOrganizations: 1, administrators: 1 } });
+});
+
+
+it("creates through the application repository and limits identity changes to the super administrator", async () => {
+  const input = { nameAr: "نادي البرمجة", nameEn: "Programming Club", slug: "programming-club", typeCode: "Club" as const, summary: "", mission: "" };
+  await expect(createOrganization(id(2), input)).rejects.toThrow();
+  await expect(createOrganization(id(1), input, "missing@example.invalid")).rejects.toThrow();
+  const created = await createOrganization(id(1), input, "admin18-2@example.invalid");
+  expect((await db.query("select name_en,slug from lub.organizations where id=$1", [created.id])).rows).toEqual([{ name_en: input.nameEn, slug: input.slug }]);
+  expect((await adminDirectory(id(1)))?.organizations).toMatchObject([{ id: created.id, leaderName: "طالب 2", memberCount: 1 }]);
+  await expect(createOrganization(id(1), { ...input, nameAr: "نادي آخر" })).rejects.toThrow();
+  await expect(createOrganization(id(1), { ...input, slug: "mismatched-slug", nameAr: "اسم آخر" })).rejects.toThrow();
+  await actor(2);
+  await denied(() => db.query("select lub.admin_update_organization_identity($1,'renamed','Council')", [created.id]));
+  await denied(() => db.query("update lub.organizations set slug='forged' where id=$1", [created.id]));
+  await actor(1);
+  await db.query("select lub.admin_update_organization_identity($1,'renamed','Council')", [created.id]);
+  expect((await adminDirectory(id(1)))?.organizations).toMatchObject([{ id: created.id, slug: "renamed", typeCode: "Council", leaderName: "طالب 2" }]);
 });
