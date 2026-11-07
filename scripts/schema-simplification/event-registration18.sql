@@ -69,6 +69,21 @@ BEGIN
  INSERT INTO lub.history_events(organization_id,event_registration_id,event_code,from_status_code,to_status_code,actor_user_id) VALUES(e.organization_id,target,'EventReapplied','Cancelled','Pending',auth.uid());
  PERFORM lub.workflow_notify(auth.uid(),'EVENT_REGISTRATION_CHANGED','/events/'||e.id);
 END; $$;
+CREATE FUNCTION lub.remove_event_registration(target uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE e lub.organization_content; r lub.event_registrations;
+BEGIN
+ e:=lub.lock_event((SELECT event_id FROM lub.event_registrations WHERE id=target));
+ SELECT * INTO r FROM lub.event_registrations WHERE id=target FOR UPDATE;
+ IF e.status_code<>'Published' OR r.status_code<>'Registered' OR NOT lub.can_operate_event(e.id) THEN
+  RAISE EXCEPTION 'Removal permission required' USING ERRCODE='42501';
+ END IF;
+ UPDATE lub.event_registrations SET status_code='Cancelled',cancelled_at=now() WHERE id=target;
+ INSERT INTO lub.history_events(organization_id,event_registration_id,event_code,from_status_code,to_status_code,actor_user_id)
+  VALUES(e.organization_id,target,'EventRemoved',r.review_status_code,'Cancelled',auth.uid());
+ PERFORM lub.workflow_notify(r.user_id,'EVENT_REGISTRATION_REMOVED','/events/'||e.id);
+END; $$;
+REVOKE ALL ON FUNCTION lub.remove_event_registration(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION lub.remove_event_registration(uuid) TO authenticated;
 CREATE FUNCTION lub.review_event_registrations(targets uuid[],status text,note text DEFAULT '') RETURNS int LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE r lub.event_registrations; changed int:=0;
 BEGIN

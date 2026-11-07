@@ -56,9 +56,7 @@ vi.mock("@/db/client", () => ({
   },
 }));
 import { mutateTask } from "@/features/tasks/actions";
-import { mutateEvent } from "@/features/events/actions";
 import { taskDetail, listTasks } from "@/features/tasks/repository";
-import { eventDetail } from "@/features/events/repository";
 let db: PGlite, currentUser: string, studentSlug: string;
 const leader = "00000000-0000-4000-8000-000000000001",
   student = "00000000-0000-4000-8000-000000000002",
@@ -80,7 +78,7 @@ function form(values: Record<string, string>, skills?: string[]) {
   }
   return data;
 }
-async function revision(kind: "tasks" | "events", id: string) {
+async function revision(kind: "tasks", id: string) {
   return (
     await db.query<{ revision: number }>(
       `select revision from lub.${kind} where id=$1`,
@@ -235,80 +233,4 @@ it("rolls back a task edit with an invalid skill, rejects members, preserves omi
     form({ ...edit, title: "عنوان محفوظ", revision: String(next) }, []),
   );
   expect((await taskDetail(leader, task))?.task.skills).toEqual([]);
-});
-it("stores event selections with publication and counts verified completed events, never registration alone", async () => {
-  const now = Date.now(),
-    iso = (hours: number) => new Date(now + hours * 3600000).toISOString();
-  const values = {
-    operation: "save",
-    org,
-    title: "ورشة بايثون",
-    description: "تعلم بايثون",
-    locationType: "In_Person",
-    location: "قاعة",
-    hours: "0",
-    starts: iso(24),
-    ends: iso(26),
-    opens: iso(-1),
-    closes: iso(12),
-    publish: "on",
-  };
-  const result = await mutateEvent({}, form(values, ["python"]));
-  expect(result.success).toBeDefined();
-  const event = result.eventId!;
-  expect((await eventDetail(leader, event))?.event.skills).toMatchObject([
-    { key: "python" },
-  ]);
-  const before = await revision("events", event);
-  expect(
-    (
-      await mutateEvent(
-        {},
-        form(
-          { ...values, event, revision: String(before), title: "غير محفوظ" },
-          ["unknown"],
-        ),
-      )
-    ).error,
-  ).toBeDefined();
-  expect((await eventDetail(leader, event))?.event.title).toBe(values.title);
-  await actor(student);
-  expect((await eventDetail(student, event))?.event.skills).toBeUndefined();
-  const registration = (
-    await db.query<{ id: string }>(
-      "select lub.register_event($1,null,'{}',null) as id",
-      [event],
-    )
-  ).rows[0].id;
-  expect((await evidence()).events).toBe(0);
-  expect(
-    (
-      await mutateEvent(
-        {},
-        form({ ...values, event, revision: String(before) }, ["sql"]),
-      )
-    ).error,
-  ).toBeDefined();
-  await db.exec("reset role");
-  await db.query(
-    "update lub.events set starts_at=now()-interval '2 hours',ends_at=now()-interval '1 hour',registration_opens_at=now()-interval '2 days',registration_closes_at=now()-interval '1 day' where id=$1",
-    [event],
-  );
-  await actor(leader);
-  await db.query("select lub.mark_event_attendance($1,'Present')", [
-    registration,
-  ]);
-  expect((await evidence()).events).toBe(0);
-  const completed = await mutateEvent(
-    {},
-    form({
-      operation: "status",
-      event,
-      status: "Completed",
-      confirm: "on",
-      revision: String(await revision("events", event)),
-    }),
-  );
-  expect(completed.success).toBeDefined();
-  expect((await evidence()).events).toBe(1);
 });

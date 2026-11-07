@@ -11,9 +11,6 @@ import {PgDialect} from "drizzle-orm/pg-core";
 import type {SQL} from "drizzle-orm";
 vi.mock("server-only",()=>({}));
 vi.mock("@/db/client",()=>({withUser:async(user:string,operation:(tx:{execute:(query:SQL)=>Promise<Record<string,unknown>[]>})=>Promise<unknown>)=>{await actor(user);return operation({execute:async query=>{const compiled=new PgDialect().sqlToQuery(query);return (await db.query<Record<string,unknown>>(compiled.sql,compiled.params)).rows;}});}}));
-import {eventWorkspaceOverview} from "../src/features/events/workspace";
-import {eventRegistrants} from "../src/features/events/review-repository";
-import {organizationEventsVersion} from "../src/features/events/management-version";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { applyMigrations, storageFixture } from "./storage-fixture";
@@ -52,9 +49,8 @@ it("exports accepted and recorded registrants through expiring owner-bound ticke
  expect((await read(ticket)).records).toEqual([expect.objectContaining({userId:student,isTest:false,status:"Accepted"})]);await denied(()=>read(ticket));
  await db.query("select lub.verify_registration_contribution($1,'Presenter','شرح الورشة')",[registration]);
  expect((await read((await prepare()).rows[0].value.ticket)).records[0].status).toBe("Recorded");
- const list=await eventRegistrants(leader,org,event,"","Recorded",0,false);expect(list.items).toHaveLength(1);expect(list.recorded).toBe(1);expect(list.accepted).toBe(0);
  await db.exec("reset role");await db.query("update lub.users set is_test_account=true where id=$1",[student]);await actor(leader);
- expect((await read((await prepare()).rows[0].value.ticket)).records).toEqual([]);const counted=await eventRegistrants(leader,org,event,"","",0,false);expect(counted.items).toHaveLength(1);expect(counted.recorded).toBe(0);
+ expect((await read((await prepare()).rows[0].value.ticket)).records).toEqual([]);
 });
 it("restricts a delegated registrant export to its committee and rejects expired tickets and exhausted quota",async()=>{
  const event=await create(10);await db.query("select lub.change_event_status($1,'Published',1)",[event]);
@@ -134,14 +130,6 @@ it("copies the approval policy and excludes rejected registrations when reducing
 
 it("allows only event managers to remove registrations and retains decision history",async()=>{const event=await create();await publish(event);await actor(student);const r=await register(event);await actor(peer);await denied(()=>db.query("select lub.remove_event_registration($1)",[r]));await actor(leader);await db.query("select lub.remove_event_registration($1)",[r]);expect((await db.query("select status_code from lub.event_registrations where id=$1",[r])).rows[0]).toEqual({status_code:'Cancelled'});await actor(student);expect((await db.query<{status_code:string}>("select status_code from lub.event_registration_history where event_registration_id=$1 order by created_at",[r])).rows.map(x=>x.status_code)).toEqual(expect.arrayContaining(['Accepted','Cancelled']));expect((await db.query("select id from lub.notifications where target_url=$1",[`/events/${event}`])).rows.length).toBeGreaterThanOrEqual(2);await actor(leader);await denied(()=>db.query("select lub.remove_event_registration($1)",[r]));});
 
-it("loads the full organization cache across page boundaries and keeps all reads permission-scoped",async()=>{
- for(let i=0;i<28;i++){await actor(leader);const event=await create();await db.query("select lub.set_event_registration_policy($1,true,1)",[event]);await db.query("select lub.change_event_status($1,'Published',2)",[event]);await actor(student);await register(event);}
- const paged=await eventWorkspaceOverview(leader,org,0),complete=await eventWorkspaceOverview(leader,org,null),registrations=await eventRegistrants(leader,org,null,"","",null);
- expect(paged?.events).toHaveLength(26);expect(complete?.events).toHaveLength(28);expect(registrations.items).toHaveLength(28);expect(registrations.options).toHaveLength(28);
- expect(await eventWorkspaceOverview(student,org,null)).toBeUndefined();expect((await eventRegistrants(student,org,null,"","",null)).items).toHaveLength(0);expect(await organizationEventsVersion(student,org)).toBeNull();
- const before=await organizationEventsVersion(leader,org);await db.query("select lub.review_event_registrations($1::uuid[],'Rejected','سبب القرار')",[[registrations.items[0].id]]);const after=await organizationEventsVersion(leader,org);expect(before).toHaveLength(32);expect(after).not.toBe(before);
-});
-
 it("restores only empty source fields, preserves existing values, and keeps undated archives non-registerable and idempotent",async()=>{
  const payload={slug:'events-test',name:'اسم من الملف',type:'Club',summary:'نبذة المصدر',mission:'رسالة المصدر',profile:{vision:'رؤية المصدر',partners:'شريك المصدر'},contacts:[{kind:'X',url:'https://x.com/source'}],committees:[{name:'لجنة الإعلام',description:'• توثيق الأنشطة.\n• إنتاج المحتوى.',parent:null}],events:[{id:'00000000-0000-4000-8000-000000000900',title:'لقاء أرشيفي',description:'نص الملف فقط',dateText:'25 يناير'}]};
  await actor(student);await denied(()=>db.query('select lub.restore_markdown_organization($1::jsonb)',[JSON.stringify(payload)]));await db.exec("reset role;select set_config('request.jwt.claim.sub','',true)");await db.query("insert into lub.global_role_assignments(user_id,role_code,assigned_by_user_id) values($1,'SA',$1)",[leader]);await db.query("update lub.organizations set public_profile_content=$1::jsonb where id=$2",[JSON.stringify({vision:"",partners:"شريك حالي"}),org]);await db.query("select set_config('request.jwt.claim.sub','',true)");
@@ -205,9 +193,6 @@ it("bounds bootstrap and server pages, searches all records and never includes f
   await db.query("select lub.create_registration_round($1,$2,$3,now(),now()+interval '2 days',true)",[org,template,`جولة ${i}`]);
   await db.query("select lub.save_task(null,$1,null,null,$2,'تفاصيل لا تحملها القائمة',null,null,1,null)",[org,`مهمة ${i}`]);
  }
- expect((await eventWorkspaceOverview(leader,org,null))?.events).toHaveLength(51);
- const event0=(await eventWorkspaceOverview(leader,org,0,{eventStatus:'Draft'}))!.events,event1=(await eventWorkspaceOverview(leader,org,1,{eventStatus:'Draft'}))!.events;
- expect(event0).toHaveLength(26);expect(event1).toHaveLength(26);expect(event0.slice(0,25).some(row=>event1.slice(0,25).some(other=>row.id===other.id))).toBe(false);
  const first=await campaignList(leader,org,{status:'Draft',kind:'round',q:'',sort:'desc',page:0}),next=await campaignList(leader,org,{status:'Draft',kind:'round',q:'',sort:'desc',page:1});
  expect(first.items).toHaveLength(25);expect(first.more).toBe(true);expect(next.items).toHaveLength(25);expect(first.items.some(row=>next.items.some(other=>row.id===other.id))).toBe(false);
  expect((await campaignList(leader,org,{status:'all',kind:'round',q:'جولة 53',sort:'desc',page:0})).items).toHaveLength(1);

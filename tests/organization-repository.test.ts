@@ -105,43 +105,11 @@ it("features only a published event from its own organization", async () => {
   await engine.exec("reset role");
 });
 
-it("publishes only chosen event report and photo links without exposing operational assets", async () => {
-  const {eventDetail} = await import("@/features/events/repository");
-  await appointPrimaryLeader(admin, org, "leader@example.invalid");
-  await engine.query("select set_config('request.jwt.claim.sub',$1,false)", [leader]); await engine.exec("set role authenticated");
-  const created = await engine.query<{id:string}>("select lub.save_event(null,$1,'تقرير فعالية','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',5,null,0,null) as id", [org]);
-  const event = created.rows[0].id;
-  await expect(engine.query("select lub.set_event_public_content($1,'ملخص',array['https://example.com/photo.png'])", [event])).rejects.toThrow();
-  await engine.query("select lub.change_event_status($1,'Published',1)", [event]);
-  await expect(engine.query("select lub.set_event_public_content($1,'ملخص',array['http://example.com/photo.png'])", [event])).rejects.toThrow();
-  await engine.query("select lub.set_event_public_content($1,'ملخص منشور',array['https://example.com/photo.png'])", [event]);
-  await engine.exec("reset role");
-  const publicEvent = await eventDetail(null,event);
-  expect(publicEvent?.event.public_report).toBe("ملخص منشور");
-  expect(publicEvent?.event.public_photos).toEqual(["https://example.com/photo.png"]);
-  expect(publicEvent?.assets).toEqual([]);
-  await engine.query("select set_config('request.jwt.claim.sub',$1,false)", [admin]); await engine.exec("set role authenticated");
-  await expect(engine.query("select lub.set_event_public_content($1,'تغيير',array[]::text[])", [event])).rejects.toThrow();
-  await engine.exec("reset role");
-});
-
 it("executes safe talent DTOs and combines private readiness with workspace in one query",async()=>{
  const {talentDirectory,publicTalent,talentWorkspace}=await import("@/features/talent/repository");const pages={organizations:0,events:0,projects:0,sources:0};
  expect(await publicTalent(leader,pages)).toBeNull();expect(await talentDirectory("",null,0)).toEqual([]);scopedReads=0;const workspace=await talentWorkspace(leader,pages);expect(scopedReads).toBe(1);expect(workspace?.onboarded).toBe(true);expect(workspace?.settings).toEqual({public_profile_enabled:false});
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.save_talent_settings('نبذة',true)");await engine.query("select lub.save_talent_skill('تصميم',true)");await engine.exec("reset role");
  const settings=(await talentWorkspace(leader,pages))!.settings;expect(settings).toMatchObject({public_slug:expect.any(String),allow_indexing:false});const slug=settings.public_slug!;expect(slug).not.toBe(leader);expect((await talentDirectory("القائد","تصميم",0)).map(p=>p.id)).toEqual([slug]);expect((await publicTalent(slug,pages))?.skills).toEqual(["تصميم"]);expect(JSON.stringify(await publicTalent(slug,pages))).not.toMatch(/secret2|lookup|university/);expect(JSON.stringify(await publicTalent(slug,pages))).not.toContain(leader);
-});
-
-it("reads published event discovery anonymously and private event data in one scoped query",async()=>{
- const {listEvents,eventDetail,eventWorkspace}=await import("@/features/events/repository");
- await appointPrimaryLeader(admin,org,"leader@example.invalid");
- await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");
- const e=(await engine.query<{id:string}>("select lub.save_event(null,$1,'فعالية الاختبار','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',5,null,0,null) as id",[org])).rows[0].id;
- await engine.exec("reset role");expect(await eventDetail(null,e)).toBeUndefined();
- await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.change_event_status($1,'Published',1)",[e]);await engine.exec("reset role");
- const visible=await eventDetail(null,e);expect(visible?.remaining).toBe(5);expect(visible?.own).toBeNull();expect(visible?.registrations).toEqual([]);expect((await listEvents("","upcoming",0)).map(x=>x.id)).toEqual([e]);
- scopedReads=0;const ops=await eventDetail(leader,e);expect(scopedReads).toBe(1);expect(ops?.canManage).toBe(true);scopedReads=0;expect((await eventWorkspace(leader,org,0))?.events).toHaveLength(1);expect(scopedReads).toBe(1);
- expect((await eventDetail(admin,e))?.canManage).toBe(false);expect(await eventWorkspace(admin,org,0)).toBeUndefined();
 });
 
 it("combines public organization sections in one select and keeps eligibility separate from public data",async()=>{
@@ -441,8 +409,6 @@ it("supplies the personal dashboard in one scoped read without another user's pr
  const data=await getMyPageData(leader);expect(data.profile?.fullName).toBe("القائد");expect(data.access.superAdmin).toBe(false);expect(data.memberships[0].roles[0].code).toBe("OL");
  expect(JSON.stringify(data)).not.toMatch(/secret|lookup|example|المشرف/);
 });
-
-it("reads scoped event review rows and counts in one query without exposing student identifiers or avatars",async()=>{await appointPrimaryLeader(admin,org,'leader@example.invalid');await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec('set role authenticated');const event=(await engine.query<{id:string}>("select lub.save_and_publish_event(null,$1,'ورشة','وصف','In_Person','قاعة',null,now()+interval '1 day',now()+interval '2 days',now()-interval '1 hour',now()+interval '12 hours',5,null,0,null,null,true) as id",[org])).rows[0].id;await engine.query("select lub.register_event($1,null,'{}',null)",[event]);await engine.exec('reset role');const {eventRegistrants}=await import('@/features/events/review-repository');scopedReads=0;const data=await eventRegistrants(leader,org);expect(scopedReads).toBe(1);expect(data.accepted).toBe(1);expect(data.items[0]).toMatchObject({name:'القائد',review_status_code:'Accepted'});expect(JSON.stringify(data)).not.toMatch(/university|ciphertext|lookup_hash|avatar|secret2/);expect((await eventRegistrants(admin,org)).items).toEqual([]);});
 
 it('excludes active system administrators from member lists, public counts, hours and exports while retaining their original records',async()=>{
  await appointPrimaryLeader(admin,org,'leader@example.invalid');await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);

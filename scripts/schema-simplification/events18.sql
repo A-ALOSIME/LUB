@@ -130,7 +130,7 @@ END; $$;
 CREATE FUNCTION lub.set_event_public_content(target uuid,report text,photos text[]) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE e lub.organization_content; entries jsonb;
 BEGIN
- e:=lub.lock_event(target); IF NOT lub.can_operate_event(target) THEN RAISE EXCEPTION 'Event permission required' USING ERRCODE='42501'; END IF;
+ e:=lub.lock_event(target); IF NOT lub.can_operate_event(target) OR e.status_code NOT IN ('Published','Completed') THEN RAISE EXCEPTION 'Event permission required' USING ERRCODE='42501'; END IF;
  IF report IS NULL OR length(report)>5000 OR photos IS NULL OR cardinality(photos)>4 OR array_position(photos,NULL) IS NOT NULL THEN RAISE EXCEPTION 'Invalid public content'; END IF;
  SELECT coalesce(jsonb_agg(jsonb_build_object('id',gen_random_uuid(),'url',p) ORDER BY ordinal),'[]') INTO entries FROM unnest(photos) WITH ORDINALITY x(p,ordinal);
  UPDATE lub.organization_content SET public_report=report,public_photos=entries,revision=revision+1,updated_at=now() WHERE id=target;
@@ -138,6 +138,21 @@ END; $$;
 CREATE FUNCTION lub.public_event_poster(target uuid) RETURNS TABLE(object_key text,mime_type text) LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT a.object_key,a.mime_type::text FROM lub.organization_content e JOIN lub.assets a ON a.id=e.primary_image_id WHERE e.id=target AND e.kind='Event' AND lub.content_is_public(e.id) AND a.mime_type IN ('image/png','image/jpeg');
 $$;
+CREATE FUNCTION lub.attach_event_asset(target uuid,asset uuid,attachment_kind text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE e lub.organization_content;
+BEGIN
+ e:=lub.lock_event(target);
+ IF NOT lub.can_operate_event(target) OR NOT EXISTS(SELECT 1 FROM lub.assets a WHERE a.id=asset AND a.owner_user_id=auth.uid()) THEN
+  RAISE EXCEPTION 'Event and file permission required' USING ERRCODE='42501';
+ END IF;
+ IF attachment_kind IS NULL OR attachment_kind NOT IN ('Approval','Attendance','Report','Photo') THEN RAISE EXCEPTION 'Invalid attachment type'; END IF;
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(e.attachments) f WHERE f->>'assetId'=asset::text AND f->>'type'=attachment_kind) THEN RETURN; END IF;
+ IF jsonb_array_length(e.attachments)>=100 THEN RAISE EXCEPTION 'Event attachment limit reached'; END IF;
+ UPDATE lub.organization_content SET attachments=attachments||jsonb_build_array(jsonb_build_object('id',gen_random_uuid(),'assetId',asset,'type',attachment_kind)),
+  revision=revision+1,updated_at=now() WHERE id=target;
+END; $$;
+REVOKE ALL ON FUNCTION lub.attach_event_asset(uuid,uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION lub.attach_event_asset(uuid,uuid,text) TO authenticated;
 CREATE FUNCTION lub.public_event_poster_dimensions(target uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT jsonb_build_object('width',a.image_width,'height',a.image_height) FROM lub.organization_content e JOIN lub.assets a ON a.id=e.primary_image_id WHERE e.id=target AND e.kind='Event' AND lub.content_is_public(e.id) AND a.image_width IS NOT NULL AND a.image_height IS NOT NULL;
 $$;

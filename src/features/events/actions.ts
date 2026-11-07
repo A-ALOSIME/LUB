@@ -14,7 +14,7 @@ const date=(f:FormData,k:string)=>f.get(k)?z.iso.datetime({offset:true}).parse(f
 const revision=(f:FormData)=>z.coerce.number().int().positive().parse(f.get("revision"));
 export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<WorkflowState>{
  const user=await requireUser();let eventId:string|undefined;try{
- const operation=z.enum(["save","status","duplicate","register","cancel","reapply","attendance","contribution","attach","feature","public-content","review","policy","remove-registration","archive","restore","delete"]).parse(f.get("operation"));
+ const operation=z.enum(["save","status","duplicate","register","cancel","reapply","attendance","attach","feature","public-content","review","policy","remove-registration","archive","restore","delete"]).parse(f.get("operation"));
  if(["register","cancel","reapply"].includes(operation)){const adminError=await studentOperationError(user.id);if(adminError)return{error:adminError};}
  if(operation==="save"&&!date(f,"starts"))return {error:"حدد تاريخ بداية الفعالية قبل الحفظ."};
  const query=(()=>{switch(operation){
@@ -29,7 +29,6 @@ export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<Wo
  case "reapply":if(f.get("confirm")!=="on")throw new Error();return sql`select lub.reapply_event_registration(${id(f,"registration")})`;
  case "cancel":if(f.get("confirm")!=="on")throw new Error();return sql`select lub.cancel_event_registration(${id(f,"registration")})`;
  case "attendance":return sql`select lub.mark_event_attendance(${id(f,"registration")},${z.enum(["Pending","Present","Absent","Excused"]).parse(f.get("status"))})`;
- case "contribution":if(f.get("registration"))return sql`select lub.verify_registration_contribution(${id(f,"registration")},${z.enum(["Presenter","Trainer","Core_Contributor"]).parse(f.get("kind"))},${text(f,"title",120,2)})`;return sql`select lub.verify_event_contribution(${id(f,"event")},${id(f,"student")},${z.enum(["Presenter","Trainer","Core_Contributor"]).parse(f.get("kind"))},${text(f,"title",120,2)})`;
  case "attach":return sql`select lub.attach_event_asset(${id(f,"event")},${id(f,"asset")},${z.enum(["Approval","Attendance","Report","Photo"]).parse(f.get("kind"))})`;
  case "feature":return sql`select lub.set_featured_event(${id(f,"event")},${f.get("featured")==="on"})`;
  case "public-content":{
@@ -37,7 +36,7 @@ export async function mutateEvent(_previous:WorkflowState,f:FormData):Promise<Wo
   const photos=z.array(z.string().url().refine(value=>{const url=new URL(value);return url.protocol==="https:"&&!url.username&&!url.password&&!/\s/.test(value);})).max(4).parse(text(f,"photos",8200).split(/\r?\n/).map(value=>value.trim()).filter(Boolean));
   return sql`select lub.set_event_public_content(${id(f,"event")},${report},array[${sql.join(photos.map(value=>sql`${value}`),sql`, `)}]::text[])`;
  }
- }})();const rows=await withUser(user.id,async tx=>{const skills=operation==="save"?activitySkillKeys(f):null;const rows=await tx.execute(query);if(operation==="save"){const event=z.uuid().parse(rows[0]?.id);if(skills!==null)await tx.execute(sql`select lub.set_activity_skill_tags('Event',${event},${JSON.stringify(skills)}::jsonb,(select revision from lub.events where id=${event}))`);if(f.has("approval-present"))await tx.execute(sql`select lub.set_event_registration_policy(${event},${f.get("approval")==="on"},(select revision from lub.events where id=${event}))`);if(f.get("removePoster")==="true")await tx.execute(sql`select lub.remove_event_poster(${event})`);}return rows;});if(operation==="save"||operation==="duplicate")eventId=z.uuid().parse(rows[0]?.id);
+ }})();const rows=await withUser(user.id,async tx=>{const skills=operation==="save"?activitySkillKeys(f):null;const rows=await tx.execute(query);if(operation==="save"){const event=z.uuid().parse(rows[0]?.id);if(skills!==null)await tx.execute(sql`select lub.set_activity_skill_tags('Event',${event},${JSON.stringify(skills)}::jsonb,(select revision from lub.organization_content where id=${event} and kind='Event'))`);if(f.has("approval-present"))await tx.execute(sql`select lub.set_event_registration_policy(${event},${f.get("approval")==="on"},(select revision from lub.organization_content where id=${event} and kind='Event'))`);if(f.get("removePoster")==="true")await tx.execute(sql`select lub.remove_event_poster(${event})`);}return rows;});if(operation==="save"||operation==="duplicate")eventId=z.uuid().parse(rows[0]?.id);
  }catch{return{error:"تعذّر حفظ التغيير. راجع الحقول والصلاحيات وحدّث الصفحة. التسجيل له موعد وسعة؛ الإكمال يحتاج انتهاء الفعالية ومراجعة الحضور وفصلًا يغطي ساعات الأعضاء."};}
  updateTag("events");updateTag("public-organizations");updateTag("public-talent");revalidatePath("/events");revalidatePath("/activity");revalidatePath("/organizations");if(f.get("org"))revalidatePath(`/manage/organizations/${id(f,"org")}/events`);if(f.get("event"))revalidatePath(`/events/${id(f,"event")}`);revalidatePath("/me");revalidatePath("/hours");revalidatePath("/notifications");return{success:"تم حفظ التغيير.",eventId};
 }
