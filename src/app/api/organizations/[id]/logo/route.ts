@@ -15,6 +15,13 @@ function jsonError(status: number, error: string) {
   return Response.json({ error }, { status, headers: privateHeaders });
 }
 
+function logoSaveError(error: unknown) {
+  const databaseError = error instanceof Error && error.cause ? error.cause : error;
+  const forbidden = (error instanceof Error && error.message === "FORBIDDEN")
+    || (typeof databaseError === "object" && databaseError !== null && "code" in databaseError && databaseError.code === "42501");
+  return jsonError(forbidden ? 403 : 500, "save-failed");
+}
+
 function hasSameOrigin(request: Request) {
   try { return request.headers.get("origin") === getAppOrigin(); }
   catch { return false; }
@@ -130,7 +137,7 @@ export async function POST(request: Request, context: RouteContext) {
     saved = await saveOrganizationLogo(auth.user.id, auth.id, newLogoUrl);
   } catch (error) {
     await supabase.storage.from(bucketName).remove([objectPath]).catch(() => undefined);
-    return jsonError(error instanceof Error && error.message === "FORBIDDEN" ? 403 : 500, "save-failed");
+    return logoSaveError(error);
   }
   await removeOldLogo(supabase, saved.previousLogoUrl, auth.id);
   revalidateOrganization(auth.id, saved.slug);
@@ -147,7 +154,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   try {
     saved = await saveOrganizationLogo(auth.user.id, auth.id, "");
   } catch (error) {
-    return jsonError(error instanceof Error && error.message === "FORBIDDEN" ? 403 : 500, "save-failed");
+    return logoSaveError(error);
   }
   await removeOldLogo(supabase, saved.previousLogoUrl, auth.id);
   revalidateOrganization(auth.id, saved.slug);

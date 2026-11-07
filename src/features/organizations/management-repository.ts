@@ -3,9 +3,11 @@ import type {OrganizationMemberWorkspace,EncryptedMemberWorkspace,MemberFilters}
 import {initialMemberFilters} from "./member-types";
 import {decodeMemberWorkspace} from "./member-identifiers";
 import { cache } from "react";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { withUser, type Transaction } from "@/db/client";
-import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships } from "@/db/schema";
+import { users, organizations, organizationMemberships } from "@/db/schema";
+import { normalizeOrganizationContact, storedLinksToContactChannels } from "./contact-channels";
+import { normalizePublicTags } from "./public-repository";
 import {announcementSchema} from "./validation";
 import type { CreateOrganizationInput, OrganizationProfileInput, CommitteeInput, AnnouncementInput } from "./validation";
 
@@ -108,17 +110,39 @@ export async function getSuperAdmins(userId:string){return withUser(userId,async
 export async function getAssignedManagementOrganizations(userId: string) {
   return withUser(userId, tx => tx.select(manageFields).from(organizations).where(hasScopedAccess).orderBy(asc(organizations.nameAr)));
 }
-export async function getManagementOrganization(userId: string, organizationId: string, administrative=false) {
+type ManagedOrganization = Pick<typeof organizations.$inferSelect, "id" | "slug" | "nameAr" | "typeCode" | "statusCode"
+  | "summary" | "mission" | "publicProfileContent" | "logoUrl" | "linksCustomized" | "showLeadershipPublicly"> & {
+  canEdit: boolean; canManageCommittees: boolean; canEvents: boolean; canReports: boolean; canHours: boolean;
+  canRenewals: boolean; canTasks: boolean; canApplications: boolean; canMembers: boolean; canGrant: boolean;
+  adminIdentity: { slug: string; typeCode: string; statusCode: string; leaderName: string | null } | null;
+};
+type ManagedCommittee = {
+  id: string; name: string; description: string; isPublic: boolean; statusCode: string;
+  copiedFromCommitteeId: string | null; parentCommitteeId: string | null; canEdit: boolean; memberCount: number | null; leaderName: string | null;
+};
+export async function getManagementOrganization(userId: string, organizationId: string, administrative = false) {
   return withUser(userId, async tx => {
-    const [row] = await tx.select({ ...manageFields,canEdit:sql<boolean>`lub.has_org_permission(${organizations.id},'ORG_PROFILE_MANAGE') or (${administrative} and lub.is_super_admin())`,adminIdentity:sql<{slug:string;typeCode:string;statusCode:string;leaderName:string|null}|null>`case when ${administrative} and lub.is_super_admin() then lub.admin_organization_identity(${organizations.id}) end`, canEvents: sql<boolean>`lub.has_event_access(${organizations.id})`, canReports: sql<boolean>`lub.has_reports_access(${organizations.id})`, canHours: sql<boolean>`lub.has_hours_access(${organizations.id})`, canRenewals: sql<boolean>`lub.has_org_permission(${organizations.id},'RENEWALS_MANAGE')`, canTasks: sql<boolean>`lub.has_task_access(${organizations.id})`, canApplications: sql<boolean>`lub.has_application_access(${organizations.id})`, canMembers: sql<boolean>`lub.has_org_permission(${organizations.id},'MEMBERS_VIEW') or lub.has_org_permission(${organizations.id},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizations.id} and lub.has_org_permission(${organizations.id},'MEMBERS_VIEW',c.id))`, canGrant: sql<boolean>`lub.has_org_permission(${organizations.id},'PERMISSIONS_GRANT')`, summary: organizations.summary, mission: organizations.mission, publicProfileContent: organizations.publicProfileContent, logoUrl: organizations.logoUrl, linksCustomized: organizations.linksCustomized, showLeadershipPublicly: organizations.showLeadershipPublicly,
-      tagNames: sql<string[]>`coalesce((select jsonb_agg(t.name_ar order by t.name_ar) from lub.organization_tags ot inner join lub.tags t on t.id=ot.tag_id where ot.organization_id=lub.organizations.id), '[]'::jsonb)`,
-      contacts: sql<Array<{ linkType: string; url: string }>>`coalesce((select jsonb_agg(jsonb_build_object('linkType',link.link_type,'url',link.url) order by link.sort_order,link.id) from lub.organization_links link where link.organization_id=lub.organizations.id), '[]'::jsonb)`,
-      committees: sql<Array<{ id: string; name: string; description: string; isPublic: boolean; statusCode: string; copiedFromCommitteeId: string | null; parentCommitteeId: string | null; canEdit: boolean; memberCount: number | null; leaderName: string | null }>>`coalesce((select jsonb_agg(jsonb_build_object('id',committee.id,'name',committee.name,'description',committee.description,'isPublic',committee.is_public,'statusCode',committee.status_code,'copiedFromCommitteeId',committee.copied_from_committee_id,'parentCommitteeId',committee.parent_committee_id,'canEdit',lub.has_org_permission(lub.organizations.id,'COMMITTEE_MANAGE') or lub.has_org_permission(lub.organizations.id,'COMMITTEE_PROFILE_MANAGE',committee.id),'memberCount',case when lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW') or lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW',committee.id) then (select count(*)::int from lub.committee_memberships cm inner join lub.organization_memberships membership on membership.id=cm.organization_membership_id and membership.organization_id=cm.organization_id where cm.committee_id=committee.id and cm.organization_id=committee.organization_id and cm.status_code='Active' and cm.end_date is null and membership.status_code='Active' and membership.end_date is null) else null end,'leaderName',case when lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW') or lub.has_org_permission(lub.organizations.id,'MEMBERS_VIEW',committee.id) then (select profile.full_name_ar from lub.role_assignments role inner join lub.organization_memberships membership on membership.id=role.organization_membership_id and membership.organization_id=role.organization_id inner join lub.student_profiles profile on profile.user_id=membership.user_id where role.committee_id=committee.id and role.organization_id=committee.organization_id and role.role_code='CL' and role.end_date is null and membership.status_code='Active' and membership.end_date is null order by role.start_date desc,role.id desc limit 1) else null end) order by committee.name,committee.id) from lub.committees committee where committee.organization_id=lub.organizations.id and (lub.has_org_permission(lub.organizations.id,'COMMITTEE_MANAGE') or lub.has_org_permission(lub.organizations.id,'COMMITTEE_PROFILE_MANAGE',committee.id))), '[]'::jsonb)`,
-    })
-      .from(organizations).where(and(eq(organizations.id, organizationId), sql`(${hasScopedAccess} or (${administrative} and lub.is_super_admin()))`)).limit(1);
+    const [row] = await tx.execute<ManagedOrganization & {
+      interests: string[]; links: Array<{ kind: string; value: string }>; committees: ManagedCommittee[];
+    }>(sql`
+      select o.id,o.slug,o.name_ar as "nameAr",o.type_code as "typeCode",o.status_code as "statusCode",
+        o.summary,o.mission,o.public_profile_content as "publicProfileContent",o.logo_url as "logoUrl",
+        o.links_customized as "linksCustomized",o.show_leadership_publicly as "showLeadershipPublicly",o.interests,o.links,
+        lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE') or (${administrative} and lub.is_super_admin()) as "canEdit",
+        case when ${administrative} and lub.is_super_admin() then lub.admin_organization_identity(o.id) end as "adminIdentity",
+        lub.has_org_permission(o.id,'COMMITTEE_MANAGE') as "canManageCommittees",
+        lub.has_event_access(o.id) as "canEvents",lub.has_reports_access(o.id) as "canReports",lub.has_hours_access(o.id) as "canHours",
+        lub.has_org_permission(o.id,'RENEWALS_MANAGE') as "canRenewals",lub.has_task_access(o.id) as "canTasks",
+        lub.has_application_access(o.id) as "canApplications",lub.has_scoped_capability(o.id,'MEMBERS_VIEW') as "canMembers",
+        lub.has_org_permission(o.id,'PERMISSIONS_GRANT') as "canGrant",lub.organization_committee_editor(o.id) as committees
+      from lub.organizations o where o.id=${organizationId} and (lub.has_management_access(o.id) or (${administrative} and lub.is_super_admin()))`);
     if (!row) return undefined;
-    const { tagNames, contacts, committees: scopedCommittees, ...organization } = row;
-    return { organization, committees: scopedCommittees, tagNames, contacts };
+    const { interests, links, committees, ...organization } = row;
+    const contacts = links.flatMap(link => {
+      const channel = normalizeOrganizationContact(link);
+      return channel ? [{ linkType: channel.kind, url: channel.url }] : [];
+    });
+    return { organization, committees, tagNames: normalizePublicTags(interests), contacts };
   });
 }
 
@@ -194,38 +218,22 @@ export async function endSuperAdmin(userId: string, targetUserId: string) {
   return withUser(userId, async tx => { await requireSuperAdmin(tx); if(userId === targetUserId) throw new Error("Cannot end own Super Admin permission"); await tx.execute(sql`select lub.end_super_admin(${targetUserId})`); });
 }
 
-async function requireProfileEditor(tx:Transaction,organizationId:string){
- const [row]=await tx.execute(sql`select lub.can_edit_organization_profile(${organizationId}) as allowed`);if(!row?.allowed)throw new Error("FORBIDDEN");
-}
 export async function saveOrganizationProfile(userId: string, organizationId: string, input: OrganizationProfileInput) {
-  return withUser(userId, async tx => {
-    await requireProfileEditor(tx,organizationId);
-    await tx.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, organizationId)).for("update");
-    const { tagNames, contacts, ...profile } = input;
-    const changed = await tx.update(organizations).set({ ...profile, linksCustomized: true, updatedAt: new Date() }).where(eq(organizations.id, organizationId)).returning({ id: organizations.id });
-    if (!changed.length) throw new Error("FORBIDDEN");
-    await tx.delete(organizationTags).where(eq(organizationTags.organizationId, organizationId));
-    for (const name of tagNames) {
-      await tx.insert(tags).values({ nameAr: name }).onConflictDoNothing();
-      const [tag] = await tx.select({ id: tags.id }).from(tags).where(eq(tags.nameAr, name)).limit(1);
-      if (!tag) throw new Error("Interest unavailable.");
-      await tx.insert(organizationTags).values({ organizationId, tagId: tag.id });
-    }
-    await tx.delete(organizationLinks).where(eq(organizationLinks.organizationId, organizationId));
-    if (contacts.length) await tx.insert(organizationLinks).values(contacts.map((contact, sortOrder) => ({ organizationId, linkType: contact.linkType, url: contact.url, sortOrder })));
-  });
+  const { tagNames, contacts, ...profile } = input;
+  const channels = storedLinksToContactChannels(contacts);
+  if (channels.length !== contacts.length) throw new Error("Invalid organization links");
+  await withUser(userId, tx => tx.execute(sql`select lub.save_organization_profile(
+    ${organizationId},${JSON.stringify(profile)}::jsonb,${JSON.stringify(tagNames)}::jsonb,${JSON.stringify(channels)}::jsonb)`));
 }
 
 export async function saveOrganizationLogo(userId: string, organizationId: string, logoUrl: string) {
   return withUser(userId, async tx => {
-    await requireProfileEditor(tx,organizationId);
-    const [organization] = await tx.select({ id: organizations.id, slug: organizations.slug, logoUrl: organizations.logoUrl })
-      .from(organizations).where(eq(organizations.id, organizationId)).for("update").limit(1);
-    if (!organization) throw new Error("FORBIDDEN");
-    await tx.update(organizations).set({ logoUrl, updatedAt: new Date() }).where(eq(organizations.id, organizationId));
-    return { previousLogoUrl: organization.logoUrl, slug: organization.slug };
+    const [row] = await tx.execute<{ data: { previousLogoUrl: string; slug: string } }>(
+      sql`select lub.save_organization_logo(${organizationId},${logoUrl}) as data`);
+    return row.data;
   });
 }
+
 export async function saveAnnouncement(userId: string, organizationId: string, input: AnnouncementInput, announcementId?: string) {
  const value=announcementSchema.parse(input);
  return withUser(userId,async tx=>{
@@ -243,34 +251,17 @@ export async function changeAnnouncementState(userId:string,organizationId:strin
 export async function archiveAnnouncement(userId:string,organizationId:string,announcementId:string){return changeAnnouncementState(userId,organizationId,announcementId,"archive");}
 export async function saveCommittee(userId: string, organizationId: string, input: CommitteeInput, committeeId?: string) {
   return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, committeeId ? "COMMITTEE_PROFILE_MANAGE" : "COMMITTEE_MANAGE", committeeId ?? null);
-    if (input.parentCommitteeId) {
-      if (input.parentCommitteeId === committeeId) throw new Error("FORBIDDEN");
-      await requirePermission(tx, organizationId, "COMMITTEE_PROFILE_MANAGE", input.parentCommitteeId);
-      const [parent] = await tx.select({ id: committees.id }).from(committees).where(and(eq(committees.id, input.parentCommitteeId), eq(committees.organizationId, organizationId))).limit(1);
-      if (!parent) throw new Error("FORBIDDEN");
-    }
-    const rows = committeeId
-      ? await tx.update(committees).set({ ...input, updatedAt: new Date() }).where(and(eq(committees.id, committeeId), eq(committees.organizationId, organizationId))).returning({ id: committees.id })
-      : await tx.insert(committees).values({ organizationId, ...input }).returning({ id: committees.id });
-    if (!rows[0]) throw new Error("FORBIDDEN");
-    return rows[0];
+    const [row] = await tx.execute<{ id: string }>(sql`select lub.save_committee(
+      ${organizationId},${committeeId ?? null},${input.name},${input.description},${input.isPublic},${input.parentCommitteeId}) as id`);
+    return { id: row.id };
   });
 }
 export async function copyCommittee(userId: string, organizationId: string, committeeId: string) {
   return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, "COMMITTEE_MANAGE");
-    const [source] = await tx.select().from(committees).where(and(eq(committees.id, committeeId), eq(committees.organizationId, organizationId))).limit(1);
-    if (!source) throw new Error("FORBIDDEN");
-    const [copied] = await tx.insert(committees).values({ organizationId, copiedFromCommitteeId: source.id, parentCommitteeId: source.parentCommitteeId, name: `${source.name.slice(0, 110)} (نسخة)`, description: source.description, isPublic: source.isPublic }).returning({ id: committees.id });
-    return copied;
+    const [row] = await tx.execute<{ id: string }>(sql`select lub.copy_committee(${organizationId},${committeeId}) as id`);
+    return { id: row.id };
   });
 }
 export async function setCommitteeStatus(userId: string, organizationId: string, committeeId: string, status: "Active" | "Archived") {
-  return withUser(userId, async tx => {
-    await requirePermission(tx, organizationId, "COMMITTEE_MANAGE");
-    const changed = await tx.update(committees).set({ statusCode: status, archivedAt: status === "Archived" ? new Date() : null, updatedAt: new Date() })
-      .where(and(eq(committees.id, committeeId), eq(committees.organizationId, organizationId))).returning({ id: committees.id });
-    if (!changed.length) throw new Error("FORBIDDEN");
-  });
+  await withUser(userId, tx => tx.execute(sql`select lub.set_committee_status(${organizationId},${committeeId},${status})`));
 }

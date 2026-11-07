@@ -22,9 +22,12 @@ vi.mock("@/db/client", () => ({
     }catch(error){await db.exec("rollback to savepoint source_read;release savepoint source_read");throw error;}
   },
 }));
-import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName} from "@/features/organizations/management-repository";
+import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName,getManagementOrganization,saveOrganizationProfile,saveOrganizationLogo,saveCommittee,copyCommittee,setCommitteeStatus} from "@/features/organizations/management-repository";
 import { adminDirectory } from "@/features/organizations/admin-directory-repository";
 import { openingRequests, ownOpeningRequest } from "@/features/organization-requests/repository";
+
+import { storageFixture } from "./storage-fixture";
+import { organizationProfileSchema } from "@/features/organizations/validation";
 
 const id = (n: number) => `10000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 let db: PGlite;
@@ -42,6 +45,8 @@ beforeAll(async () => {
   await db.exec(readFileSync("scripts/schema-simplification/schema18.sql", "utf8"));
   await db.exec(readFileSync("scripts/schema-simplification/administration18.sql", "utf8"));
   await db.exec(readFileSync("scripts/schema-simplification/opening18.sql", "utf8"));
+  await storageFixture(db);
+  await db.exec(readFileSync("scripts/schema-simplification/organization-editor18.sql", "utf8"));
 }, 30000);
 beforeEach(async () => {
   sourceReads=0;await db.exec("begin");
@@ -208,4 +213,59 @@ it("creates through the application repository and limits identity changes to th
   await actor(1);
   await db.query("select lub.admin_update_organization_identity($1,'renamed','Council')", [created.id]);
   expect((await adminDirectory(id(1)))?.organizations).toMatchObject([{ id: created.id, slug: "renamed", typeCode: "Council", leaderName: "طالب 2" }]);
+});
+
+it("writes and reads inline organization profiles within the editor scope", async () => {
+  await actor(1);
+  const org = await create("editor-club", "admin18-2@example.invalid");
+  const profile = organizationProfileSchema.parse({ nameAr: "جهة الاختبار بعد التعديل", summary: "نبذة جديدة",
+    mission: "رسالة جديدة", tagNames: "التقنية، تطوع", contacts: JSON.stringify([{ kind: "Email", value: "club@example.invalid" }]),
+    showLeadershipPublicly: false, publicProfileContent: { vision: "الرؤية" } });
+  expect(await getManagementOrganization(id(1), org)).toBeUndefined();
+  expect(await getManagementOrganization(id(3), org)).toBeUndefined();
+  expect((await getManagementOrganization(id(1), org, true))?.organization).toMatchObject({ canEdit: true, canManageCommittees: false, canTasks: false });
+  await expect(saveOrganizationProfile(id(3), org, profile)).rejects.toThrow();
+  await expect(saveOrganizationProfile(id(2), org, { ...profile, tagNames: ["x".repeat(41)] })).rejects.toThrow();
+  await saveOrganizationProfile(id(2), org, profile);
+  sourceReads = 0;
+  expect(await getManagementOrganization(id(2), org)).toMatchObject({
+    organization: { nameAr: profile.nameAr, summary: profile.summary, showLeadershipPublicly: false, publicProfileContent: { vision: "الرؤية" } },
+    tagNames: ["التقنية", "تطوع"], contacts: [{ linkType: "Email", url: "mailto:club@example.invalid" }],
+  });
+  expect(sourceReads).toBe(1);
+});
+
+it("copies a committee without participants and prevents cross-organization writes and deeper nesting", async () => {
+  await actor(1);
+  const org = await create("committees-club", "admin18-2@example.invalid");
+  const other = (await db.query<{ id: string }>("select lub.admin_create_organization('الجهة الثانية','Club','other-club','','',null) id")).rows[0].id;
+  const root = await saveCommittee(id(2), org, { name: "لجنة التقنية", description: "شرح اللجنة", isPublic: true, parentCommitteeId: null });
+  const child = await saveCommittee(id(2), org, { name: "لجنة البرمجة", description: "شرح فرعي", isPublic: false, parentCommitteeId: root.id });
+  const copied = await copyCommittee(id(2), org, child.id);
+  await expect(saveCommittee(id(2), org, { name: "مستوى ثالث", description: "", isPublic: false, parentCommitteeId: child.id })).rejects.toThrow();
+  await expect(copyCommittee(id(2), other, child.id)).rejects.toThrow();
+  await expect(setCommitteeStatus(id(3), org, child.id, "Archived")).rejects.toThrow();
+  await setCommitteeStatus(id(2), org, copied.id, "Archived");
+  expect((await getManagementOrganization(id(2), org))?.committees).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: root.id, parentCommitteeId: null, memberCount: 0 }),
+    expect.objectContaining({ id: child.id, parentCommitteeId: root.id, description: "شرح فرعي", isPublic: false }),
+    expect.objectContaining({ id: copied.id, copiedFromCommitteeId: child.id, parentCommitteeId: root.id, statusCode: "Archived" }),
+  ]));
+  await setCommitteeStatus(id(2), org, copied.id, "Active");
+  expect((await getManagementOrganization(id(2), org))?.committees.find(c => c.id === copied.id)?.statusCode).toBe("Active");
+});
+
+it("accepts an uploaded logo only for the editor and the matching organization path", async () => {
+  await actor(1);
+  const org = await create("logo-club", "admin18-2@example.invalid");
+  const object = `organizations/${org}/${id(1000)}.png`;
+  const url = `https://storage.example.invalid/storage/v1/object/public/lub-organization-logos/${object}`;
+  await expect(saveOrganizationLogo(id(2), org, url)).rejects.toThrow();
+  await actor(3);
+  await denied(() => db.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-organization-logos',$1,$2)", [object,id(3)]));
+  await actor(2);
+  await db.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-organization-logos',$1,$2)", [object,id(2)]);
+  expect(await saveOrganizationLogo(id(2), org, url)).toEqual({ previousLogoUrl: "", slug: "logo-club" });
+  await expect(saveOrganizationLogo(id(3), org, "")).rejects.toThrow();
+  expect(await saveOrganizationLogo(id(1), org, "")).toEqual({ previousLogoUrl: url, slug: "logo-club" });
 });

@@ -29,7 +29,9 @@ vi.mock("@/db/client", () => ({
 }));
 import { getPublicDirectory, getPublicOrganization } from "./legacy-public-organization-repository";
 import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
-import { appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
+import { appointPrimaryLeader, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getMembershipHistory } from "@/features/organizations/management-repository";
+
+import { getManagementOrganization, saveOrganizationProfile, saveOrganizationLogo, saveCommittee, copyCommittee, setCommitteeStatus } from "./legacy-organization-editor";
 
 const admin = "00000000-0000-4000-8000-000000000001";
 const leader = "00000000-0000-4000-8000-000000000002";
@@ -380,7 +382,7 @@ it('creates an organization with its optional leader in one transaction and roll
  const input={nameAr:'نادي جديد بقائد',slug:'new-leader-club',typeCode:'Club' as const,summary:'',mission:''};
  await expect(createOrganization(admin,input,'missing@example.invalid')).rejects.toThrow();expect(await getPublicOrganization(input.slug)).toBeUndefined();
  const created=await createOrganization(admin,input,'leader@example.invalid');expect((await getManagementOrganization(leader,created.id))?.organization.canEdit).toBe(true);expect((await getPublicOrganization(input.slug))?.leadership).toEqual([{fullName:'القائد',roleCode:'OL'}]);
- const {saveOrganizationLogo}=await import('@/features/organizations/management-repository');await saveOrganizationLogo(admin,created.id,'https://example.com/logo.png');expect((await getPublicOrganization(input.slug))?.organization.logoUrl).toBe('https://example.com/logo.png');
+ await saveOrganizationLogo(admin,created.id,'https://example.com/logo.png');expect((await getPublicOrganization(input.slug))?.organization.logoUrl).toBe('https://example.com/logo.png');
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[admin]);await engine.exec('set role authenticated');await engine.query("insert into storage.objects(bucket_id,name,owner_id) values('lub-organization-logos',$1,$2)",[`organizations/${created.id}/00000000-0000-4000-8000-000000000888.png`,admin]);await engine.exec('reset role');
 });
 
