@@ -149,35 +149,11 @@ export async function getManagementOrganization(userId: string, organizationId: 
 export type {OrganizationMemberWorkspace} from "./member-types";
 
 
-export type OrganizationPermissionWorkspace = {
-  members: Array<{ id: string; name: string }>;
-  committees: Array<{ id: string; name: string }>;
-  grants: Array<{ id: string; membership: string; member: string; code: string; committee: string | null; ends: string | null }>;
-};
-
 export async function getOrganizationMemberDirectory(userId: string, organizationId: string, filters:MemberFilters=initialMemberFilters):Promise<OrganizationMemberWorkspace|undefined> {
   return withUser(userId, async tx => {
     const rows = await tx.execute(sql`select lub.organization_member_directory(${organizationId},${filters.q},${filters.status},${filters.committee},${(filters.page??0)*25},${filters.sort??"name:asc"},${filters.term??null}) as workspace from lub.organizations where id=${organizationId} and (lub.has_org_permission(${organizationId},'MEMBERS_VIEW') or lub.has_org_permission(${organizationId},'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=${organizationId} and lub.has_org_permission(${organizationId},'MEMBERS_VIEW',c.id)))`);
     return rows[0]?.workspace?decodeMemberWorkspace(rows[0].workspace as EncryptedMemberWorkspace):undefined;
   });
-}
-
-export async function getOrganizationPermissionWorkspace(userId: string, organizationId: string) {
-  return withUser(userId, async tx => {
-    const rows = await tx.execute<{ workspace: Omit<OrganizationPermissionWorkspace, "grants">; grants: OrganizationPermissionWorkspace["grants"] }>(sql`select lub.organization_permission_workspace(o.id) as workspace,
-      '[]'::jsonb as grants
-      from lub.organizations o where o.id=${organizationId} and lub.has_org_permission(o.id,'PERMISSIONS_GRANT')`);
-    const row = rows[0];
-    return row ? { ...row.workspace, grants: row.grants } as OrganizationPermissionWorkspace : undefined;
-  });
-}
-
-export async function grantOrganizationPermission(userId: string, memberId: string, capability: string, committeeId: string | null, ends: string | null) {
-  return withUser(userId, tx => tx.execute(sql`select lub.grant_organization_permission(${memberId},${capability},${committeeId},${ends}::timestamptz)`));
-}
-
-export async function endOrganizationPermission(userId: string, grantId: string) {
-  return withUser(userId, tx => tx.execute(sql`select lub.end_organization_permission(${grantId})`));
 }
 
 export async function endOrganizationMembership(userId: string, membershipId: string, reason: string) {

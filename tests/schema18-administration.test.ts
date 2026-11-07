@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vite
 let database: PgliteDatabase;
 let sourceReads=0;
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/identifiers", () => ({ decryptIdentifier: () => "0441234567" }));
 vi.mock("@/db/client", () => ({
   withUser: async <T>(owner: string, operation: (tx: { execute: (query: SQL) => Promise<Record<string, unknown>[]> }) => Promise<T>) => {
     const [prior]=(await db.query<{role:string;subject:string}>("select current_setting('role') role,current_setting('request.jwt.claim.sub',true) subject")).rows;
@@ -22,7 +23,7 @@ vi.mock("@/db/client", () => ({
     }catch(error){await db.exec("rollback to savepoint source_read;release savepoint source_read");throw error;}
   },
 }));
-import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName,getManagementOrganization,saveOrganizationProfile,saveOrganizationLogo,saveCommittee,copyCommittee,setCommitteeStatus} from "@/features/organizations/management-repository";
+import {createOrganization,getManagementOverview,getAdminAccountProfile,updateAdminAccountName,getManagementOrganization,saveOrganizationProfile,saveOrganizationLogo,saveCommittee,copyCommittee,setCommitteeStatus,getOrganizationMemberDirectory,endOrganizationMembership} from "@/features/organizations/management-repository";
 import { adminDirectory } from "@/features/organizations/admin-directory-repository";
 import { openingRequests, ownOpeningRequest } from "@/features/organization-requests/repository";
 
@@ -47,6 +48,7 @@ beforeAll(async () => {
   await db.exec(readFileSync("scripts/schema-simplification/opening18.sql", "utf8"));
   await storageFixture(db);
   await db.exec(readFileSync("scripts/schema-simplification/organization-editor18.sql", "utf8"));
+  await db.exec(readFileSync("scripts/schema-simplification/members18.sql", "utf8"));
 }, 30000);
 beforeEach(async () => {
   sourceReads=0;await db.exec("begin");
@@ -268,4 +270,48 @@ it("accepts an uploaded logo only for the editor and the matching organization p
   expect(await saveOrganizationLogo(id(2), org, url)).toEqual({ previousLogoUrl: "", slug: "logo-club" });
   await expect(saveOrganizationLogo(id(3), org, "")).rejects.toThrow();
   expect(await saveOrganizationLogo(id(1), org, "")).toEqual({ previousLogoUrl: url, slug: "logo-club" });
+});
+
+it("scopes members to their committee, preserves term totals and keeps identifying data in the detail response", async () => {
+  await actor(1);
+  const org = await create("members-club", "admin18-2@example.invalid");
+  await db.exec("reset role");
+  const committee = (await db.query<{ id: string }>("insert into lub.committees(organization_id,name) values($1,'لجنة التطوير') returning id", [org])).rows[0].id;
+  await db.query("insert into lub.academic_terms(id,academic_year,term_code,name_ar,start_date,end_date) values($1,'2026','T1','الفصل الأول',lub.today_riyadh()-90,lub.today_riyadh()+10),($2,'2026','T2','الفصل الثاني',lub.today_riyadh()-190,lub.today_riyadh()-91)",[id(900),id(901)]);
+  await db.query("insert into lub.organization_memberships(id,organization_id,user_id,start_date) values($1,$4,$5,lub.today_riyadh()-100),($2,$4,$6,lub.today_riyadh()-100),($3,$4,$7,lub.today_riyadh()-100)", [id(103),id(104),id(105),org,id(3),id(4),id(5)]);
+  await db.query("update lub.users set is_test_account=true where id=$1",[id(5)]);
+  await db.query("insert into lub.private_student_identifiers(user_id,national_id_ciphertext,national_id_lookup_hash) values($1,'private-national',repeat('a',64))",[id(4)]);
+  await db.query("update lub.organization_memberships set hours=$2::jsonb where id=$1",[id(104),JSON.stringify([
+    {id:id(801),status_code:"Approved",hours:5,academic_term_id:id(900),committee_id:committee},
+    {id:id(802),status_code:"Approved",hours:9,academic_term_id:id(901),committee_id:committee},
+    {id:id(803),status_code:"Pending",hours:99,academic_term_id:id(900),committee_id:committee},
+  ])]);
+  await db.query("insert into lub.committee_memberships(organization_id,organization_membership_id,committee_id) values($1,$2,$4),($1,$3,$4)",[org,id(104),id(105),committee]);
+  await actor(2);
+  await db.query("select lub.change_member_role($1,'CL',$2)",[id(103),committee]);
+  const full=await getOrganizationMemberDirectory(id(2),org);
+  expect(full?.rowTotal).toBe(4);
+  expect(full?.counts?.total).toBe(3);
+  expect(full?.members.find(m=>m.id===id(104))?.hours).toBe(14);
+  const scoped=await getOrganizationMemberDirectory(id(3),org,{q:"",committee,status:"all",term:id(900)});
+  expect(scoped?.members.map(m=>m.id)).toEqual([id(103),id(104),id(105)]);
+  expect(scoped?.members.find(m=>m.id===id(104))).toMatchObject({hours:5,universityId:"0441234567"});
+  expect(JSON.stringify(scoped)).not.toMatch(/private-national|universityCiphertext|@example.invalid/);
+  expect(await getOrganizationMemberDirectory(id(4),org)).toBeUndefined();
+
+  await actor(3);
+  const [{ record }] = (await db.query<{ record: object }>("select lub.member_profile($1,$2) record",[org,id(104)])).rows;
+  expect(record).toMatchObject({ nationalCiphertext:"private-national",email:"admin18-4@example.invalid",avatar:null });
+  await denied(()=>db.query("select lub.member_profile($1,$2)",[org,id(999)]));
+  const president=full?.members.find(m=>m.roles.some(r=>r.code==="OL"));
+  expect(president).toBeDefined();
+  await denied(()=>db.query("select lub.member_profile($1,$2)",[org,president?.id]));
+  await denied(()=>db.query("select lub.change_member_role($1,'OD',null)",[id(104)]));
+  await actor(2);
+  await denied(()=>db.query("select lub.move_member_committee($1,null,false)",[id(103)]));
+  await db.query("select lub.move_member_committee($1,null,true)",[id(103)]);
+  await denied(()=>db.query("select lub.end_organization_membership($1,'انتهت العضوية')",[president?.id]));
+  await endOrganizationMembership(id(2),id(104),"انتهت العضوية");
+  const [{ ended }] = (await db.query<{ ended: object }>("select lub.member_profile($1,$2) ended",[org,id(104)])).rows;
+  expect(ended).toMatchObject({status:"Ended",hours:14,events:[{code:"Ended",actor:"طالب 2"}]});
 });

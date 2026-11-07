@@ -8,14 +8,13 @@ import {PrivateQueryProvider} from "@/components/private-query-provider";
 import type {ReactElement} from "react";
 const render=(ui:ReactElement)=>rtlRender(<PrivateQueryProvider actorId="test-actor">{ui}</PrivateQueryProvider>);
 
-vi.mock("@/features/organizations/member-data-actions",()=>({loadMemberDirectory:async(_org:string,filters:{status:string})=>({data:{...workspace,members:workspace.members.filter(m=>filters.status==="all"||m.status===filters.status)}}),loadMemberRecord:vi.fn(),loadMemberExportAudit:vi.fn()}));
+vi.mock("@/features/organizations/member-data-actions",()=>({loadMemberDirectory:async(_org:string,filters:{status:string})=>({data:{...workspace,members:workspace.members.filter(m=>filters.status==="all"||m.status===filters.status)}}),loadMemberRecord:vi.fn()}));
 vi.mock("next/navigation",()=>({useRouter:()=>({refresh:vi.fn()})}));
 vi.mock("@/features/hours/view", () => ({ HoursFields: () => null }));
 vi.mock("@/features/hours/form", () => ({ HoursForm: () => null }));
 vi.mock("@/features/forms/mutation-form", () => ({ WorkflowForm: () => null }));
 vi.mock("@/features/organizations/members-actions", () => ({ mutateOrganizationMembers: vi.fn() }));
 vi.mock("@/features/forms/date-input", () => ({ DateInput: () => null }));
-vi.mock("../permissions/permission-editor", () => ({ permissionLabels: {}, scopedPermissions: new Set() }));
 
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 
