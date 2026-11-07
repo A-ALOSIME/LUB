@@ -9,6 +9,7 @@ Status: implementation in an isolated local worktree and database. Never migrate
 - Local branch: `schema-simplification`; shared remote branch remains `main`.
 - Private baseline directory: `C:/Users/AF9VI/Documents/LUB-backups/schema-simplification-20261106` (owner/System ACL only).
 - Capture schema/functions/policies and account/profile/publication records separately. Do not export passwords, sessions, tokens or secret values. Other existing activity data is disposable, but prefer preserving accounts.
+- The private `storage-policies-before.sql` snapshot contains 12 application Storage policies. Its SHA-256 is `98b8901f014b65b61bcfe435a74dfdff49f15b2ec4333676daef1899b112f575`. Replay succeeded against the restored baseline inside an isolated transaction.
 - Recovery means restoring baseline code AND baseline database structure/functions and separately deployed functions. A Git revert alone is insufficient. Rehearse recovery on an empty isolated database before cutover.
 
 ## Accepted product changes
@@ -65,7 +66,15 @@ Supabase-managed schemas are outside this count. No permanent compatibility tabl
 
 - Public organization directory and detail read the merged organizations, campaigns and content with one scoped read each. The visitor projection includes only the public profile, organization links and public committees. Draft/future content and unpublished forms stay hidden. Leadership visibility follows the organization setting, and archived organization URLs still work. Saved English text is preferred for organization identity, committees, events, announcements and registration titles; original text remains available as fallback. Chromium verified the public list and detail in Arabic and English, light and dark, at four widths.
 
-The isolated SQL modules are a tested storage contract, not yet a production migration. Remaining repositories, scoped DTOs, storage HTTP services and retained workflow browser tests must be completed before cutover.
+The 18-table contract has run in a loopback-only Supabase stack with Auth, Storage, PostgREST and Edge Runtime. Browser sign-in used one-time codes delivered to a local mail inbox. The student joined a task and uploaded Arabic and English filenames. The student and authorized leader downloaded both files and the outsider received 404. The leader approved the submission. Both scoped XLSX endpoints returned 200 through Edge and REST. Workbook verification opened the returned bytes and checked identifier strings and date cells.
+
+Managed Storage already has RLS. The install asserts that invariant before adding application policies. It does not alter managed table ownership or enable RLS on the managed table. The contract was rehearsed in a rolled-back transaction as the local Supabase `postgres` role. The read-only production preflight confirmed 62 application tables and existing Storage RLS.
+
+## Account migration rehearsal
+
+After restoring the pinned baseline into the owned PostgreSQL sandbox, run `apply-contract.ts` with `LUB_REHEARSE_ACCOUNT_CUTOVER=yes` alongside the existing sandbox replacement flag and baseline-directory setting. This tests a student, an incomplete account and an administrator in one transaction. It preserves IDs, basic profile fields, public-profile slug and visibility, encrypted identifiers and administrator access. The Supabase Auth identities remain in their own schema.
+
+The rehearsal always rolls back and verifies that the original 62-table schema is present afterward. `preserve-accounts18.sql` is the account-copy step. Live replacement still requires a reviewed account and content transfer scope, a fresh rollback artifact for application data and Storage policies, and coordinated database, Edge and Worker deployment.
 
 ## Cutover gates
 
