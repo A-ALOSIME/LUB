@@ -39,7 +39,7 @@ $$;
 
 CREATE FUNCTION lub.registration_round_page(target uuid) RETURNS jsonb
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
- SELECT (lub.round_list_item(r)-'application_count')||jsonb_build_object('organization_id',r.organization_id,'slug',o.slug,'name',o.name_ar,
+ SELECT (lub.round_list_item(r)-'application_count')||jsonb_build_object('organization_id',r.organization_id,'slug',o.slug,'name',o.name_ar,'name_en',o.name_en,'title_en',r.title_en,
   'accountStatus',u.status_code,'onboarded',u.onboarded_at IS NOT NULL,'application',lub.application_detail(a.id,true),
   'canReapply',lub.can_reapply_to_round(r,a.status_code),
   'version',CASE WHEN (r.status_code='Open' AND r.closes_at>statement_timestamp() AND o.status_code='Active')

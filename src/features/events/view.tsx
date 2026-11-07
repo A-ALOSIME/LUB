@@ -66,7 +66,7 @@ export function EventCards({
               <div className="event-card-copy">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h2 dir="auto" className="m-0 text-xl font-semibold">
-                    <ContentText autoTranslate={e.status_code!=="Draft"} value={e.title}/>
+                    <ContentText value={en?(e.title_en?.trim()||e.title):e.title}/>
                   </h2>
                   {e.status_code !== "Published" && (
                     <OrganizationStatusBadge
@@ -79,7 +79,7 @@ export function EventCards({
                 {(e.starts_at||e.source_date_text)&&<p className="event-card-meta">
                   <EventIcon name="calendar" />
                   <span>{translateUi((en) ? "en" : "ar", "التاريخ", "Date")}</span>
-                  {e.source_date_text?<ContentText autoTranslate value={e.source_date_text}/>:<time dateTime={e.starts_at}>{day(e.starts_at)}</time>}
+                  {e.source_date_text?<ContentText value={e.source_date_text}/>:<time dateTime={e.starts_at}>{day(e.starts_at)}</time>}
                 </p>}
                 {e.status_code!=="Archived"&&<p className="event-card-meta">
                   <EventIcon name="clock" />
@@ -88,12 +88,12 @@ export function EventCards({
                 </p>}
                 {(e.location_type_code!=="Unknown"||e.location_text)&&<p className="event-card-meta">
                   <EventIcon name="location" />
-                  <span>{e.location_text?<ContentText autoTranslate value={e.location_text}/>:labels[e.location_type_code]}</span>
+                  <span>{e.location_text?<ContentText value={e.location_text}/>:labels[e.location_type_code]}</span>
                 </p>}
               </div>
               <div className="event-card-organization">
                 <OrganizationLogo name={e.org_name} src={logoSrc} className="event-card-organization-logo"/>
-                <bdi><ContentText autoTranslate value={e.org_name}/></bdi>
+                <bdi><ContentText value={en?(e.org_name_en?.trim()||e.org_name):e.org_name}/></bdi>
               </div>
               <span
                 className={buttonVariants({
@@ -170,7 +170,7 @@ export function EventContent({
         label={c("الموقع", "Location")}
       >
         {e.location_text ? (
-          <bdi><ContentText autoTranslate value={e.location_text}/></bdi>
+          <bdi><ContentText value={e.location_text}/></bdi>
         ) : (
           labels[e.location_type_code]
         )}
@@ -224,7 +224,7 @@ export function EventContent({
       </h2>
       {e.public_report && (
         <p dir="auto" className="event-detail-description">
-          <ContentText autoTranslate value={e.public_report}/>
+          <ContentText value={e.public_report}/>
         </p>
       )}
       {e.public_photos?.length > 0 && (
@@ -263,19 +263,19 @@ export function EventContent({
               <span className="block text-xs font-medium text-muted">
                 {c("تنظمها", "Organized by")}
               </span>
-              <bdi><ContentText autoTranslate value={data.org_name}/></bdi>
+              <bdi><ContentText value={en?(data.org_name_en?.trim()||data.org_name):data.org_name}/></bdi>
             </span>
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             <h1 dir="auto" className="event-detail-title">
-              {e.title?<ContentText autoTranslate={e.status_code!=="Draft"} value={e.title}/>:c("فعالية بدون عنوان", "Untitled event")}
+              {e.title?<ContentText value={en?(e.title_en?.trim()||e.title):e.title}/>:c("فعالية بدون عنوان", "Untitled event")}
             </h1>
             {e.status_code!=="Published"&&<OrganizationStatusBadge status={e.status_code==="Draft"?"draft":"closed"}>{labels[e.status_code]}</OrganizationStatusBadge>}
           </div>
           {facts}
           {e.description && (
             <p dir="auto" className="event-detail-description">
-              <ContentText autoTranslate={e.status_code!=="Draft"} value={e.description}/>
+              <ContentText value={en?(e.description_en?.trim()||e.description):e.description}/>
             </p>
           )}
           {!superAdmin && (

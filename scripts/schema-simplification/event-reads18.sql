@@ -1,12 +1,12 @@
 CREATE FUNCTION lub.event_catalog(query text,period text,page int,org uuid,only_open boolean)
-RETURNS TABLE(id uuid,title text,starts_at timestamptz,ends_at timestamptz,status_code text,source_date_text text,location_type_code text,location_text text,online_url text,org_name text,org_type_code text,org_logo_url text,slug text,organization_id uuid,has_poster boolean,open boolean)
+RETURNS TABLE(id uuid,title text,starts_at timestamptz,ends_at timestamptz,status_code text,source_date_text text,location_type_code text,location_text text,online_url text,org_name text,org_type_code text,org_logo_url text,slug text,organization_id uuid,has_poster boolean,open boolean,title_en text,org_name_en text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT e.id,e.title::text,e.starts_at,e.ends_at,e.status_code,e.source_date_text::text,e.location_type_code,e.location_text::text,e.online_url::text,
-  o.name_ar::text,o.type_code,o.logo_url::text,o.slug::text,o.id,e.primary_image_id IS NOT NULL,lub.event_registration_open(e.id)
+  o.name_ar::text,o.type_code,o.logo_url::text,o.slug::text,o.id,e.primary_image_id IS NOT NULL,lub.event_registration_open(e.id),e.title_en::text,o.name_en::text
  FROM lub.organization_content e JOIN lub.organizations o ON o.id=e.organization_id
  WHERE e.kind='Event' AND o.status_code='Active' AND e.published_at<=statement_timestamp() AND e.archived_at IS NULL AND e.deleted_at IS NULL
   AND e.status_code IN ('Published','Completed','Cancelled','Archived') AND (org IS NULL OR o.id=org)
-  AND position(lub.arabic_search_key(query) IN lub.arabic_search_key(e.title))>0
+  AND (strpos(lub.arabic_search_key(e.title),lub.arabic_search_key(query))>0 OR strpos(lub.arabic_search_key(e.title_en),lub.arabic_search_key(query))>0)
   AND (period='all' OR (period='upcoming' AND e.status_code='Published' AND e.ends_at>=statement_timestamp())
    OR (period='past' AND (e.ends_at<statement_timestamp() OR e.status_code='Archived')))
   AND (NOT only_open OR lub.event_registration_open(e.id))
@@ -37,7 +37,7 @@ END; $$;
 
 CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT jsonb_build_object(
-  'event',jsonb_build_object('id',e.id,'organization_id',e.organization_id,'title',e.title,'description',e.body,
+  'event',jsonb_build_object('id',e.id,'organization_id',e.organization_id,'title',e.title,'title_en',e.title_en,'description',e.body,'description_en',e.body_en,
    'source_date_text',e.source_date_text,'location_type_code',e.location_type_code,'location_text',e.location_text,'online_url',e.online_url,
    'starts_at',coalesce(e.starts_at::text,''),'ends_at',coalesce(e.ends_at::text,''),
    'registration_opens_at',coalesce(e.registration_opens_at::text,''),'registration_closes_at',coalesce(e.registration_closes_at::text,''),
@@ -47,7 +47,7 @@ CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SE
    'revision',CASE WHEN access.manage THEN e.revision ELSE 0 END,'registration_form_template_id',CASE WHEN access.manage THEN e.form_id END,
    'has_poster',e.primary_image_id IS NOT NULL,'requires_approval',e.requires_review)
    || CASE WHEN access.manage THEN jsonb_build_object('skills',lub.activity_skill_items(e.skill_ids)) ELSE '{}' END,
-  'org_name',o.name_ar,'org_logo',o.logo_url,'org_type_code',o.type_code,'slug',o.slug,
+  'org_name',o.name_ar,'org_name_en',o.name_en,'org_logo',o.logo_url,'org_type_code',o.type_code,'slug',o.slug,
   'status',u.status_code,'onboarded',u.onboarded_at IS NOT NULL,
   'open',lub.event_registration_open(e.id),
   'remaining',CASE WHEN e.capacity IS NOT NULL THEN greatest(0,e.capacity-(SELECT count(*)::int FROM lub.event_registrations seat

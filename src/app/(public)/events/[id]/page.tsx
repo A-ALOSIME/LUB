@@ -20,8 +20,10 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
   const event=await publicEventMetadata(id);
   if(!event||event.status_code==="Draft")return localizedMetadata("تفاصيل الفعالية","Event details");
   const description=toMetaDescription(event.description,`فعالية منشورة من ${event.org_name} على منصة لُبّ.`);
-  const title=`${event.title} | ${event.org_name}`,{locale}=await getPreferences();
-  const [englishTitle,englishOrganizer,englishDescription]=locale==='en'?await Promise.all([translatePublicContent(event.title),translatePublicContent(event.org_name),translatePublicContent(event.description)]):[event.title,event.org_name,event.description];
+  const title=`${event.title} | ${event.org_name}`;
+  const englishTitle=event.title_en?.trim()||translatePublicContent(event.title);
+  const englishOrganizer=event.org_name_en?.trim()||translatePublicContent(event.org_name);
+  const englishDescription=event.description_en?.trim()||translatePublicContent(event.description);
   const englishSummary=toMetaDescription(englishDescription,`An event by ${englishOrganizer} on LUB.`);
   return localizedMetadata(title,`${englishTitle} | ${englishOrganizer}`,{}, {index:true,canonical:`/events/${event.id}`,description:{ar:description,en:englishSummary}});
  }catch{return localizedMetadata("تفاصيل الفعالية","Event details");}
@@ -41,7 +43,7 @@ export default async function EventPage({params,searchParams}:{params:Promise<{i
  const schemaStatus:Record<string,string>={Published:"EventScheduled",Cancelled:"EventCancelled"};
  const attendanceMode:Record<string,string>={In_Person:"OfflineEventAttendanceMode",Online:"OnlineEventAttendanceMode",Hybrid:"MixedEventAttendanceMode"};
  const imageUrls=(event.public_photos??[]).filter(url=>{try{return new URL(url).protocol==="https:";}catch{return false;}});
- const schema=event.status_code!=="Draft"?{
+ const schema=event.status_code!=="Draft"&&Number.isFinite(Date.parse(event.starts_at))&&Number.isFinite(Date.parse(event.ends_at))?{
   "@context":"https://schema.org",
   "@type":"Event",
   name:event.title,

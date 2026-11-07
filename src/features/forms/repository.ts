@@ -7,7 +7,7 @@ export const capabilities = { FORMS_MANAGE: "إدارة النماذج", REGISTR
 export const statuses: Record<string, string> = { Draft: "مسودة", Published: "منشور", Open: "مفتوحة", Closed: "مغلقة", Archived: "مؤرشفة", Submitted: "قيد المراجعة", Interview: "مقابلة", Accepted: "مقبول", Rejected: "مرفوض", Withdrawn: "منسحب" };
 export type Template = { id: string; name: string; organization_id: string | null; version_count?: number;updated_at?:string;round_count?:number;event_count?:number;can_delete?:boolean; versions: Version[] };
 export type Version = { id: string; version_number: number; status_code: string; revision: number; definition: FormDefinition };
-export type Round = { minimum_approved_hours?:string|number;allowed_majors?:string[]; id: string; title: string; status_code: string; opens_at: string; closes_at: string; form_template_id: string; allow_withdrawal: boolean; open: boolean; application_count?:number };
+export type Round = { title_en?:string|null; minimum_approved_hours?:string|number;allowed_majors?:string[]; id: string; title: string; status_code: string; opens_at: string; closes_at: string; form_template_id: string; allow_withdrawal: boolean; open: boolean; application_count?:number };
 export type Application = { id: string; status_code: string; created_at: string; title: string; round_id: string; slug: string; organization_name: string; name: string; major: string; level: string; committee: string | null; round_open: boolean; allow_withdrawal: boolean; has_active_application: boolean; has_newer_application: boolean; canReview: boolean; canBulk: boolean };
 export type Detail = { id: string; organization_id:string; canStaff:boolean; status_code: string; version: Version; response_revision: number; answers: Answers; requested_committee_id: string | null; committee_labels?:{legacy:string|null;answers:Record<string,string>}; history: Array<{ to_status_code: string; created_at: string; reason: string | null }>; canReview: boolean };
 type Readiness={accountStatus:string|null;onboarded:boolean};
@@ -26,7 +26,7 @@ export async function publicRounds(org:string) {
   return row?.data?[row.data]:[];
  });
 }
-type RegistrationRoundPage=Readiness&Round&{organization_id:string;application:Detail|null;slug:string;name:string;version:Version|null;committees:Array<{id:string;name:string}>;canReapply:boolean};
+type RegistrationRoundPage=Readiness&Round&{organization_id:string;application:Detail|null;slug:string;name:string;name_en?:string|null;version:Version|null;committees:Array<{id:string;name:string}>;canReapply:boolean};
 export async function getRound(round:string,user?:string) {
  const read=async(tx:import("@/db/client").Transaction)=>{
   const [row]=await tx.execute<{data:RegistrationRoundPage|null}>(sql`select lub.registration_round_page(${round}) as data`);
