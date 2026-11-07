@@ -200,3 +200,13 @@ CREATE FUNCTION lub.management_overview() RETURNS jsonb LANGUAGE sql STABLE SECU
 $$;
 REVOKE ALL ON FUNCTION lub.has_scoped_capability(uuid,text),lub.has_task_access(uuid),lub.has_event_access(uuid),lub.has_application_access(uuid),lub.has_reports_access(uuid),lub.has_hours_access(uuid),lub.has_management_access(uuid),lub.management_overview() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION lub.has_scoped_capability(uuid,text),lub.has_task_access(uuid),lub.has_event_access(uuid),lub.has_application_access(uuid),lub.has_reports_access(uuid),lub.has_hours_access(uuid),lub.has_management_access(uuid),lub.management_overview() TO authenticated;
+
+CREATE FUNCTION lub.update_admin_display_name(value text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+BEGIN
+ PERFORM 1 FROM lub.users WHERE id=auth.uid() FOR UPDATE;
+ IF NOT lub.is_super_admin() THEN RAISE EXCEPTION 'FORBIDDEN' USING ERRCODE='42501'; END IF;
+ IF value IS NULL OR length(trim(value)) NOT BETWEEN 2 AND 120 THEN RAISE EXCEPTION 'Invalid administrator name'; END IF;
+ UPDATE lub.users SET full_name_ar=trim(value),updated_at=now() WHERE id=auth.uid();
+END; $$;
+REVOKE ALL ON FUNCTION lub.update_admin_display_name(text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION lub.update_admin_display_name(text) TO authenticated;

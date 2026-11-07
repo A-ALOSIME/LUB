@@ -5,15 +5,24 @@ import type { SQL } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 
 let database: PgliteDatabase;
+let sourceReads=0;
 vi.mock("server-only", () => ({}));
 vi.mock("@/db/client", () => ({
   withUser: async <T>(owner: string, operation: (tx: { execute: (query: SQL) => Promise<Record<string, unknown>[]> }) => Promise<T>) => {
-    // Each test already owns a database transaction; preserve the production role boundary.
-    await db.exec("reset role");
-    await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)", [owner]);
-    return operation({ execute: async query => (await database.execute(query)).rows });
+    const [prior]=(await db.query<{role:string;subject:string}>("select current_setting('role') role,current_setting('request.jwt.claim.sub',true) subject")).rows;
+    await db.exec("savepoint source_read");
+    try{
+      await db.exec("reset role");
+      await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role','authenticated',true)", [owner]);
+      const result=await operation({execute:async query=>{sourceReads++;return (await database.execute(query)).rows;}});
+      await db.exec("reset role");
+      await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('role',$2,true)",[prior.subject??"",prior.role]);
+      await db.exec("release savepoint source_read");
+      return result;
+    }catch(error){await db.exec("rollback to savepoint source_read;release savepoint source_read");throw error;}
   },
 }));
+import {getManagementOverview,getAdminAccountProfile,updateAdminAccountName} from "@/features/organizations/management-repository";
 import { adminDirectory } from "@/features/organizations/admin-directory-repository";
 import { openingRequests, ownOpeningRequest } from "@/features/organization-requests/repository";
 
@@ -35,7 +44,7 @@ beforeAll(async () => {
   await db.exec(readFileSync("scripts/schema-simplification/opening18.sql", "utf8"));
 }, 30000);
 beforeEach(async () => {
-  await db.exec("begin");
+  sourceReads=0;await db.exec("begin");
   for (let n = 1; n <= 5; n++) {
     await db.query("insert into auth.users values($1)", [id(n)]);
     await db.query("insert into lub.users(id,email,email_verified_at,full_name_ar,university_id_ciphertext,university_id_lookup_hash,major_name,academic_level,onboarded_at) values($1,$2,now(),$3,'encrypted',$4,'نظم معلومات','5',now())", [id(n), `admin18-${n}@example.invalid`, `طالب ${n}`, String(n).repeat(64)]);
@@ -48,6 +57,32 @@ afterAll(async () => { await db?.close(); });
 async function create(slug = "new-club", email: string | null = null) {
   return (await db.query<{ id: string }>("select lub.admin_create_organization('جهة الاختبار','Club',$1,'نبذة','رسالة',$2) id", [slug, email])).rows[0].id;
 }
+it("loads the actual authenticated workspace shell once per actor and request without leaking administrator counts",async()=>{
+ await actor(1);const org=await create("active-club","admin18-2@example.invalid");
+ const archived=await db.query<{id:string}>("select lub.admin_create_organization('جهة مؤرشفة','Club','archived-club','','',null) id");
+ await db.query("select lub.set_organization_status($1,'Archived')",[archived.rows[0].id]);
+ const request="schema18-overview-proof",first=getManagementOverview(id(1),request);
+ expect(getManagementOverview(id(1),request)).toBe(first);
+ const dashboard=await first;
+ expect(sourceReads).toBe(1);
+ expect(dashboard.access).toEqual({superAdmin:true,organizations:[]});
+ expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
+ const leader=await getManagementOverview(id(2),request);
+ expect(sourceReads).toBe(2);
+ expect(leader.access).toMatchObject({superAdmin:false,organizations:[{id:org,canTasks:true,canApplications:true}]});
+ expect(leader.summary).toEqual({activeOrganizations:0,archivedOrganizations:0,administrators:0});
+ expect((await db.query<{subject:string}>("select auth.uid() subject")).rows[0].subject).toBe(id(1));
+});
+
+it("reads the administrator's own account once and checks authorization on display-name writes",async()=>{
+ expect(await getAdminAccountProfile(id(1))).toEqual({email:"admin18-1@example.invalid",fullName:"طالب 1"});
+ expect(sourceReads).toBe(1);
+ await updateAdminAccountName(id(1),"مشرف النظام الجديد");
+ expect(await getAdminAccountProfile(id(1))).toEqual({email:"admin18-1@example.invalid",fullName:"مشرف النظام الجديد"});
+ await expect(getAdminAccountProfile(id(2))).rejects.toThrow("FORBIDDEN");
+ await expect(updateAdminAccountName(id(2),"اسم غير مصرح")).rejects.toThrow("FORBIDDEN");
+ await actor(2);await denied(()=>db.query("select lub.update_admin_display_name('اسم غير مصرح')"));
+});
 it("creates one organization and appoints/replaces/removes its president without duplicating membership", async () => {
   await actor(1); const org = await create("new-club", "admin18-2@example.invalid");
   await db.query("select lub.set_primary_leader($1,'admin18-2@example.invalid')", [org]);

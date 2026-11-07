@@ -29,7 +29,7 @@ vi.mock("@/db/client", () => ({
 }));
 import { getPublicDirectory, getPublicOrganization } from "@/features/organizations/public-repository";
 import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
-import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getManagementOverview, getAssignedManagementOrganizations, getAdminOrganizations, getAdminAccountProfile, updateAdminAccountName, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
+import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
 
 const admin = "00000000-0000-4000-8000-000000000001";
 const leader = "00000000-0000-4000-8000-000000000002";
@@ -139,7 +139,7 @@ it("exports scoped approved hours directly as CSV without persisting report docu
  await engine.exec("reset role");await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[leader]);await engine.exec("set role authenticated");await engine.query("select lub.add_hours($1,null,$2,2.5,current_date,'عمل',false)",[member,term]);await engine.query("select lub.change_member_role($1,'OD',null)",[member]);await engine.query("select lub.grant_report_permission($1,null,null)",[adminMember]);await engine.exec("reset role");
  scopedReads=0;const workspace=await hoursExportWorkspace(exporter,org);expect(scopedReads).toBe(1);expect(workspace?.scopes.length).toBeGreaterThan(0);expect(workspace?.scopes.some(scope=>scope.id===null&&scope.name==="الجهة بالكامل")).toBe(true);expect(workspace?.terms.some(item=>item.id===term)).toBe(true);expect(await hoursExportWorkspace("00000000-0000-4000-8000-000000000004",org)).toBeUndefined();expect(await hoursWorkspace(exporter,org,{term:null,committee:null,page:0,memberPage:0})).toBeDefined();
  await engine.query("select set_config('request.jwt.claim.sub',$1,false)",[exporter]);await engine.exec("set role authenticated");const exported=(await engine.query<{csv:string}>("select lub.export_hours_csv($1,null,$2) as csv",[org,term])).rows[0].csv;expect(exported).toContain('"الاسم","الساعات المعتمدة"');expect(exported).toContain('2.50');expect(exported).not.toContain('storage_key');await engine.exec("reset role");
- const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(true);const dashboard=await getManagementOverview(admin);expect(dashboard.access.organizations).toEqual([]);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);expect(dashboard.summary).toEqual({activeOrganizations:1,archivedOrganizations:1,administrators:1});
+ const managed=await getManagementOrganization(admin,org);expect(managed).toBeUndefined();expect((await getManagementOrganization(exporter,org))?.organization.canReports).toBe(true);expect((await getManagementOrganization(exporter,org))?.organization.canHours).toBe(true);expect((await getAssignedManagementOrganizations(admin)).map(o=>o.id)).toEqual([]);expect((await getAssignedManagementOrganizations(exporter)).map(o=>o.id)).toEqual([org]);
 });
 
 it("reads hours with scoped totals, bounded lists and the genuine repository SQL",async()=>{
@@ -226,25 +226,6 @@ it("creates an organization only for SA and exposes operational scope only after
   expect(await getManagementOrganization(admin, created.id)).toBeUndefined();
 });
 
-it("keeps administrative counts scoped to the super admin dashboard summary", async () => {
-  rawReads = 0;
-  const request = "dashboard-request-unique";
-  const first = getManagementOverview(admin, request);
-  const duplicate = getManagementOverview(admin, request);
-  expect(duplicate).toBe(first);
-  const before = (await engine.query("select current_user as role,nullif(current_setting('request.jwt.claim.sub',true),'') as subject")).rows[0];
-  const dashboard = await first;
-  expect(rawReads).toBe(1);
-  expect((await engine.query("select current_user as role,nullif(current_setting('request.jwt.claim.sub',true),'') as subject")).rows[0]).toEqual(before);
-  expect(dashboard.access.superAdmin).toBe(true);
-  expect(dashboard.access.organizations).toEqual([]);
-  expect(dashboard.summary).toEqual({ activeOrganizations: 1, archivedOrganizations: 1, administrators: 1 });
-  const student = await getManagementOverview(leader, request);
-  expect(student.access.superAdmin).toBe(false);
-  expect(rawReads).toBe(2);
-  expect(student.summary).toEqual({ activeOrganizations: 0, archivedOrganizations: 0, administrators: 0 });
-});
-
 it("loads assigned organizations and administrator rosters in one scoped query each", async () => {
   await appointPrimaryLeader(admin, org, "leader@example.invalid");
   await createLearner();
@@ -285,23 +266,6 @@ it("authorizes private administrator directory data in one scoped query and rech
  expect(visitorSelects).toBe(0);expect(rawReads).toBe(0);
  await engine.query("update lub.global_role_assignments set start_at=now()-interval '2 days',end_at=now()-interval '1 day' where user_id=$1",[admin]);
  const expired=await getAdminOrganizations(admin);expect(expired.allowed).toBe(false);expect(expired.organizations).toEqual([]);expect(scopedReads).toBe(2);
-});
-
-it("lets a super administrator update only their administrative display name", async () => {
-  expect(await getAdminAccountProfile(admin)).toEqual({ email: "admin@example.invalid", fullName: "المشرف" });
-  await updateAdminAccountName(admin, "مشرف النظام الجديد");
-  expect(await getAdminAccountProfile(admin)).toEqual({ email: "admin@example.invalid", fullName: "مشرف النظام الجديد" });
-  const audit = await engine.query<{ action_code: string; entity_type: string }>("select action_code,entity_type from lub.audit_log where actor_user_id=$1", [admin]);
-  expect(audit.rows).toContainEqual({ action_code: "ADMIN_NAME_UPDATED", entity_type: "system_administrator_profile" });
-  await expect(updateAdminAccountName(leader, "اسم غير مصرح")).rejects.toThrow("FORBIDDEN");
-});
-
-it("loads the administrator profile with one RLS-scoped statement", async () => {
-  rawReads = 0;
-
-  await expect(getAdminAccountProfile(admin)).resolves.toEqual({ email: "admin@example.invalid", fullName: "المشرف" });
-
-  expect(rawReads).toBe(1);
 });
 
 it("keeps ended leadership roles in the student's own membership history", async () => {

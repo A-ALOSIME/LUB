@@ -4,8 +4,8 @@ import {initialMemberFilters} from "./member-types";
 import {decodeMemberWorkspace} from "./member-identifiers";
 import { cache } from "react";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { getDb, withUser, type Transaction } from "@/db/client";
-import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships, studentProfiles, auditLog } from "@/db/schema";
+import { withUser, type Transaction } from "@/db/client";
+import { users, organizations, committees, tags, organizationTags, organizationLinks, organizationMemberships } from "@/db/schema";
 import {announcementSchema} from "./validation";
 import type { CreateOrganizationInput, OrganizationProfileInput, CommitteeInput, AnnouncementInput } from "./validation";
 
@@ -68,59 +68,11 @@ export function getManagementOverview(userId: string, requestNonce?: string): Pr
   return entry.result;
 }
 
-async function readManagementOverview(userId: string): Promise<ManagementOverview> {
-  const [row] = await getDb().execute<{
-    status: string | null;
-    onboarded: boolean;
-    superAdmin: boolean;
-    displayName: string | null;
-    managed: ManagementOverview["access"]["organizations"];
-    activeOrganizations: number;
-    archivedOrganizations: number;
-    administrators: number;
-  }>(sql`
-    with prior_scope as materialized (
-      select current_setting('request.jwt.claim.sub', true) as previous_subject,
-        current_setting('role', true) as previous_role
-    ), verified_subject as materialized (
-      select set_config('request.jwt.claim.sub', ${userId}, true),
-        set_config('role', 'authenticated', true), previous_subject, previous_role
-      from prior_scope
-    ), account as materialized (
-      select u.status_code as status,
-        exists(select 1 from lub.student_profiles p where p.user_id = u.id) as onboarded,
-        lub.is_super_admin() as super_admin,
-        (select p.full_name_ar from lub.student_profiles p where p.user_id=u.id) as display_name
-      from verified_subject, lub.users u
-      where u.id = ${userId}::uuid
-    ), overview as materialized (
-      select status, onboarded, super_admin as "superAdmin", display_name as "displayName",
-      case when super_admin then '[]'::jsonb else coalesce((
-      select jsonb_agg(jsonb_build_object('id',o.id,'slug',o.slug,'nameAr',o.name_ar,'statusCode',o.status_code,'pendingApplications',case when lub.has_application_access(o.id) then (select count(*)::int from lub.membership_applications a join lub.registration_rounds r on r.id=a.registration_round_id where r.organization_id=o.id and a.status_code in ('Submitted','Interview') and lub.can_read_application(a.id,'APPLICATIONS_VIEW')) else 0 end,'canEdit',lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE'),'canManageCommittees',lub.has_org_permission(o.id,'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and lub.has_org_permission(o.id,'COMMITTEE_PROFILE_MANAGE',c.id)),'canApplications',lub.has_application_access(o.id),'canEvents',lub.has_event_access(o.id),'canReports',lub.has_reports_access(o.id),'canHours',lub.has_hours_access(o.id),'canRenewals',lub.has_org_permission(o.id,'RENEWALS_MANAGE'),'canTasks',lub.has_task_access(o.id),'canMembers',lub.has_org_permission(o.id,'MEMBERS_VIEW') or lub.has_org_permission(o.id,'MEMBERS_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and lub.has_org_permission(o.id,'MEMBERS_VIEW',c.id)),'canGrant',lub.has_org_permission(o.id,'PERMISSIONS_GRANT')) order by o.name_ar,o.id)
-        from lub.organizations o
-        where lub.has_event_access(o.id) or lub.has_reports_access(o.id) or lub.has_hours_access(o.id) or lub.has_task_access(o.id) or lub.has_application_access(o.id) or lub.has_org_permission(o.id,'MEMBERS_VIEW') or lub.has_org_permission(o.id,'MEMBERS_MANAGE') or lub.has_org_permission(o.id,'PERMISSIONS_GRANT') or lub.has_org_permission(o.id,'RENEWALS_MANAGE') or lub.has_org_permission(o.id,'ORG_PROFILE_MANAGE') or lub.has_org_permission(o.id,'COMMITTEE_MANAGE') or exists(select 1 from lub.committees c where c.organization_id=o.id and (lub.has_org_permission(o.id,'COMMITTEE_PROFILE_MANAGE',c.id) or lub.has_org_permission(o.id,'MEMBERS_VIEW',c.id)))
-      ),'[]'::jsonb) end as managed,
-      case when super_admin then (select count(*)::int from lub.organizations where status_code='Active') else 0 end as "activeOrganizations",
-      case when super_admin then (select count(*)::int from lub.organizations where status_code='Archived') else 0 end as "archivedOrganizations",
-      case when super_admin then (select count(*)::int from lub.list_super_admins()) else 0 end as administrators
-      from account
-    ), restored_scope as materialized (
-      select set_config('request.jwt.claim.sub', coalesce(previous_subject, ''), true),
-        set_config('role', coalesce(previous_role, 'none'), true)
-      from prior_scope cross join overview
-    )
-    select overview.* from overview cross join restored_scope
-  `);
-  return {
-    readiness: { status: row?.status ?? undefined, onboarded: Boolean(row?.onboarded) },
-    displayName: row?.displayName ?? null,
-    access: { superAdmin: Boolean(row?.superAdmin), organizations: row?.managed ?? [] },
-    summary: {
-      activeOrganizations: row?.activeOrganizations ?? 0,
-      archivedOrganizations: row?.archivedOrganizations ?? 0,
-      administrators: row?.administrators ?? 0,
-    },
-  };
+async function readManagementOverview(userId:string):Promise<ManagementOverview>{
+ return withUser(userId,async tx=>{
+  const [row]=await tx.execute<{data:ManagementOverview}>(sql`select lub.management_overview() as data`);
+  return {...row.data,readiness:{...row.data.readiness,status:row.data.readiness.status??undefined}};
+ });
 }
 export type AdminOrganizationRow={id:string;slug:string;nameAr:string;typeCode:string;statusCode:string;logoUrl:string;leaderName:string|null;memberCount:number};
 export type AdminOrganizationIdentity=Pick<AdminOrganizationRow,"id"|"slug"|"nameAr"|"typeCode"|"statusCode"|"leaderName">;
@@ -133,36 +85,20 @@ export const getAdminOrganizations=cache(async(userId:string,filters:AdminDirect
 
 // The management layout and account page reuse this RLS-checked read only
 // within the current server render; no account or permission data is shared across requests.
-export const getAdminAccountProfile = cache(async (userId: string) => {
-  const [profile] = await getDb().execute<{ allowed: boolean; email: string; fullName: string | null }>(sql`
-    with verified_subject as materialized (
-      select set_config('request.jwt.claim.sub', ${userId}, true), set_config('role', 'authenticated', true)
-    )
-    select lub.is_super_admin() as allowed, account.email, profile.full_name_ar as "fullName"
-    from verified_subject
-    cross join lub.users account
-    left join lub.student_profiles profile on profile.user_id = account.id
-    where account.id = ${userId}
-  `);
-  if (!profile?.allowed || !profile.fullName) throw new Error("FORBIDDEN");
-  return { email: profile.email, fullName: profile.fullName };
-});
+export const getAdminAccountProfile=cache(async(userId:string)=>withUser(userId,async tx=>{
+ const [profile]=await tx.execute<{email:string;fullName:string|null}>(sql`
+  select email,full_name_ar as "fullName" from lub.users where id=auth.uid() and lub.is_super_admin()
+ `);
+ if(!profile?.fullName)throw new Error("FORBIDDEN");
+ return {email:profile.email,fullName:profile.fullName};
+}));
 
-export async function updateAdminAccountName(userId: string, fullName: string) {
-  return withUser(userId, async tx => {
-    const [access] = await tx.select({ allowed: sql<boolean>`lub.is_super_admin()` }).from(users).where(eq(users.id, userId)).limit(1);
-    if (!access?.allowed) throw new Error("FORBIDDEN");
-    const changed = await tx.update(studentProfiles).set({ fullNameAr: fullName, updatedAt: new Date() })
-      .where(eq(studentProfiles.userId, userId)).returning({ userId: studentProfiles.userId });
-    if (!changed.length) throw new Error("FORBIDDEN");
-    await tx.insert(auditLog).values({
-      actorUserId: userId,
-      actionCode: "ADMIN_NAME_UPDATED",
-      entityType: "system_administrator_profile",
-      entityId: userId,
-      metadata: {},
-    });
-  });
+export async function updateAdminAccountName(userId:string,fullName:string){
+ await withUser(userId,async tx=>{
+  const [access]=await tx.execute<{allowed:boolean}>(sql`select lub.is_super_admin() as allowed`);
+  if(!access?.allowed)throw new Error("FORBIDDEN");
+  await tx.execute(sql`select lub.update_admin_display_name(${fullName})`);
+ });
 }
 export async function getSuperAdmins(userId:string){return withUser(userId,async tx=>{
  const [row]=await tx.execute(sql`select case when lub.is_super_admin() then (select coalesce(jsonb_agg(a),'[]'::jsonb) from lub.admin_account_directory() a) end as data`);
