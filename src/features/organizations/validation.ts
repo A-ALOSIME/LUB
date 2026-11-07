@@ -58,7 +58,7 @@ export const committeeSchema = z.object({ name: nameAr, description: z.string().
 export const discoverySchema = z.object({
   q: z.string().trim().max(80).default(""),
   type: z.enum(["", "Club", "Council"]).default(""),
-  tag: z.union([z.literal(""), z.uuid()]).default(""),
+  tag: z.string().trim().max(40).default(""),
   inactive: z.enum(["", "on"]).default(""),
   open: z.enum(["", "on"]).default(""),
   upcoming: z.enum(["", "on"]).default(""),

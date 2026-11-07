@@ -1,4 +1,5 @@
 
+import {translateContent} from "@/lib/content-translation";
 import {ContentText} from "@/components/content-text";
 import {t as translateUi} from "@/lib/i18n";
 import {Button} from "@/components/ui/button";
@@ -42,15 +43,16 @@ export default async function OrganizationsPage({ searchParams }: { searchParams
         <h2 id={`group-${group.code}`} className="directory-divider"><ContentText value={group.title}/></h2>
         <ul className={`directory-grid${group.code === "Council" ? " directory-grid--councils" : ""}`}>{group.items.map(organization => {
           const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
+          const displayName = en ? (organization.nameEn?.trim() || translateContent(organization.nameAr,"en")) : organization.nameAr;
           const imageSrc = organization.logoUrl || profile?.logoSrc;
           return <li key={organization.id} className="min-w-0"><Card className="h-full gap-0 py-0 transition-colors hover:bg-muted/40">
-            <IntentPrefetchLink href={`/organizations/${organization.slug}`} className="directory-link" aria-label={translateUi((en) ? "en" : "ar", `عرض ${organization.nameAr}`, `View ${organization.nameAr}`)}>
+            <IntentPrefetchLink href={`/organizations/${organization.slug}`} className="directory-link" aria-label={translateUi((en) ? "en" : "ar", `عرض ${organization.nameAr}`, `View ${displayName}`)}>
               <span className={`organization-card-art organization-card-art--${profile?.imageTheme ?? "default"}`} aria-hidden="true">
                 <OrganizationLogo name={organization.nameAr} src={imageSrc} className="size-full"/>
               </span>
               <span className="organization-card-copy">
                 {organization.statusCode !== "Active" && <span className="mb-2 block text-sm text-muted">{en ? organization.statusCode : organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}</span>}
-                <span dir="auto" className="organization-card-title"><ContentText autoTranslate value={organization.nameAr}/></span>
+                <span dir="auto" className="organization-card-title"><ContentText value={displayName}/></span>
                 {organization.tags.length > 0 && <span className="organization-card-tags">{organization.tags.map(tag => <span key={tag} dir="auto">{tag}</span>)}</span>}
               </span>
             </IntentPrefetchLink>

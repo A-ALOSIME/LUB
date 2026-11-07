@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { getPublicDirectory, getPublicOrganization } from "./public-repository";
 import { slugSchema, type DiscoveryFilters } from "./validation";
 
-const cachedPublicDirectory = unstable_cache(getPublicDirectory, ["public-directory-v7"], { revalidate: 120, tags: ["public-organizations"] });
+const cachedPublicDirectory = unstable_cache(getPublicDirectory, ["public-directory-v8"], { revalidate: 120, tags: ["public-organizations"] });
 export function readPublicDirectory(filters: DiscoveryFilters) {
   const isCommonBrowse = !filters.q && !filters.type && !filters.tag && !filters.inactive && !filters.open && !filters.upcoming;
   // Keep free-form filters and unusually deep pagination out of shared cache keys.
@@ -16,7 +16,7 @@ const cachedPublicOrganization = unstable_cache(async (slug: string) => {
   // Do not store arbitrary slug misses in the shared cache.
   if (!organization) throw new PublicOrganizationNotFound();
   return organization;
-}, ["public-organization-v10"], { revalidate: 120, tags: ["public-organizations"] });
+}, ["public-organization-v11"], { revalidate: 120, tags: ["public-organizations"] });
 
 export async function readPublicOrganization(slug: string) {
   if (!slugSchema.safeParse(slug).success) return undefined;

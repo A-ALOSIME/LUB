@@ -1,6 +1,6 @@
 import {normalizeMajor} from "@/lib/student-identity";
 import type {RegistrationReadiness} from "./repository";
-export type PublicRound={id:string;title:string;open:boolean;opens_at:string;closes_at:string;status_code?:string;minimum_approved_hours?:string|number;allowed_majors?:string[]};
+export type PublicRound={id:string;title:string;title_en?:string|null;open:boolean;opens_at:string;closes_at:string;status_code?:string;minimum_approved_hours?:string|number;allowed_majors?:string[]};
 export function registrationTiming(round:PublicRound|undefined,now:number){
  const opens=Date.parse(round?.opens_at??""),closes=Date.parse(round?.closes_at??"");
  const upcoming=!!round&&Number.isFinite(opens)&&opens>now&&round.status_code!=="Closed";

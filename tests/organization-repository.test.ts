@@ -27,7 +27,7 @@ vi.mock("@/db/client", () => ({
     await tx.execute(sql`select set_config('request.jwt.claim.sub','',true)`); await tx.execute(sql`set local role anon`); return operation(new Proxy(tx, {get(target,key){if(key==="select")return (...args:Parameters<Tx["select"]>)=>{visitorSelects++;return target.select(...args);};if(key==="execute")return async(query:Parameters<Tx["execute"]>[0])=>(await target.execute(query)).rows;return Reflect.get(target,key);}}));
   }),
 }));
-import { getPublicDirectory, getPublicOrganization } from "@/features/organizations/public-repository";
+import { getPublicDirectory, getPublicOrganization } from "./legacy-public-organization-repository";
 import {getOrganizationMemberDirectory} from "@/features/organizations/management-repository";
 import { createOrganization, appointPrimaryLeader, saveOrganizationProfile, saveAnnouncement, getManagementAccess, getAssignedManagementOrganizations, getAdminOrganizations, getSuperAdmins, getManagementOrganization, saveCommittee, copyCommittee, setCommitteeStatus, getMembershipHistory } from "@/features/organizations/management-repository";
 

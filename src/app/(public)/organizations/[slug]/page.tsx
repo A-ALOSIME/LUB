@@ -46,10 +46,10 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
     const profile=localOrganizationContent(organization.nameAr,organization.typeCode);
     const summary=organization.summary ?? profile?.about ?? "";
     const description=toMetaDescription(summary,`جهة طلابية ${organization.nameAr} على منصة لُبّ.`);
-    return localizedMetadata(organization.nameAr,translateContent(organization.nameAr,"en"),{}, {
+    return localizedMetadata(organization.nameAr,organization.nameEn?.trim()||translateContent(organization.nameAr,"en"),{}, {
       index:organization.statusCode==="Active",
       canonical:`/organizations/${organization.slug}`,
-      description:{ar:description,en:toMetaDescription(translateContent(summary,"en"),`Student organization ${translateContent(organization.nameAr,"en")} on LUB.`)},
+      description:{ar:description,en:toMetaDescription(organization.summaryEn?.trim()||translateContent(summary,"en"),`Student organization ${organization.nameEn?.trim()||translateContent(organization.nameAr,"en")} on LUB.`)},
     });
   } catch {
     return localizedMetadata(translateUi((locale==="en") ? "en" : "ar", "تفاصيل الجهة", "Organization details"),translateUi((locale==="en") ? "en" : "ar", "تفاصيل الجهة", "Organization details"));
@@ -98,19 +98,20 @@ export default async function OrganizationPage({ params, searchParams }: {
   if (!detail) notFound();
 
   const { organization, committees, contacts, leadership, rounds, upcomingEvents, announcements } = detail;
+  const displayName=en?(organization.nameEn?.trim()||translateContent(organization.nameAr,"en")):organization.nameAr;
   const currentRound=rounds[0];
   const readiness=user&&!superAdmin?await registrationReadiness(user.id,organization.id,currentRound?.id??null).catch(()=>null):null;
   const registrationNow=requestTime();
   const canManageOrganization = superAdmin || Boolean(user && await canManageOrganizationSettings(user.id, organization.id).catch(() => false));
   const profile = localOrganizationContent(organization.nameAr, organization.typeCode);
-  const presentation = buildOrganizationProfilePresentation({ curated: undefined, saved: organization.publicProfileContent, mission: organization.mission, memberCount: organization.memberCount });
+  const presentation = buildOrganizationProfilePresentation({ curated: undefined, saved: organization.publicProfileContent, mission: en?(organization.missionEn?.trim()||organization.mission):organization.mission, memberCount: organization.memberCount });
   const savedSocialLinks = contacts.map(contact => ({ label: organizationContactLabel(contact.kind, en), value: contact.value, href: contact.url }));
   const socialLinks = savedSocialLinks;
   const hasActivity=upcomingEvents.length>0;
   const profileSectionGroups = groupOrganizationProfileSections(presentation.sections);
   const namedLeadershipDetails = leadership.map(person => `${en
     ? person.roleCode === "OL" ? "Leader" : "Deputy leader"
-    : person.roleCode === "OL" ? "القائد" : "نائب القائد"}: ${person.fullName}`);
+    : person.roleCode === "OL" ? "القائد" : "نائب القائد"}: ${en?(person.fullNameEn?.trim()||person.fullName):person.fullName}`);
   const databaseCommitteeRecords = committees.map(committee => ({
     ...committee,
     isPublic: true,
@@ -118,7 +119,9 @@ export default async function OrganizationPage({ params, searchParams }: {
     copiedFromCommitteeId: null,
     canEdit: false,
     memberCount: null,
-    leaderName: committee.leaderName,
+    name: en?(committee.nameEn?.trim()||translateContent(committee.name,"en")):committee.name,
+    description: en?(committee.descriptionEn?.trim()||translateContent(committee.description,"en")):committee.description,
+    leaderName: en?(committee.leaderNameEn?.trim()||committee.leaderName):committee.leaderName,
   }));
   // The public diagram uses the same saved hierarchy as management, filtered by public access.
   const rootLeadershipDetails = [...new Set(namedLeadershipDetails)];
@@ -147,7 +150,8 @@ export default async function OrganizationPage({ params, searchParams }: {
   const orderedNavItems = orderOrganizationTabs(sectionNavItems);
   const activeSection = orderedNavItems.find(item => item.id === requestedSection) ?? orderedNavItems[0];
 
-  const visibleSummary=organization.summary ?? profile?.about ?? "";
+  const originalSummary=organization.summary ?? profile?.about ?? "";
+  const visibleSummary=en?(organization.summaryEn?.trim()||translateContent(originalSummary,"en")):originalSummary;
   const canonicalUrl=`https://lub.community/organizations/${organization.slug}`;
   const logoUrl=organization.logoUrl || (profile?.logoSrc ? new URL(profile.logoSrc,"https://lub.community").toString() : undefined);
   const organizationLogo = organization.logoUrl || profile?.logoSrc;
@@ -162,7 +166,7 @@ export default async function OrganizationPage({ params, searchParams }: {
     "@type":"Organization",
     name:organization.nameAr,
     url:canonicalUrl,
-    ...(visibleSummary?{description:visibleSummary}:{}),
+    ...(originalSummary?{description:originalSummary}:{}),
     ...(logoUrl?{logo:logoUrl}:{}),
     ...(sameAs.length?{sameAs:[...new Set(sameAs)]}:{}),
   }}/>}<main id="main" className="mx-auto max-w-7xl px-5 pb-20 pt-9 sm:px-8 sm:pt-12">
@@ -174,10 +178,10 @@ export default async function OrganizationPage({ params, searchParams }: {
       {!profile?.coverSrc && <div className={`organization-hero-art organization-hero-art--${organization.logoUrl ? "default" : profile?.imageTheme ?? "default"}`}><OrganizationLogo name={organization.nameAr} src={organizationLogo} className="size-full"/></div>}
         <div className="organization-hero-copy">
           <p className="text-sm font-bold text-action">{en ? organization.typeCode : organizationTypes[organization.typeCode as keyof typeof organizationTypes]}</p>
-          <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl"><ContentText autoTranslate value={organization.nameAr}/></h1>
-          {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9"><ContentText autoTranslate value={visibleSummary}/></p>}
+          <h1 dir="auto" className="mt-2 text-4xl leading-[1.35] sm:text-5xl"><ContentText value={displayName}/></h1>
+          {visibleSummary && <p dir="auto" className="intro-summary mt-5 max-w-3xl whitespace-pre-line text-lg leading-9"><ContentText value={visibleSummary}/></p>}
           <div className="mt-5"><RegistrationStatusBadge round={currentRound} locale={preferences.locale} now={registrationNow}/></div>
-          {organization.tags.length > 0 && <ul aria-label={translateUi((en) ? "en" : "ar", "مجالات الجهة", "Organization interests")} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm"><ContentText autoTranslate value={tag}/></li>)}</ul>}
+          {organization.tags.length > 0 && <ul aria-label={translateUi((en) ? "en" : "ar", "مجالات الجهة", "Organization interests")} className="mt-6 flex flex-wrap gap-2">{organization.tags.map(tag => <li key={tag} dir="auto" className="rounded-md bg-white px-3 py-1 text-sm"><ContentText value={tag}/></li>)}</ul>}
           {organization.statusCode !== "Active" && <p className="mt-6 rounded-lg border border-line bg-white p-4 leading-8">{translateUi((en) ? "en" : "ar", `هذه الجهة ${organizationStatuses[organization.statusCode as keyof typeof organizationStatuses]}.`, `This organization is ${organization.statusCode.toLowerCase()}.`)}{organization.archivedAt && <> {translateUi((en) ? "en" : "ar", "أُرشفت بتاريخ", "Archived on")} {formatRiyadhDate(organization.archivedAt, preferences.locale)}{translateUi((en) ? "en" : "ar", "، ويبقى هذا الرابط متاحًا لحفظ تاريخها.", ". This link remains available to preserve its history.")}</>}</p>}
           {socialLinks.some(link => link.href) && <section id="organization-contact" className="organization-hero-social organization-section-nav-target" aria-labelledby="organization-social-title">
             <h2 id="organization-social-title" className="text-sm font-bold">{translateUi((en) ? "en" : "ar", "روابط التواصل", "Organization links")}</h2>
@@ -202,7 +206,7 @@ export default async function OrganizationPage({ params, searchParams }: {
         {item.id==="announcements"&&<PublicAnnouncements items={announcements} locale={preferences.locale}/>}
         {item.id==="applications"&&<section className="mt-8"><PublicRegistration round={currentRound} slug={slug} locale={preferences.locale} signedIn={!!user} readiness={readiness} now={registrationNow} blockedReason={superAdmin?translateUi(preferences.locale,"حسابك إداري ولا يمكنه تقديم طلبات عضوية.","Administrative accounts cannot apply for membership."):undefined}/></section>}
         {item.id === "structure" && <section className="mt-8 space-y-5" aria-label={translateUi((en) ? "en" : "ar", "هيكل الجهة", "Organization structure")}>
-          <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "اللجان", "Committees")}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={organization.nameAr} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={translateUi((en) ? "en" : "ar", "لا توجد لجان عامة حالياً.", "No public committees yet.")} /></section>
+          <section className="panel p-4 sm:p-6"><h2 className="text-xl font-bold">{translateUi((en) ? "en" : "ar", "اللجان", "Committees")}</h2><OrganizationCommitteeChart organizationId={organization.id} organizationName={displayName} rootDetails={rootLeadershipDetails} committees={committeeTree} canManage={false} readOnly locale={preferences.locale} parentOptions={[]} emptyMessage={translateUi((en) ? "en" : "ar", "لا توجد لجان عامة حالياً.", "No public committees yet.")} /></section>
         </section>}
       </OrganizationSectionTabPanel>)}</div>
     </OrganizationSectionTabs>}</div>

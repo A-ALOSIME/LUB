@@ -27,7 +27,8 @@ it("bounds discovery input and does not silently accept arbitrary filter types",
   expect(discoverySchema.parse({}).page).toBe(1);
   expect(discoverySchema.safeParse({ q: "x".repeat(81) }).success).toBe(false);
   expect(discoverySchema.safeParse({ type: "Admin", page: 0 }).success).toBe(false);
-  expect(discoverySchema.safeParse({ tag: "not-a-uuid" }).success).toBe(false);
+  expect(discoverySchema.parse({ tag: " تقنية " }).tag).toBe("تقنية");
+  expect(discoverySchema.safeParse({ tag: "x".repeat(41) }).success).toBe(false);
 });
 it("requires stable slugs, known organization types and meaningful committee names", () => {
   expect(createOrganizationSchema.safeParse({ nameAr: "نادي الحاسب", typeCode: "Club", slug: "tech-club", summary: "", mission: "" }).success).toBe(true);
