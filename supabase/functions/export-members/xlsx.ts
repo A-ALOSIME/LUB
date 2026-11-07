@@ -1,11 +1,24 @@
 import ExcelJS from "exceljs";
-import {decryptExportIdentifier} from "./csv.ts";
-import type {EncryptedMemberRecord} from "../../../src/features/organizations/member-types.ts";
-export type MemberExportRecord=Pick<EncryptedMemberRecord,"userId"|"universityCiphertext"|"nationalCiphertext"|"name"|"major"|"level"|"status"|"email"|"phone"|"hours"|"startDate"|"roles"|"committees">&{isTest:boolean};
-const arLevels=["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر","الحادي عشر","الثاني عشر"];
-const enLevels=["First","Second","Third","Fourth","Fifth","Sixth","Seventh","Eighth","Ninth","Tenth","Eleventh","Twelfth"];
-export function exportAcademicLevel(value:string,en:boolean){const stripped=value.replace(/^المستوى\s*|^Level\s*/iu,"");if(stripped==="graduate")return en?"Graduate":"خريج";const index=/^\d+$/.test(stripped)?Number(stripped)-1:arLevels.indexOf(stripped);return index>=0&&index<12?(en?enLevels:arLevels)[index]:stripped;}
-export function localPhone(value:string|null){if(!value)return "";const digits=value.replace(/\D/g,"");return /^(?:00966|966)5\d{8}$/.test(digits)?`0${digits.slice(-9)}`:digits;}
+import {decryptExportIdentifier} from "../_shared/export-identifiers.ts";
+import {exportAcademicLevel,localPhone} from "../_shared/xlsx-values.ts";
+
+export type MemberExportRecord = {
+  isTest: boolean;
+  userId: string;
+  name: string;
+  universityCiphertext: string;
+  nationalCiphertext: string | null;
+  major: string;
+  level: string;
+  status: string;
+  email: string;
+  phone: string | null;
+  hours: number;
+  startDate: string | null;
+  roles: { code: string }[];
+  committees: { name: string }[];
+};
+
 export function exportFilename(slug:string,filter:string,now=new Date()){const safe=(value:string)=>value.toLowerCase().replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");const date=new Intl.DateTimeFormat("en-CA-u-nu-latn",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);return `${safe(slug)||"organization"}-${safe(filter)||"all"}-${date}.xlsx`;}
 export async function membersXlsx(records:MemberExportRecord[],secret:string,locale:"ar"|"en"){
  const key=await crypto.subtle.importKey("raw",Uint8Array.from(atob(secret),c=>c.charCodeAt(0)),"AES-GCM",false,["decrypt"]),en=locale==="en";

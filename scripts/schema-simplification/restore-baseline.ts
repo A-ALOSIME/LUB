@@ -44,6 +44,7 @@ async function restore() {
       create schema if not exists storage;
       create table if not exists storage.buckets(id text primary key,name text,public boolean default false,file_size_limit bigint,allowed_mime_types text[]);
       create table if not exists storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,updated_at timestamptz default now());
+      alter table storage.objects enable row level security;
       create or replace function storage.allow_any_operation(expected_operations text[]) returns boolean language sql stable as $$
         select exists(select 1 from unnest(expected_operations) op where regexp_replace(current_setting('storage.operation',true),'^storage[.]','')=regexp_replace(op,'^storage[.]',''));
       $$;`);

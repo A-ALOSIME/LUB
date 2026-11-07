@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import {decryptExportIdentifier} from "../export-members/csv.ts";
+import {decryptExportIdentifier} from "../_shared/export-identifiers.ts";
 
 export type HoursExport={organization:string;slug:string;period?:string;state?:string|null;records:Array<{userId:string;name:string;universityCiphertext:string|null;hours:string;firstDate:string|null;lastDate:string|null;isTest:boolean}>};
 export async function hoursWorkbook(data:HoursExport,locale:"ar"|"en",secret:string){

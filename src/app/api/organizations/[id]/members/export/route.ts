@@ -1,6 +1,6 @@
 import { getVerifiedUser } from "@/features/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthConfig } from "@/lib/env";
+import { getAppOrigin, getAuthConfig } from "@/lib/env";
 import { z } from "zod";
 
 const input = z.object({ q: z.string().trim().max(120), status: z.enum(["all", "Active", "Ended", "Inactive"]),
@@ -9,7 +9,9 @@ const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options"
 const fail = (status: number) => Response.json({ error: "Export unavailable" }, { status, headers });
 
 export async function POST(request: Request, context: RouteContext<"/api/organizations/[id]/members/export">) {
-  if (request.headers.get("origin") !== new URL(request.url).origin) return fail(403);
+  let origin: string;
+  try { origin = getAppOrigin(); } catch { return fail(503); }
+  if (request.headers.get("origin") !== origin) return fail(403);
   const user = await getVerifiedUser();
   if (!user) return fail(401);
   const org = z.uuid().safeParse((await context.params).id);

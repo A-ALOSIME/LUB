@@ -84,7 +84,12 @@ GRANT EXECUTE ON FUNCTION lub.claim_profile_completion_notice(),lub.save_talent_
 
 INSERT INTO storage.buckets(id,name,public,file_size_limit,allowed_mime_types) VALUES('lub-avatars','lub-avatars',false,65536,ARRAY['image/webp'])
 ON CONFLICT(id) DO UPDATE SET public=false,file_size_limit=65536,allowed_mime_types=ARRAY['image/webp'];
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Supabase owns this table and already enables RLS. Fail closed on an invalid environment.
+DO $$ BEGIN
+ IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='storage.objects'::regclass) THEN
+  RAISE EXCEPTION 'Storage row security must already be enabled';
+ END IF;
+END; $$;
 GRANT UPDATE ON storage.objects TO authenticated;
 DROP POLICY IF EXISTS account_avatar_select ON storage.objects;
 DROP POLICY IF EXISTS account_avatar_insert ON storage.objects;

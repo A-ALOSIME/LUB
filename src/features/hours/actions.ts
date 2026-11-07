@@ -15,7 +15,7 @@ const amount=(f:FormData)=>z.coerce.number().finite().min(0).max(1000).multipleO
 export async function mutateHours(_previous:HoursState,f:FormData):Promise<HoursState>{
  const user=await requireUser();
  try{
- const op=z.enum(["term","add","add-selected","self","withdraw-self","review","adjust","self-policy","campaign","exclude","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
+ const op=z.enum(["term","add","add-selected","self","withdraw-self","review","adjust","self-policy","campaign","campaign-status","save-campaign","respond"]).parse(f.get("operation"));
  if(op==="add-selected"){
   const members=z.array(z.uuid()).min(1).max(500).refine(ids=>new Set(ids).size===ids.length).parse(JSON.parse(text(f,"members",20000)));
   const org=id(f,"org"),committee=optionalId(f,"committee"),activityDay=day(f,"day"),hours=amount(f),reason=text(f,"reason",3000);
@@ -35,7 +35,6 @@ export async function mutateHours(_previous:HoursState,f:FormData):Promise<Hours
  case "self-policy":return sql`select lub.set_self_report_hours(${id(f,"org")},${f.get("enabled")==="on"})`;
  case "campaign":return sql`select lub.create_renewal(${id(f,"org")},${id(f,"term")},${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("leaders")==="on"})`;
  case "save-campaign":return sql`select lub.save_renewal_draft(${id(f,"campaign")},${id(f,"term")},${date(f,"opens")}::timestamptz,${date(f,"closes")}::timestamptz,${f.get("leaders")==="on"})`;
- case "exclude":{const excluded=f.get("excluded")==="on";if(!excluded&&f.get("confirm")!=="on")throw new Error();return sql`select lub.exclude_renewal_member(${id(f,"campaign")},${id(f,"member")},${text(f,"reason",300,excluded?1:0)},${excluded})`;}
  case "campaign-status":{const status=z.enum(["Open","Closed","Archived"]).parse(f.get("status"));if(f.get("confirm")!=="on")throw new Error();return sql`select lub.change_renewal_status(${id(f,"campaign")},${status})`;}
  case "respond":return sql`select lub.respond_renewal(${id(f,"response")},${z.enum(["Renewed","Declined"]).parse(f.get("decision"))})`;
  }})();await withUser(user.id,tx=>tx.execute(query));}

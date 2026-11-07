@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import {decryptExportIdentifier} from "../export-members/csv.ts";
-import {localPhone,exportAcademicLevel} from "../export-members/xlsx.ts";
+import {decryptExportIdentifier} from "../_shared/export-identifiers.ts";
+import {localPhone,exportAcademicLevel} from "../_shared/xlsx-values.ts";
 export type RegistrantExportRecord={userId:string;isTest:boolean;name:string;universityCiphertext:string|null;nationalCiphertext:string|null;phone:string|null;email:string;major:string;level:string;registeredDate:string|null;status:string;hours:number|string};
 export type RegistrantsExport={slug:string;eventId:string;eventTitle:string;records:RegistrantExportRecord[]};
 export async function registrantsWorkbook(data:RegistrantsExport,locale:"ar"|"en",secret:string){
