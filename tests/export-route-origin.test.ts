@@ -15,8 +15,8 @@ const request = (origin: string, body: unknown) => new Request(internal, {
 });
 const context = { params: Promise.resolve({ id: organization }) };
 const routes = [
-  { handler: members, body: { ...filters, status: "all" }, name: "export-members" },
-  { handler: registrants, body: { ...filters, state: "Accepted", event: organization }, name: "export-registrants" },
+  { handler: members, body: { ...filters, status: "all" }, name: "export-members-v2" },
+  { handler: registrants, body: { ...filters, state: "Accepted", event: organization }, name: "export-registrants-v2" },
 ];
 
 beforeEach(() => {

@@ -14,7 +14,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   let raw:unknown;try{raw=JSON.parse(text);}catch{return fail(400);}
   const parsed=input.safeParse(raw);if(!parsed.success)return fail(400);
   const config=getAuthConfig();if(!config)return fail(503);const {data:{session}}=await(await createClient()).auth.getSession();if(!session||session.user.id!==user.id)return fail(401);
-  const response=await fetch(`${config.url}/functions/v1/export-registrants`,{method:"POST",headers:{authorization:`Bearer ${session.access_token}`,apikey:config.key,"content-type":"application/json"},body:JSON.stringify({org:org.data,...parsed.data}),cache:"no-store",signal:AbortSignal.timeout(30000)});
+  const response=await fetch(`${config.url}/functions/v1/export-registrants-v2`,{method:"POST",headers:{authorization:`Bearer ${session.access_token}`,apikey:config.key,"content-type":"application/json"},body:JSON.stringify({org:org.data,...parsed.data}),cache:"no-store",signal:AbortSignal.timeout(30000)});
   if(!response.ok)return fail([400,401,403,413,422,503].includes(response.status)?response.status:502);
   return new Response(response.body,{headers:{...headers,"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Content-Disposition":response.headers.get("Content-Disposition")??'attachment; filename="registrants.xlsx"'}});
  }catch{return fail(503);}

@@ -15,3 +15,15 @@ verify_jwt = false
 
 [functions.export-registrants]
 verify_jwt = false
+
+# Stage the direct RPC exporters alongside the old endpoints during cutover.
+# Both handlers authenticate the caller with Supabase Auth before querying.
+[functions.export-members-v2]
+verify_jwt = false
+entrypoint = "./functions/export-members/index.ts"
+import_map = "./functions/export-members/deno.json"
+
+[functions.export-registrants-v2]
+verify_jwt = false
+entrypoint = "./functions/export-registrants/index.ts"
+import_map = "./functions/export-registrants/deno.json"

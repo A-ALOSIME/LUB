@@ -6,7 +6,7 @@ import { join } from "node:path";
 import postgres from "postgres";
 import { BASELINE_COMMIT, requireOutsideRepository, requireSandboxUrl, SANDBOX } from "./guards";
 
-const contractFiles = ["schema18.sql", "account18.sql", "administration18.sql", "opening18.sql", "forms18.sql", "form-library18.sql", "campaigns18.sql", "renewals18.sql", "campaign-reads18.sql", "application-reads18.sql", "hours18.sql", "tasks18.sql", "assets18.sql", "announcements18.sql", "notifications18.sql", "events18.sql", "event-registration18.sql", "skill-catalog18.sql", "skills18.sql", "event-reads18.sql", "task-reads18.sql", "organization-public18.sql", "organization-editor18.sql", "members18.sql", "own-workspace18.sql", "talent18.sql", "exports18.sql"];
+import { contractFiles } from "./contract-files";
 const rollbackRehearsal = new Error("Roll back the completed account migration rehearsal.");
 
 async function seedLegacyAccounts(tx: postgres.TransactionSql) {

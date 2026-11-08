@@ -31,7 +31,7 @@ export async function POST(request: Request, context: RouteContext<"/api/organiz
     const { data: { session } } = await (await createClient()).auth.getSession();
     if (!session || session.user.id !== user.id) return fail(401);
     const { q, status, committee, term, locale } = parsed.data;
-    const response = await fetch(`${config.url}/functions/v1/export-members`, {
+    const response = await fetch(`${config.url}/functions/v1/export-members-v2`, {
       method: "POST", headers: { authorization: `Bearer ${session.access_token}`, apikey: config.key, "Content-Type": "application/json" },
       body: JSON.stringify({ org: org.data, q, state: status, committee, term: term ?? null, locale }),
       cache: "no-store", signal: AbortSignal.timeout(30000),
