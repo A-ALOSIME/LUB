@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import {WorkspaceBreadcrumbProvider} from "./workspace-breadcrumb-detail";
+
 type SidebarState = {
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
@@ -49,8 +51,7 @@ function WorkspaceShell({
         {navigation}
       </Sidebar>
       <SidebarInset className="workspace-main" dir={dir}>
-        {header}
-        {children}
+        <WorkspaceBreadcrumbProvider>{header}{children}</WorkspaceBreadcrumbProvider>
       </SidebarInset>
     </div>
   </WorkspaceSidebarContext.Provider>;

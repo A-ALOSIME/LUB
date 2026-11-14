@@ -1,5 +1,5 @@
 import Image from "next/image";
-import {CalendarDays, Clock, ExternalLink, MapPin, Timer, Video, type LucideIcon} from "lucide-react";
+import {CalendarDays, ExternalLink, MapPin, Timer, Video, type LucideIcon} from "lucide-react";
 import {ArchivalEventContent} from "./archival-content";
 import {OrganizationLogo} from "@/components/organization-logo";
 
@@ -152,26 +152,36 @@ export function EventContent({
   const title = (en ? e.title_en?.trim() : null) || e.title || c("فعالية بدون عنوان", "Untitled event");
   const publicEvent = data.isPublic ?? ["Published", "Completed"].includes(e.status_code);
   const facts = (
-    <Card className="py-0">
-      <dl dir={en ? "ltr" : "rtl"} className="divide-y divide-border px-4 sm:px-5">
-        {e.starts_at && <>
-          <EventFact icon={CalendarDays} label={c("التاريخ", "Date")}>
+    <Card className="bg-muted/25 py-0">
+      <ul dir={en ? "ltr" : "rtl"} className="divide-y divide-border/50 px-4 sm:px-5">
+        {e.starts_at && (
+          <EventFact icon={CalendarDays} label={c("الموعد", "Date and time")} detail={
+            <>
+              <time dateTime={e.starts_at}>{time(e.starts_at)}</time>
+              {e.ends_at && e.ends_at !== e.starts_at && <> – <time dateTime={e.ends_at}>{time(e.ends_at)}</time></>}
+            </>
+          }>
             {formatRiyadhDateRange(e.starts_at, e.ends_at, locale)}
           </EventFact>
-          <EventFact icon={Clock} label={c("الوقت", "Time")}>
-            <time dateTime={e.starts_at}>{time(e.starts_at)}</time>
-            {e.ends_at && e.ends_at !== e.starts_at && <> – <time dateTime={e.ends_at}>{time(e.ends_at)}</time></>}
-          </EventFact>
-        </>}
-        {(e.location_text || e.location_type_code !== "Unknown") && (
-          <EventFact icon={e.location_type_code === "Online" ? Video : MapPin} label={c("الموقع", "Location")}>
+        )}
+        {(e.location_text || labels[e.location_type_code] || e.attendance_url) && (
+          <EventFact icon={e.location_type_code === "Online" ? Video : MapPin} label={c("الموقع", "Location")} detail={
+            e.attendance_url ? (
+              <a href={e.attendance_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-primary underline underline-offset-4">
+                <ExternalLink className="size-3.5" aria-hidden="true"/>{c("رابط الحضور", "Join online")}
+              </a>
+            ) : e.location_text ? labels[e.location_type_code] : null
+          }>
             {e.location_text ? <bdi><ContentText value={e.location_text}/></bdi> : labels[e.location_type_code]}
           </EventFact>
         )}
-        <EventFact icon={Timer} label={c("ساعات الحضور", "Attendance hours")}>
-          {formatHours(e.attendance_hours, locale)}
+        <EventFact icon={Timer} label={c("ساعات الحضور", "Attendance hours")} detail={Number(e.attendance_hours)>0 && c(
+          "تُوثّق الساعات في الملف المهاري للأعضاء بعد اعتماد الحضور.",
+          "Hours are recorded in members’ skills profiles after attendance is confirmed."
+        )}>
+          <span className="text-emerald-700 dark:text-emerald-300">{formatHours(e.attendance_hours, locale)}</span>
         </EventFact>
-      </dl>
+      </ul>
     </Card>
   );
   const updates = (e.public_report || e.public_photos?.length > 0) && (
@@ -274,11 +284,6 @@ export function EventContent({
                 </Button>
               )}
             </div>
-            {e.attendance_url && (
-              <Button nativeButton={false} className="self-start" render={<a href={e.attendance_url} target="_blank" rel="noopener noreferrer"/>}>
-                <ExternalLink data-icon="inline-start"/>{c("رابط الحضور", "Join online")}
-              </Button>
-            )}
           </div>
         </div>
         {e.has_poster && (
@@ -292,11 +297,17 @@ export function EventContent({
   );
 }
 
-function EventFact({label, icon: Icon, children}: {label: string; icon: LucideIcon; children: ReactNode}) {
+function EventFact({label, icon: Icon, children, detail}: {label: string; icon: LucideIcon; children: ReactNode; detail?: ReactNode}) {
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,max-content)_minmax(0,1fr)] items-baseline gap-x-3 py-3 sm:gap-x-4">
-      <dt className="flex min-w-0 items-center gap-2 text-start text-sm text-muted-foreground"><Icon aria-hidden className="size-4 shrink-0"/><span>{label}</span></dt>
-      <dd className="min-w-0 wrap-anywhere text-end text-sm font-medium leading-relaxed">{children}</dd>
-    </div>
+    <li className="flex min-w-0 items-start gap-3 py-3 text-start">
+      <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="size-4"/>
+      </span>
+      <div className="min-w-0 space-y-0.5 wrap-anywhere">
+        <span className="sr-only">{label}</span>
+        <p className="text-sm font-semibold leading-relaxed text-foreground">{children}</p>
+        {detail && <p className="text-xs leading-relaxed text-muted-foreground">{detail}</p>}
+      </div>
+    </li>
   );
 }

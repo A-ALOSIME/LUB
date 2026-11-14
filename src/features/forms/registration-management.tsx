@@ -1,3 +1,4 @@
+import {WorkspaceBreadcrumbDetail} from "@/features/organizations/workspace-breadcrumb-detail";
 import {BackLink} from "@/components/back-link";
 import {NumberText} from "@/components/number-text";
 import {createTranslator} from "@/lib/i18n";
@@ -26,6 +27,7 @@ export function RegistrationManagement({ workspace, organization, selectedTempla
   const version = selected?.versions.find(item => item.status_code === "Draft") ?? selected?.versions[0];
 
   if(selected&&version?.definition)return <div className="min-w-0 flex flex-col gap-3">
+    <WorkspaceBreadcrumbDetail path={`/manage/organizations/${organization}/renewals`} label={selected.name}/>
     <BackLink href={`/manage/organizations/${organization}/renewals?section=forms`}>{c("رجوع للنماذج","Back to forms")}</BackLink>
     <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold"><bdi>{selected.name}</bdi></h2><OrganizationStatusBadge status={statusTone(version.status_code)}>{en?version.status_code:statuses[version.status_code]}</OrganizationStatusBadge><span className="text-sm text-muted-foreground">{c("النسخة","Version")} <NumberText value={version.version_number}/></span></div>
     {version.status_code==="Published"&&(selected.round_count??0)>0&&<p className="text-sm text-muted-foreground">{c("تعديلات هذا النموذج تُطبّق على الطلبات الجديدة. الطلبات السابقة تحتفظ بأسئلتها وإجاباتها.","Changes to this form apply to new applications. Earlier applications keep their questions and answers.")}</p>}

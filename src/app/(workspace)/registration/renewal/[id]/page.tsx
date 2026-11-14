@@ -1,3 +1,4 @@
+import {WorkspaceBreadcrumbDetail} from "@/features/organizations/workspace-breadcrumb-detail";
 import {BackLink} from "@/components/back-link";
 import {notFound} from "next/navigation";
 
@@ -15,5 +16,5 @@ export async function generateMetadata(){return localizedMetadata("نتائج ا
 export default async function RenewalPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<Record<string,string|undefined>>}){
  const [user,{locale},{id},query]=await Promise.all([requireManagementUser(),getPreferences(),params,searchParams]);if(!z.uuid().safeParse(id).success)notFound();
  const parsed=renewalParticipantFilters.safeParse(query);if(!parsed.success)notFound();const data=await renewalParticipantPage(user.id,id,parsed.data);if(!data)notFound();const t=createTranslator(locale);
- return <main id="main" className="flex min-w-0 flex-col gap-5"><BackLink href={`/manage/organizations/${data.organization}/renewals`}>{t("رجوع للحملات","Back to campaigns")}</BackLink><h1><ContentText value={data.title}/></h1><RenewalParticipantTable campaign={id} initial={data} initialFilters={parsed.data} locale={locale}/></main>;
+ return <main id="main" className="flex min-w-0 flex-col gap-5"><WorkspaceBreadcrumbDetail path={`/registration/renewal/${id}`} organization={data.organization} label={data.title}/><BackLink href={`/manage/organizations/${data.organization}/renewals`}>{t("رجوع للحملات","Back to campaigns")}</BackLink><h1><ContentText value={data.title}/></h1><RenewalParticipantTable campaign={id} initial={data} initialFilters={parsed.data} locale={locale}/></main>;
 }

@@ -2,10 +2,10 @@
 
 import {ContentText} from "@/components/content-text";
 
-import {createTranslator,t as translateUi} from "@/lib/i18n";
+import {createTranslator} from "@/lib/i18n";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {Fragment} from "react";
+import {Fragment,useSyncExternalStore} from "react";
 import {Breadcrumb,BreadcrumbList,BreadcrumbItem,BreadcrumbLink,BreadcrumbPage,BreadcrumbSeparator} from "@/components/ui/breadcrumb";
 import { House } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,78 +15,44 @@ import type { TaskNotification } from "@/features/tasks/repository";
 import { WorkspaceSidebarTrigger } from "./workspace-sidebar-layout";
 import type { Locale, Theme } from "@/lib/preferences";
 
-type OrganizationCrumb = { id: string; nameAr: string };
-type Crumb = { label: string; href?: string };
+import {workspaceBreadcrumbs} from "./workspace-breadcrumbs";
+import {useWorkspaceBreadcrumbDetail} from "./workspace-breadcrumb-detail";
+import {IntentPrefetchLink} from "./intent-prefetch-link";
+import type {ManagedOrganizationLink} from "./my-page-navigation";
 
-function pageTitle(pathname: string, locale: Locale) {
-  const en = locale === "en";
-  const labels: Record<string, [string, string]> = {
-    "/me": ["نظرة عامة", "Overview"],
-    "/account": ["بيانات الحساب", "Account details"],
-    "/account/talent": ["ملفي المهاري", "Skills profile"],
-    "/applications": ["طلباتي", "My requests"],
-    "/activity": ["نشاطي", "My activity"],
-    "/events/mine": ["فعالياتي", "My events"],
-    "/hours": ["ساعاتي", "My hours"],
-    "/notifications": ["الإشعارات", "Notifications"],
-    "/renewals": ["تجديداتي", "My renewals"],
-    "/tasks": ["مهامي", "My tasks"],
-    "/manage": ["لوحة الإدارة", "Management overview"],
-    "/manage/account": ["بيانات الحساب", "Account details"],
-    "/manage/organizations": ["الجهات", "Organizations"],
-    "/manage/organizations/new": ["جهة جديدة", "New organization"],
-    "/manage/organization-requests": ["طلبات فتح الأندية","Organization requests"],
-    "/manage/admins": ["المشرفون العامون", "Administrators"],
-    "/manage/terms": ["الفصول الأكاديمية", "Academic terms"],
-  };
-  const pathLabels: Record<string, [string, string]> = {
-    edit:["بيانات الجهة","Organization details"],
-    members: ["الأعضاء", "Members"], applications: ["الأعضاء", "Members"], permissions: ["الأعضاء", "Members"],
-    renewals: ["التسجيل والتجديد", "Registration and renewal"], events: ["الفعاليات والإعلانات", "Events and announcements"],
-    tasks: ["المهام والساعات", "Tasks and hours"], hours: ["المهام والساعات", "Tasks and hours"],
-  };
-  if (pathname.startsWith("/registration/renewal/")) return translateUi(locale,"نتائج التجديد","Renewal results");
-  if (pathname.startsWith("/tasks/")) return translateUi((en) ? "en" : "ar", "تفاصيل المهمة", "Task details");
-  const exact = labels[pathname];
-  if (exact) return exact[en ? 1 : 0];
-  const section = pathname.split("/").filter(Boolean).at(-1) ?? "";
-  const label = pathLabels[section];
-  return label?.[en ? 1 : 0] ?? (translateUi((en) ? "en" : "ar", "مساحتي", "Workspace"));
+const changeEvents=["popstate","list-query-change","activity-tab-change","organization-section-change"];
+function subscribeToSearch(listener:()=>void){
+  for(const event of changeEvents)window.addEventListener(event,listener);
+  return ()=>{for(const event of changeEvents)window.removeEventListener(event,listener);};
 }
 
 export function WorkspaceManagementHeader({ locale, theme, organizations, notifications, unreadCount }: {
   locale: Locale;
   theme: Theme;
-  organizations: OrganizationCrumb[];
+  organizations: ManagedOrganizationLink[];
   notifications: TaskNotification[];
   unreadCount: number;
 }) {
   const pathname = usePathname() ?? "/me";
   const en = locale === "en";
-  const c = createTranslator(en ? "en" : "ar");
-  const page = pageTitle(pathname, locale);
-  const organizationMatch = pathname === "/manage/organizations/new"
-    ? null
-    : pathname.match(/^\/manage\/organizations\/([^/]+)/);
-  const orgId = organizationMatch?.[1];
-  const organization = organizations.find(item => item.id === orgId);
-  const workspaceHref = pathname === "/manage" || pathname.startsWith("/manage/") ? "/manage" : "/me";
-  const workspaceLabel = c("مساحتي", "Workspace");
-  const orgHref = orgId ? `/manage/organizations/${orgId}` : undefined;
-  const crumbs: Crumb[] = orgId
-    ? [
-      { label: workspaceLabel, href: workspaceHref },
-      { label: organization?.nameAr ?? c("الجهة", "Organization"), href: orgHref },
-      ...(pathname !== orgHref ? [{ label: page }] : []),
-    ]
-    : pathname === workspaceHref
-      ? [{ label: page }]
-      : [{ label: workspaceLabel, href: workspaceHref }, { label: page }];
+  const c = createTranslator(locale);
+  const search=useSyncExternalStore(subscribeToSearch,()=>window.location.search,()=>"");
+  const crumbs = workspaceBreadcrumbs(pathname,locale,organizations,useWorkspaceBreadcrumbDetail(),search);
   return <header className="workspace-management-header" dir={en ? "ltr" : "rtl"}>
     <div className="workspace-management-breadcrumbs">
       <WorkspaceSidebarTrigger locale={locale} />
-      <Breadcrumb aria-label={c("مسار الصفحة","Breadcrumbs")}><BreadcrumbList>
-        {crumbs.map((crumb,index)=><Fragment key={`${crumb.label}-${index}`}>{index>0&&<BreadcrumbSeparator/>}<BreadcrumbItem title={crumb.label}>{crumb.href&&index<crumbs.length-1?<BreadcrumbLink render={<Link href={crumb.href}/>}><ContentText value={crumb.label}/></BreadcrumbLink>:<BreadcrumbPage><ContentText value={crumb.label}/></BreadcrumbPage>}</BreadcrumbItem></Fragment>)}
+      <Breadcrumb aria-label={c("مسار الصفحة","Breadcrumbs")} className="min-w-0"><BreadcrumbList className="flex-nowrap overflow-hidden">
+        {crumbs.map((crumb,index)=>{
+          const current=index===crumbs.length-1;
+          return <Fragment key={index}>
+            {index>0&&<BreadcrumbSeparator className="shrink-0"/>}
+            <BreadcrumbItem title={crumb.label} className={current?"min-w-0 shrink":"min-w-0 max-w-28 shrink md:max-w-56"}>
+              {current?<BreadcrumbPage className="truncate"><ContentText value={crumb.label}/></BreadcrumbPage>
+                :crumb.href?<BreadcrumbLink className="truncate" render={<IntentPrefetchLink href={crumb.href}/>}><ContentText value={crumb.label}/></BreadcrumbLink>
+                :<span className="truncate"><ContentText value={crumb.label}/></span>}
+            </BreadcrumbItem>
+          </Fragment>;
+        })}
       </BreadcrumbList></Breadcrumb>
     </div>
     <div className="workspace-management-actions">

@@ -16,5 +16,5 @@ export default async function TaskPage({params,searchParams}:{params:Promise<{id
 const page=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.page??0);const teamPage=z.coerce.number().int().min(0).max(10000).catch(0).parse(query.teamPage??0);
  const detail=await taskDetail(user.id,id,null,page,teamPage,"student");if(!detail)notFound();
 
- return <><main id="main" className="min-w-0"><BackLink className="mb-6" href={taskReturnPath(query.returnTo,"/activity?tab=tasks")}>{translateUi((locale==="en") ? "en" : "ar", "الرجوع للمهام", "Back to tasks")}</BackLink><FullTaskPage detail={detail} page={page} teamPage={teamPage} participant={null} locale={locale}/></main></>;
+ return <><main id="main" className="min-w-0"><BackLink className="mb-6" href={taskReturnPath(query.returnTo,"/activity?tab=tasks")}>{translateUi((locale==="en") ? "en" : "ar", "الرجوع للمهام", "Back to tasks")}</BackLink><FullTaskPage path={`/tasks/${id}`} detail={detail} page={page} teamPage={teamPage} participant={null} locale={locale}/></main></>;
 }

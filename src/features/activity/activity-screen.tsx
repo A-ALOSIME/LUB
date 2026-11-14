@@ -17,7 +17,7 @@ import {ActivityTabs} from "./activity-tabs";
 import {ActivityHours,ActivityEventRows,ActivityAvailableEvents} from "./activity-views";
 import {TaskBrowser} from "@/features/tasks/task-browser";
 import {FilterTabs} from "@/components/ui/filter-tabs";
-import {Skeleton} from "@/components/ui/skeleton";
+import {ListLoading} from "@/components/workspace-loading";
 import {Alert,AlertDescription} from "@/components/ui/alert";
 import {Button} from "@/components/ui/button";
 
@@ -28,7 +28,8 @@ export function ActivityScreen(){
  const search=useSyncExternalStore(subscribe,()=>window.location.search,()=>"");
  useEffect(()=>{void ensure();return cancel;},[ensure,cancel]);
  const params=new URLSearchParams(search),tab=params.get("tab")==="events"?"events":params.get("tab")==="hours"?"hours":"tasks";
- if(!data)return <main id="main" dir={dir} className="flex min-w-0 flex-col gap-4"><header className="workspace-page-header"><h1>{t("نشاطي","My activity")}</h1></header>{error?<Alert variant="destructive"><AlertDescription>{t("تعذّر تحميل نشاطك. حاول مجددًا.","Could not load your activity. Please try again.")}</AlertDescription><Button variant="outline" onClick={()=>void refresh()}>{t("إعادة المحاولة","Retry")}</Button></Alert>:<div role="status" aria-label={t("جارٍ تحميل نشاطك","Loading activity")} className="flex flex-col gap-4"><Skeleton className="h-10 w-72"/><Skeleton className="h-40 w-full"/></div>}</main>;
+ if(!data&&!error)return <ListLoading title={["نشاطي","My activity"]} tabs={3} columns={5} thumbnail/>;
+ if(!data)return <main id="main" dir={dir} className="flex min-w-0 flex-col gap-4"><header className="workspace-page-header"><h1>{t("نشاطي","My activity")}</h1></header><Alert variant="destructive"><AlertDescription>{t("تعذّر تحميل نشاطك. حاول مجددًا.","Could not load your activity. Please try again.")}</AlertDescription><Button variant="outline" onClick={()=>void refresh()}>{t("إعادة المحاولة","Retry")}</Button></Alert></main>;
  if(data.paged)return <PagedActivityScreen snapshot={data}/>;
  const q=params.get('q')??'',matches=(value:string)=>arabicSearchKey(value).includes(arabicSearchKey(q));
  const available=data.tasks.filter(x=>matches(`${x.task.title} ${x.org_name}`)),mine=data.mine.filter(x=>matches(`${x.task.title} ${x.org_name}`));

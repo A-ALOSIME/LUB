@@ -1,5 +1,6 @@
 import "server-only";
 import {sql} from "drizzle-orm";
+import {cache} from "react";
 import {unstable_cache} from "next/cache";
 import {withUser,withVisitor,type Transaction} from "@/db/client";
 import type {FormDefinition,Answers} from "@/features/forms/definition";
@@ -9,10 +10,10 @@ export type EventCard=Event&{org_name:string;org_name_en?:string|null;org_type_c
 async function readEvents(q:string,period:string,page:number,org:string|null=null,onlyOpen=false){return withVisitor(async tx=>{
  const rows=await tx.execute(sql`select * from lub.event_catalog(${q},${period},${page},${org}::uuid,${onlyOpen})`);return rows as unknown as EventCard[];
 });}
-const readPopularEvents=unstable_cache(async(period:string)=>readEvents("",period,0,null,false),["public-events-first-page-v6"],{revalidate:30,tags:["events"]});
+const readPopularEvents=unstable_cache(async(period:string,onlyOpen:boolean)=>readEvents("",period,0,null,onlyOpen),["public-events-first-page-v7"],{revalidate:30,tags:["events"]});
 export function listEvents(q:string,period:string,page:number,org:string|null=null,onlyOpen=false){
- // Search, organization filters, open-only views, and deep pages bypass shared caching.
- if(!q&&!org&&!onlyOpen&&page===0&&["upcoming","past","all"].includes(period))return readPopularEvents(period);
+ // Only the finite, anonymous browse views enter shared cache.
+ if(!q&&!org&&page===0&&["upcoming","past","all"].includes(period))return readPopularEvents(period,onlyOpen);
  return readEvents(q,period,page,org,onlyOpen);
 }
 export type EventDetail={isPublic?:boolean;canFeature?:boolean;committees?:Array<{id:string;name:string}>;event:Event;org_name:string;org_name_en?:string|null;org_logo:string|null;org_type_code:string;slug:string;status:string|null;onboarded:boolean;open:boolean;remaining:number|null;own:{id:string;status_code:string;attendance:string|null;response_revision:number|null;review_status_code?:string;review_note?:string;answers:Answers;version:string|null}|null;form:{id:string;definition:FormDefinition}|null;canManage:boolean;canAttend:boolean;registrations:Array<{id:string;user_id:string;name:string;status_code:string;attendance:string;answers:Answers|null;definition:FormDefinition|null}>;assets:Array<{id:string;file_name:string;asset_type_code:string}>};
@@ -44,7 +45,7 @@ export async function myEvents(user:string,page:number|null,filters:{q?:string;s
   return row?.data??{status:null,onboarded:false,events:[]};
  });
 }
-export async function eventDetail(user:string|null,id:string){
+export const eventDetail=cache(async(user:string|null,id:string)=>{
  if(user)return readEvent(user,id);
  try{return await readPublicEventDetail(id);}catch(error){if(error instanceof PublicEventNotFound)return undefined;throw error;}
-}
+});

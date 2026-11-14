@@ -38,8 +38,11 @@ it("shows recorded attendance and only renders a join link authorized by the ser
   const {rerender}=render(<EventContent data={data} user/>);
   expect(screen.getByText("تم رصد حضورك")).toBeTruthy();
   expect(screen.queryByRole("button",{name:"سجّل في الفعالية"})).toBeNull();
-  expect(screen.queryByRole("button",{name:"رابط الحضور"})).toBeNull();
+  expect(screen.queryByRole("link",{name:"رابط الحضور"})).toBeNull();
   const href="https://example.invalid/attendance";
   rerender(<EventContent data={{...data,event:{...data.event,attendance_url:href}}} user/>);
-  expect(screen.getByRole("button",{name:"رابط الحضور"}).getAttribute("href")).toBe(href);
+  const link=screen.getByRole("link",{name:"رابط الحضور"});
+  expect(link.getAttribute("href")).toBe(href);
+  expect(link.closest("li")?.querySelector("p")?.textContent).toBe("القاعة");
+  expect(document.querySelector('a[href="https://example.invalid/editor-only"]')).toBeNull();
 });

@@ -1,2 +1,3 @@
-import {ActivityScreen} from "@/features/activity/activity-screen";
-export default function ActivityLoading(){return <ActivityScreen/>;}
+import {ListLoading} from "@/components/workspace-loading";
+
+export default function Loading(){return <ListLoading title={["نشاطي","My activity"]} tabs={3} columns={5} thumbnail/>;}

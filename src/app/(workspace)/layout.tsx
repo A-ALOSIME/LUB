@@ -51,7 +51,6 @@ const getWorkspaceState = cache(async () => {
   }
 
   return {
-    userId: user.id,
     locale: preferences.locale,
     theme: preferences.theme,
     en: preferences.locale === "en",
@@ -63,8 +62,11 @@ const getWorkspaceState = cache(async () => {
 });
 
 async function WorkspaceHeader() {
-  const { userId, locale, theme, overview } = await getWorkspaceState();
-  const [items, counts] = await Promise.all([taskNotifications(userId, 0), taskNotificationCounts(userId)]);
+  const identity = requireVerifiedProxyIdentity();
+  const [{ locale, theme, overview }, [items, counts]] = await Promise.all([
+    getWorkspaceState(),
+    identity.then(({id})=>Promise.all([taskNotifications(id,0),taskNotificationCounts(id)])),
+  ]);
   return <WorkspaceManagementHeader
     locale={locale}
     theme={theme}

@@ -1,3 +1,4 @@
+import {WorkspaceBreadcrumbDetail} from "@/features/organizations/workspace-breadcrumb-detail";
 import {BackLink} from "@/components/back-link";
 import {t as translateUi} from "@/lib/i18n";
 import { notFound } from "next/navigation";
@@ -35,6 +36,7 @@ export default async function AdminEditOrganization({
   if (!managed?.organization.adminIdentity) notFound();
   return (
     <main id="main" className="flex min-w-0 flex-col gap-5">
+      <WorkspaceBreadcrumbDetail path={`/manage/organizations/${id}/edit`} label={managed.organization.nameAr}/>
       <BackLink href={"/manage/organizations"}>{translateUi((locale === "en") ? "en" : "ar", "رجوع للجهات", "Back to organizations")}</BackLink>
       <OrganizationProfileEditor
         managed={managed}

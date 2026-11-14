@@ -1,5 +1,6 @@
 "use client";
-import Link from "next/link";
+import type Link from "next/link";
+import {IntentPrefetchLink} from "@/features/organizations/intent-prefetch-link";
 import {useSyncExternalStore,type ComponentProps} from "react";
 import {withReturnTo} from "@/lib/return-navigation";
 
@@ -12,7 +13,7 @@ export function useOriginHref(){
  const origin=useSyncExternalStore(subscribe,()=>window.location.pathname+window.location.search+window.location.hash,()=>"");
  return (href:string)=>withReturnTo(href,origin);
 }
-export function OriginLink({href,...props}:Omit<ComponentProps<typeof Link>,"href">&{href:string}){
+export function OriginLink({href,...props}:Omit<ComponentProps<typeof Link>,"href"|"prefetch">&{href:string}){
  const from=useOriginHref();
- return <Link href={from(href)} {...props}/>;
+ return <IntentPrefetchLink href={from(href)} {...props}/>;
 }

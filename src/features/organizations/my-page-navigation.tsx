@@ -17,6 +17,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { signOut } from "@/features/auth/actions";
+import {useActivityPrefetch} from "@/features/activity/activity-cache";
+import {useOrganizationEventsPrefetch} from "@/features/events/management-cache";
 import { IntentPrefetchLink } from "./intent-prefetch-link";
 import { formatPersonalNumber } from "./personal-display";
 import { useWorkspaceSidebar, WorkspaceSidebarCollapseButton } from "./workspace-sidebar-layout";
@@ -40,7 +42,7 @@ export type ManagedOrganizationLink = {
 };
 
 type SidebarGroup = "account" | "management" | "system";
-type SidebarLink = { href: string; label: string; icon: typeof Building2; active: boolean; count?: number; children?: SidebarLink[] };
+type SidebarLink = { href: string; label: string; icon: typeof Building2; active: boolean; count?: number; preload?:()=>void; children?: SidebarLink[] };
 
 function normalizedPath(pathname: string) {
   return pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
@@ -63,7 +65,7 @@ function activeGroupFor(pathname: string, organizations: ManagedOrganizationLink
   return "account";
 }
 
-function SidebarLinkItem({ href, label, icon: Icon, active, count, locale }: SidebarLink & { locale: Locale }) {
+function SidebarLinkItem({ href, label, icon: Icon, active, count, locale, preload }: SidebarLink & { locale: Locale }) {
   const { closeMobile } = useWorkspaceSidebar();
 
   return <SidebarMenuItem>
@@ -72,7 +74,7 @@ function SidebarLinkItem({ href, label, icon: Icon, active, count, locale }: Sid
       tooltip={label}
       tooltipSide={locale === "ar" ? "left" : "right"}
       className={`workspace-sidebar-link${active ? " workspace-sidebar-link--active" : ""}`}
-      render={<IntentPrefetchLink href={href} aria-current={active ? "page" : undefined} title={label} onClick={closeMobile} />}
+      render={<IntentPrefetchLink href={href} shell={!active} preload={active?undefined:preload} aria-current={active ? "page" : undefined} title={label} onClick={closeMobile} />}
     >
       <Icon aria-hidden="true" className="workspace-sidebar-icon" />
       <span className="workspace-sidebar-label" data-sidebar-label={label}>{label}</span>
@@ -121,6 +123,8 @@ export function MyPageNavigation({
   superAdmin?: boolean;
   userName?: string | null;
 }) {
+  const preloadActivity=useActivityPrefetch();
+  const preloadEvents=useOrganizationEventsPrefetch();
   const pathname = normalizedPath(usePathname() ?? "/");
   const { collapsed, closeMobile } = useWorkspaceSidebar();
   const en = locale === "en";
@@ -154,7 +158,7 @@ export function MyPageNavigation({
       { href: "/account", label: c("بيانات الحساب", "Account details"), icon: ContactRound, active: pathname === "/account" },
       { href: "/account/talent", label: c("ملفي المهاري", "Skills profile"), icon: BadgeCheck, active: pathname === "/account/talent" },
       { href: "/applications", label: c("طلباتي", "My requests"), icon: Send, active: pathname === "/applications" },
-      { href: "/activity", label: c("نشاطي", "My activity"), icon: Activity, active: pathname === "/activity" || isAccountActivity },
+      { href: "/activity", preload:preloadActivity, label: c("نشاطي", "My activity"), icon: Activity, active: pathname === "/activity" || isAccountActivity },
     ];
 
   const overviewHref = superAdmin ? "/manage" : "/me";
@@ -180,12 +184,12 @@ export function MyPageNavigation({
       count: selectedOrganization.pendingApplications,
     }] : []),
     ...(selectedOrganization.canRenewals || selectedOrganization.canApplications ? [{ href: `${organizationRoot}/renewals`, label: c("التسجيل والتجديد", "Registration and renewal"), icon: ClipboardList, active: pathname === `${organizationRoot}/renewals` }] : []),
-    ...(selectedOrganization.canEvents || selectedOrganization.canEdit ? [{ href: `${organizationRoot}/events`, label: c("الفعاليات والإعلانات", "Events and announcements"), icon: CalendarDays, active: pathname === `${organizationRoot}/events` }] : []),
+    ...(selectedOrganization.canEvents || selectedOrganization.canEdit ? [{ href: `${organizationRoot}/events`, preload:()=>preloadEvents?.(selectedOrganization.id), label: c("الفعاليات والإعلانات", "Events and announcements"), icon: CalendarDays, active: pathname === `${organizationRoot}/events` }] : []),
     ...(selectedOrganization.canTasks || selectedOrganization.canHours || selectedOrganization.canReports ? [{
       href: selectedOrganization.canTasks ? `${organizationRoot}/tasks` : selectedOrganization.canHours ? `${organizationRoot}/hours` : `${organizationRoot}/hours`,
       label: c("المهام والساعات", "Tasks and hours"),
       icon: selectedOrganization.canTasks ? ClipboardCheck : Clock3,
-      active: ["tasks", "hours"].some(section => pathname === `${organizationRoot}/${section}`),
+      active: ["tasks", "hours"].some(section => isWithinPath(pathname,`${organizationRoot}/${section}`)),
     }] : []),
   ] : [];
 

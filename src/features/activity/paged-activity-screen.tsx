@@ -30,7 +30,9 @@ export function PagedActivityScreen({snapshot}:{snapshot:ActivitySnapshot}){
  const f=useMemo<Filters>(()=>({tab,view:tab==="tasks"?params.get("taskFilter")==="mine"?"mine":"available":params.get("eventView")==="available"?"available":"mine",q:(params.get("q")??"").slice(0,120),status:params.get(tab==="hours"?"hourStatus":"eventStatus")??"all",term:params.get("term")??"",page:0,sort:params.get("sort")==="asc"?"asc":"desc"}),[params,tab]);
 
  const result=useQuery({...options(actor,f),placeholderData:keepPreviousData}),data=result.data;
- useEffect(()=>{for(const tab of ["tasks","events","hours"] as const)for(const view of tab==="hours"?["mine"] as const:["available","mine"] as const)for(const status of tab==="hours"?["all","approved","pending","rejected"]:tab==="events"&&view==="mine"?["all","pending","accepted","rejected","cancelled"]:["all"])void client.prefetchQuery(options(actor,{tab,view,status,q:"",term:"",page:0,sort:"desc"}));return()=>{void client.cancelQueries({queryKey:["activity-page",actor]});};},[actor,client]);
+ useEffect(()=>{
+  for(const tab of ["tasks","events","hours"] as const)void client.prefetchQuery(options(actor,{tab,view:tab==="tasks"?"available":"mine",status:"all",q:"",term:"",page:0,sort:"desc"}));
+ },[actor,client]);
  useEffect(()=>{const changed=()=>{void client.invalidateQueries({queryKey:["activity-page",actor]});};window.addEventListener("activity-changed",changed);return()=>window.removeEventListener("activity-changed",changed);},[actor,client]);
  const update=(values:Record<string,string|null>,replace=false)=>{change({[`${tab}Page`]:null,...values},replace);window.dispatchEvent(new Event("activity-tab-change"));};
 

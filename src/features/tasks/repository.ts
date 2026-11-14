@@ -1,4 +1,5 @@
 import "server-only";
+import {cache} from "react";
 import { sql } from "drizzle-orm";
 import { withUser } from "@/db/client";
 export {taskLabels,formatTaskDate} from "./display";
@@ -36,11 +37,11 @@ export async function taskDetail(user: string, id: string, participant: string |
   });
 }
 export type TaskNotification={id:string;type_code:string;title:string;body:string;target_url:string;created_at:string;read_at:string|null};
-export async function taskNotifications(user:string,page:number,unreadOnly=false){return withUser(user,async tx=>{
+export const taskNotifications=cache(async(user:string,page:number,unreadOnly=false)=>withUser(user,async tx=>{
  const rows=await tx.execute(sql`select * from lub.notification_feed(${page}::int,${unreadOnly}::boolean)`);
  return rows as unknown as TaskNotification[];
-});}
-export async function taskNotificationCounts(user:string){return withUser(user,async tx=>{
+}));
+export const taskNotificationCounts=cache(async(user:string)=>withUser(user,async tx=>{
  const rows=await tx.execute(sql`select * from lub.notification_counts()`);
  return rows[0] as unknown as {all:number;unread:number};
-});}
+}));
