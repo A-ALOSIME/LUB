@@ -44,6 +44,17 @@ export function formatRiyadhDate(value: string | Date | null | undefined, locale
   return dateFormatter(locale, includeWeekday).format(date);
 }
 
+export function formatRiyadhDateRange(start: string | null | undefined, end: string | null | undefined, locale: Locale = "ar") {
+  const first = parseRiyadhValue(start);
+  const last = parseRiyadhValue(end);
+  if (!first || !last || first > last) return formatRiyadhDate(first ?? last, locale);
+
+  const formatter = dateFormatter(locale, false);
+  if (formatter.format(first) === formatter.format(last)) return formatter.format(first);
+  const range = formatter.formatRange(first, last);
+  return locale === "ar" ? `من ${range.replace(/\s*–\s*/, " إلى ")}` : range;
+}
+
 export function formatRiyadhTime(value: string | Date | null | undefined, locale: Locale = "ar") {
   const date = parseRiyadhValue(value);
   if (!date) return translateUi((locale === "en") ? "en" : "ar", "غير محدد", "Not set");

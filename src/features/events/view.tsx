@@ -15,6 +15,7 @@ import {EventShareButton} from "./event-share-button";
 import {skillName} from "@/features/talent/profile-skills-model";
 import {cn} from "@/lib/utils";
 import { formatHours } from "@/lib/display";
+import {formatRiyadhDateRange} from "@/lib/datetime";
 import Link from "next/link";
 import {OriginLink} from "@/components/origin-link";
 import type { ReactNode } from "react";
@@ -136,7 +137,6 @@ export function EventContent({
   const c = createTranslator((en) ? "en" : "ar");
   const labels = en ? eventLabelsEn : eventLabels;
   const date = en ? eventDateEn : eventDate;
-  const day = en ? eventDayEn : eventDay;
   const time = en ? eventTimeEn : eventTime;
   const localOrganization = localOrganizationContent(
     data.org_name,
@@ -150,16 +150,13 @@ export function EventContent({
         localOrganization?.logoSrc;
 
   const title = (en ? e.title_en?.trim() : null) || e.title || c("فعالية بدون عنوان", "Untitled event");
-  const startDay = day(e.starts_at);
-  const endDay = day(e.ends_at);
   const publicEvent = data.isPublic ?? ["Published", "Completed"].includes(e.status_code);
   const facts = (
     <Card className="py-0">
-      <dl className="divide-y divide-border px-4 sm:px-5">
+      <dl dir={en ? "ltr" : "rtl"} className="divide-y divide-border px-4 sm:px-5">
         {e.starts_at && <>
           <EventFact icon={CalendarDays} label={c("التاريخ", "Date")}>
-            <time dateTime={e.starts_at}>{startDay}</time>
-            {e.ends_at && endDay !== startDay && <> · <time dateTime={e.ends_at}>{endDay}</time></>}
+            {formatRiyadhDateRange(e.starts_at, e.ends_at, locale)}
           </EventFact>
           <EventFact icon={Clock} label={c("الوقت", "Time")}>
             <time dateTime={e.starts_at}>{time(e.starts_at)}</time>
@@ -297,9 +294,9 @@ export function EventContent({
 
 function EventFact({label, icon: Icon, children}: {label: string; icon: LucideIcon; children: ReactNode}) {
   return (
-    <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
-      <dt className="flex items-center gap-2 text-sm text-muted-foreground"><Icon aria-hidden className="size-4 shrink-0"/>{label}</dt>
-      <dd className="min-w-0 wrap-anywhere text-sm font-medium leading-relaxed">{children}</dd>
+    <div className="grid min-w-0 grid-cols-[minmax(0,max-content)_minmax(0,1fr)] items-baseline gap-x-3 py-3 sm:gap-x-4">
+      <dt className="flex min-w-0 items-center gap-2 text-start text-sm text-muted-foreground"><Icon aria-hidden className="size-4 shrink-0"/><span>{label}</span></dt>
+      <dd className="min-w-0 wrap-anywhere text-end text-sm font-medium leading-relaxed">{children}</dd>
     </div>
   );
 }

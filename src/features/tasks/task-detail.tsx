@@ -53,7 +53,7 @@ export function TaskDetailView({
       ? t("تم اعتماد تسليمك.", "Your submission was approved.")
       : t("التسليم غير متاح لحالة المهمة أو المشاركة الحالية.", "Submitting is unavailable for the current task or participation status.");
   const remaining = end === null ? null : now >= end
-    ? t("انتهت المهمة", "The task has ended")
+    ? t("انتهت مهلة التسليم", "The submission deadline has passed")
     : (() => {
       const remainingMs = end - now;
       const amount = remainingMs < 86400000
@@ -66,18 +66,21 @@ export function TaskDetailView({
   const submissionsTab = {id: "submissions", label: canManage ? t("كل التسليمات", "All submissions") : t("تسليماتي", "My submissions")};
   const sections = canManage ? [taskTab, peopleTab, submissionsTab] : [taskTab, submissionsTab, peopleTab];
   const submitProps = own && {participant: own.id, revision: task.revision, lastRevision: detail.lastRevision, locale};
+  const dir = locale === "ar" ? "rtl" : "ltr";
+  const statusBadge = canManage
+    ? <OrganizationStatusBadge status={task.status_code === "Draft" ? "draft" : task.status_code === "Open" ? "open" : "closed"}>
+        {(locale === "en" ? taskLabelsEn : taskLabels)[task.status_code] ?? task.status_code}
+      </OrganizationStatusBadge>
+    : own && !own.withdrawn_at && <TaskParticipationBadge status={own.status_code} locale={locale}/>;
+
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
-      {!embedded && <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 dir="auto" className="min-w-0 wrap-anywhere text-3xl font-semibold leading-normal sm:text-4xl"><ContentText value={task.title}/></h1>
-        {canManage
-          ? <OrganizationStatusBadge status={task.status_code === "Draft" ? "draft" : task.status_code === "Open" ? "open" : "closed"}>
-            {(locale === "en" ? taskLabelsEn : taskLabels)[task.status_code] ?? task.status_code}
-          </OrganizationStatusBadge>
-          : own && !own.withdrawn_at && <TaskParticipationBadge status={own.status_code} locale={locale}/>}
+      {!embedded && <header dir={dir} className="flex min-w-0 flex-wrap items-center justify-start gap-x-3 gap-y-2 text-start">
+        <h1 className="min-w-0 wrap-anywhere text-3xl font-semibold leading-normal sm:text-4xl"><bdi><ContentText value={task.title}/></bdi></h1>
+        {statusBadge}
       </header>}
-      <OrganizationSectionTabs section={section} onSectionChange={onSectionChange} items={sections} initialSection="task" defaultSection="task" sticky={false} label={t("تفاصيل المهمة", "Task details")} dir={locale === "ar" ? "rtl" : "ltr"}>
+      <OrganizationSectionTabs section={section} onSectionChange={onSectionChange} items={sections} initialSection="task" defaultSection="task" sticky={false} label={t("تفاصيل المهمة", "Task details")} dir={dir}>
         <OrganizationSectionTabPanel id="task">
           <div className={cn("grid min-w-0 items-start gap-5", !embedded && "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]")}>
             <Card className={cn("min-w-0", !embedded && "lg:col-start-1 lg:row-start-1")}>
@@ -122,6 +125,10 @@ export function TaskDetailView({
               <Card>
                 <CardContent className="flex min-w-0 flex-col gap-4">
                   <dl className="flex min-w-0 flex-col gap-3">
+                    {statusBadge && <div className="flex flex-wrap items-center justify-between gap-2">
+                      <dt className="text-sm text-muted-foreground">{canManage ? t("حالة المهمة", "Task status") : t("حالة المشاركة", "Participation status")}</dt>
+                      <dd>{statusBadge}</dd>
+                    </div>}
                     <div><dt className="flex items-center gap-2 text-sm text-muted-foreground"><Clock aria-hidden className="size-4"/>{t("الساعات المقترحة", "Suggested hours")}</dt>
                       <dd className="mt-1 text-xl font-semibold">{formatHours(task.default_hours, locale)}</dd></div>
                     {!canManage && approvedHours != null && <div>
@@ -140,7 +147,7 @@ export function TaskDetailView({
                         <dt className="text-muted-foreground">{t("تاريخ البداية", "Starts")}</dt><dd>{formatRiyadhDateTime(task.starts_at, locale)}</dd>
                       </div>}
                     </dl>
-                    {remaining && <div><OrganizationStatusBadge status={end !== null && now >= end ? "ended" : "open"}>{remaining}</OrganizationStatusBadge></div>}
+                    {remaining && <p className="text-sm text-muted-foreground">{remaining}</p>}
                     {progress !== null && <Progress value={progress} aria-label={t("تقدم فترة المهمة", "Task period progress")}/>}
                   </>}
                 </CardContent>

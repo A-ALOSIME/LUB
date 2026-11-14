@@ -42,3 +42,19 @@ it("shows approved hours only from the approved ledger, independently of the sug
   expect(summary.getByText("ساعاتك المعتمدة").nextElementSibling?.textContent).toContain("واحدة");
   expect(screen.queryByRole("textbox",{name:"وصف المخرج"})).toBeNull();
 });
+
+it("shows the same participation status beside the title and in the sidebar even after the deadline", () => {
+  const detail = {...d, task:{...d.task, due_at:"2026-10-24T12:00:00Z"}};
+  const {rerender} = show(detail);
+  const heading = screen.getByRole("heading",{level:1});
+  const header = within(heading.closest("header")!);
+  const sidebar = within(screen.getByRole("complementary"));
+
+  expect(heading.closest("header")?.dir).toBe("rtl");
+  expect(header.getByText("قيد العمل").dataset.status).toBe(sidebar.getByText("قيد العمل").dataset.status);
+  expect(sidebar.getByText("انتهت مهلة التسليم")).toBeTruthy();
+
+  rerender(<TaskDetailView detail={{...detail, own:{...d.own!, status_code:"Submitted"}}} page={0} teamPage={0} participant={null}/>);
+  expect(header.getByText("قيد المراجعة")).toBeTruthy();
+  expect(sidebar.getByText("قيد المراجعة")).toBeTruthy();
+});
