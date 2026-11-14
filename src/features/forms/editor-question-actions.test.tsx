@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {cleanup,fireEvent,render,screen,within,waitFor} from "@testing-library/react";
+import {cleanup,fireEvent,render,screen,within} from "@testing-library/react";
 import {afterEach,expect,it,vi} from "vitest";
 const mutate=vi.hoisted(()=>vi.fn().mockResolvedValue({success:"Saved"}));
 vi.mock("./actions",()=>({mutateWorkflow:mutate}));
@@ -61,8 +61,4 @@ it("drags question backgrounds while protecting fields and direct actions",()=>{
  open();const cards=document.querySelectorAll<HTMLElement>('.editor-question [data-question-draggable="true"]');expect(cards).toHaveLength(2);
  const transfer={setData:vi.fn(),effectAllowed:""};fireEvent.mouseDown(cards[0]);expect(cards[0].draggable).toBe(true);fireEvent.dragStart(cards[0],{dataTransfer:transfer});fireEvent.drop(cards[1],{dataTransfer:transfer});expect(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/})).toBeTruthy();
  fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الثاني/}));const field=screen.getByRole("textbox",{name:"السؤال"});const card=field.closest<HTMLElement>('[data-question-draggable="true"]')!;fireEvent.mouseDown(field);expect(card.draggable).toBe(false);fireEvent.change(field,{target:{value:"كتابة طبيعية"}});expect((field as HTMLInputElement).value).toBe("كتابة طبيعية");const button=screen.getByRole("button",{name:"نسخ السؤال · السؤال 1"});fireEvent.mouseDown(button);expect(card.draggable).toBe(false);fireEvent.click(button);expect(document.querySelectorAll('.editor-question [data-question-draggable="true"]')).toHaveLength(3);
-});
-
-it("publishes changes to a previously published form on save through the versioned workflow",async()=>{
- mutate.mockClear();render(<FormEditor version="version" revision={1} initial={initial} publishOnSave/>);fireEvent.click(screen.getByRole("button",{name:/بيانات الطلب/}));fireEvent.click(screen.getByRole("button",{name:/السؤال 1 · السؤال الأول/}));fireEvent.change(screen.getByRole("textbox",{name:"السؤال"}),{target:{value:"عنوان معدّل"}});fireEvent.click(screen.getByRole("button",{name:"حفظ التعديلات"}));await waitFor(()=>expect(mutate).toHaveBeenCalledTimes(2));expect(mutate.mock.calls.map(call=>(call[1] as FormData).get("operation"))).toEqual(["save-form","publish-form"]);
 });

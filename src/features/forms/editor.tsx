@@ -73,14 +73,14 @@ export function FormEditor({
   initial,
   locale = "ar",
   returnHref,
-  publishOnSave=false,
+  isPublished=false,
 }: {
   version: string;
   revision: number;
   initial: FormDefinition;
   locale?: Locale;
   returnHref?: string;
-  publishOnSave?:boolean;
+  isPublished?:boolean;
 }) {
   const router=useRouter();
   const en = locale === "en",
@@ -219,7 +219,7 @@ export function FormEditor({
         toast.add({
           title: publish
             ? c("تم نشر النسخة", "Version published")
-            : c("تم حفظ المسودة", "Draft saved"),
+            : isPublished ? c("تم حفظ التعديلات", "Changes saved") : c("تم حفظ المسودة", "Draft saved"),
           type: "success",
           timeout: 3000,
         });
@@ -271,7 +271,7 @@ export function FormEditor({
         className="form-editor flex min-w-0 flex-col gap-5 pb-32"
         onSubmit={(event) => {
           event.preventDefault();
-          perform(publishOnSave);
+          perform();
         }}
       >
         <input
@@ -590,12 +590,12 @@ export function FormEditor({
           message={
             dirty
               ? <Badge variant="secondary">{c("غير محفوظ","Unsaved")}</Badge>
-              : c("المسودة محفوظة", "Draft saved")
+              : isPublished ? c("التعديلات محفوظة", "Changes saved") : c("المسودة محفوظة", "Draft saved")
           }
           actions={
             <>
 
-              <Button
+              {!isPublished && <Button
                 type="button"
                 disabled={pending}
                 onClick={() => {
@@ -606,14 +606,14 @@ export function FormEditor({
                 {pending
                   ? c("جاري الحفظ", "Saving…")
                   : c("نشر النسخة", "Publish version")}
-              </Button>
+              </Button>}
               <Button
                 type="submit"
                 variant="outline"
                 disabled={pending || !dirty}
               >
                 <Save />
-                {publishOnSave?c("حفظ التعديلات","Save changes"):c("حفظ المسودة", "Save draft")}
+                {isPublished ? c("حفظ التعديلات", "Save changes") : c("حفظ المسودة", "Save draft")}
               </Button>
             </>
           }
@@ -627,8 +627,8 @@ export function FormEditor({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {c(
-                "سنحفظ آخر تعديلاتك ثم نثبّت النسخة لتصبح للقراءة فقط. طلبات الطلاب السابقة تبقى مرتبطة بنسخها ولا تتغير.",
-                "Your latest edits will be saved and this version locked. Earlier applications remain attached to their original versions.",
+                "سنحفظ آخر تعديلاتك وننشر النموذج ليكون متاحًا للتسجيل. طلبات الطلاب السابقة تحتفظ بأسئلتها وإجاباتها.",
+                "Your latest edits will be saved and the form will be available for registration. Earlier applications keep their questions and answers.",
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

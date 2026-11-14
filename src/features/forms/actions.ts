@@ -16,7 +16,7 @@ function json(form: FormData, name: string, max: number) { const value=z.string(
 export async function mutateWorkflow(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
  const user = await requireUser(); let templateId:string|undefined; let affectedOrganization:string|undefined;
  try {
-  const operation = z.enum(["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form","create-round","save-round","delete-round","round-status","submit","withdraw","decide","bulk"]).parse(form.get("operation"));
+  const operation = z.enum(["create-form","save-form","publish-form","delete-form","duplicate-form","create-round","save-round","delete-round","round-status","submit","withdraw","decide","bulk"]).parse(form.get("operation"));
   if (["submit","withdraw"].includes(operation)) {
    const adminError = await studentOperationError(user.id);
    if (adminError) return { error: adminError };
@@ -28,7 +28,6 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
     case "create-form": return sql`select lub.create_form(${uuid(form,"org")},${text(form,"title")},${optionalUuid(form,"source")})`;
     case "save-form": return sql`select lub.save_form_draft(${uuid(form,"version")},${JSON.stringify(definitionSchema.parse(json(form,"definition",128000)))}::jsonb,${z.coerce.number().int().positive().parse(form.get("revision"))})`;
     case "publish-form": return sql`select lub.publish_form_version(${uuid(form,"version")})`;
-    case "draft-form": return sql`select lub.start_form_draft(${uuid(form,"template")})`;
     case "delete-round": {if(form.get("confirm")!=="on")throw new Error("confirmation");return sql`select lub.transition_campaign('round',${uuid(form,"round")},'delete','Draft')`;}
     case "create-round":
     case "save-round": {
@@ -69,6 +68,6 @@ export async function mutateWorkflow(_previous: WorkflowState, form: FormData): 
    const result=await tx.execute(query);if(["create-round","save-round"].includes(operation)&&form.has("requirements-present")){const hours=z.coerce.number().finite().min(0).max(100000).multipleOf(.01).parse(form.get("minimumHours")??0),majors=z.array(z.enum(studentMajors)).max(3).refine(v=>new Set(v).size===v.length).parse(form.getAll("allowedMajor"));await tx.execute(sql`select lub.set_round_requirements(${z.uuid().parse(result[0]?.id)},${hours}::numeric,${JSON.stringify(majors)}::jsonb)`);}return result;});
   if(operation==="duplicate-form") templateId=z.uuid().parse(result[0]?.id);
  } catch (error) { const cause=error instanceof Error && "cause" in error?error.cause:error; const message=cause instanceof Error?cause.message:""; if(message.includes("ROUND_REQUIREMENTS_NOT_MET"))return {error:"لا تستوفي شروط الساعات أو التخصص لهذه الجولة. راجع الشروط في صفحة الجهة."}; if(message.includes("ROUND_REQUIRED_FIELDS"))return {error:"أكمل عنوان الجولة والنموذج المنشور وفترة التسجيل قبل النشر."}; if(message.includes("ROUND_ACTIVE_EXISTS"))return {error:"توجد جولة تسجيل مفتوحة أو قادمة لهذه الجهة. أوقفها أولًا قبل نشر جولة أخرى."}; if(message.includes("ROUND_EXPIRED"))return {error:"انتهت فترة الجولة. عدّل الفترة ومدّد موعد الإغلاق قبل إعادة الفتح."}; if(message.includes("ROUND_FORM_LOCKED"))return {error:"لا يمكن استبدال النموذج بعد استقبال طلبات. يمكنك تعديل أسئلته في نسخة جديدة."}; if(form.get("operation")==="delete-form")return {error:"تعذّر حذف النموذج. يجب ألا يكون مستخدمًا في جولة أو فعالية، وأن تكون قائد الجهة أو نائبه."}; if(form.get("operation")==="duplicate-form")return {error:"تعذّر إنشاء نسخة. تحقق من صلاحية إدارة النماذج وأعد المحاولة."}; return { error:"تعذّر الحفظ. راجع الحقول والصلاحيات؛ حدّث الصفحة إذا تغيّرت نسخة النموذج أو حالة الطلب. رسالة المقابلة مطلوبة عند اختيار مقابلة." }; }
- updateTag("public-organizations"); if (["create-form","save-form","publish-form","draft-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); if(affectedOrganization){revalidatePath(`/manage/organizations/${affectedOrganization}/renewals`);revalidatePath(`/manage/organizations/${affectedOrganization}/members`);} revalidatePath("/organizations"); revalidatePath("/applications");
+ updateTag("public-organizations"); if (["create-form","save-form","publish-form","delete-form","duplicate-form"].includes(String(form.get("operation")))) updateTag("events"); if (["decide","bulk"].includes(String(form.get("operation")))) updateTag("public-talent"); if(affectedOrganization){revalidatePath(`/manage/organizations/${affectedOrganization}/renewals`);revalidatePath(`/manage/organizations/${affectedOrganization}/members`);} revalidatePath("/organizations"); revalidatePath("/applications");
  return { success: form.get("operation")==="duplicate-form" ? "تم إنشاء نسخة" : form.get("operation")==="delete-form" ? "تم حذف النموذج" : "تم حفظ التغيير.", templateId };
 }
