@@ -47,7 +47,7 @@ export function ManagementActionFooter({ label, pending = false, disabled = fals
   </div>;
 }
 
-export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerAriaLabel, rowAction = false, headerAction, sheetClassName, visuallyHideTitle = false, footer,disabled=false,hint }: {
+export function ManagementActionSheet({ label, title, children, locale = "ar", initiallyOpen = false, icon, variant = "outline", presentation = "dialog", open: controlledOpen, onOpenChange, hideTrigger = false, width = "default", mobileBottomSheet = false, triggerSize = "sm", triggerClassName, triggerAriaLabel, rowAction = false, headerAction, sheetClassName, visuallyHideTitle = false, footer,disabled=false,hint }: {
   disabled?:boolean;
   hint?:string;
   label: string;
@@ -65,6 +65,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   mobileBottomSheet?: boolean;
   triggerSize?: "sm" | "default" | "lg" | "icon-sm";
   triggerAriaLabel?: string;
+  triggerClassName?: string;
   rowAction?: boolean;
   headerAction?: ReactNode;
   sheetClassName?: string;
@@ -81,7 +82,7 @@ export function ManagementActionSheet({ label, title, children, locale = "ar", i
   const body = <ManagementActionProvider locale={locale} close={() => setOpen(false)}>
     <div className="management-action-scroll" data-management-action-scroll>{children}</div>
   </ManagementActionProvider>;
-  const trigger = <Button type="button" variant={variant === "destructive" ? "danger-outline" : variant} size={triggerSize} disabled={disabled} aria-label={triggerAriaLabel} title={triggerAriaLabel}>{icon ?? <Plus aria-hidden="true" />}{label}</Button>;
+  const trigger = <Button type="button" variant={variant === "destructive" ? "danger-outline" : variant} size={triggerSize} className={triggerClassName} disabled={disabled} aria-label={triggerAriaLabel} title={triggerAriaLabel}>{icon ?? <Plus aria-hidden="true" />}{label}</Button>;
   const directTrigger = !hideTrigger && rowAction ? <RowAction disabled={disabled} hint={hint} label={label || triggerAriaLabel || title} danger={variant === "destructive"} onClick={() => setOpen(true)}>{icon ?? <Plus aria-hidden="true" />}</RowAction> : null;
 
   if (presentation === "sheet" || mobile) return <Sheet open={open} onOpenChange={setOpen}>

@@ -171,7 +171,9 @@ it("stores event selections with publication and counts verified completed event
   await db.query("update lub.users set public_slug=$1,public_profile_enabled=true where id=$2",[id(403),id(3)]);
   await actor(3);
   await db.query("select lub.save_profile_skill_selection($1,$2)",[id(403),JSON.stringify([{key:"python",featured:true}])]);
-  expect((await eventDetail(id(3), event))?.event.skills).toBeUndefined();
+  expect((await eventDetail(id(3), event))?.event.skills).toMatchObject([{key:"python"}]);
+  expect((await eventDetail(null, event))?.event.skills).toMatchObject([{key:"python"}]);
+  await actor(3);
   const registration = (
     await db.query<{ id: string }>(
       "select lub.register_event($1,null,'{}',null) as id",
@@ -309,4 +311,35 @@ it("loads registrations across pages and invalidates only authorized cache versi
  await db.exec("reset role");await db.query("update lub.users set is_test_account=true where id=$1",[id(3)]);
  const counted=await eventRegistrants(id(1),id(100),null,"","",null,false);
  expect(counted.items).toHaveLength(27);expect(counted.pending).toBe(0);
+});
+
+it("limits the online attendance link to the accepted attendee and the event period", async () => {
+ const url = "https://example.invalid/private-meeting";
+ const target = (await db.query<{id:string}>(`select lub.save_event(null,$1,'Online workshop','Description','Online','Zoom',$2,
+   now()+interval '2 days',now()+interval '3 days',now()-interval '1 day',now()+interval '1 day',20,null,3,null) id`, [id(100),url])).rows[0].id;
+ await db.query("select lub.change_event_status($1,'Published',1)",[target]);
+ await actor(3);
+ const registration = (await db.query<{id:string}>("select lub.register_event($1,null,'{}',null) id",[target])).rows[0].id;
+ await actor(2);
+ await db.query("select lub.review_event_registrations(ARRAY[$1]::uuid[],'Accepted','')",[registration]);
+ expect((await eventDetail(id(3),target))?.event).toMatchObject({online_url:null,attendance_url:null});
+ expect((await eventEditor(id(1),id(100),target))?.event.online_url).toBe(url);
+
+ await db.exec("reset role");
+ await db.query(`update lub.organization_content set starts_at=now()-interval '1 hour',ends_at=now()+interval '1 hour',
+   registration_opens_at=now()-interval '2 days',registration_closes_at=now()-interval '2 hours' where id=$1`,[target]);
+ expect((await eventDetail(id(3),target))?.event).toMatchObject({online_url:null,attendance_url:url});
+ expect((await eventDetail(id(2),target))?.event.attendance_url).toBeNull();
+ expect((await eventDetail(null,target))?.event).toMatchObject({online_url:null,attendance_url:null});
+ expect((await listEvents("","all",0)).find(event=>event.id===target)?.online_url).toBeNull();
+ await actor(3);
+ await denied(()=>db.query("select online_url from lub.organization_content where id=$1",[target]));
+ expect((await db.query("select id from lub.organization_content where id=$1",[target])).rows).toEqual([{id:target}]);
+ await db.exec("reset role");
+ await db.query("update lub.event_registrations set review_status_code='Pending' where id=$1",[registration]);
+ expect((await eventDetail(id(3),target))?.event.attendance_url).toBeNull();
+ await db.exec("reset role");
+ await db.query("update lub.event_registrations set review_status_code='Accepted' where id=$1",[registration]);
+ await db.query("update lub.organization_content set ends_at=now()-interval '30 minutes' where id=$1",[target]);
+ expect((await eventDetail(id(3),target))?.event.attendance_url).toBeNull();
 });

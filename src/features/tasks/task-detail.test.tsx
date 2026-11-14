@@ -2,7 +2,7 @@
 import {cleanup,render,screen,fireEvent,within} from "@testing-library/react";
 import {afterEach,it,expect,vi} from "vitest";
 vi.mock("next/navigation",()=>({useRouter:()=>({push:vi.fn(),refresh:vi.fn(),prefetch:vi.fn()})}));
-vi.mock("./page-forms",()=>({TaskSubmissionAction:()=> <button>سلّم الآن</button>,TaskPageForm:({label}:{label:string})=><button>{label}</button>}));
+vi.mock("./page-forms",()=>({TaskSubmissionAction:()=> <button>سلّم الآن</button>,TaskPageSubmission:()=> <label>وصف المخرج<textarea/></label>,TaskPageForm:({label}:{label:string})=><button>{label}</button>}));
 vi.mock("./task-form",()=>({TaskForm:({label,children}:{label:string;children:React.ReactNode})=><form>{children}<button>{label}</button></form>}));
 vi.mock("@/features/hours/actions",()=>({mutateHours:vi.fn()}));
 import {TaskDetailView} from "./task-detail";
@@ -11,13 +11,13 @@ const d:TaskDetail={asOf:"2026-10-25T12:00:00Z",task:{id:"task",organization_id:
 const submission:Submission={id:"submission",name:"سارة",major:"الحاسب",level:"5",revision_number:1,message:"السطر الأول\nالسطر الثاني",status_code:"Submitted",submitted_at:"2026-10-24T10:00:00Z",review_note:null,reviewed_at:null,assets:[{id:"asset",name:"%D9%85%D9%84%D9%81%20%D8%B9%D9%85%D9%84.pdf"}]};
 afterEach(()=>{cleanup();window.history.replaceState(null,"","/");});
 function show(detail:TaskDetail=d){return render(<TaskDetailView detail={detail} page={0} teamPage={0} participant={null}/>);}
-it("shows a full-width task and an explicit submission action without the removed participation/settings/actions sections",()=>{
+it("shows inline submission and proposed hours without management sections for a student",()=>{
  show({...d,linkedEvent:{id:"event",title:"فعالية",status:"Published"},summary:{participants:4,submitted:2}});
- expect(screen.getByRole("heading",{level:1}).textContent).toBe("تصميم الملصق");expect(screen.getByRole("button",{name:"سلّم الآن"})).toBeTruthy();expect(screen.queryByRole("textbox",{name:"وصف التسليم"})).toBeNull();expect(screen.queryByRole("button",{name:"إضافة تسليم"})).toBeNull();
- for(const label of ["مشاركتي","الفعالية المرتبطة","نسبة التسليم","إجراءات المهمة","سجل نسخ المهمة"])expect(screen.queryByText(label)).toBeNull();expect(screen.queryByRole("button",{name:"بدء العمل"})).toBeNull();expect(document.querySelector("aside")).toBeNull();
+ expect(screen.getByRole("heading",{level:1}).textContent).toBe("تصميم الملصق");expect(screen.getByRole("textbox",{name:"وصف المخرج"})).toBeTruthy();expect(screen.queryByRole("button",{name:"سلّم الآن"})).toBeNull();expect(screen.queryByRole("button",{name:"إضافة تسليم"})).toBeNull();
+ for(const label of ["مشاركتي","الفعالية المرتبطة","نسبة التسليم","إجراءات المهمة","سجل نسخ المهمة"])expect(screen.queryByText(label)).toBeNull();expect(screen.queryByRole("button",{name:"بدء العمل"})).toBeNull();expect(within(screen.getByRole("complementary")).getByText("الساعات المقترحة")).toBeTruthy();expect(screen.queryByText("ساعاتك المعتمدة")).toBeNull();
 });
-it("shows the uncropped poster beside task content, outside the heading and derives deadline progress from the server clock",()=>{
- const {container}=show({...d,task:{...d.task,image_asset_id:"poster",starts_at:"2026-10-24T12:00:00Z",due_at:"2026-10-26T12:00:00Z"}});const image=screen.getAllByRole("img")[0];expect(container.querySelector("header img")).toBeNull();expect(container.querySelector("aside img")).toBeTruthy();expect(image.className).toContain("h-auto");expect(image.className).not.toMatch(/object-cover|aspect/);expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
+it("shows the uncropped poster beside the description and calculates deadline progress from the server clock",()=>{
+ const {container}=show({...d,task:{...d.task,image_asset_id:"poster",starts_at:"2026-10-24T12:00:00Z",due_at:"2026-10-26T12:00:00Z"}});const image=screen.getAllByRole("img")[0];expect(container.querySelector("header img")).toBeNull();expect(container.querySelector("aside img")).toBeNull();expect(screen.getByRole("button",{name:"تكبير صورة المهمة"}).contains(image)).toBe(true);expect(image.className).toContain("h-auto");expect(image.className).not.toMatch(/object-cover|aspect/);expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("50");
 });
 it("offers joining again only for an own withdrawal and preserves final closures",()=>{
  const view=show({...d,own:{...d.own!,status_code:"Closed",withdrawn_at:"2026-10-25",closed_at:"2026-10-25"}});expect(screen.getByRole("button",{name:"الانضمام للمهمة"})).toBeTruthy();view.rerender(<TaskDetailView detail={{...d,own:{...d.own!,status_code:"Closed",withdrawn_at:null,closed_at:"2026-10-25"}}} page={0} teamPage={0} participant={null}/>);expect(screen.queryByRole("button",{name:"الانضمام للمهمة"})).toBeNull();
@@ -26,11 +26,19 @@ it("keeps student submission details owner-visible with original file names and 
  show({...d,submissions:[submission]});fireEvent.click(screen.getByRole("tab",{name:"تسليماتي"}));const table=within(screen.getByRole("table"));fireEvent.click(table.getAllByRole("row")[1]);const dialog=within(screen.getByRole("dialog"));expect(dialog.getByText("السطر الأول السطر الثاني")).toBeTruthy();expect(dialog.getByRole("link",{name:"ملف عمل.pdf"}).getAttribute("href")).toBe("/files/asset");expect(dialog.queryByText(/نسخة المهمة/)).toBeNull();expect(dialog.queryByText("وصف المهمة وقت التسليم")).toBeNull();expect(table.queryByRole("button",{name:"اعتماد"})).toBeNull();
 });
 it("renders participants and all submissions as tables, with decision icons and no hours or decision select in the review dialog",()=>{
- show({...d,canManage:true,submissions:[submission],team:[{id:"p",name:"سارة",major:"الحاسب",level:"5",joinedAt:"2026-10-20",status:"Submitted"}]});expect(screen.getByRole("tab",{name:"المنضمون للمهمة"})).toBeTruthy();expect(screen.queryByText("الفعالية المرتبطة")).toBeNull();expect(screen.queryByLabelText("إجراءات المهمة")).toBeNull();
- fireEvent.click(screen.getByRole("tab",{name:"كل التسليمات"}));const table=within(screen.getByRole("table"));expect(table.getAllByRole("columnheader").map(cell=>cell.textContent)).toEqual(["الطالب","التسليم","وقت التسليم","الحالة","الإجراءات"]);expect(table.getByRole("button",{name:"طلب تعديل وإعادة تسليم"})).toBeTruthy();fireEvent.click(table.getByRole("button",{name:"رفض"}));const dialog=within(screen.getByRole("alertdialog"));expect(dialog.getByRole("textbox",{name:/الملاحظة/})).toBeTruthy();expect(dialog.queryByRole("combobox")).toBeNull();expect(dialog.queryByRole("spinbutton")).toBeNull();
+ show({...d,canManage:true,submissions:[submission],team:[{id:"p",name:"سارة",major:"الحاسب",level:"5",joinedAt:"2026-10-20",status:"Submitted"}]});expect(screen.getByRole("tab",{name:"المنضمون للمهمة"})).toBeTruthy();expect(screen.queryByText("الفعالية المرتبطة")).toBeNull();expect(screen.queryByLabelText("إجراءات المهمة")).toBeNull();expect(screen.queryByRole("textbox",{name:"وصف المخرج"})).toBeNull();
+ fireEvent.click(screen.getByRole("tab",{name:"كل التسليمات"}));expect(screen.queryByRole("complementary")).toBeNull();const table=within(screen.getByRole("table"));expect(table.getAllByRole("columnheader").map(cell=>cell.textContent)).toEqual(["الطالب","التسليم","وقت التسليم","الحالة","الإجراءات"]);expect(table.getByRole("button",{name:"طلب تعديل وإعادة تسليم"})).toBeTruthy();fireEvent.click(table.getByRole("button",{name:"رفض"}));const dialog=within(screen.getByRole("alertdialog"));expect(dialog.getByRole("textbox",{name:/الملاحظة/})).toBeTruthy();expect(dialog.queryByRole("combobox")).toBeNull();expect(dialog.queryByRole("spinbutton")).toBeNull();
 });
 it("keeps task revision history out of the management presentation",()=>{
  show({...d,canManage:true,task:{...d.task,revision:7}});
  expect(screen.queryByText("سجل نسخ المهمة")).toBeNull();
  expect(screen.queryByText(/نسخة المهمة/)).toBeNull();
+});
+
+it("shows approved hours only from the approved ledger, independently of the suggested hours", () => {
+  show({...d, approvedHours:"1", own:{...d.own!,status_code:"Approved"}});
+  const summary=within(screen.getByRole("complementary"));
+  expect(summary.getByText("الساعات المقترحة")).toBeTruthy();
+  expect(summary.getByText("ساعاتك المعتمدة").nextElementSibling?.textContent).toContain("واحدة");
+  expect(screen.queryByRole("textbox",{name:"وصف المخرج"})).toBeNull();
 });

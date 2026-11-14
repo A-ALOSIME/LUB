@@ -4,6 +4,7 @@ import {createTranslator} from "@/lib/i18n";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {CircleCheck} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {RequestStatusBadge} from "@/features/forms/request-status-badge";
 import { Spinner } from "@/components/ui/spinner";
@@ -81,7 +82,14 @@ export function PublicEventRegistration({
   }
   const active = own?.status_code === "Registered";
   let control;
-  if (active)
+  if (active && own.review_status_code !== "Rejected" && own.attendance === "Present")
+    control = (
+      <Alert className="w-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
+        <CircleCheck aria-hidden/>
+        <AlertDescription className="text-current">{c("تم رصد حضورك", "Your attendance was recorded")}</AlertDescription>
+      </Alert>
+    );
+  else if (active)
     control = (
       <div className="flex flex-wrap items-center gap-3">
         <RequestStatusBadge status={own?.review_status_code??"Accepted"} locale={locale}/>
@@ -100,7 +108,7 @@ export function PublicEventRegistration({
         className="h-auto min-h-10 w-full whitespace-normal py-3"
       >
         {remaining === 0
-          ? c("ممتلئ", "Full")
+          ? c("اكتملت المقاعد", "Event is full")
           : upcoming
             ? c(
                 `يفتح التسجيل في ${formatRiyadhDateTime(event.registration_opens_at, locale)}`,
@@ -113,7 +121,7 @@ export function PublicEventRegistration({
     control = (
       <Button
         nativeButton={false}
-        className="w-full"
+        className="min-h-10 w-full whitespace-normal"
         render={
           <Link
             href={`/login?next=${encodeURIComponent(`/events/${event.id}`)}`}
@@ -127,7 +135,7 @@ export function PublicEventRegistration({
     control = (
       <Button
         nativeButton={false}
-        className="w-full"
+        className="min-h-10 w-full whitespace-normal"
         render={
           <Link
             href={`/onboarding?next=${encodeURIComponent(`/events/${event.id}`)}`}
@@ -143,7 +151,8 @@ export function PublicEventRegistration({
         label={c("سجّل في الفعالية", "Register for event")}
         title={event.title}
         variant="default"
-        triggerSize="lg"
+        triggerSize="default"
+        triggerClassName="w-full min-h-10"
         locale={locale}
         mobileBottomSheet
       >
@@ -160,7 +169,7 @@ export function PublicEventRegistration({
   else
     control = (
       <Button
-        className="w-full"
+        className="min-h-10 w-full whitespace-normal"
         disabled={pending}
         onClick={() => submit("register")}
       >
@@ -171,8 +180,9 @@ export function PublicEventRegistration({
       </Button>
     );
   return (
-    <div className="public-event-registration">
-      <div className="public-event-cta">{control}</div>{active&&own.review_status_code==="Rejected"&&own.review_note&&<p className="mt-2 text-sm text-muted-foreground">{own.review_note}</p>}
+    <div className="flex min-w-0 flex-col gap-2">
+      {control}
+      {active&&own.review_status_code==="Rejected"&&own.review_note&&<p className="mt-2 text-sm text-muted-foreground">{own.review_note}</p>}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

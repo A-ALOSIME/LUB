@@ -1,7 +1,7 @@
-CREATE FUNCTION lub.event_catalog(query text,period text,page int,org uuid,only_open boolean)
+CREATE OR REPLACE FUNCTION lub.event_catalog(query text,period text,page int,org uuid,only_open boolean)
 RETURNS TABLE(id uuid,title text,starts_at timestamptz,ends_at timestamptz,status_code text,source_date_text text,location_type_code text,location_text text,online_url text,org_name text,org_type_code text,org_logo_url text,slug text,organization_id uuid,has_poster boolean,open boolean,title_en text,org_name_en text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
- SELECT e.id,e.title::text,e.starts_at,e.ends_at,e.status_code,e.source_date_text::text,e.location_type_code,e.location_text::text,e.online_url::text,
+ SELECT e.id,e.title::text,e.starts_at,e.ends_at,e.status_code,e.source_date_text::text,e.location_type_code,e.location_text::text,NULL::text,
   o.name_ar::text,o.type_code,o.logo_url::text,o.slug::text,o.id,e.primary_image_id IS NOT NULL,lub.event_registration_open(e.id),e.title_en::text,o.name_en::text
  FROM lub.organization_content e JOIN lub.organizations o ON o.id=e.organization_id
  WHERE e.kind='Event' AND o.status_code='Active' AND e.published_at<=statement_timestamp() AND e.archived_at IS NULL AND e.deleted_at IS NULL
@@ -35,10 +35,15 @@ BEGIN
  UPDATE lub.organization_content SET is_featured=featured,revision=revision+1,updated_at=now() WHERE id=target AND is_featured<>featured;
 END; $$;
 
-CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+CREATE OR REPLACE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT jsonb_build_object(
   'event',jsonb_build_object('id',e.id,'organization_id',e.organization_id,'title',e.title,'title_en',e.title_en,'description',e.body,'description_en',e.body_en,
-   'source_date_text',e.source_date_text,'location_type_code',e.location_type_code,'location_text',e.location_text,'online_url',e.online_url,
+   'source_date_text',e.source_date_text,'location_type_code',e.location_type_code,'location_text',e.location_text,
+   'online_url',CASE WHEN access.manage THEN e.online_url END,
+   'attendance_url',CASE WHEN r.status_code='Registered' AND r.review_status_code='Accepted'
+    AND lub.is_student_account(r.user_id) AND e.location_type_code IN ('Online','Hybrid')
+    AND e.status_code='Published' AND lub.content_is_public(e.id)
+    AND statement_timestamp()>=e.starts_at AND statement_timestamp()<e.ends_at THEN e.online_url END,
    'starts_at',coalesce(e.starts_at::text,''),'ends_at',coalesce(e.ends_at::text,''),
    'registration_opens_at',coalesce(e.registration_opens_at::text,''),'registration_closes_at',coalesce(e.registration_closes_at::text,''),
    'capacity',CASE WHEN access.manage THEN e.capacity END,'attendance_hours',e.attendance_hours::text,'status_code',e.status_code,
@@ -46,7 +51,8 @@ CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SE
     FROM jsonb_array_elements(e.public_photos) WITH ORDINALITY AS photos(p,ordinal) WHERE p?'url'),'[]'),
    'revision',CASE WHEN access.manage THEN e.revision ELSE 0 END,'registration_form_template_id',CASE WHEN access.manage THEN e.form_id END,
    'has_poster',e.primary_image_id IS NOT NULL,'requires_approval',e.requires_review)
-   || CASE WHEN access.manage THEN jsonb_build_object('skills',lub.activity_skill_items(e.skill_ids)) ELSE '{}' END,
+   || CASE WHEN access.manage OR lub.content_is_public(e.id)
+    THEN jsonb_build_object('skills',lub.activity_skill_items(e.skill_ids)) ELSE '{}' END,
   'org_name',o.name_ar,'org_name_en',o.name_en,'org_logo',o.logo_url,'org_type_code',o.type_code,'slug',o.slug,
   'status',u.status_code,'onboarded',u.onboarded_at IS NOT NULL,
   'open',lub.event_registration_open(e.id),
@@ -59,6 +65,7 @@ CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SE
    WHEN lub.content_is_public(e.id) OR access.manage THEN (SELECT jsonb_build_object('id',f->>'id','definition',f->'version'->'definition')
     FROM jsonb_array_elements(o.forms) f WHERE f->>'id'=e.form_id::text AND f->'version'->>'status_code'='Published') END,
   'committees',coalesce((SELECT jsonb_agg(c) FROM lub.form_committee_options(o.id) c),'[]'),
+  'isPublic',lub.content_is_public(e.id),
   'canManage',access.manage,'canFeature',lub.can_feature_event(e.id),'canAttend',lub.can_operate_event(e.id,'EVENT_ATTENDANCE_MANAGE'),
   'registrations','[]'::jsonb,
   'assets',CASE WHEN access.manage THEN coalesce((SELECT jsonb_agg(jsonb_build_object('id',a.id,'file_name',a.file_name,'asset_type_code',f->>'type'))
@@ -69,6 +76,17 @@ CREATE FUNCTION lub.event_page(target uuid) RETURNS jsonb LANGUAGE sql STABLE SE
  CROSS JOIN LATERAL (SELECT lub.can_operate_event(e.id) AS manage) access
  WHERE e.id=target AND e.kind='Event' AND e.deleted_at IS NULL AND lub.can_read_event(e.id);
 $$;
+
+-- Public content rows remain readable without exposing the private meeting URL.
+REVOKE SELECT ON lub.organization_content FROM PUBLIC,anon,authenticated;
+REVOKE SELECT (online_url) ON lub.organization_content FROM PUBLIC,anon,authenticated;
+GRANT SELECT (
+ id,organization_id,created_by_user_id,duplicated_from_content_id,kind,title,title_en,body,body_en,status_code,
+ primary_image_id,external_url,starts_at,ends_at,registration_opens_at,registration_closes_at,form_id,
+ location_type_code,location_text,capacity,attendance_hours,requires_review,registration_paused,
+ archived_from_status,archived_from_published_at,pinned_at,is_featured,source_date_text,public_report,public_photos,
+ skill_ids,attachments,revision,published_at,completed_at,cancelled_at,archived_at,deleted_at,created_at,updated_at
+) ON lub.organization_content TO authenticated;
 
 CREATE FUNCTION lub.event_poster_for_viewer(target uuid) RETURNS TABLE(object_key text,mime_type text,thumbnail_png_base64 text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$

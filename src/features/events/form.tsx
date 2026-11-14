@@ -39,7 +39,9 @@ export function EventFields({value,templates=[],locale="ar",organization}:{value
    <DateRangeInput startName="starts" endName="ends" label={c("موعد الفعالية","Event dates")} startValue={value?.starts_at} endValue={value?.ends_at} required includeTime locale={locale}/>
    <div className="event-field-grid">
     {field("mode",c("طريقة الحضور","Attendance mode"),<NativeSelect id={`${id}-mode`} name="locationType" value={mode} onChange={event=>setMode(event.target.value)}><option value="In_Person">{c("حضوري","In person")}</option><option value="Online">{c("عن بُعد","Online")}</option><option value="Hybrid">{c("هجين","Hybrid")}</option></NativeSelect>)}
-    {mode!=="Online"&&field("location",c("المكان","Location"),<Input id={`${id}-location`} name="location" required maxLength={500} defaultValue={value?.location_text??""}/>,true)}
+    {mode==="Online"
+      ? field("platform",c("اسم منصة الحضور (اختياري)","Online platform name (optional)"),<Input id={`${id}-platform`} name="location" key="platform" maxLength={500} defaultValue={value?.location_type_code==="Online"?value.location_text??"":""} placeholder={c("مثل Zoom","e.g. Zoom")}/>)
+      : field("location",c("المكان","Location"),<Input id={`${id}-location`} name="location" key="venue" required maxLength={500} defaultValue={value?.location_type_code!=="Online"?value?.location_text??"":""}/>,true)}
     {mode!=="In_Person"&&<div className={mode==="Hybrid"?"event-field-full":""}>{field("url",c("رابط الاجتماع","Meeting link"),<Input id={`${id}-url`} name="url" type="url" required dir="ltr" className={en?"text-left":"text-right"} maxLength={2048} defaultValue={value?.online_url??""}/>,true)}</div>}
    </div>
   </FieldGroup></section>

@@ -119,7 +119,9 @@ it("keeps deputy-approved task hours in the pending queue until the committee le
   await actor(3); await db.query("select lub.review_task_submission_decision($1,'Approved','')", [submission]);
   await actor(2); const queue = (await db.query<{ data: { records: Array<{ id: string; source_code: string; hours: string }> } }>("select lub.hours_review_workspace($1) data", [id(100)])).rows[0].data;
   expect(queue.records).toMatchObject([{ source_code: "TASK", hours: "5.00" }]);
+  expect((await taskDetail(id(4), work, null, 0, 0, "student"))?.approvedHours).toBeNull();
   await db.query("select lub.review_hours($1,'Approved','')", [queue.records[0].id]);
+  expect((await taskDetail(id(4), work, null, 0, 0, "student"))?.approvedHours).toBe("5.00");
   expect((await db.query<{ data: typeof queue }>("select lub.hours_review_workspace($1) data", [id(100)])).rows[0].data.records).toEqual([]);
 });
 it("preserves finalized submission content and allows rejoining after withdrawal without losing past submissions", async () => {

@@ -93,7 +93,7 @@ $$;
 REVOKE ALL ON FUNCTION lub.task_list_scope(uuid,text),lub.task_workspace(uuid),lub.task_card_page(uuid,text,integer,text,text,boolean),lub.activity_fingerprint() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION lub.task_workspace(uuid),lub.task_card_page(uuid,text,integer,text,text,boolean),lub.activity_fingerprint() TO authenticated;
 
-CREATE FUNCTION lub.task_detail(target uuid,person uuid,management boolean,event_choices boolean,include_work boolean) RETURNS jsonb
+CREATE OR REPLACE FUNCTION lub.task_detail(target uuid,person uuid,management boolean,event_choices boolean,include_work boolean) RETURNS jsonb
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  WITH scope AS MATERIALIZED (
   SELECT t,o.name_ar,
@@ -117,6 +117,11 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
    || CASE WHEN v.manage THEN jsonb_build_object('skills',lub.activity_skill_items((v.t).skill_ids)) ELSE '{}'::jsonb END,
   'summary',CASE WHEN include_work AND v.manage THEN lub.task_counts(target) END,
   'own',CASE WHEN include_work THEN lub.task_participation_item(v.own) END,
+  'approvedHours',CASE WHEN include_work THEN (
+   SELECT h->>'hours' FROM lub.organization_memberships m CROSS JOIN LATERAL jsonb_array_elements(m.hours) h
+   WHERE m.id=(v.own).organization_membership_id AND h->>'source_code'='TASK'
+    AND h->>'source_id'=(v.own).id::text AND h->>'status_code'='Approved' LIMIT 1
+  ) END,
   'selected',CASE WHEN include_work AND person IS NULL THEN lub.task_participation_item(v.own)
    WHEN include_work AND v.review THEN (SELECT lub.task_participation_item(p) FROM lub.task_participants p WHERE p.task_id=target AND p.id=person) END,
   'lastRevision',CASE WHEN include_work THEN coalesce((SELECT max((s->>'revision_number')::int) FROM jsonb_array_elements((v.own).submissions) s),0) ELSE 0 END,
